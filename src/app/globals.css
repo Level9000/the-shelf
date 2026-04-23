@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  --app-bg: #f6f3ee;
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-strong: rgba(255, 255, 255, 0.98);
+  --surface-muted: rgba(247, 244, 239, 0.86);
+  --stroke: rgba(32, 28, 24, 0.08);
+  --ink: #16130f;
+  --muted: #6f675f;
+  --accent: #2f6f67;
+  --accent-soft: rgba(47, 111, 103, 0.12);
+  --danger: #9f3f38;
+  --shadow-soft: 0 24px 80px rgba(28, 24, 20, 0.08);
+  --shadow-card: 0 18px 46px rgba(24, 21, 18, 0.08);
+}
+
+@theme inline {
+  --color-background: var(--app-bg);
+  --color-foreground: var(--ink);
+}
+
+* {
+  border-color: var(--stroke);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family:
+    "Avenir Next",
+    "Segoe UI",
+    "Helvetica Neue",
+    sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(47, 111, 103, 0.08), transparent 34%),
+    radial-gradient(circle at top right, rgba(184, 164, 137, 0.12), transparent 28%),
+    linear-gradient(180deg, #f8f5f0 0%, #f3efe8 48%, #efebe4 100%);
+}
+
+code,
+pre,
+.font-mono {
+  font-family:
+    "SF Mono",
+    "IBM Plex Mono",
+    "Menlo",
+    monospace;
+}
+
+::selection {
+  background: rgba(47, 111, 103, 0.18);
+}
+
+.surface {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-soft);
+}
+
+.surface-card {
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-card);
+}
+
+.hairline {
+  border: 1px solid var(--stroke);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
