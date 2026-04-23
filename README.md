@@ -10,7 +10,7 @@ The product flow is:
 4. Transcribe and parse the note into proposed tasks
 5. Review and edit those tasks
 6. Save accepted tasks to the kanban board
-7. Drag cards between `Inbox`, `To Do`, `In Progress`, and `Done`
+7. Drag cards between `To Do`, `In Progress`, and `Done`
 
 ## Stack
 
@@ -18,7 +18,7 @@ The product flow is:
 - React 19
 - TypeScript
 - Tailwind CSS 4
-- Supabase Auth, Postgres, and Storage
+- Supabase Auth and Postgres
 - OpenAI HTTP APIs for transcription and structured task extraction
 - `dnd-kit` for kanban drag-and-drop
 
@@ -33,10 +33,10 @@ npm install
 2. Copy the environment template and fill it in:
 
 ```bash
-cp .env .env.local
+cp .env.example .env.local
 ```
 
-3. Create a Supabase project and run the SQL migration in [supabase/migrations/20260422_000001_create_shelf_mvp.sql](/Users/warren/SmallMachines/the-shelf/supabase/migrations/20260422_000001_create_shelf_mvp.sql).
+3. Create a Supabase project and run the SQL migrations in [supabase/migrations](/Users/warren/SmallMachines/the-shelf/supabase/migrations).
 
 4. In Supabase Auth:
 - Enable email/password auth.
@@ -68,14 +68,13 @@ See [.env.example](/Users/warren/SmallMachines/the-shelf/.env.example).
 
 ## Supabase schema notes
 
-The migration creates:
+The migrations create:
 
 - `projects`
 - `boards`
 - `board_columns`
 - `tasks`
 - `voice_captures`
-- storage bucket `voice-notes`
 
 It also includes:
 
@@ -106,7 +105,6 @@ Key areas:
 - Task editing and deletion
 - Drag-and-drop with persisted ordering
 - Browser-based audio recording
-- Audio upload to Supabase Storage
 - Transcription + AI task extraction
 - Review-before-save task acceptance flow
 - Responsive mobile/desktop layout
@@ -114,4 +112,4 @@ Key areas:
 ## Notes
 
 - The OpenAI integration is intentionally wrapped behind server-side helpers in [src/lib/ai/openai.ts](/Users/warren/SmallMachines/the-shelf/src/lib/ai/openai.ts) so the provider can be swapped later.
-- The app relies on browser `MediaRecorder`; if a browser blocks recording or does not support the selected mime type, the UI surfaces an error state.
+- The app relies on browser `MediaRecorder`; stopping a recording immediately begins transcription, and audio is kept in request memory only and is not persisted after transcription completes.

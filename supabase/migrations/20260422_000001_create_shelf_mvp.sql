@@ -40,7 +40,7 @@ create table if not exists public.voice_captures (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   project_id uuid not null references public.projects(id) on delete cascade,
-  audio_path text not null,
+  audio_path text,
   transcript text,
   ai_parsed_json jsonb,
   status text not null default 'pending_upload'
@@ -100,10 +100,9 @@ begin
 
   insert into public.board_columns (board_id, name, position)
   values
-    (created_board_id, 'Inbox', 1000),
-    (created_board_id, 'To Do', 2000),
-    (created_board_id, 'In Progress', 3000),
-    (created_board_id, 'Done', 4000);
+    (created_board_id, 'To Do', 1000),
+    (created_board_id, 'In Progress', 2000),
+    (created_board_id, 'Done', 3000);
 
   return new;
 end;
@@ -308,47 +307,3 @@ on public.voice_captures
 for delete
 to authenticated
 using (user_id = auth.uid() and public.owns_project(project_id));
-
-insert into storage.buckets (id, name, public)
-values ('voice-notes', 'voice-notes', false)
-on conflict (id) do nothing;
-
-create policy "voice_notes_select_own"
-on storage.objects
-for select
-to authenticated
-using (
-  bucket_id = 'voice-notes'
-  and split_part(name, '/', 1) = auth.uid()::text
-);
-
-create policy "voice_notes_insert_own"
-on storage.objects
-for insert
-to authenticated
-with check (
-  bucket_id = 'voice-notes'
-  and split_part(name, '/', 1) = auth.uid()::text
-);
-
-create policy "voice_notes_update_own"
-on storage.objects
-for update
-to authenticated
-using (
-  bucket_id = 'voice-notes'
-  and split_part(name, '/', 1) = auth.uid()::text
-)
-with check (
-  bucket_id = 'voice-notes'
-  and split_part(name, '/', 1) = auth.uid()::text
-);
-
-create policy "voice_notes_delete_own"
-on storage.objects
-for delete
-to authenticated
-using (
-  bucket_id = 'voice-notes'
-  and split_part(name, '/', 1) = auth.uid()::text
-);

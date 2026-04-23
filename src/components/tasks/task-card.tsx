@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CalendarDays, GripVertical, MessageSquareText } from "lucide-react";
@@ -21,6 +22,7 @@ export function TaskCard({
   task: Task;
   onOpen: (taskId: string) => void;
 }) {
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const {
     attributes,
     listeners,
@@ -37,6 +39,29 @@ export function TaskCard({
     },
   });
 
+  function handlePointerDown(event: React.PointerEvent<HTMLElement>) {
+    pointerStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }
+
+  function handleClick(event: React.MouseEvent<HTMLElement>) {
+    if (!pointerStartRef.current) {
+      onOpen(task.id);
+      return;
+    }
+
+    const movedX = Math.abs(event.clientX - pointerStartRef.current.x);
+    const movedY = Math.abs(event.clientY - pointerStartRef.current.y);
+
+    if (movedX < 6 && movedY < 6) {
+      onOpen(task.id);
+    }
+
+    pointerStartRef.current = null;
+  }
+
   return (
     <article
       ref={setNodeRef}
@@ -45,23 +70,22 @@ export function TaskCard({
         transition,
       }}
       className={cn(
-        "surface-card hairline group rounded-[1.5rem] p-4 transition-shadow",
+        "surface-card hairline group cursor-grab rounded-[1.5rem] p-4 transition-shadow active:cursor-grabbing",
         isDragging && "rotate-[1.5deg] shadow-2xl shadow-black/10",
       )}
+      onPointerDown={handlePointerDown}
+      onClick={handleClick}
+      {...attributes}
+      {...listeners}
     >
       <div className="flex items-start gap-3">
-        <button
-          className="mt-0.5 rounded-full p-1 text-[var(--muted)] opacity-40 transition hover:bg-black/5 hover:opacity-100"
-          aria-label="Drag task"
-          {...attributes}
-          {...listeners}
+        <div
+          className="mt-0.5 rounded-full p-1 text-[var(--muted)] opacity-40 transition group-hover:bg-black/5 group-hover:opacity-100"
+          aria-hidden="true"
         >
           <GripVertical className="size-4" />
-        </button>
-        <button
-          onClick={() => onOpen(task.id)}
-          className="min-w-0 flex-1 text-left"
-        >
+        </div>
+        <div className="min-w-0 flex-1 text-left">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-sm font-semibold leading-6 text-[var(--ink)]">
               {task.title}
@@ -89,7 +113,7 @@ export function TaskCard({
               </span>
             ) : null}
           </div>
-        </button>
+        </div>
       </div>
     </article>
   );

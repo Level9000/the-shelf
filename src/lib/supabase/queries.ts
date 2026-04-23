@@ -63,7 +63,7 @@ function mapVoiceCapture(row: Record<string, unknown>): VoiceCapture {
     id: String(row.id),
     userId: String(row.user_id),
     projectId: String(row.project_id),
-    audioPath: String(row.audio_path),
+    audioPath: (row.audio_path as string | null) ?? null,
     transcript: (row.transcript as string | null) ?? null,
     aiParsedJson:
       (row.ai_parsed_json as VoiceCapture["aiParsedJson"] | null) ?? null,

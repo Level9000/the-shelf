@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
-  LoaderCircle,
-  Mic,
-  PauseCircle,
-  Play,
-  Sparkles,
-  WandSparkles,
-} from "lucide-react";
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { LoaderCircle, Mic, PauseCircle, WandSparkles } from "lucide-react";
 import type { Project, ProposedTask, VoiceCapture } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,32 +24,26 @@ export type VoiceProcessingResult = {
   proposals: ProposedTask[];
 };
 
-export function VoiceCapturePanel({
-  project,
-  voiceCaptures,
-  onProcessed,
-}: {
+export type VoiceCapturePanelHandle = {
+  startCapture: () => void;
+};
+
+export const VoiceCapturePanel = forwardRef<VoiceCapturePanelHandle, {
   project: Project;
   voiceCaptures: VoiceCapture[];
   onProcessed: (result: VoiceProcessingResult) => void;
-}) {
+}>(
+function VoiceCapturePanel({
+  project,
+  voiceCaptures,
+  onProcessed,
+}, ref) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
   const [state, setState] = useState<RecorderState>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isPending, startTransition] = useTransition();
-
-  const audioUrl = useMemo(
-    () => (audioBlob ? URL.createObjectURL(audioBlob) : null),
-    [audioBlob],
-  );
-
-  useEffect(() => {
-    return () => {
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-    };
-  }, [audioUrl]);
 
   useEffect(() => {
     if (state !== "recording") return;
@@ -64,51 +60,7 @@ export function VoiceCapturePanel({
     [voiceCaptures],
   );
 
-  async function startRecording() {
-    try {
-      setMessage(null);
-      setAudioBlob(null);
-      setElapsedSeconds(0);
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : undefined,
-      });
-
-      const chunks: Blob[] = [];
-      recorder.addEventListener("dataavailable", (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      });
-
-      recorder.addEventListener("stop", () => {
-        setAudioBlob(new Blob(chunks, { type: "audio/webm" }));
-        stream.getTracks().forEach((track) => track.stop());
-      });
-
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setState("recording");
-    } catch {
-      setState("error");
-      setMessage("Microphone access failed. Check browser permissions and try again.");
-    }
-  }
-
-  function stopRecording() {
-    if (!mediaRecorderRef.current) return;
-    mediaRecorderRef.current.stop();
-    setState("idle");
-  }
-
-  function processRecording() {
-    if (!audioBlob) {
-      setMessage("Record a note first.");
-      return;
-    }
-
+  const processRecording = useCallback((audioBlob: Blob) => {
     setMessage(null);
     setState("processing");
 
@@ -116,7 +68,10 @@ export function VoiceCapturePanel({
       try {
         const formData = new FormData();
         formData.append("projectId", project.id);
-        formData.append("audio", new File([audioBlob], "voice-note.webm", { type: "audio/webm" }));
+        formData.append(
+          "audio",
+          new File([audioBlob], "voice-note.webm", { type: "audio/webm" }),
+        );
 
         const response = await fetch("/api/voice/process", {
           method: "POST",
@@ -160,10 +115,63 @@ export function VoiceCapturePanel({
         );
       }
     });
+  }, [onProcessed, project.id, startTransition]);
+
+  const startRecording = useCallback(async () => {
+    try {
+      setMessage(null);
+      setElapsedSeconds(0);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : undefined,
+      });
+
+      const chunks: Blob[] = [];
+      recorder.addEventListener("dataavailable", (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      });
+
+      recorder.addEventListener("stop", () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        stream.getTracks().forEach((track) => track.stop());
+        void processRecording(blob);
+      });
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setState("recording");
+    } catch {
+      setState("error");
+      setMessage("Microphone access failed. Check browser permissions and try again.");
+    }
+  }, [processRecording]);
+
+  useImperativeHandle(ref, () => ({
+    startCapture: () => {
+      sectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      if (state === "idle" || state === "ready" || state === "error") {
+        void startRecording();
+      }
+    },
+  }), [startRecording, state]);
+
+  function stopRecording() {
+    if (!mediaRecorderRef.current) return;
+    mediaRecorderRef.current.stop();
   }
 
   return (
-    <section className="surface-card hairline rounded-[2rem] p-5">
+    <section
+      ref={sectionRef}
+      className="surface-card hairline rounded-[2rem] p-5"
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-xl">
           <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
@@ -218,40 +226,24 @@ export function VoiceCapturePanel({
               <p className="mt-1 text-sm text-[var(--muted)]">
                 {state === "recording"
                   ? `${elapsedSeconds}s recorded`
-                  : "Talk naturally. AI will separate the real tasks from the filler."}
+                  : state === "processing"
+                    ? "Your note stays in memory only while transcription runs."
+                    : "Stop recording to transcribe immediately and move into review."}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
             {state === "recording" ? (
               <Button onClick={stopRecording}>
-                Stop recording
+                Stop and transcribe
               </Button>
             ) : (
               <Button onClick={startRecording} disabled={state === "processing" || isPending}>
                 Start recording
               </Button>
             )}
-            <Button
-              variant="secondary"
-              onClick={processRecording}
-              disabled={!audioBlob || state === "recording" || state === "processing" || isPending}
-            >
-              {state === "processing" || isPending ? "Processing..." : "Transcribe + extract"}
-              <Sparkles className="ml-2 size-4" />
-            </Button>
           </div>
         </div>
-
-        {audioUrl ? (
-          <div className="mt-4 rounded-[1.5rem] bg-white/80 p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
-              <Play className="size-4" />
-              Playback
-            </div>
-            <audio controls src={audioUrl} className="w-full" />
-          </div>
-        ) : null}
 
         {message ? (
           <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -291,4 +283,4 @@ export function VoiceCapturePanel({
       </div>
     </section>
   );
-}
+});

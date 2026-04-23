@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { extractTasksFromTranscript, transcribeAudioFile } from "@/lib/ai/openai";
-import { getFileExtension } from "@/lib/utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -37,31 +36,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
 
-  const filePath = `${user.id}/${projectId}/${crypto.randomUUID()}.${getFileExtension(
-    file.name,
-  )}`;
-
-  const uploadBuffer = Buffer.from(await file.arrayBuffer());
-  const { error: uploadError } = await supabase.storage
-    .from("voice-notes")
-    .upload(filePath, uploadBuffer, {
-      contentType: file.type || "audio/webm",
-      upsert: false,
-    });
-
-  if (uploadError) {
-    return NextResponse.json(
-      { error: `Upload failed: ${uploadError.message}` },
-      { status: 500 },
-    );
-  }
-
   const { data: capture, error: captureError } = await supabase
     .from("voice_captures")
     .insert({
       user_id: user.id,
       project_id: projectId,
-      audio_path: filePath,
       status: "processing",
     })
     .select("id")

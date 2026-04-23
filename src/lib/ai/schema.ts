@@ -8,7 +8,7 @@ const proposedTaskSchema = z.object({
     .trim()
     .min(1)
     .max(32)
-    .transform((value) => value || "Inbox"),
+    .transform((value) => value || "To Do"),
   priority: z.enum(["low", "medium", "high"]).nullable().default(null),
   dueDate: z
     .string()

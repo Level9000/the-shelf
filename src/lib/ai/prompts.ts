@@ -10,7 +10,7 @@ export function buildTaskExtractionPrompt(input: {
     "Preserve important context in descriptions when it helps execution.",
     "Avoid duplicates.",
     "Keep titles short, concrete, and ready to appear on a kanban card.",
-    "Prefer 'Inbox' or 'To Do' as the suggested column unless the transcript clearly indicates another state.",
+    "Prefer 'To Do' as the suggested column unless the transcript clearly indicates another state.",
     "If a due date is implied, normalize it to ISO 8601 date format YYYY-MM-DD. Otherwise return null.",
     "Return JSON only.",
     "",

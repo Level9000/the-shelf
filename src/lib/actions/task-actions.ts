@@ -154,7 +154,7 @@ export async function acceptProposedTasksAction(input: {
   input.proposals.forEach((proposal) => {
     const targetColumn =
       input.columnMap.find((column) => column.name === proposal.suggestedColumn) ??
-      input.columnMap.find((column) => column.name === "Inbox") ??
+      input.columnMap.find((column) => column.name === "To Do") ??
       input.columnMap[0];
 
     if (!targetColumn) return;

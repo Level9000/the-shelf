@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import {
   closestCenter,
   DndContext,
@@ -16,7 +16,7 @@ import {
   arrayMove,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
-import { Plus, Sparkles } from "lucide-react";
+import { Mic, Plus, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { BoardSnapshot, ProposedTask, Task } from "@/types";
 import { persistTaskArrangementAction } from "@/lib/actions/task-actions";
@@ -28,6 +28,7 @@ import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import {
   VoiceCapturePanel,
+  type VoiceCapturePanelHandle,
   type VoiceProcessingResult,
 } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
@@ -51,6 +52,7 @@ function getColumnTasks(tasks: Task[], columnId: string) {
 
 export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
   const router = useRouter();
+  const voiceCaptureRef = useRef<VoiceCapturePanelHandle | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -244,6 +246,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
         </section>
 
         <VoiceCapturePanel
+          ref={voiceCaptureRef}
           project={snapshot.project}
           voiceCaptures={voiceCaptures}
           onProcessed={openReview}
@@ -259,6 +262,13 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
             </div>
             <div className="flex items-center gap-3">
               {isPending ? <Badge>Saving order...</Badge> : null}
+              <Button
+                variant="secondary"
+                onClick={() => voiceCaptureRef.current?.startCapture()}
+              >
+                <Mic className="mr-2 size-4" />
+                Voice capture
+              </Button>
               <Button onClick={() => setManualOpen(true)}>
                 <Plus className="mr-2 size-4" />
                 New task

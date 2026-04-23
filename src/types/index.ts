@@ -55,7 +55,7 @@ export type VoiceCapture = {
   id: string;
   userId: string;
   projectId: string;
-  audioPath: string;
+  audioPath: string | null;
   transcript: string | null;
   aiParsedJson: { tasks: ProposedTask[] } | null;
   status: VoiceCaptureStatus;
