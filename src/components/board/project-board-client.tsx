@@ -16,7 +16,7 @@ import {
   arrayMove,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
-import { Mic, Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { BoardSnapshot, ProposedTask, Task } from "@/types";
 import { persistTaskArrangementAction } from "@/lib/actions/task-actions";
@@ -32,7 +32,6 @@ import {
   type VoiceProcessingResult,
 } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
-import { formatDate } from "@/lib/utils";
 
 type ReviewState = {
   captureId: string | null;
@@ -65,7 +64,6 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
   );
 
   const [tasks, setTasks] = useState<Task[]>(() => sortTasks(snapshot.tasks));
-  const [voiceCaptures] = useState(snapshot.voiceCaptures);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
@@ -205,70 +203,19 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
   return (
     <>
       <div className="space-y-6">
-        <section className="surface hairline rounded-[2rem] p-6 sm:p-7">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                <Sparkles className="size-3.5" />
-                Project board
-              </div>
-              <h1 className="mt-5 text-4xl font-semibold tracking-tight text-balance">
+        <section className="surface hairline rounded-[2rem] p-4 sm:p-5">
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                 {snapshot.project.name}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)] sm:text-base">
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 {snapshot.project.description ??
                   "Capture ideas by voice, review the extracted tasks, and move work through a lightweight board."}
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="surface-card hairline rounded-[1.5rem] px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-                  Tasks
-                </p>
-                <p className="mt-2 text-2xl font-semibold">{tasks.length}</p>
-              </div>
-              <div className="surface-card hairline rounded-[1.5rem] px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-                  Voice notes
-                </p>
-                <p className="mt-2 text-2xl font-semibold">{voiceCaptures.length}</p>
-              </div>
-              <div className="surface-card hairline rounded-[1.5rem] px-4 py-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-                  Updated
-                </p>
-                <p className="mt-2 text-sm font-medium text-[var(--ink)]">
-                  {formatDate(snapshot.project.updatedAt)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <VoiceCapturePanel
-          ref={voiceCaptureRef}
-          project={snapshot.project}
-          voiceCaptures={voiceCaptures}
-          onProcessed={openReview}
-        />
-
-        <section className="surface hairline rounded-[2rem] p-4 sm:p-5">
-          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Kanban board</h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Drag cards between columns or reorder within a lane.
-              </p>
-            </div>
             <div className="flex items-center gap-3">
               {isPending ? <Badge>Saving order...</Badge> : null}
-              <Button
-                variant="secondary"
-                onClick={() => voiceCaptureRef.current?.startCapture()}
-              >
-                <Mic className="mr-2 size-4" />
-                Voice capture
-              </Button>
               <Button onClick={() => setManualOpen(true)}>
                 <Plus className="mr-2 size-4" />
                 New task
@@ -280,6 +227,11 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
               {error}
             </p>
           ) : null}
+          <VoiceCapturePanel
+            ref={voiceCaptureRef}
+            project={snapshot.project}
+            onProcessed={openReview}
+          />
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -330,9 +282,11 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
         open={manualOpen}
         onClose={() => setManualOpen(false)}
         projectId={snapshot.project.id}
+        project={snapshot.project}
         board={snapshot.board}
         columns={snapshot.columns}
         onCreated={refreshData}
+        onVoiceProcessed={openReview}
       />
 
       <ReviewTasksModal

@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { Board, BoardColumn, Task } from "@/types";
+import type { Board, BoardColumn, Project, Task } from "@/types";
 import { createTaskAction } from "@/lib/actions/task-actions";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { TaskFormFields } from "@/components/tasks/task-form-fields";
+import {
+  VoiceCapturePanel,
+  type VoiceProcessingResult,
+} from "@/components/voice/voice-capture-panel";
 
 type FormState = {
   title: string;
@@ -29,16 +33,20 @@ export function ManualTaskModal({
   open,
   onClose,
   projectId,
+  project,
   board,
   columns,
   onCreated,
+  onVoiceProcessed,
 }: {
   open: boolean;
   onClose: () => void;
   projectId: string;
+  project: Project;
   board: Board;
   columns: BoardColumn[];
   onCreated: () => void;
+  onVoiceProcessed: (result: VoiceProcessingResult) => void;
 }) {
   const [form, setForm] = useState<FormState>(() => getInitialState(columns));
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +110,15 @@ export function ManualTaskModal({
           {isPending ? "Creating..." : "Create task"}
         </Button>
       </div>
+      <VoiceCapturePanel
+        project={project}
+        onProcessed={(result) => {
+          onClose();
+          onVoiceProcessed(result);
+        }}
+        className="mb-0 mt-5"
+        idleDescription="Or talk your thoughts out and Shelf will write proposed action items into your backlog."
+      />
     </Modal>
   );
 }
