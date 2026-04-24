@@ -10,6 +10,8 @@ import {
   useTransition,
 } from "react";
 import {
+  ChevronDown,
+  ChevronUp,
   LoaderCircle,
   LockKeyhole,
   MessageSquareText,
@@ -55,6 +57,7 @@ function VoiceCapturePanel({
   const [modeNote, setModeNote] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [modePickerOpen, setModePickerOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -180,87 +183,116 @@ function VoiceCapturePanel({
   }
 
   return (
-    <section
-      ref={sectionRef}
-      className={cn(
-        "mb-4 rounded-[1.75rem] border border-dashed border-black/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.86),rgba(246,243,238,0.94))] p-4",
-        className,
-      )}
-    >
-      <div className="mb-4 flex flex-col gap-4">
-        <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-start sm:justify-between">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
-              <WandSparkles className="size-3.5" />
-              Pro tier AI modes
-            </div>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              Choose how you want Shelf to help: capture spoken thoughts into
-              tasks, align through back-and-forth text, or strategize out loud
-              with voice dialogue.
-            </p>
-          </div>
-          <div className="shrink-0 rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white">
-            Try free, upgrade later
-          </div>
+    <>
+      {isCollapsed ? (
+        <div className={cn("mb-4 flex justify-end", className)}>
+          <Button
+            variant="secondary"
+            className="gap-2 px-3 py-2 text-xs"
+            onClick={() => setIsCollapsed(false)}
+            aria-label="Expand AI modes"
+          >
+            Use Voice Features
+            <ChevronDown className="size-4" />
+          </Button>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setModeNote(null);
-            setModePickerOpen(true);
-          }}
-          className="rounded-[1.4rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5 md:hidden"
+      ) : (
+        <section
+          ref={sectionRef}
+          className={cn(
+            "mb-4 rounded-[1.75rem] border border-dashed border-black/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.86),rgba(246,243,238,0.94))] p-4",
+            className,
+          )}
         >
-          <p className="text-base font-semibold text-[var(--ink)]">
-            Want to talk things out?
-          </p>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-            Premium AI features leveraging recordings, voice, and text to populate your backlog.
-          </p>
-        </button>
-        <div className="hidden gap-3 md:grid md:grid-cols-3">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                <WandSparkles className="size-3.5" />
+                Pro tier AI modes
+              </div>
+              <p className="mt-3 hidden text-sm leading-6 text-[var(--muted)] md:block">
+                Choose how you want Shelf to help: capture spoken thoughts into
+                tasks, align through back-and-forth text, or strategize out loud
+                with voice dialogue.
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)] md:hidden">
+                Premium AI features leveraging recordings, voice, and text to populate your backlog.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="hidden rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white md:inline-flex">
+                Try free, upgrade later
+              </div>
+              <Button
+                variant="secondary"
+                className="gap-2 px-3 py-2 text-xs"
+                onClick={() => setIsCollapsed(true)}
+                aria-label="Minimize AI modes"
+              >
+                Minimize
+                <ChevronUp className="size-4" />
+              </Button>
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={() => {
               setModeNote(null);
-              setModalOpen(true);
+              setModePickerOpen(true);
             }}
-            className="rounded-[1.25rem] bg-white/75 p-4 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+            className="rounded-[1.4rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5 md:hidden"
           >
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-              <Mic className="size-4 text-[var(--accent)]" />
-              Audio to backlog
-            </div>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              Record a note and turn it into proposed board items in one pass.
+            <p className="text-base font-semibold text-[var(--ink)]">
+              Want to talk things out?
+            </p>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              Premium AI features leveraging recordings, voice, and text to populate your backlog.
             </p>
           </button>
-          <div className="rounded-[1.25rem] bg-white/75 p-4 ring-1 ring-black/6">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-              <MessageSquareText className="size-4 text-[var(--accent)]" />
-              Strategic text dialogue
+          <div className="hidden gap-3 md:grid md:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => {
+                setModeNote(null);
+                setModalOpen(true);
+              }}
+              className="rounded-[1.25rem] bg-white/75 p-4 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+            >
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                <Mic className="size-4 text-[var(--accent)]" />
+                Audio to backlog
+              </div>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Record a note and turn it into proposed board items in one pass.
+              </p>
+            </button>
+            <div className="rounded-[1.25rem] bg-white/75 p-4 ring-1 ring-black/6">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                <MessageSquareText className="size-4 text-[var(--accent)]" />
+                Strategic text dialogue
+              </div>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Think through priorities with AI over text and shape the right tasks.
+              </p>
             </div>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              Think through priorities with AI over text and shape the right tasks.
-            </p>
-          </div>
-          <div className="rounded-[1.25rem] bg-white/75 p-4 ring-1 ring-black/6">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-              <Speech className="size-4 text-[var(--accent)]" />
-              Strategic voice dialogue
+            <div className="rounded-[1.25rem] bg-white/75 p-4 ring-1 ring-black/6">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                <Speech className="size-4 text-[var(--accent)]" />
+                Strategic voice dialogue
+              </div>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Talk through the work out loud and let AI help structure the plan.
+              </p>
             </div>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              Talk through the work out loud and let AI help structure the plan.
-            </p>
           </div>
-        </div>
-      </div>
+          <div className="mt-3 hidden items-center gap-2 text-xs text-[var(--muted)] md:flex">
+            <WandSparkles className="size-3.5" />
+            Review happens before save, so AI suggestions never auto-create cards.
+          </div>
+        </section>
+      )}
 
-      <div className="mt-3 hidden items-center gap-2 text-xs text-[var(--muted)] md:flex">
-        <WandSparkles className="size-3.5" />
-        Review happens before save, so AI suggestions never auto-create cards.
-      </div>
       {modeNote ? (
         <p className="mt-3 rounded-2xl bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--muted)]">
           {modeNote}
@@ -418,6 +450,6 @@ function VoiceCapturePanel({
           </p>
         ) : null}
       </Modal>
-    </section>
+    </>
   );
 });
