@@ -12,6 +12,7 @@ export function Modal({
   onClose,
   className,
   fullScreenOnMobile = false,
+  fullScreen = false,
 }: {
   open: boolean;
   title: string;
@@ -20,6 +21,7 @@ export function Modal({
   onClose: () => void;
   className?: string;
   fullScreenOnMobile?: boolean;
+  fullScreen?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -38,6 +40,7 @@ export function Modal({
     <div
       className={cn(
         "fixed inset-0 z-50 flex items-end justify-center bg-black/25 px-4 py-6 backdrop-blur-sm sm:items-center",
+        fullScreen && "items-stretch px-0 py-0 sm:px-0 sm:py-0",
         fullScreenOnMobile && "items-stretch px-0 py-0 sm:px-4 sm:py-6",
       )}
     >
@@ -49,6 +52,7 @@ export function Modal({
       <div
         className={cn(
           "surface-card hairline relative z-10 w-full max-w-2xl rounded-[2rem] p-6",
+          fullScreen && "min-h-full max-w-none rounded-none p-5 sm:p-6",
           fullScreenOnMobile &&
             "min-h-full rounded-none p-5 sm:min-h-0 sm:rounded-[2rem] sm:p-6",
           className,

@@ -23,6 +23,8 @@ import {
 import type { Project, ProposedTask } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { StrategicTextDialogueModal } from "@/components/voice/strategic-text-dialogue-modal";
+import { StrategicVoiceDialogueModal } from "@/components/voice/strategic-voice-dialogue-modal";
 import { cn } from "@/lib/utils";
 
 type RecorderState = "idle" | "recording" | "processing" | "ready" | "error";
@@ -57,6 +59,8 @@ function VoiceCapturePanel({
   const [modeNote, setModeNote] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [modePickerOpen, setModePickerOpen] = useState(false);
+  const [strategicTextOpen, setStrategicTextOpen] = useState(false);
+  const [strategicVoiceOpen, setStrategicVoiceOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -267,7 +271,14 @@ function VoiceCapturePanel({
                 Record a note and turn it into proposed board items in one pass.
               </p>
             </button>
-            <div className="rounded-[1.25rem] bg-white/75 p-4 ring-1 ring-black/6">
+            <button
+              type="button"
+              onClick={() => {
+                setModeNote(null);
+                setStrategicTextOpen(true);
+              }}
+              className="rounded-[1.25rem] bg-white/75 p-4 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+            >
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                 <MessageSquareText className="size-4 text-[var(--accent)]" />
                 Strategic text dialogue
@@ -275,8 +286,15 @@ function VoiceCapturePanel({
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Think through priorities with AI over text and shape the right tasks.
               </p>
-            </div>
-            <div className="rounded-[1.25rem] bg-white/75 p-4 ring-1 ring-black/6">
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setModeNote(null);
+                setStrategicVoiceOpen(true);
+              }}
+              className="rounded-[1.25rem] bg-white/75 p-4 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+            >
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                 <Speech className="size-4 text-[var(--accent)]" />
                 Strategic voice dialogue
@@ -284,7 +302,7 @@ function VoiceCapturePanel({
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Talk through the work out loud and let AI help structure the plan.
               </p>
-            </div>
+            </button>
           </div>
           <div className="mt-3 hidden items-center gap-2 text-xs text-[var(--muted)] md:flex">
             <WandSparkles className="size-3.5" />
@@ -329,8 +347,9 @@ function VoiceCapturePanel({
             <button
               type="button"
               onClick={() => {
-                setModeNote("Strategic text dialogue is coming soon.");
                 setModePickerOpen(false);
+                setModeNote(null);
+                setStrategicTextOpen(true);
               }}
               className="rounded-[1.5rem] bg-[var(--surface-muted)] p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
             >
@@ -350,8 +369,9 @@ function VoiceCapturePanel({
             <button
               type="button"
               onClick={() => {
-                setModeNote("Strategic voice dialogue is coming soon.");
                 setModePickerOpen(false);
+                setModeNote(null);
+                setStrategicVoiceOpen(true);
               }}
               className="rounded-[1.5rem] bg-[var(--surface-muted)] p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
             >
@@ -450,6 +470,23 @@ function VoiceCapturePanel({
           </p>
         ) : null}
       </Modal>
+
+      {strategicTextOpen ? (
+        <StrategicTextDialogueModal
+          open={strategicTextOpen}
+          project={project}
+          onClose={() => setStrategicTextOpen(false)}
+          onProcessed={onProcessed}
+        />
+      ) : null}
+
+      {strategicVoiceOpen ? (
+        <StrategicVoiceDialogueModal
+          open={strategicVoiceOpen}
+          project={project}
+          onClose={() => setStrategicVoiceOpen(false)}
+        />
+      ) : null}
     </>
   );
 });
