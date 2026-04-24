@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { CalendarDays, GripVertical, MessageSquareText } from "lucide-react";
 import type { Task } from "@/types";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn, formatDate } from "@/lib/utils";
 
 function priorityTone(priority: Task["priority"]) {
@@ -18,9 +19,15 @@ function priorityTone(priority: Task["priority"]) {
 export function TaskCard({
   task,
   onOpen,
+  moveTargets,
+  onMove,
+  isMoving,
 }: {
   task: Task;
   onOpen: (taskId: string) => void;
+  moveTargets: Array<{ id: string; name: string }>;
+  onMove: (taskId: string, targetColumnId: string) => void;
+  isMoving?: boolean;
 }) {
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const {
@@ -70,49 +77,70 @@ export function TaskCard({
         transition,
       }}
       className={cn(
-        "surface-card hairline group cursor-grab rounded-[1.5rem] p-4 transition-shadow active:cursor-grabbing",
+        "surface-card hairline group rounded-[1.5rem] p-4 transition-shadow",
         isDragging && "rotate-[1.5deg] shadow-2xl shadow-black/10",
+        isMoving && "opacity-70",
       )}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
       {...attributes}
       {...listeners}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className="mt-0.5 rounded-full p-1 text-[var(--muted)] opacity-40 transition group-hover:bg-black/5 group-hover:opacity-100"
-          aria-hidden="true"
-        >
-          <GripVertical className="size-4" />
+      <div className="min-w-0 text-left">
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            className="rounded-full p-1 text-[var(--muted)] opacity-40 transition group-hover:bg-black/5 group-hover:opacity-100"
+            aria-hidden="true"
+          >
+            <GripVertical className="size-4" />
+          </div>
+          <h4 className="text-sm font-semibold leading-6 text-[var(--ink)]">
+            {task.title}
+          </h4>
+          <Badge className={priorityTone(task.priority)}>
+            {task.priority ? task.priority : "No priority"}
+          </Badge>
         </div>
-        <div className="min-w-0 flex-1 text-left">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-sm font-semibold leading-6 text-[var(--ink)]">
-              {task.title}
-            </h4>
-            <Badge className={priorityTone(task.priority)}>
-              {task.priority ? task.priority : "No priority"}
-            </Badge>
-          </div>
-          {task.description ? (
-            <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted)]">
-              {task.description}
-            </p>
+        {task.description ? (
+          <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted)]">
+            {task.description}
+          </p>
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
+          {task.dueDate ? (
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="size-3.5" />
+              {formatDate(task.dueDate)}
+            </span>
           ) : null}
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
-            {task.dueDate ? (
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarDays className="size-3.5" />
-                {formatDate(task.dueDate)}
-              </span>
-            ) : null}
-            {task.sourceVoiceCaptureId ? (
-              <span className="inline-flex items-center gap-1.5">
-                <MessageSquareText className="size-3.5" />
-                Voice capture
-              </span>
-            ) : null}
-          </div>
+          {task.sourceVoiceCaptureId ? (
+            <span className="inline-flex items-center gap-1.5">
+              <MessageSquareText className="size-3.5" />
+              Voice capture
+            </span>
+          ) : null}
+        </div>
+      </div>
+      <div
+        className="mt-4"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+          Move to:
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {moveTargets.map((target) => (
+            <Button
+              key={target.id}
+              variant="secondary"
+              className="w-full rounded-2xl py-2 text-xs"
+              onClick={() => onMove(task.id, target.id)}
+              disabled={isMoving}
+            >
+              {target.name}
+            </Button>
+          ))}
         </div>
       </div>
     </article>

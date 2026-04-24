@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +11,7 @@ export function Modal({
   children,
   onClose,
   className,
+  fullScreenOnMobile = false,
 }: {
   open: boolean;
   title: string;
@@ -17,11 +19,28 @@ export function Modal({
   children: React.ReactNode;
   onClose: () => void;
   className?: string;
+  fullScreenOnMobile?: boolean;
 }) {
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/25 px-4 py-6 backdrop-blur-sm sm:items-center">
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-end justify-center bg-black/25 px-4 py-6 backdrop-blur-sm sm:items-center",
+        fullScreenOnMobile && "items-stretch px-0 py-0 sm:px-4 sm:py-6",
+      )}
+    >
       <div
         className="absolute inset-0"
         aria-hidden="true"
@@ -30,6 +49,8 @@ export function Modal({
       <div
         className={cn(
           "surface-card hairline relative z-10 w-full max-w-2xl rounded-[2rem] p-6",
+          fullScreenOnMobile &&
+            "min-h-full rounded-none p-5 sm:min-h-0 sm:rounded-[2rem] sm:p-6",
           className,
         )}
       >

@@ -24,8 +24,11 @@ export type Board = {
   id: string;
   projectId: string;
   name: string;
+  position: number;
   createdAt: string;
 };
+
+export type Chapter = Board;
 
 export type BoardColumn = {
   id: string;
@@ -79,4 +82,8 @@ export type BoardSnapshot = {
   columns: BoardColumn[];
   tasks: Task[];
   voiceCaptures: VoiceCapture[];
+};
+
+export type ProjectWithChapters = Project & {
+  chapters: Chapter[];
 };

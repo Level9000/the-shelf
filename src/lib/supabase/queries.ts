@@ -4,6 +4,7 @@ import type {
   Board,
   BoardColumn,
   BoardSnapshot,
+  ProjectWithChapters,
   Project,
   Task,
   VoiceCapture,
@@ -26,6 +27,7 @@ function mapBoard(row: Record<string, unknown>): Board {
     id: String(row.id),
     projectId: String(row.project_id),
     name: String(row.name),
+    position: Number(row.position ?? 1000),
     createdAt: String(row.created_at),
   };
 }
@@ -109,15 +111,50 @@ export async function getProjects() {
   return (data ?? []).map((row) => mapProject(row));
 }
 
+export async function getProjectsWithChapters(): Promise<ProjectWithChapters[]> {
+  const { supabase } = await getAuthenticatedUser();
+  const [{ data: projectData, error: projectError }, { data: boardData, error: boardError }] =
+    await Promise.all([
+      supabase.from("projects").select("*").order("updated_at", { ascending: false }),
+      supabase.from("boards").select("*").order("position", { ascending: true }),
+    ]);
+
+  if (projectError || boardError) {
+    throw new Error(projectError?.message ?? boardError?.message);
+  }
+
+  const boardsByProject = new Map<string, Board[]>();
+  (boardData ?? []).forEach((row) => {
+    const board = mapBoard(row);
+    const current = boardsByProject.get(board.projectId) ?? [];
+    current.push(board);
+    boardsByProject.set(board.projectId, current);
+  });
+
+  return (projectData ?? []).map((row) => {
+    const project = mapProject(row);
+    return {
+      ...project,
+      chapters: boardsByProject.get(project.id) ?? [],
+    };
+  });
+}
+
 export async function getProjectBoardSnapshot(
   projectId: string,
+  boardId: string,
 ): Promise<BoardSnapshot> {
   const { supabase } = await getAuthenticatedUser();
 
   const [{ data: projectRow, error: projectError }, { data: boardRow, error: boardError }] =
     await Promise.all([
       supabase.from("projects").select("*").eq("id", projectId).maybeSingle(),
-      supabase.from("boards").select("*").eq("project_id", projectId).maybeSingle(),
+      supabase
+        .from("boards")
+        .select("*")
+        .eq("project_id", projectId)
+        .eq("id", boardId)
+        .maybeSingle(),
     ]);
 
   if (projectError) {
@@ -144,7 +181,7 @@ export async function getProjectBoardSnapshot(
       supabase
         .from("tasks")
         .select("*")
-        .eq("project_id", projectId)
+        .eq("board_id", board.id)
         .order("position", { ascending: true }),
       supabase
         .from("voice_captures")
@@ -167,4 +204,21 @@ export async function getProjectBoardSnapshot(
     tasks: (tasksData ?? []).map((row) => mapTask(row)),
     voiceCaptures: (voiceData ?? []).map((row) => mapVoiceCapture(row)),
   };
+}
+
+export async function getLatestChapterId(projectId: string) {
+  const { supabase } = await getAuthenticatedUser();
+  const { data, error } = await supabase
+    .from("boards")
+    .select("id")
+    .eq("project_id", projectId)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data?.id ?? null;
 }

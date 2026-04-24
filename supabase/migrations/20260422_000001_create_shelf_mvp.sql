@@ -21,8 +21,9 @@ create table if not exists public.projects (
 
 create table if not exists public.boards (
   id uuid primary key default gen_random_uuid(),
-  project_id uuid not null unique references public.projects(id) on delete cascade,
-  name text not null default 'Main Board',
+  project_id uuid not null references public.projects(id) on delete cascade,
+  name text not null default 'Chapter 1',
+  position integer not null default 1000,
   created_at timestamptz not null default timezone('utc', now())
 );
 
@@ -94,8 +95,8 @@ as $$
 declare
   created_board_id uuid;
 begin
-  insert into public.boards (project_id, name)
-  values (new.id, 'Main Board')
+  insert into public.boards (project_id, name, position)
+  values (new.id, 'Chapter 1', 1000)
   returning id into created_board_id;
 
   insert into public.board_columns (board_id, name, position)

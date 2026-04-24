@@ -60,11 +60,13 @@ export async function createTaskAction(input: TaskMutationInput) {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
 }
 
 export async function updateTaskAction(input: {
   taskId: string;
   projectId: string;
+  boardId: string;
   columnId: string;
   title: string;
   description?: string;
@@ -89,11 +91,13 @@ export async function updateTaskAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
 }
 
 export async function deleteTaskAction(input: {
   taskId: string;
   projectId: string;
+  boardId: string;
 }) {
   const { supabase } = await getAuthenticatedUser();
   const { error } = await supabase
@@ -107,10 +111,38 @@ export async function deleteTaskAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+}
+
+export async function moveTaskAction(input: {
+  taskId: string;
+  projectId: string;
+  boardId: string;
+  targetColumnId: string;
+}) {
+  const { supabase } = await getAuthenticatedUser();
+  const position = await getNextTaskPosition(input.boardId, input.targetColumnId);
+
+  const { error } = await supabase
+    .from("tasks")
+    .update({
+      column_id: input.targetColumnId,
+      position,
+    })
+    .eq("id", input.taskId)
+    .eq("project_id", input.projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
 }
 
 export async function persistTaskArrangementAction(input: {
   projectId: string;
+  boardId: string;
   updates: Array<{ id: string; columnId: string; position: number }>;
 }) {
   const { supabase } = await getAuthenticatedUser();
@@ -134,6 +166,7 @@ export async function persistTaskArrangementAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
 }
 
 export async function acceptProposedTasksAction(input: {
@@ -192,4 +225,5 @@ export async function acceptProposedTasksAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
 }

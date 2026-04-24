@@ -30,6 +30,7 @@ function toFormState(task: Task): FormState {
 export function TaskDetailModal({
   task,
   projectId,
+  boardId,
   columns,
   open,
   onClose,
@@ -38,6 +39,7 @@ export function TaskDetailModal({
 }: {
   task: Task | null;
   projectId: string;
+  boardId: string;
   columns: BoardColumn[];
   open: boolean;
   onClose: () => void;
@@ -66,6 +68,7 @@ export function TaskDetailModal({
         await updateTaskAction({
           taskId: currentTask.id,
           projectId,
+          boardId,
           columnId: currentForm.columnId,
           title: currentForm.title,
           description: currentForm.description,
@@ -87,6 +90,7 @@ export function TaskDetailModal({
         await deleteTaskAction({
           taskId: currentTask.id,
           projectId,
+          boardId,
         });
         onDeleted();
         onClose();

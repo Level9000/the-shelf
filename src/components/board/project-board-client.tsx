@@ -1,28 +1,26 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import type { CSSProperties } from "react";
 import {
   closestCenter,
   DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
+  type DragEndEvent,
+  type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
 import type { BoardSnapshot, ProposedTask, Task } from "@/types";
-import { persistTaskArrangementAction } from "@/lib/actions/task-actions";
+import {
+  moveTaskAction,
+  persistTaskArrangementAction,
+} from "@/lib/actions/task-actions";
 import { normalizeTaskOrder } from "@/lib/board-utils";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { BoardColumnView } from "@/components/board/board-column";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
@@ -67,6 +65,8 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
+  const [manualColumnId, setManualColumnId] = useState<string | null>(null);
+  const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewState, setReviewState] = useState<ReviewState>({
     captureId: null,
@@ -80,13 +80,14 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
   );
-  const dragTask = useMemo(
-    () => tasks.find((task) => task.id === dragTaskId) ?? null,
-    [dragTaskId, tasks],
-  );
 
   function refreshData() {
     router.refresh();
+  }
+
+  function openManualTask(columnId: string) {
+    setManualColumnId(columnId);
+    setManualOpen(true);
   }
 
   function openReview(result: VoiceProcessingResult) {
@@ -100,15 +101,12 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
 
   function findColumnIdForTarget(targetId: string | null) {
     if (!targetId) return null;
-    const columnMatch = snapshot.columns.find((column) => column.id === targetId);
-    if (columnMatch) return columnMatch.id;
     const taskMatch = tasks.find((task) => task.id === targetId);
     return taskMatch?.columnId ?? null;
   }
 
   function handleDragStart(event: DragStartEvent) {
-    const activeId = String(event.active.id);
-    setDragTaskId(activeId);
+    setDragTaskId(String(event.active.id));
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -116,66 +114,76 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
     const activeId = String(event.active.id);
     const overId = event.over ? String(event.over.id) : null;
 
-    if (!overId || activeId === overId) {
-      return;
-    }
+    if (!overId || activeId === overId) return;
 
     const activeTask = tasks.find((task) => task.id === activeId);
-    if (!activeTask) {
-      return;
-    }
-
-    const sourceColumnId = activeTask.columnId;
+    const sourceColumnId = activeTask?.columnId;
     const destinationColumnId = findColumnIdForTarget(overId);
 
-    if (!destinationColumnId) {
-      return;
-    }
+    if (!activeTask || !sourceColumnId || !destinationColumnId) return;
+    if (sourceColumnId !== destinationColumnId) return;
 
-    const nextTasks = [...tasks];
-    const activeIndex = nextTasks.findIndex((task) => task.id === activeId);
-    const activeItem = nextTasks[activeIndex];
+    const columnTasks = tasks.filter((task) => task.columnId === sourceColumnId);
+    const sourceIndex = columnTasks.findIndex((task) => task.id === activeId);
+    const overIndex = columnTasks.findIndex((task) => task.id === overId);
+    if (sourceIndex === -1 || overIndex === -1) return;
 
-    if (!activeItem) return;
-
-    if (sourceColumnId === destinationColumnId) {
-      const columnTasks = nextTasks.filter((task) => task.columnId === sourceColumnId);
-      const sourceIndex = columnTasks.findIndex((task) => task.id === activeId);
-      const overTaskIndex = columnTasks.findIndex((task) => task.id === overId);
-      if (sourceIndex === -1) return;
-      const targetIndex = overTaskIndex === -1 ? columnTasks.length - 1 : overTaskIndex;
-      const reorderedColumnTasks = arrayMove(columnTasks, sourceIndex, targetIndex);
-      const nonColumnTasks = nextTasks.filter((task) => task.columnId !== sourceColumnId);
-      const merged = [...nonColumnTasks, ...reorderedColumnTasks].map((task) => ({
-        ...task,
-      }));
-      const normalized = normalizeTaskOrder(snapshot.columns, merged);
-      const normalizedTasks = merged.map((task) => {
-        const update = normalized.find((item) => item.id === task.id);
-        return update ? { ...task, columnId: update.columnId, position: update.position } : task;
-      });
-      setTasks(sortTasks(normalizedTasks));
-      persistArrangement(normalized);
-      return;
-    }
-
-    nextTasks.splice(activeIndex, 1);
-    const updatedActiveItem = { ...activeItem, columnId: destinationColumnId };
-    const overIndex = nextTasks.findIndex((task) => task.id === overId);
-    if (overIndex >= 0) {
-      nextTasks.splice(overIndex, 0, updatedActiveItem);
-    } else {
-      nextTasks.push(updatedActiveItem);
-    }
-
-    const normalized = normalizeTaskOrder(snapshot.columns, nextTasks);
-    const normalizedTasks = nextTasks.map((task) => {
+    const reorderedColumnTasks = arrayMove(columnTasks, sourceIndex, overIndex);
+    const nonColumnTasks = tasks.filter((task) => task.columnId !== sourceColumnId);
+    const merged = [...nonColumnTasks, ...reorderedColumnTasks].map((task) => ({ ...task }));
+    const normalized = normalizeTaskOrder(snapshot.columns, merged);
+    const normalizedTasks = merged.map((task) => {
       const update = normalized.find((item) => item.id === task.id);
       return update ? { ...task, columnId: update.columnId, position: update.position } : task;
     });
 
     setTasks(sortTasks(normalizedTasks));
     persistArrangement(normalized);
+  }
+
+  function handleMoveTask(taskId: string, targetColumnId: string) {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task || task.columnId === targetColumnId) return;
+
+    const nextPosition =
+      Math.max(
+        0,
+        ...tasks
+          .filter((item) => item.columnId === targetColumnId)
+          .map((item) => item.position),
+      ) + 1000;
+
+    setTasks((current) =>
+      sortTasks(
+        current.map((item) =>
+          item.id === taskId
+            ? { ...item, columnId: targetColumnId, position: nextPosition }
+            : item,
+        ),
+      ),
+    );
+    setError(null);
+    setMovingTaskId(taskId);
+    startTransition(async () => {
+      try {
+        await moveTaskAction({
+          taskId,
+          projectId: snapshot.project.id,
+          boardId: snapshot.board.id,
+          targetColumnId,
+        });
+        refreshData();
+      } catch (persistError) {
+        setError(
+          persistError instanceof Error
+            ? persistError.message
+            : "Failed to move task.",
+        );
+        refreshData();
+      } finally {
+        setMovingTaskId(null);
+      }
+    });
   }
 
   function persistArrangement(
@@ -186,6 +194,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
       try {
         await persistTaskArrangementAction({
           projectId: snapshot.project.id,
+          boardId: snapshot.board.id,
           updates,
         });
         refreshData();
@@ -193,7 +202,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
         setError(
           persistError instanceof Error
             ? persistError.message
-            : "Failed to save board order.",
+            : "Failed to save order.",
         );
         refreshData();
       }
@@ -204,29 +213,24 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
     <>
       <div className="space-y-6">
         <section className="surface hairline rounded-[2rem] p-4 sm:p-5">
-          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="max-w-2xl">
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                {snapshot.project.name}
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                {snapshot.project.description ??
-                  "Capture ideas by voice, review the extracted tasks, and move work through a lightweight board."}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {isPending ? <Badge>Saving order...</Badge> : null}
-              <Button onClick={() => setManualOpen(true)}>
-                <Plus className="mr-2 size-4" />
-                New task
-              </Button>
-            </div>
+          <div className="mb-4 max-w-2xl">
+            <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
+              {snapshot.board.name}
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+              {snapshot.project.name}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              {snapshot.project.description ??
+                "Capture ideas by voice, review the extracted tasks, and move work through a lightweight board."}
+            </p>
           </div>
           {error ? (
             <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {error}
             </p>
           ) : null}
+          {isPending ? <Badge className="mb-4">Saving changes...</Badge> : null}
           <VoiceCapturePanel
             ref={voiceCaptureRef}
             project={snapshot.project}
@@ -239,29 +243,28 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
             onDragEnd={handleDragEnd}
           >
             <div className="overflow-x-auto pb-2">
-              <div className="flex min-w-full gap-4">
+              <div
+                className="grid grid-cols-1 gap-4 lg:min-w-full lg:[grid-template-columns:repeat(var(--column-count),minmax(280px,1fr))]"
+                style={
+                  {
+                    "--column-count": snapshot.columns.length,
+                  } as CSSProperties
+                }
+              >
                 {snapshot.columns.map((column) => (
                   <BoardColumnView
                     key={column.id}
                     column={column}
+                    columns={snapshot.columns}
                     tasks={getColumnTasks(tasks, column.id)}
                     onOpenTask={setSelectedTaskId}
+                    onCreateTask={openManualTask}
+                    onMoveTask={handleMoveTask}
+                    movingTaskId={movingTaskId === null ? dragTaskId : movingTaskId}
                   />
                 ))}
               </div>
             </div>
-            <DragOverlay>
-              {dragTask ? (
-                <div className="w-[300px] rounded-[1.5rem] border border-black/10 bg-white p-4 shadow-2xl shadow-black/10">
-                  <p className="text-sm font-semibold">{dragTask.title}</p>
-                  {dragTask.description ? (
-                    <p className="mt-2 line-clamp-3 text-sm text-[var(--muted)]">
-                      {dragTask.description}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-            </DragOverlay>
           </DndContext>
         </section>
       </div>
@@ -270,6 +273,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
         key={selectedTask?.id ?? "task-detail"}
         task={selectedTask}
         projectId={snapshot.project.id}
+        boardId={snapshot.board.id}
         columns={snapshot.columns}
         open={Boolean(selectedTask)}
         onClose={() => setSelectedTaskId(null)}
@@ -278,15 +282,17 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
       />
 
       <ManualTaskModal
-        key={`manual-${manualOpen ? "open" : "closed"}-${snapshot.project.id}`}
+        key={`manual-${manualOpen ? "open" : "closed"}-${snapshot.project.id}-${manualColumnId ?? "default"}`}
         open={manualOpen}
-        onClose={() => setManualOpen(false)}
+        onClose={() => {
+          setManualOpen(false);
+          setManualColumnId(null);
+        }}
         projectId={snapshot.project.id}
-        project={snapshot.project}
         board={snapshot.board}
         columns={snapshot.columns}
+        initialColumnId={manualColumnId}
         onCreated={refreshData}
-        onVoiceProcessed={openReview}
       />
 
       <ReviewTasksModal
