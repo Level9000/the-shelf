@@ -271,38 +271,34 @@ function VoiceCapturePanel({
                 Record a note and turn it into proposed board items in one pass.
               </p>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setModeNote(null);
-                setStrategicTextOpen(true);
-              }}
-              className="rounded-[1.25rem] bg-white/75 p-4 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
-            >
-              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                <MessageSquareText className="size-4 text-[var(--accent)]" />
-                Strategic text dialogue
+            <div className="rounded-[1.25rem] bg-black/[0.04] p-4 text-left ring-1 ring-black/6 opacity-60">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]">
+                  <MessageSquareText className="size-4 text-[var(--muted)]" />
+                  Strategic text dialogue
+                </div>
+                <div className="rounded-full bg-black/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Coming soon
+                </div>
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Think through priorities with AI over text and shape the right tasks.
               </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setModeNote(null);
-                setStrategicVoiceOpen(true);
-              }}
-              className="rounded-[1.25rem] bg-white/75 p-4 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
-            >
-              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                <Speech className="size-4 text-[var(--accent)]" />
-                Strategic voice dialogue
+            </div>
+            <div className="rounded-[1.25rem] bg-black/[0.04] p-4 text-left ring-1 ring-black/6 opacity-60">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]">
+                  <Speech className="size-4 text-[var(--muted)]" />
+                  Strategic voice dialogue
+                </div>
+                <div className="rounded-full bg-black/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Coming soon
+                </div>
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Talk through the work out loud and let AI help structure the plan.
               </p>
-            </button>
+            </div>
           </div>
           <div className="mt-3 hidden items-center gap-2 text-xs text-[var(--muted)] md:flex">
             <WandSparkles className="size-3.5" />
@@ -346,20 +342,16 @@ function VoiceCapturePanel({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setModePickerOpen(false);
-                setModeNote(null);
-                setStrategicTextOpen(true);
-              }}
-              className="rounded-[1.5rem] bg-[var(--surface-muted)] p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+              disabled
+              className="rounded-[1.5rem] bg-black/[0.04] p-5 text-left ring-1 ring-black/6 opacity-60"
             >
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                  <MessageSquareText className="size-4 text-[var(--accent)]" />
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]">
+                  <MessageSquareText className="size-4 text-[var(--muted)]" />
                   Strategic text dialogue
                 </div>
-                <div className="rounded-full bg-black/6 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                  Pro
+                <div className="rounded-full bg-black/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Coming soon
                 </div>
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
@@ -368,20 +360,16 @@ function VoiceCapturePanel({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setModePickerOpen(false);
-                setModeNote(null);
-                setStrategicVoiceOpen(true);
-              }}
-              className="rounded-[1.5rem] bg-[var(--surface-muted)] p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+              disabled
+              className="rounded-[1.5rem] bg-black/[0.04] p-5 text-left ring-1 ring-black/6 opacity-60"
             >
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                  <Speech className="size-4 text-[var(--accent)]" />
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]">
+                  <Speech className="size-4 text-[var(--muted)]" />
                   Strategic voice dialogue
                 </div>
-                <div className="rounded-full bg-black/6 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                  Pro
+                <div className="rounded-full bg-black/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Coming soon
                 </div>
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
