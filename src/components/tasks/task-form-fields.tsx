@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 export function TaskFormFields({
   title,
   description,
+  assigneeName,
   priority,
   dueDate,
   columnId,
@@ -14,6 +15,7 @@ export function TaskFormFields({
 }: {
   title: string;
   description: string;
+  assigneeName: string;
   priority: Priority;
   dueDate: string;
   columnId: string;
@@ -37,6 +39,14 @@ export function TaskFormFields({
           onChange={(event) => onChange("description", event.target.value)}
           placeholder="Add context, references, or the next step."
           className="min-h-[140px]"
+        />
+      </div>
+      <div>
+        <label className="mb-2 block text-sm font-medium">Assigned to</label>
+        <Input
+          value={assigneeName}
+          onChange={(event) => onChange("assigneeName", event.target.value)}
+          placeholder="Alex Morgan"
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-3">

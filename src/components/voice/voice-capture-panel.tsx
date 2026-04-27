@@ -31,6 +31,7 @@ type RecorderState = "idle" | "recording" | "processing" | "ready" | "error";
 
 export type VoiceProcessingResult = {
   captureId: string;
+  templateId?: string | null;
   transcript: string;
   proposals: ProposedTask[];
 };
@@ -271,20 +272,27 @@ function VoiceCapturePanel({
                 Record a note and turn it into proposed board items in one pass.
               </p>
             </button>
-            <div className="rounded-[1.25rem] bg-black/[0.04] p-4 text-left ring-1 ring-black/6 opacity-60">
+            <button
+              type="button"
+              onClick={() => {
+                setModeNote(null);
+                setStrategicTextOpen(true);
+              }}
+              className="rounded-[1.25rem] bg-white/75 p-4 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+            >
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]">
-                  <MessageSquareText className="size-4 text-[var(--muted)]" />
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                  <MessageSquareText className="size-4 text-[var(--accent)]" />
                   Strategic text dialogue
                 </div>
-                <div className="rounded-full bg-black/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                  Coming soon
+                <div className="rounded-full bg-black px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                  Live
                 </div>
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Think through priorities with AI over text and shape the right tasks.
+                Teach Shelf how you actually work and shape reusable task flows.
               </p>
-            </div>
+            </button>
             <div className="rounded-[1.25rem] bg-black/[0.04] p-4 text-left ring-1 ring-black/6 opacity-60">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]">
@@ -342,20 +350,24 @@ function VoiceCapturePanel({
             </button>
             <button
               type="button"
-              disabled
-              className="rounded-[1.5rem] bg-black/[0.04] p-5 text-left ring-1 ring-black/6 opacity-60"
+              onClick={() => {
+                setModePickerOpen(false);
+                setModeNote(null);
+                setStrategicTextOpen(true);
+              }}
+              className="rounded-[1.5rem] bg-[var(--surface-muted)] p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
             >
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]">
-                  <MessageSquareText className="size-4 text-[var(--muted)]" />
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                  <MessageSquareText className="size-4 text-[var(--accent)]" />
                   Strategic text dialogue
                 </div>
-                <div className="rounded-full bg-black/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                  Coming soon
+                <div className="rounded-full bg-black px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                  Live
                 </div>
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Work through priorities with AI over text before creating the right tasks.
+                Capture repeatable workflows and turn them into reusable task libraries.
               </p>
             </button>
             <button

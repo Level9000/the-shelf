@@ -32,6 +32,103 @@ export async function createProjectAction(formData: FormData) {
   redirect(`/projects/${data.id}`);
 }
 
+export async function inviteProjectMemberAction(input: {
+  projectId: string;
+  email: string;
+}) {
+  const email = input.email.trim().toLowerCase();
+
+  if (!email) {
+    throw new Error("Email is required.");
+  }
+
+  const { supabase, user } = await getAuthenticatedUser();
+  const { data: project, error: projectError } = await supabase
+    .from("projects")
+    .select("id,user_id")
+    .eq("id", input.projectId)
+    .maybeSingle();
+
+  if (projectError || !project) {
+    throw new Error(projectError?.message ?? "Project not found.");
+  }
+
+  if (String(project.user_id) !== user.id) {
+    throw new Error("Only the project owner can grant access.");
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("user_profiles")
+    .select("id,email")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
+  if (!profile) {
+    throw new Error("That email does not belong to an authenticated Shelf user yet.");
+  }
+
+  if (String(profile.id) === user.id) {
+    throw new Error("You already own this project.");
+  }
+
+  const { error: insertError } = await supabase.from("project_members").insert({
+    project_id: input.projectId,
+    user_id: profile.id,
+    invited_by: user.id,
+  });
+
+  if (insertError) {
+    if (insertError.code === "23505") {
+      throw new Error("That user already has access to this project.");
+    }
+    throw new Error(insertError.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath("/dashboard");
+}
+
+export async function revokeProjectMemberAction(input: {
+  projectId: string;
+  userId: string;
+}) {
+  const { supabase, user } = await getAuthenticatedUser();
+  const { data: project, error: projectError } = await supabase
+    .from("projects")
+    .select("id,user_id")
+    .eq("id", input.projectId)
+    .maybeSingle();
+
+  if (projectError || !project) {
+    throw new Error(projectError?.message ?? "Project not found.");
+  }
+
+  if (String(project.user_id) !== user.id) {
+    throw new Error("Only the project owner can revoke access.");
+  }
+
+  if (input.userId === user.id) {
+    throw new Error("The project owner cannot remove themselves.");
+  }
+
+  const { error } = await supabase
+    .from("project_members")
+    .delete()
+    .eq("project_id", input.projectId)
+    .eq("user_id", input.userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath("/dashboard");
+}
+
 async function getNextBoardPosition(projectId: string) {
   const { supabase } = await getAuthenticatedUser();
   const { data, error } = await supabase
@@ -130,12 +227,15 @@ export async function createChapterAction(input: {
           column_id: targetColumnId,
           title: String(task.title),
           description: (task.description as string | null) ?? null,
+          assignee_name: (task.assignee_name as string | null) ?? null,
           priority: (task.priority as string | null) ?? null,
           due_date: (task.due_date as string | null) ?? null,
           position: (index + 1) * 1000,
           created_by: user.id,
           source_voice_capture_id:
             (task.source_voice_capture_id as string | null) ?? null,
+          source_template_id:
+            (task.source_template_id as string | null) ?? null,
           source_transcript: (task.source_transcript as string | null) ?? null,
         };
       });

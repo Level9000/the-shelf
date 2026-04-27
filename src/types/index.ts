@@ -20,6 +20,16 @@ export type Project = {
   updatedAt: string;
 };
 
+export type ProjectMember = {
+  id: string;
+  projectId: string;
+  userId: string;
+  email: string;
+  invitedBy: string | null;
+  role: "owner" | "editor";
+  createdAt: string;
+};
+
 export type Board = {
   id: string;
   projectId: string;
@@ -44,10 +54,12 @@ export type Task = {
   columnId: string;
   title: string;
   description: string | null;
+  assigneeName: string | null;
   priority: Priority;
   dueDate: string | null;
   position: number;
   sourceVoiceCaptureId: string | null;
+  sourceTemplateId: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -70,18 +82,44 @@ export type ProposedTask = {
   id: string;
   title: string;
   description: string;
+  assigneeName?: string | null;
   suggestedColumn: string;
   priority: Priority;
   dueDate: string | null;
   confidence: number;
 };
 
+export type WorkflowTemplateStep = {
+  id: string;
+  templateId: string;
+  position: number;
+  title: string;
+  description: string;
+  suggestedColumn: string;
+  priority: Priority;
+  dueDate: string | null;
+};
+
+export type WorkflowTemplate = {
+  id: string;
+  userId: string;
+  name: string;
+  triggerPhrase: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  steps: WorkflowTemplateStep[];
+};
+
 export type BoardSnapshot = {
+  currentUser: AppUser;
   project: Project;
+  projectMembers: ProjectMember[];
   board: Board;
   columns: BoardColumn[];
   tasks: Task[];
   voiceCaptures: VoiceCapture[];
+  workflowTemplates: WorkflowTemplate[];
 };
 
 export type ProjectWithChapters = Project & {

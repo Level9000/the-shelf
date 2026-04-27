@@ -4,10 +4,13 @@ import type {
   Board,
   BoardColumn,
   BoardSnapshot,
+  ProjectMember,
   ProjectWithChapters,
   Project,
   Task,
   VoiceCapture,
+  WorkflowTemplate,
+  WorkflowTemplateStep,
 } from "@/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -19,6 +22,18 @@ function mapProject(row: Record<string, unknown>): Project {
     description: (row.description as string | null) ?? null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
+  };
+}
+
+function mapProjectMember(row: Record<string, unknown>): ProjectMember {
+  return {
+    id: String(row.id),
+    projectId: String(row.project_id),
+    userId: String(row.user_id),
+    email: String(row.email),
+    invitedBy: (row.invited_by as string | null) ?? null,
+    role: row.role as ProjectMember["role"],
+    createdAt: String(row.created_at),
   };
 }
 
@@ -49,14 +64,48 @@ function mapTask(row: Record<string, unknown>): Task {
     columnId: String(row.column_id),
     title: String(row.title),
     description: (row.description as string | null) ?? null,
+    assigneeName: (row.assignee_name as string | null) ?? null,
     priority: (row.priority as Task["priority"]) ?? null,
     dueDate: (row.due_date as string | null) ?? null,
     position: Number(row.position),
     sourceVoiceCaptureId: (row.source_voice_capture_id as string | null) ?? null,
+    sourceTemplateId: (row.source_template_id as string | null) ?? null,
     createdBy: String(row.created_by),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
     sourceTranscript: (row.source_transcript as string | null) ?? null,
+  };
+}
+
+function mapWorkflowTemplateStep(row: Record<string, unknown>): WorkflowTemplateStep {
+  return {
+    id: String(row.id),
+    templateId: String(row.template_id),
+    position: Number(row.position),
+    title: String(row.title),
+    description: (row.description as string | null) ?? "",
+    suggestedColumn: String(row.suggested_column ?? "To Do"),
+    priority: (row.priority as WorkflowTemplateStep["priority"]) ?? null,
+    dueDate: (row.due_date as string | null) ?? null,
+  };
+}
+
+function mapWorkflowTemplate(row: Record<string, unknown>): WorkflowTemplate {
+  const steps = Array.isArray(row.workflow_template_steps)
+    ? row.workflow_template_steps.map((step) =>
+        mapWorkflowTemplateStep(step as Record<string, unknown>),
+      ).sort((left, right) => left.position - right.position)
+    : [];
+
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    name: String(row.name),
+    triggerPhrase: String(row.trigger_phrase),
+    description: (row.description as string | null) ?? null,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+    steps,
   };
 }
 
@@ -144,7 +193,7 @@ export async function getProjectBoardSnapshot(
   projectId: string,
   boardId: string,
 ): Promise<BoardSnapshot> {
-  const { supabase } = await getAuthenticatedUser();
+  const { supabase, user } = await getAuthenticatedUser();
 
   const [{ data: projectRow, error: projectError }, { data: boardRow, error: boardError }] =
     await Promise.all([
@@ -171,7 +220,7 @@ export async function getProjectBoardSnapshot(
 
   const board = mapBoard(boardRow);
 
-  const [{ data: columnsData, error: columnsError }, { data: tasksData, error: tasksError }, { data: voiceData, error: voiceError }] =
+  const [{ data: columnsData, error: columnsError }, { data: tasksData, error: tasksError }, { data: voiceData, error: voiceError }, { data: workflowTemplateData, error: workflowTemplateError }, { data: memberData, error: memberError }, { data: ownerProfileRow, error: ownerProfileError }] =
     await Promise.all([
       supabase
         .from("board_columns")
@@ -189,20 +238,94 @@ export async function getProjectBoardSnapshot(
         .eq("project_id", projectId)
         .order("created_at", { ascending: false })
         .limit(6),
+      supabase
+        .from("workflow_templates")
+        .select("*, workflow_template_steps(*)")
+        .eq("user_id", projectRow.user_id)
+        .order("updated_at", { ascending: false }),
+      supabase
+        .from("project_members")
+        .select("id, project_id, user_id, invited_by, created_at")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("user_profiles")
+        .select("email")
+        .eq("id", projectRow.user_id)
+        .maybeSingle(),
     ]);
 
-  if (columnsError || tasksError || voiceError) {
+  if (
+    columnsError ||
+    tasksError ||
+    voiceError ||
+    workflowTemplateError ||
+    memberError ||
+    ownerProfileError
+  ) {
     throw new Error(
-      columnsError?.message ?? tasksError?.message ?? voiceError?.message,
+      columnsError?.message ??
+        tasksError?.message ??
+        voiceError?.message ??
+        workflowTemplateError?.message ??
+        memberError?.message ??
+        ownerProfileError?.message,
     );
   }
 
+  const memberUserIds = [
+    String(projectRow.user_id),
+    ...(memberData ?? []).map((row) => String(row.user_id)),
+  ];
+
+  const { data: memberProfiles, error: memberProfilesError } = await supabase
+    .from("user_profiles")
+    .select("id, email")
+    .in("id", memberUserIds);
+
+  if (memberProfilesError) {
+    throw new Error(memberProfilesError.message);
+  }
+
+  const emailByUserId = new Map(
+    (memberProfiles ?? []).map((row) => [String(row.id), String(row.email)]),
+  );
+
+  const projectMembers: ProjectMember[] = [
+    {
+      id: `owner-${projectRow.id}`,
+      projectId: String(projectRow.id),
+      userId: String(projectRow.user_id),
+      email:
+        emailByUserId.get(String(projectRow.user_id)) ??
+        String(ownerProfileRow?.email ?? ""),
+      invitedBy: null,
+      role: "owner",
+      createdAt: String(projectRow.created_at),
+    },
+    ...(memberData ?? []).map((row) =>
+      mapProjectMember({
+        ...row,
+        email: emailByUserId.get(String(row.user_id)) ?? "",
+        role: "editor",
+      }),
+    ),
+  ];
+
   return {
+    currentUser: {
+      id: user.id,
+      email: user.email ?? null,
+    },
     project: mapProject(projectRow),
+    projectMembers,
     board,
     columns: (columnsData ?? []).map((row) => mapColumn(row)),
     tasks: (tasksData ?? []).map((row) => mapTask(row)),
     voiceCaptures: (voiceData ?? []).map((row) => mapVoiceCapture(row)),
+    workflowTemplates: (workflowTemplateData ?? []).map((row) =>
+      mapWorkflowTemplate(row),
+    ),
   };
 }
 

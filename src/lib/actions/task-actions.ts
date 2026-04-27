@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
 import type { Priority, ProposedTask } from "@/types";
@@ -10,6 +11,7 @@ type TaskMutationInput = {
   columnId: string;
   title: string;
   description?: string;
+  assigneeName?: string | null;
   priority?: Priority;
   dueDate?: string | null;
   sourceVoiceCaptureId?: string | null;
@@ -48,11 +50,13 @@ export async function createTaskAction(input: TaskMutationInput) {
     column_id: input.columnId,
     title,
     description: input.description?.trim() || null,
+    assignee_name: input.assigneeName?.trim() || null,
     priority: input.priority ?? null,
     due_date: input.dueDate || null,
     position,
     created_by: user.id,
     source_voice_capture_id: input.sourceVoiceCaptureId ?? null,
+    source_template_id: null,
   });
 
   if (error) {
@@ -70,6 +74,7 @@ export async function updateTaskAction(input: {
   columnId: string;
   title: string;
   description?: string;
+  assigneeName?: string | null;
   priority?: Priority;
   dueDate?: string | null;
 }) {
@@ -80,6 +85,7 @@ export async function updateTaskAction(input: {
       column_id: input.columnId,
       title: input.title.trim(),
       description: input.description?.trim() || null,
+      assignee_name: input.assigneeName?.trim() || null,
       priority: input.priority ?? null,
       due_date: input.dueDate || null,
     })
@@ -173,6 +179,7 @@ export async function acceptProposedTasksAction(input: {
   projectId: string;
   boardId: string;
   captureId: string;
+  templateId?: string | null;
   proposals: ProposedTask[];
   columnMap: Array<{ id: string; name: string }>;
 }) {
@@ -209,11 +216,104 @@ export async function acceptProposedTasksAction(input: {
         column_id: columnId,
         title: proposal.title.trim(),
         description: proposal.description.trim() || null,
+        assignee_name: proposal.assigneeName?.trim() || null,
         priority: proposal.priority ?? null,
         due_date: proposal.dueDate || null,
         position: startPosition + index * 1000,
         created_by: user.id,
         source_voice_capture_id: input.captureId,
+        source_template_id: input.templateId ?? null,
+      });
+    });
+  }
+
+  const { error } = await supabase.from("tasks").insert(inserts);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+}
+
+export async function createTasksFromTemplateAction(input: {
+  projectId: string;
+  boardId: string;
+  templateId: string;
+  columnMap: Array<{ id: string; name: string }>;
+}) {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  const { data: templateRow, error: templateError } = await supabase
+    .from("workflow_templates")
+    .select("*, workflow_template_steps(*)")
+    .eq("id", input.templateId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (templateError || !templateRow) {
+    throw new Error(templateError?.message ?? "Template not found.");
+  }
+
+  const steps = (
+    (templateRow as Record<string, unknown>).workflow_template_steps as
+      | Array<Record<string, unknown>>
+      | undefined
+  ?? [])
+    .map((step) => ({
+      id: String(step.id ?? randomUUID()),
+      title: String(step.title ?? "").trim(),
+      description: String(step.description ?? "").trim(),
+      suggestedColumn: String(step.suggested_column ?? "To Do"),
+      priority: (step.priority as Priority) ?? null,
+      dueDate: (step.due_date as string | null) ?? null,
+      position: Number(step.position ?? 0),
+    }))
+    .filter((step) => step.title.length > 0)
+    .sort((left, right) => left.position - right.position);
+
+  if (steps.length === 0) {
+    throw new Error("This template does not have any steps yet.");
+  }
+
+  const tasksByColumn = new Map<
+    string,
+    Array<(typeof steps)[number]>
+  >();
+
+  steps.forEach((step) => {
+    const targetColumn =
+      input.columnMap.find((column) => column.name === step.suggestedColumn) ??
+      input.columnMap.find((column) => column.name === "To Do") ??
+      input.columnMap[0];
+
+    if (!targetColumn) return;
+
+    const existing = tasksByColumn.get(targetColumn.id) ?? [];
+    existing.push(step);
+    tasksByColumn.set(targetColumn.id, existing);
+  });
+
+  const inserts: Array<Record<string, unknown>> = [];
+
+  for (const [columnId, columnSteps] of tasksByColumn.entries()) {
+    const startPosition = await getNextTaskPosition(input.boardId, columnId);
+
+    columnSteps.forEach((step, index) => {
+      inserts.push({
+        project_id: input.projectId,
+        board_id: input.boardId,
+        column_id: columnId,
+        title: step.title,
+        description: step.description || null,
+        assignee_name: null,
+        priority: step.priority ?? null,
+        due_date: step.dueDate || null,
+        position: startPosition + index * 1000,
+        created_by: user.id,
+        source_voice_capture_id: null,
+        source_template_id: input.templateId,
       });
     });
   }

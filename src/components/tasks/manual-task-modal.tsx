@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import type { Board, BoardColumn, Task } from "@/types";
-import { createTaskAction } from "@/lib/actions/task-actions";
+import { useMemo, useState, useTransition } from "react";
+import { Layers3, PencilLine, Sparkles } from "lucide-react";
+import type { Board, BoardColumn, Task, WorkflowTemplate } from "@/types";
+import {
+  createTaskAction,
+  createTasksFromTemplateAction,
+} from "@/lib/actions/task-actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { TaskFormFields } from "@/components/tasks/task-form-fields";
@@ -10,6 +15,7 @@ import { TaskFormFields } from "@/components/tasks/task-form-fields";
 type FormState = {
   title: string;
   description: string;
+  assigneeName: string;
   priority: string;
   dueDate: string;
   columnId: string;
@@ -19,6 +25,7 @@ function getInitialState(columns: BoardColumn[]): FormState {
   return {
     title: "",
     description: "",
+    assigneeName: "",
     priority: "",
     dueDate: "",
     columnId: columns[0]?.id ?? "",
@@ -31,6 +38,7 @@ export function ManualTaskModal({
   projectId,
   board,
   columns,
+  templates,
   initialColumnId,
   onCreated,
 }: {
@@ -39,15 +47,25 @@ export function ManualTaskModal({
   projectId: string;
   board: Board;
   columns: BoardColumn[];
+  templates: WorkflowTemplate[];
   initialColumnId?: string | null;
   onCreated: () => void;
 }) {
+  const [mode, setMode] = useState<"chooser" | "manual" | "template">("chooser");
   const [form, setForm] = useState<FormState>(() => ({
     ...getInitialState(columns),
     columnId: initialColumnId ?? columns[0]?.id ?? "",
   }));
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    templates[0]?.id ?? null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const selectedTemplate = useMemo(
+    () => templates.find((template) => template.id === selectedTemplateId) ?? null,
+    [selectedTemplateId, templates],
+  );
 
   function handleChange(field: string, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -63,6 +81,7 @@ export function ManualTaskModal({
           columnId: form.columnId,
           title: form.title,
           description: form.description,
+          assigneeName: form.assigneeName || null,
           priority: (form.priority || null) as Task["priority"],
           dueDate: form.dueDate || null,
         });
@@ -78,35 +97,247 @@ export function ManualTaskModal({
     });
   }
 
+  function handleApplyTemplate() {
+    if (!selectedTemplate) {
+      setError("Choose a template first.");
+      return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      try {
+        await createTasksFromTemplateAction({
+          projectId,
+          boardId: board.id,
+          templateId: selectedTemplate.id,
+          columnMap: columns.map((column) => ({ id: column.id, name: column.name })),
+        });
+        onCreated();
+        onClose();
+      } catch (createError) {
+        setError(
+          createError instanceof Error
+            ? createError.message
+            : "Failed to apply template.",
+        );
+      }
+    });
+  }
+
   return (
     <Modal
       open={open}
-      title="New task"
-      description="Create a task without using voice capture."
+      title="Add to backlog"
+      description="Create a task manually or populate this chapter from your saved template library."
       onClose={onClose}
+      className="max-w-5xl"
     >
-      <TaskFormFields
-        title={form.title}
-        description={form.description}
-        priority={form.priority as Task["priority"]}
-        dueDate={form.dueDate}
-        columnId={form.columnId}
-        columns={columns}
-        onChange={handleChange}
-      />
+      {mode === "chooser" ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setMode("manual");
+            }}
+            className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                <PencilLine className="size-5" />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-[var(--ink)]">Create a task</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  Add one card manually with your own title, details, and due date.
+                </p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setMode("template");
+            }}
+            className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                <Layers3 className="size-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-base font-semibold text-[var(--ink)]">
+                    Add from my template library
+                  </p>
+                  <Badge>{templates.length}</Badge>
+                </div>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  Choose a saved workflow and add its steps to this chapter instantly.
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
+      ) : null}
+
+      {mode === "manual" ? (
+        <>
+          <TaskFormFields
+            title={form.title}
+            description={form.description}
+            assigneeName={form.assigneeName}
+            priority={form.priority as Task["priority"]}
+            dueDate={form.dueDate}
+            columnId={form.columnId}
+            columns={columns}
+            onChange={handleChange}
+          />
+          <div className="mt-6 flex justify-between gap-3">
+            <Button variant="secondary" onClick={() => setMode("chooser")}>
+              Back
+            </Button>
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreate} disabled={isPending}>
+                {isPending ? "Creating..." : "Create task"}
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {mode === "template" ? (
+        <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <section className="rounded-[1.75rem] bg-[var(--surface-muted)] p-5">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+              <Sparkles className="size-4 text-[var(--accent)]" />
+              My template library
+            </div>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              Saved workflows you can reuse across chapters and projects.
+            </p>
+
+            {templates.length === 0 ? (
+              <div className="mt-4 rounded-[1.5rem] bg-white/75 p-4 text-sm text-[var(--muted)]">
+                No templates saved yet. Build one through Strategic Text Dialogue first.
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {templates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => setSelectedTemplateId(template.id)}
+                    className={`w-full rounded-[1.5rem] p-4 text-left transition ${
+                      template.id === selectedTemplateId
+                        ? "bg-white shadow-sm ring-2 ring-[var(--accent)]/30"
+                        : "bg-white/75 ring-1 ring-black/6 hover:bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-[var(--ink)]">
+                        {template.name}
+                      </p>
+                      <Badge>{template.steps.length} steps</Badge>
+                    </div>
+                    <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                      Trigger: {template.triggerPhrase}
+                    </p>
+                    {template.description ? (
+                      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                        {template.description}
+                      </p>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-[1.75rem] bg-white/90 p-5 ring-1 ring-black/6">
+            {selectedTemplate ? (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-lg font-semibold text-[var(--ink)]">
+                      {selectedTemplate.name}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      Trigger phrase: {selectedTemplate.triggerPhrase}
+                    </p>
+                  </div>
+                  <Badge>{selectedTemplate.steps.length} tasks</Badge>
+                </div>
+                {selectedTemplate.description ? (
+                  <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                    {selectedTemplate.description}
+                  </p>
+                ) : null}
+                <div className="mt-5 space-y-3">
+                  {selectedTemplate.steps.map((step, index) => (
+                    <div
+                      key={step.id}
+                      className="rounded-[1.4rem] bg-[var(--surface-muted)] px-4 py-3"
+                    >
+                      <p className="text-sm font-semibold text-[var(--ink)]">
+                        {index + 1}. {step.title}
+                      </p>
+                      {step.description ? (
+                        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                          {step.description}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-sm leading-6 text-[var(--muted)]">
+                Pick a template from the left to preview the steps that will be added
+                to this chapter.
+              </div>
+            )}
+          </section>
+        </div>
+      ) : null}
+
       {error ? (
         <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </p>
       ) : null}
-      <div className="mt-6 flex justify-end gap-3">
-        <Button variant="secondary" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button onClick={handleCreate} disabled={isPending}>
-          {isPending ? "Creating..." : "Create task"}
-        </Button>
-      </div>
+
+      {mode === "chooser" ? (
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      ) : null}
+
+      {mode === "template" ? (
+        <div className="mt-6 flex justify-between gap-3">
+          <Button variant="secondary" onClick={() => setMode("chooser")}>
+            Back
+          </Button>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleApplyTemplate}
+              disabled={isPending || !selectedTemplate}
+            >
+              {isPending ? "Adding..." : "Add template to backlog"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </Modal>
   );
 }

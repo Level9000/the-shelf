@@ -23,6 +23,7 @@ export function ReviewTasksModal({
   board,
   columns,
   captureId,
+  templateId,
   transcript,
   proposals,
   onClose,
@@ -33,6 +34,7 @@ export function ReviewTasksModal({
   board: Board;
   columns: BoardColumn[];
   captureId: string | null;
+  templateId?: string | null;
   transcript: string;
   proposals: ProposedTask[];
   onClose: () => void;
@@ -89,6 +91,7 @@ export function ReviewTasksModal({
           projectId,
           boardId: board.id,
           captureId,
+          templateId,
           proposals: selected,
           columnMap: columns.map((column) => ({ id: column.id, name: column.name })),
         });
@@ -199,6 +202,16 @@ export function ReviewTasksModal({
                       updateItem(item.id, "description", event.target.value)
                     }
                     className="min-h-[100px]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Assigned to</label>
+                  <Input
+                    value={item.assigneeName ?? ""}
+                    onChange={(event) =>
+                      updateItem(item.id, "assigneeName", event.target.value)
+                    }
+                    placeholder="Alex Morgan"
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">

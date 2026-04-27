@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { CalendarDays, GripVertical, MessageSquareText } from "lucide-react";
+import { CalendarDays, GripVertical, MessageSquareText, UserRound } from "lucide-react";
 import type { Task } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,6 +111,12 @@ export function TaskCard({
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays className="size-3.5" />
               {formatDate(task.dueDate)}
+            </span>
+          ) : null}
+          {task.assigneeName ? (
+            <span className="inline-flex items-center gap-1.5">
+              <UserRound className="size-3.5" />
+              {task.assigneeName}
             </span>
           ) : null}
           {task.sourceVoiceCaptureId ? (

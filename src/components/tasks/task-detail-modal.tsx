@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/utils";
 type FormState = {
   title: string;
   description: string;
+  assigneeName: string;
   priority: string;
   dueDate: string;
   columnId: string;
@@ -21,6 +22,7 @@ function toFormState(task: Task): FormState {
   return {
     title: task.title,
     description: task.description ?? "",
+    assigneeName: task.assigneeName ?? "",
     priority: task.priority ?? "",
     dueDate: task.dueDate ?? "",
     columnId: task.columnId,
@@ -72,6 +74,7 @@ export function TaskDetailModal({
           columnId: currentForm.columnId,
           title: currentForm.title,
           description: currentForm.description,
+          assigneeName: currentForm.assigneeName || null,
           priority: (currentForm.priority || null) as Task["priority"],
           dueDate: currentForm.dueDate || null,
         });
@@ -115,6 +118,7 @@ export function TaskDetailModal({
       <TaskFormFields
         title={currentForm.title}
         description={currentForm.description}
+        assigneeName={currentForm.assigneeName}
         priority={currentForm.priority as Task["priority"]}
         dueDate={currentForm.dueDate}
         columnId={currentForm.columnId}

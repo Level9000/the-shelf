@@ -57,6 +57,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
+    console.error("Strategic dialogue request failed", error);
     return NextResponse.json(
       {
         error:

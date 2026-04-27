@@ -178,13 +178,23 @@ export async function runStrategicTextDialogue(input: {
           schema: {
             type: "object",
             additionalProperties: false,
-            required: ["status", "reply", "tasks"],
+            required: ["status", "reply", "template", "tasks"],
             properties: {
               status: {
                 type: "string",
-                enum: ["clarifying", "ready_for_confirmation"],
+                enum: ["discovery", "template_review", "ready_for_review"],
               },
               reply: { type: "string", minLength: 1, maxLength: 4000 },
+              template: {
+                type: "object",
+                additionalProperties: false,
+                required: ["name", "triggerPhrase", "description"],
+                properties: {
+                  name: { type: "string", maxLength: 120 },
+                  triggerPhrase: { type: "string", maxLength: 180 },
+                  description: { type: "string", maxLength: 500 },
+                },
+              },
               tasks: {
                 type: "array",
                 maxItems: 12,

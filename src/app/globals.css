@@ -29,15 +29,29 @@ html {
 }
 
 body {
-  font-family:
-    "Avenir Next",
-    "Segoe UI",
-    "Helvetica Neue",
+  font-family: var(--font-body), "Avenir Next", "Segoe UI", "Helvetica Neue",
     sans-serif;
   background:
     radial-gradient(circle at top left, rgba(47, 111, 103, 0.08), transparent 34%),
     radial-gradient(circle at top right, rgba(184, 164, 137, 0.12), transparent 28%),
     linear-gradient(180deg, #f8f5f0 0%, #f3efe8 48%, #efebe4 100%);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading), Georgia, "Times New Roman", serif;
+  letter-spacing: -0.02em;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
 code,

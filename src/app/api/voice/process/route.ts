@@ -47,8 +47,15 @@ export async function POST(request: Request) {
     .single();
 
   if (captureError || !capture) {
+    const message = captureError?.message ?? "Failed to create voice capture.";
+    const constraintHint =
+      message.includes("audio_path") && message.includes("not-null")
+        ? "Your Supabase database is missing the migration that removed the voice audio_path requirement. Apply migration 20260422_000003_stop_persisting_voice_audio.sql and try again."
+        : message;
+
+    console.error("Voice capture creation failed", captureError);
     return NextResponse.json(
-      { error: captureError?.message ?? "Failed to create voice capture." },
+      { error: constraintHint },
       { status: 500 },
     );
   }

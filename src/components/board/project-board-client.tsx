@@ -21,7 +21,9 @@ import {
 } from "@/lib/actions/task-actions";
 import { normalizeTaskOrder } from "@/lib/board-utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BoardColumnView } from "@/components/board/board-column";
+import { ProjectAccessModal } from "@/components/projects/project-access-modal";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import {
@@ -33,6 +35,7 @@ import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
 
 type ReviewState = {
   captureId: string | null;
+  templateId: string | null;
   transcript: string;
   proposals: ProposedTask[];
 };
@@ -67,9 +70,11 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
+  const [accessOpen, setAccessOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewState, setReviewState] = useState<ReviewState>({
     captureId: null,
+    templateId: null,
     transcript: "",
     proposals: [],
   });
@@ -80,6 +85,18 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
   );
+  const visibleMembers = useMemo(
+    () => snapshot.projectMembers.slice(0, 4),
+    [snapshot.projectMembers],
+  );
+
+  function initials(value: string) {
+    const segments = value.split("@")[0].split(/[.\s_-]+/).filter(Boolean);
+    return segments
+      .slice(0, 2)
+      .map((segment) => segment.charAt(0).toUpperCase())
+      .join("") || "?";
+  }
 
   function refreshData() {
     router.refresh();
@@ -93,6 +110,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
   function openReview(result: VoiceProcessingResult) {
     setReviewState({
       captureId: result.captureId,
+      templateId: result.templateId ?? null,
       transcript: result.transcript,
       proposals: result.proposals,
     });
@@ -213,17 +231,41 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
     <>
       <div className="space-y-6">
         <section className="surface hairline rounded-[2rem] p-4 sm:p-5">
-          <div className="mb-4 max-w-2xl">
-            <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
-              {snapshot.board.name}
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-              {snapshot.project.name}
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              {snapshot.project.description ??
-                "Capture ideas by voice, review the extracted tasks, and move work through a lightweight board."}
-            </p>
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-2xl">
+              <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
+                {snapshot.board.name}
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                {snapshot.project.name}
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                {snapshot.project.description ??
+                  "Capture ideas by voice, review the extracted tasks, and move work through a lightweight board."}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="hidden items-center -space-x-2 sm:flex">
+                {visibleMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    title={member.email}
+                    className="flex size-9 items-center justify-center rounded-full border-2 border-[var(--app-bg)] bg-[var(--accent-soft)] text-[11px] font-semibold text-[var(--accent)]"
+                  >
+                    {initials(member.email)}
+                  </div>
+                ))}
+                {snapshot.projectMembers.length > visibleMembers.length ? (
+                  <div className="flex size-9 items-center justify-center rounded-full border-2 border-[var(--app-bg)] bg-black text-[11px] font-semibold text-white">
+                    +{snapshot.projectMembers.length - visibleMembers.length}
+                  </div>
+                ) : null}
+              </div>
+              <Badge>{snapshot.projectMembers.length} people</Badge>
+              <Button variant="secondary" onClick={() => setAccessOpen(true)}>
+                Share access
+              </Button>
+            </div>
           </div>
           {error ? (
             <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -291,6 +333,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
         projectId={snapshot.project.id}
         board={snapshot.board}
         columns={snapshot.columns}
+        templates={snapshot.workflowTemplates}
         initialColumnId={manualColumnId}
         onCreated={refreshData}
       />
@@ -302,11 +345,23 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
         board={snapshot.board}
         columns={snapshot.columns}
         captureId={reviewState.captureId}
+        templateId={reviewState.templateId}
         transcript={reviewState.transcript}
         proposals={reviewState.proposals}
         onClose={() => setReviewOpen(false)}
         onAccepted={refreshData}
       />
+
+      {accessOpen ? (
+        <ProjectAccessModal
+          open={accessOpen}
+          onClose={() => setAccessOpen(false)}
+          project={snapshot.project}
+          currentUser={snapshot.currentUser}
+          members={snapshot.projectMembers}
+          onUpdated={refreshData}
+        />
+      ) : null}
     </>
   );
 }
