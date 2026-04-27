@@ -1,8 +1,15 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { Layers3, PencilLine, Sparkles } from "lucide-react";
-import type { Board, BoardColumn, Task, WorkflowTemplate } from "@/types";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { Layers3, MessageSquareText, Mic, PencilLine, Sparkles } from "lucide-react";
+import type {
+  Board,
+  BoardColumn,
+  Project,
+  ProjectMember,
+  Task,
+  WorkflowTemplate,
+} from "@/types";
 import {
   createTaskAction,
   createTasksFromTemplateAction,
@@ -11,6 +18,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { TaskFormFields } from "@/components/tasks/task-form-fields";
+import {
+  VoiceCapturePanel,
+  type VoiceCapturePanelHandle,
+  type VoiceProcessingResult,
+} from "@/components/voice/voice-capture-panel";
 
 type FormState = {
   title: string;
@@ -35,22 +47,27 @@ function getInitialState(columns: BoardColumn[]): FormState {
 export function ManualTaskModal({
   open,
   onClose,
-  projectId,
+  project,
   board,
   columns,
+  assignableMembers,
   templates,
   initialColumnId,
   onCreated,
+  onProcessed,
 }: {
   open: boolean;
   onClose: () => void;
-  projectId: string;
+  project: Project;
   board: Board;
   columns: BoardColumn[];
+  assignableMembers: ProjectMember[];
   templates: WorkflowTemplate[];
   initialColumnId?: string | null;
   onCreated: () => void;
+  onProcessed: (result: VoiceProcessingResult) => void;
 }) {
+  const aiLauncherRef = useRef<VoiceCapturePanelHandle | null>(null);
   const [mode, setMode] = useState<"chooser" | "manual" | "template">("chooser");
   const [form, setForm] = useState<FormState>(() => ({
     ...getInitialState(columns),
@@ -76,7 +93,7 @@ export function ManualTaskModal({
     startTransition(async () => {
       try {
         await createTaskAction({
-          projectId,
+          projectId: project.id,
           boardId: board.id,
           columnId: form.columnId,
           title: form.title,
@@ -107,7 +124,7 @@ export function ManualTaskModal({
     startTransition(async () => {
       try {
         await createTasksFromTemplateAction({
-          projectId,
+          projectId: project.id,
           boardId: board.id,
           templateId: selectedTemplate.id,
           columnMap: columns.map((column) => ({ id: column.id, name: column.name })),
@@ -125,76 +142,259 @@ export function ManualTaskModal({
   }
 
   return (
-    <Modal
-      open={open}
-      title="Add to backlog"
-      description="Create a task manually or populate this chapter from your saved template library."
-      onClose={onClose}
-      className="max-w-5xl"
-    >
-      {mode === "chooser" ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setMode("manual");
-            }}
-            className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                <PencilLine className="size-5" />
-              </div>
-              <div>
-                <p className="text-base font-semibold text-[var(--ink)]">Create a task</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  Add one card manually with your own title, details, and due date.
-                </p>
-              </div>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setMode("template");
-            }}
-            className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                <Layers3 className="size-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-base font-semibold text-[var(--ink)]">
-                    Add from my template library
-                  </p>
-                  <Badge>{templates.length}</Badge>
+    <>
+      <Modal
+        open={open}
+        title="Add to backlog"
+        description="Create a task manually, use a saved workflow, or let AI generate the work."
+        onClose={onClose}
+        className="max-w-5xl"
+      >
+        {mode === "chooser" ? (
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setMode("manual");
+                }}
+                className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <PencilLine className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-[var(--ink)]">Create a task</p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      Add one card manually with your own title, details, and due date.
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  Choose a saved workflow and add its steps to this chapter instantly.
-                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setMode("template");
+                }}
+                className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <Layers3 className="size-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-semibold text-[var(--ink)]">
+                        Add from my template library
+                      </p>
+                      <Badge>{templates.length}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      Choose a saved workflow and add its steps to this chapter instantly.
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div>
+              <p className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                Level up with Pro
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    aiLauncherRef.current?.openAudioToBacklog();
+                  }}
+                  className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                      <Mic className="size-5" />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-[var(--ink)]">
+                        Speech to backlog
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        Record a note and turn it into reviewable tasks.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    aiLauncherRef.current?.openPlanWithAi();
+                  }}
+                  className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                      <MessageSquareText className="size-5" />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-[var(--ink)]">
+                        Plan with AI
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        Talk through the work and extract backlog tasks fast.
+                      </p>
+                    </div>
+                  </div>
+                </button>
               </div>
             </div>
-          </button>
-        </div>
-      ) : null}
+          </div>
+        ) : null}
 
-      {mode === "manual" ? (
-        <>
-          <TaskFormFields
-            title={form.title}
-            description={form.description}
-            assigneeName={form.assigneeName}
-            priority={form.priority as Task["priority"]}
-            dueDate={form.dueDate}
-            columnId={form.columnId}
-            columns={columns}
-            onChange={handleChange}
-          />
+        {mode === "manual" ? (
+          <>
+            <TaskFormFields
+              title={form.title}
+              description={form.description}
+              assigneeName={form.assigneeName}
+              priority={form.priority as Task["priority"]}
+              dueDate={form.dueDate}
+              columnId={form.columnId}
+              columns={columns}
+              assignableMembers={assignableMembers}
+              onChange={handleChange}
+            />
+            <div className="mt-6 flex justify-between gap-3">
+              <Button variant="secondary" onClick={() => setMode("chooser")}>
+                Back
+              </Button>
+              <div className="flex gap-3">
+                <Button variant="secondary" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreate} disabled={isPending}>
+                  {isPending ? "Creating..." : "Create task"}
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {mode === "template" ? (
+          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+            <section className="rounded-[1.75rem] bg-[var(--surface-muted)] p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                <Sparkles className="size-4 text-[var(--accent)]" />
+                My template library
+              </div>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                Saved workflows you can reuse across chapters and projects.
+              </p>
+
+              {templates.length === 0 ? (
+                <div className="mt-4 rounded-[1.5rem] bg-white/75 p-4 text-sm text-[var(--muted)]">
+                  No templates saved yet. Build one through Plan with AI first.
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {templates.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => setSelectedTemplateId(template.id)}
+                      className={`w-full rounded-[1.5rem] p-4 text-left transition ${
+                        template.id === selectedTemplateId
+                          ? "bg-white shadow-sm ring-2 ring-[var(--accent)]/30"
+                          : "bg-white/75 ring-1 ring-black/6 hover:bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-[var(--ink)]">
+                          {template.name}
+                        </p>
+                        <Badge>{template.steps.length} steps</Badge>
+                      </div>
+                      <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                        Trigger: {template.triggerPhrase}
+                      </p>
+                      {template.description ? (
+                        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                          {template.description}
+                        </p>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-[1.75rem] bg-white/90 p-5 ring-1 ring-black/6">
+              {selectedTemplate ? (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-semibold text-[var(--ink)]">
+                        {selectedTemplate.name}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        Trigger phrase: {selectedTemplate.triggerPhrase}
+                      </p>
+                    </div>
+                    <Badge>{selectedTemplate.steps.length} tasks</Badge>
+                  </div>
+                  {selectedTemplate.description ? (
+                    <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                      {selectedTemplate.description}
+                    </p>
+                  ) : null}
+                  <div className="mt-5 space-y-3">
+                    {selectedTemplate.steps.map((step, index) => (
+                      <div
+                        key={step.id}
+                        className="rounded-[1.4rem] bg-[var(--surface-muted)] px-4 py-3"
+                      >
+                        <p className="text-sm font-semibold text-[var(--ink)]">
+                          {index + 1}. {step.title}
+                        </p>
+                        {step.description ? (
+                          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                            {step.description}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm leading-6 text-[var(--muted)]">
+                  Pick a template from the left to preview the steps that will be added
+                  to this chapter.
+                </div>
+              )}
+            </section>
+          </div>
+        ) : null}
+
+        {error ? (
+          <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {error}
+          </p>
+        ) : null}
+
+        {mode === "chooser" ? (
+          <div className="mt-6 flex justify-end gap-3">
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+        ) : null}
+
+        {mode === "template" ? (
           <div className="mt-6 flex justify-between gap-3">
             <Button variant="secondary" onClick={() => setMode("chooser")}>
               Back
@@ -203,141 +403,32 @@ export function ManualTaskModal({
               <Button variant="secondary" onClick={onClose}>
                 Cancel
               </Button>
-              <Button onClick={handleCreate} disabled={isPending}>
-                {isPending ? "Creating..." : "Create task"}
+              <Button
+                onClick={handleApplyTemplate}
+                disabled={isPending || !selectedTemplate}
+              >
+                {isPending ? "Adding..." : "Add template to backlog"}
               </Button>
             </div>
           </div>
-        </>
-      ) : null}
+        ) : null}
+      </Modal>
 
-      {mode === "template" ? (
-        <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="rounded-[1.75rem] bg-[var(--surface-muted)] p-5">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-              <Sparkles className="size-4 text-[var(--accent)]" />
-              My template library
-            </div>
-            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Saved workflows you can reuse across chapters and projects.
-            </p>
-
-            {templates.length === 0 ? (
-              <div className="mt-4 rounded-[1.5rem] bg-white/75 p-4 text-sm text-[var(--muted)]">
-                No templates saved yet. Build one through Strategic Text Dialogue first.
-              </div>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {templates.map((template) => (
-                  <button
-                    key={template.id}
-                    type="button"
-                    onClick={() => setSelectedTemplateId(template.id)}
-                    className={`w-full rounded-[1.5rem] p-4 text-left transition ${
-                      template.id === selectedTemplateId
-                        ? "bg-white shadow-sm ring-2 ring-[var(--accent)]/30"
-                        : "bg-white/75 ring-1 ring-black/6 hover:bg-white"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-[var(--ink)]">
-                        {template.name}
-                      </p>
-                      <Badge>{template.steps.length} steps</Badge>
-                    </div>
-                    <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
-                      Trigger: {template.triggerPhrase}
-                    </p>
-                    {template.description ? (
-                      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                        {template.description}
-                      </p>
-                    ) : null}
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-[1.75rem] bg-white/90 p-5 ring-1 ring-black/6">
-            {selectedTemplate ? (
-              <>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-lg font-semibold text-[var(--ink)]">
-                      {selectedTemplate.name}
-                    </p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      Trigger phrase: {selectedTemplate.triggerPhrase}
-                    </p>
-                  </div>
-                  <Badge>{selectedTemplate.steps.length} tasks</Badge>
-                </div>
-                {selectedTemplate.description ? (
-                  <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                    {selectedTemplate.description}
-                  </p>
-                ) : null}
-                <div className="mt-5 space-y-3">
-                  {selectedTemplate.steps.map((step, index) => (
-                    <div
-                      key={step.id}
-                      className="rounded-[1.4rem] bg-[var(--surface-muted)] px-4 py-3"
-                    >
-                      <p className="text-sm font-semibold text-[var(--ink)]">
-                        {index + 1}. {step.title}
-                      </p>
-                      {step.description ? (
-                        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                          {step.description}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="text-sm leading-6 text-[var(--muted)]">
-                Pick a template from the left to preview the steps that will be added
-                to this chapter.
-              </div>
-            )}
-          </section>
-        </div>
-      ) : null}
-
-      {error ? (
-        <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </p>
-      ) : null}
-
-      {mode === "chooser" ? (
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
-      ) : null}
-
-      {mode === "template" ? (
-        <div className="mt-6 flex justify-between gap-3">
-          <Button variant="secondary" onClick={() => setMode("chooser")}>
-            Back
-          </Button>
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleApplyTemplate}
-              disabled={isPending || !selectedTemplate}
-            >
-              {isPending ? "Adding..." : "Add template to backlog"}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-    </Modal>
+      <VoiceCapturePanel
+        ref={aiLauncherRef}
+        project={project}
+        boardId={board.id}
+        columns={columns}
+        onProcessed={(result) => {
+          onClose();
+          onProcessed(result);
+        }}
+        onTasksCreated={() => {
+          onCreated();
+          onClose();
+        }}
+        showLauncher={false}
+      />
+    </>
   );
 }

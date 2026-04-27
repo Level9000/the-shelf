@@ -9,6 +9,7 @@ import {
   FolderKanban,
   LogOut,
   PlusCircle,
+  Settings,
   WandSparkles,
 } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
@@ -23,6 +24,7 @@ export function ProjectSidebar({
   currentChapterId,
   collapsed,
   onToggle,
+  onOpenSettings,
   onNavigate,
 }: {
   projects: ProjectWithChapters[];
@@ -30,6 +32,7 @@ export function ProjectSidebar({
   currentChapterId: string;
   collapsed: boolean;
   onToggle: () => void;
+  onOpenSettings?: () => void;
   onNavigate?: () => void;
 }) {
   const router = useRouter();
@@ -41,7 +44,7 @@ export function ProjectSidebar({
     <>
       <aside
         className={cn(
-          "surface hairline flex flex-col rounded-[2rem] p-4 transition-all duration-300 lg:h-[calc(100vh-4rem)] lg:sticky lg:top-8",
+          "surface hairline flex h-full flex-col rounded-[2rem] p-4 transition-all duration-300",
           collapsed ? "lg:px-3" : "lg:p-5",
         )}
       >
@@ -153,25 +156,45 @@ export function ProjectSidebar({
           ))}
         </div>
         <div className="mt-5 grid gap-3">
-          <Link href="/dashboard" onClick={onNavigate}>
-            <Button
-              className={cn(
-                "w-full",
-                collapsed ? "justify-center px-0" : "justify-between",
-              )}
-              variant="secondary"
-              title={collapsed ? "New or switch project" : undefined}
-            >
-              {collapsed ? (
-                <FolderKanban className="size-4" />
-              ) : (
-                <>
-                  New or switch project
-                  <PlusCircle className="size-4" />
-                </>
-              )}
-            </Button>
-          </Link>
+          <Button
+            className={cn(
+              "w-full",
+              collapsed ? "justify-center px-0" : "justify-between",
+            )}
+            variant="secondary"
+            title={collapsed ? "Settings" : undefined}
+            onClick={onOpenSettings}
+          >
+            {collapsed ? (
+              <Settings className="size-4" />
+            ) : (
+              <>
+                Settings
+                <Settings className="size-4" />
+              </>
+            )}
+          </Button>
+          <Button
+            className={cn(
+              "w-full",
+              collapsed ? "justify-center px-0" : "justify-between",
+            )}
+            variant="secondary"
+            title={collapsed ? "New or switch project" : undefined}
+            onClick={() => {
+              onNavigate?.();
+              router.push("/dashboard");
+            }}
+          >
+            {collapsed ? (
+              <FolderKanban className="size-4" />
+            ) : (
+              <>
+                New or switch project
+                <PlusCircle className="size-4" />
+              </>
+            )}
+          </Button>
           <form action={logoutAction}>
             <Button
               className={cn(

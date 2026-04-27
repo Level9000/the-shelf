@@ -1,4 +1,5 @@
 import {
+  getCurrentUserProfile,
   getProjectBoardSnapshot,
   getProjectsWithChapters,
 } from "@/lib/supabase/queries";
@@ -10,9 +11,10 @@ export default async function ChapterPage({
   params: Promise<{ projectId: string; chapterId: string }>;
 }) {
   const { projectId, chapterId } = await params;
-  const [snapshot, projects] = await Promise.all([
+  const [snapshot, projects, profile] = await Promise.all([
     getProjectBoardSnapshot(projectId, chapterId),
     getProjectsWithChapters(),
+    getCurrentUserProfile(),
   ]);
 
   return (
@@ -20,6 +22,7 @@ export default async function ChapterPage({
       <ProjectWorkspaceShell
         snapshot={snapshot}
         projects={projects}
+        profile={profile}
         currentProjectId={projectId}
         currentChapterId={chapterId}
       />

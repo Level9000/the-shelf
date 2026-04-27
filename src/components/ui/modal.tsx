@@ -52,7 +52,8 @@ export function Modal({
       <div
         className={cn(
           "surface-card hairline relative z-10 w-full max-w-2xl rounded-[2rem] p-6",
-          fullScreen && "min-h-full max-w-none rounded-none p-5 sm:p-6",
+          fullScreen &&
+            "flex min-h-full max-w-none flex-col overflow-hidden rounded-none p-5 sm:p-6",
           fullScreenOnMobile &&
             "min-h-full rounded-none p-5 sm:min-h-0 sm:rounded-[2rem] sm:p-6",
           className,
@@ -71,7 +72,9 @@ export function Modal({
             <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
           ) : null}
         </div>
-        <div className="mt-5">{children}</div>
+        <div className={cn("mt-5", fullScreen && "flex min-h-0 flex-1 flex-col")}>
+          {children}
+        </div>
       </div>
     </div>
   );

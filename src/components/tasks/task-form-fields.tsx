@@ -1,4 +1,4 @@
-import type { BoardColumn, Priority } from "@/types";
+import type { BoardColumn, Priority, ProjectMember } from "@/types";
 import { PRIORITY_OPTIONS } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ export function TaskFormFields({
   dueDate,
   columnId,
   columns,
+  assignableMembers,
   onChange,
 }: {
   title: string;
@@ -20,8 +21,31 @@ export function TaskFormFields({
   dueDate: string;
   columnId: string;
   columns: BoardColumn[];
+  assignableMembers: ProjectMember[];
   onChange: (field: string, value: string) => void;
 }) {
+  const memberOptions = Array.from(
+    new Map(
+      assignableMembers
+        .map((member) => {
+          const value = (member.displayName?.trim() || member.email.trim());
+          if (!value) return null;
+          return [
+            value,
+            {
+              value,
+              label: member.displayName
+                ? `${member.displayName} (${member.email})`
+                : member.email,
+            },
+          ] as const;
+        })
+        .filter(Boolean) as Array<
+        readonly [string, { value: string; label: string }]
+      >,
+    ).values(),
+  ).sort((left, right) => left.label.localeCompare(right.label));
+
   return (
     <div className="space-y-4">
       <div>
@@ -43,11 +67,25 @@ export function TaskFormFields({
       </div>
       <div>
         <label className="mb-2 block text-sm font-medium">Assigned to</label>
-        <Input
-          value={assigneeName}
-          onChange={(event) => onChange("assigneeName", event.target.value)}
-          placeholder="Alex Morgan"
-        />
+        <div className="space-y-3">
+          <select
+            value={memberOptions.some((option) => option.value === assigneeName) ? assigneeName : ""}
+            onChange={(event) => onChange("assigneeName", event.target.value)}
+            className="w-full rounded-2xl border bg-white/90 px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+          >
+            <option value="">Choose from project collaborators</option>
+            {memberOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <Input
+            value={assigneeName}
+            onChange={(event) => onChange("assigneeName", event.target.value)}
+            placeholder="Alex Morgan"
+          />
+        </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         <div>

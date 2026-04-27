@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Check, Trash2 } from "lucide-react";
-import type { Board, BoardColumn, ProposedTask } from "@/types";
+import type { Board, BoardColumn, ProjectMember, ProposedTask } from "@/types";
 import { acceptProposedTasksAction } from "@/lib/actions/task-actions";
 import { fallbackColumnName } from "@/lib/board-utils";
 import { PRIORITY_OPTIONS } from "@/lib/constants";
@@ -22,6 +22,7 @@ export function ReviewTasksModal({
   projectId,
   board,
   columns,
+  assignableMembers,
   captureId,
   templateId,
   transcript,
@@ -33,6 +34,7 @@ export function ReviewTasksModal({
   projectId: string;
   board: Board;
   columns: BoardColumn[];
+  assignableMembers: ProjectMember[];
   captureId: string | null;
   templateId?: string | null;
   transcript: string;
@@ -53,6 +55,17 @@ export function ReviewTasksModal({
   const selectedCount = useMemo(
     () => items.filter((item) => item.selected).length,
     [items],
+  );
+  const assigneeSuggestions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          assignableMembers
+            .map((member) => (member.displayName?.trim() || member.email.trim()))
+            .filter(Boolean),
+        ),
+      ).sort((left, right) => left.localeCompare(right)),
+    [assignableMembers],
   );
 
   function updateItem(
@@ -207,12 +220,20 @@ export function ReviewTasksModal({
                 <div>
                   <label className="mb-2 block text-sm font-medium">Assigned to</label>
                   <Input
+                    list="review-task-assignee-suggestions"
                     value={item.assigneeName ?? ""}
                     onChange={(event) =>
                       updateItem(item.id, "assigneeName", event.target.value)
                     }
                     placeholder="Alex Morgan"
                   />
+                  {assigneeSuggestions.length > 0 ? (
+                    <datalist id="review-task-assignee-suggestions">
+                      {assigneeSuggestions.map((email) => (
+                        <option key={email} value={email} />
+                      ))}
+                    </datalist>
+                  ) : null}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div>

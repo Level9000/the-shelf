@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
-import type { BoardColumn, Task } from "@/types";
+import type { BoardColumn, ProjectMember, Task } from "@/types";
 import { deleteTaskAction, updateTaskAction } from "@/lib/actions/task-actions";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -34,6 +34,7 @@ export function TaskDetailModal({
   projectId,
   boardId,
   columns,
+  assignableMembers,
   open,
   onClose,
   onSaved,
@@ -43,6 +44,7 @@ export function TaskDetailModal({
   projectId: string;
   boardId: string;
   columns: BoardColumn[];
+  assignableMembers: ProjectMember[];
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
@@ -123,6 +125,7 @@ export function TaskDetailModal({
         dueDate={currentForm.dueDate}
         columnId={currentForm.columnId}
         columns={columns}
+        assignableMembers={assignableMembers}
         onChange={handleChange}
       />
       <div className="mt-5 grid gap-3 rounded-[1.5rem] bg-[var(--surface-muted)] p-4 text-sm text-[var(--muted)] sm:grid-cols-2">

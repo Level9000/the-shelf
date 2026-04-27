@@ -8,6 +8,7 @@ import type {
   ProjectWithChapters,
   Project,
   Task,
+  UserProfile,
   VoiceCapture,
   WorkflowTemplate,
   WorkflowTemplateStep,
@@ -31,9 +32,19 @@ function mapProjectMember(row: Record<string, unknown>): ProjectMember {
     projectId: String(row.project_id),
     userId: String(row.user_id),
     email: String(row.email),
+    displayName: (row.display_name as string | null) ?? null,
     invitedBy: (row.invited_by as string | null) ?? null,
     role: row.role as ProjectMember["role"],
     createdAt: String(row.created_at),
+  };
+}
+
+function mapUserProfile(row: Record<string, unknown>): UserProfile {
+  return {
+    id: String(row.id),
+    email: String(row.email),
+    displayName: (row.display_name as string | null) ?? null,
+    updatedAt: String(row.updated_at),
   };
 }
 
@@ -146,6 +157,30 @@ export async function getOptionalUser() {
   return user;
 }
 
+export async function getCurrentUserProfile(): Promise<UserProfile> {
+  const { supabase, user } = await getAuthenticatedUser();
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("id, email, display_name, updated_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    return {
+      id: user.id,
+      email: user.email ?? "",
+      displayName: null,
+      updatedAt: new Date(0).toISOString(),
+    };
+  }
+
+  return mapUserProfile(data);
+}
+
 export async function getProjects() {
   const { supabase } = await getAuthenticatedUser();
   const { data, error } = await supabase
@@ -250,7 +285,7 @@ export async function getProjectBoardSnapshot(
         .order("created_at", { ascending: true }),
       supabase
         .from("user_profiles")
-        .select("email")
+        .select("email, display_name")
         .eq("id", projectRow.user_id)
         .maybeSingle(),
     ]);
@@ -280,15 +315,21 @@ export async function getProjectBoardSnapshot(
 
   const { data: memberProfiles, error: memberProfilesError } = await supabase
     .from("user_profiles")
-    .select("id, email")
+    .select("id, email, display_name")
     .in("id", memberUserIds);
 
   if (memberProfilesError) {
     throw new Error(memberProfilesError.message);
   }
 
-  const emailByUserId = new Map(
-    (memberProfiles ?? []).map((row) => [String(row.id), String(row.email)]),
+  const profileByUserId = new Map(
+    (memberProfiles ?? []).map((row) => [
+      String(row.id),
+      {
+        email: String(row.email),
+        displayName: (row.display_name as string | null) ?? null,
+      },
+    ]),
   );
 
   const projectMembers: ProjectMember[] = [
@@ -297,8 +338,11 @@ export async function getProjectBoardSnapshot(
       projectId: String(projectRow.id),
       userId: String(projectRow.user_id),
       email:
-        emailByUserId.get(String(projectRow.user_id)) ??
+        profileByUserId.get(String(projectRow.user_id))?.email ??
         String(ownerProfileRow?.email ?? ""),
+      displayName:
+        profileByUserId.get(String(projectRow.user_id))?.displayName ??
+        ((ownerProfileRow?.display_name as string | null) ?? null),
       invitedBy: null,
       role: "owner",
       createdAt: String(projectRow.created_at),
@@ -306,7 +350,8 @@ export async function getProjectBoardSnapshot(
     ...(memberData ?? []).map((row) =>
       mapProjectMember({
         ...row,
-        email: emailByUserId.get(String(row.user_id)) ?? "",
+        email: profileByUserId.get(String(row.user_id))?.email ?? "",
+        display_name: profileByUserId.get(String(row.user_id))?.displayName ?? null,
         role: "editor",
       }),
     ),
@@ -316,6 +361,9 @@ export async function getProjectBoardSnapshot(
     currentUser: {
       id: user.id,
       email: user.email ?? null,
+      displayName:
+        profileByUserId.get(user.id)?.displayName ??
+        ((user.user_metadata?.display_name as string | undefined) ?? null),
     },
     project: mapProject(projectRow),
     projectMembers,

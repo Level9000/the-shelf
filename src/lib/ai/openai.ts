@@ -154,7 +154,7 @@ export async function runStrategicTextDialogue(input: {
     },
     body: JSON.stringify({
       model: CHAT_MODEL,
-      temperature: 0.35,
+      temperature: 0.2,
       messages: [
         {
           role: "system",

@@ -27,7 +27,7 @@ export function BoardColumnView({
 }) {
   return (
     <section
-      className="surface hairline flex min-h-[420px] min-w-0 flex-col rounded-[2rem] p-4 transition"
+      className="surface hairline flex min-h-[420px] min-w-0 flex-col rounded-[2rem] p-4 transition lg:h-full lg:min-h-0"
     >
       <div className={cn("rounded-[1.5rem] bg-gradient-to-b p-4", COLUMN_TINTS[column.name])}>
         <div className="flex items-start justify-between gap-3">
@@ -49,7 +49,7 @@ export function BoardColumnView({
         </div>
       </div>
       <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
-        <div className="mt-4 flex flex-1 flex-col gap-3">
+        <div className="mt-4 flex flex-1 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
           {tasks.map((task) => (
             <TaskCard
               key={task.id}

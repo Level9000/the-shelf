@@ -17,14 +17,12 @@ import {
   MessageSquareText,
   Mic,
   PauseCircle,
-  Speech,
   WandSparkles,
 } from "lucide-react";
-import type { Project, ProposedTask } from "@/types";
+import type { BoardColumn, Project, ProposedTask } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { StrategicTextDialogueModal } from "@/components/voice/strategic-text-dialogue-modal";
-import { StrategicVoiceDialogueModal } from "@/components/voice/strategic-voice-dialogue-modal";
 import { cn } from "@/lib/utils";
 
 type RecorderState = "idle" | "recording" | "processing" | "ready" | "error";
@@ -38,19 +36,29 @@ export type VoiceProcessingResult = {
 
 export type VoiceCapturePanelHandle = {
   startCapture: () => void;
+  openAudioToBacklog: () => void;
+  openPlanWithAi: () => void;
 };
 
 export const VoiceCapturePanel = forwardRef<VoiceCapturePanelHandle, {
   project: Project;
+  boardId: string;
+  columns: BoardColumn[];
   onProcessed: (result: VoiceProcessingResult) => void;
+  onTasksCreated: () => void;
   className?: string;
   idleDescription?: string;
+  showLauncher?: boolean;
 }>(
 function VoiceCapturePanel({
   project,
+  boardId,
+  columns,
   onProcessed,
+  onTasksCreated,
   className,
   idleDescription,
+  showLauncher = true,
 }, ref) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -61,7 +69,6 @@ function VoiceCapturePanel({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [modePickerOpen, setModePickerOpen] = useState(false);
   const [strategicTextOpen, setStrategicTextOpen] = useState(false);
-  const [strategicVoiceOpen, setStrategicVoiceOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -180,6 +187,18 @@ function VoiceCapturePanel({
       });
       setModalOpen(true);
     },
+    openAudioToBacklog: () => {
+      setModeNote(null);
+      setModePickerOpen(false);
+      setStrategicTextOpen(false);
+      setModalOpen(true);
+    },
+    openPlanWithAi: () => {
+      setModeNote(null);
+      setModePickerOpen(false);
+      setModalOpen(false);
+      setStrategicTextOpen(true);
+    },
   }), []);
 
   function stopRecording() {
@@ -189,7 +208,7 @@ function VoiceCapturePanel({
 
   return (
     <>
-      {isCollapsed ? (
+      {showLauncher && isCollapsed ? (
         <div className={cn("mb-4 flex justify-end", className)}>
           <Button
             variant="secondary"
@@ -201,7 +220,7 @@ function VoiceCapturePanel({
             <ChevronDown className="size-4" />
           </Button>
         </div>
-      ) : (
+      ) : showLauncher ? (
         <section
           ref={sectionRef}
           className={cn(
@@ -213,13 +232,8 @@ function VoiceCapturePanel({
             <div className="min-w-0">
               <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
                 <WandSparkles className="size-3.5" />
-                Pro tier AI modes
+                Pro Features
               </div>
-              <p className="mt-3 hidden text-sm leading-6 text-[var(--muted)] md:block">
-                Choose how you want Shelf to help: capture spoken thoughts into
-                tasks, align through back-and-forth text, or strategize out loud
-                with voice dialogue.
-              </p>
               <p className="mt-3 text-sm leading-6 text-[var(--muted)] md:hidden">
                 Premium AI features leveraging recordings, voice, and text to populate your backlog.
               </p>
@@ -255,7 +269,7 @@ function VoiceCapturePanel({
               Premium AI features leveraging recordings, voice, and text to populate your backlog.
             </p>
           </button>
-          <div className="hidden gap-3 md:grid md:grid-cols-3">
+          <div className="hidden gap-3 md:grid md:grid-cols-2">
             <button
               type="button"
               onClick={() => {
@@ -266,7 +280,7 @@ function VoiceCapturePanel({
             >
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                 <Mic className="size-4 text-[var(--accent)]" />
-                Audio to backlog
+                Speech to backlog
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Record a note and turn it into proposed board items in one pass.
@@ -280,11 +294,11 @@ function VoiceCapturePanel({
               }}
               className="rounded-[1.25rem] bg-white/75 p-4 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                  <MessageSquareText className="size-4 text-[var(--accent)]" />
-                  Strategic text dialogue
-                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                    <MessageSquareText className="size-4 text-[var(--accent)]" />
+                    Plan with AI
+                  </div>
                 <div className="rounded-full bg-black px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
                   Live
                 </div>
@@ -293,27 +307,13 @@ function VoiceCapturePanel({
                 Teach Shelf how you actually work and shape reusable task flows.
               </p>
             </button>
-            <div className="rounded-[1.25rem] bg-black/[0.04] p-4 text-left ring-1 ring-black/6 opacity-60">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]">
-                  <Speech className="size-4 text-[var(--muted)]" />
-                  Strategic voice dialogue
-                </div>
-                <div className="rounded-full bg-black/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                  Coming soon
-                </div>
-              </div>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Talk through the work out loud and let AI help structure the plan.
-              </p>
-            </div>
           </div>
           <div className="mt-3 hidden items-center gap-2 text-xs text-[var(--muted)] md:flex">
             <WandSparkles className="size-3.5" />
             Review happens before save, so AI suggestions never auto-create cards.
           </div>
         </section>
-      )}
+      ) : null}
 
       {modeNote ? (
         <p className="mt-3 rounded-2xl bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--muted)]">
@@ -330,7 +330,7 @@ function VoiceCapturePanel({
         className="h-full max-w-none rounded-none p-5 sm:h-auto sm:max-w-2xl sm:rounded-[2rem] sm:p-6"
       >
         <div className="flex h-full flex-col">
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <button
               type="button"
               onClick={() => {
@@ -342,7 +342,7 @@ function VoiceCapturePanel({
             >
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                 <Mic className="size-4 text-[var(--accent)]" />
-                Audio to backlog
+                Speech to backlog
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Record a spoken note and turn it into reviewable tasks for this chapter.
@@ -360,7 +360,7 @@ function VoiceCapturePanel({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                   <MessageSquareText className="size-4 text-[var(--accent)]" />
-                  Strategic text dialogue
+                  Plan with AI
                 </div>
                 <div className="rounded-full bg-black px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
                   Live
@@ -368,24 +368,6 @@ function VoiceCapturePanel({
               </div>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Capture repeatable workflows and turn them into reusable task libraries.
-              </p>
-            </button>
-            <button
-              type="button"
-              disabled
-              className="rounded-[1.5rem] bg-black/[0.04] p-5 text-left ring-1 ring-black/6 opacity-60"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]">
-                  <Speech className="size-4 text-[var(--muted)]" />
-                  Strategic voice dialogue
-                </div>
-                <div className="rounded-full bg-black/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                  Coming soon
-                </div>
-              </div>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Talk the plan through out loud and let AI help align the work.
               </p>
             </button>
           </div>
@@ -396,7 +378,7 @@ function VoiceCapturePanel({
                 Pro tier modes
               </div>
               <p className="mt-1 leading-6">
-                Audio capture works now. Strategic text and strategic voice are preview modes you can try free before upgrade.
+                Audio capture works now. Plan with AI is a preview mode you can try free before upgrade.
               </p>
             </div>
           </div>
@@ -410,7 +392,7 @@ function VoiceCapturePanel({
             setModalOpen(false);
           }
         }}
-        title="Audio to backlog"
+        title="Speech to backlog"
         description={idleDescription ?? `Speak a note for ${project.name}; review tasks before they become cards.`}
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -475,16 +457,11 @@ function VoiceCapturePanel({
         <StrategicTextDialogueModal
           open={strategicTextOpen}
           project={project}
+          boardId={boardId}
+          columns={columns}
           onClose={() => setStrategicTextOpen(false)}
           onProcessed={onProcessed}
-        />
-      ) : null}
-
-      {strategicVoiceOpen ? (
-        <StrategicVoiceDialogueModal
-          open={strategicVoiceOpen}
-          project={project}
-          onClose={() => setStrategicVoiceOpen(false)}
+          onTasksCreated={onTasksCreated}
         />
       ) : null}
     </>

@@ -5,14 +5,16 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   ArrowUp,
   Bot,
+  ChevronDown,
   CheckCircle2,
   LoaderCircle,
   MessageSquareText,
   Sparkles,
   UserRound,
 } from "lucide-react";
-import type { ProposedTask, Project } from "@/types";
+import type { BoardColumn, ProposedTask, Project } from "@/types";
 import type { StrategicTemplate } from "@/lib/ai/schema";
+import { createTasksFromTemplateAction } from "@/lib/actions/task-actions";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +26,10 @@ type DialogueMessage = {
 };
 
 type DraftTask = Omit<ProposedTask, "id">;
+type SavedTemplateSummary = {
+  name: string;
+  taskCount: number;
+};
 
 const INITIAL_MESSAGE =
   "Tell me about a kind of work you do more than once. Walk me through the last time you did it from start to finish, and I’ll help capture your real workflow.";
@@ -31,11 +37,16 @@ const INITIAL_MESSAGE =
 export function StrategicTextDialogueModal({
   open,
   project,
+  boardId,
+  columns,
   onClose,
   onProcessed,
+  onTasksCreated,
 }: {
   open: boolean;
   project: Project;
+  boardId: string;
+  columns: BoardColumn[];
   onClose: () => void;
   onProcessed: (result: {
     captureId: string;
@@ -43,6 +54,7 @@ export function StrategicTextDialogueModal({
     transcript: string;
     proposals: ProposedTask[];
   }) => void;
+  onTasksCreated: () => void;
 }) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<DialogueMessage[]>([
@@ -56,9 +68,16 @@ export function StrategicTextDialogueModal({
     "discovery",
   );
   const [template, setTemplate] = useState<StrategicTemplate | null>(null);
+  const [templatePreviewOpen, setTemplatePreviewOpen] = useState(false);
+  const [templatePreviewStep, setTemplatePreviewStep] = useState<"template" | "saved">(
+    "template",
+  );
+  const [savedTemplate, setSavedTemplate] = useState<SavedTemplateSummary | null>(null);
   const [draftTasks, setDraftTasks] = useState<DraftTask[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isConfirming, startConfirmTransition] = useTransition();
+  const [isApplying, startApplyTransition] = useTransition();
+  const [isSavingTemplate, startSaveTemplateTransition] = useTransition();
 
   useEffect(() => {
     if (!open) return;
@@ -89,13 +108,63 @@ export function StrategicTextDialogueModal({
     return hasMeaningfulValue ? nextTemplate : null;
   }
 
-  function sendMessage() {
-    const content = draft.trim();
+  function buildColumnMap() {
+    return columns.map((column) => ({ id: column.id, name: column.name }));
+  }
 
-    if (!content || isPending) {
-      return;
+  function openTemplatePreview() {
+    setTemplatePreviewStep("template");
+    setTemplatePreviewOpen(true);
+  }
+
+  async function requestAssistantReply(nextMessages: DialogueMessage[]) {
+    const response = await fetch("/api/strategy/text", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        projectId: project.id,
+        messages: nextMessages,
+      }),
+    });
+
+    const payload = (await response.json()) as {
+      status?: "discovery" | "template_review" | "ready_for_review";
+      reply?: string;
+      template?: StrategicTemplate | null;
+      tasks?: DraftTask[];
+      error?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Strategic dialogue failed.");
     }
 
+    const reply = payload.reply?.trim();
+
+    if (!reply || !payload.status) {
+      throw new Error("Strategic dialogue returned an incomplete response.");
+    }
+
+    setMessages((current) => [...current, { role: "assistant", content: reply }]);
+    setStatus(payload.status);
+    setTemplate(normalizeTemplate(payload.template));
+    setTemplatePreviewStep("template");
+    setTemplatePreviewOpen(
+      payload.status === "template_review" || payload.status === "ready_for_review",
+    );
+    setDraftTasks(
+      payload.status === "template_review" || payload.status === "ready_for_review"
+        ? (payload.tasks ?? []).map((task) => ({
+            ...task,
+            description: task.description ?? "",
+          }))
+        : [],
+    );
+  }
+
+  function sendManualReply(content: string) {
     const nextMessages = [...messages, { role: "user" as const, content }];
     setMessages(nextMessages);
     setDraft("");
@@ -103,46 +172,7 @@ export function StrategicTextDialogueModal({
 
     startTransition(async () => {
       try {
-        const response = await fetch("/api/strategy/text", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId: project.id,
-            messages: nextMessages,
-          }),
-        });
-
-        const payload = (await response.json()) as {
-          status?: "discovery" | "template_review" | "ready_for_review";
-          reply?: string;
-          template?: StrategicTemplate | null;
-          tasks?: DraftTask[];
-          error?: string;
-        };
-
-        if (!response.ok) {
-          throw new Error(payload.error ?? "Strategic dialogue failed.");
-        }
-
-        const reply = payload.reply?.trim();
-
-        if (!reply || !payload.status) {
-          throw new Error("Strategic dialogue returned an incomplete response.");
-        }
-
-        setMessages((current) => [...current, { role: "assistant", content: reply }]);
-        setStatus(payload.status);
-        setTemplate(normalizeTemplate(payload.template));
-        setDraftTasks(
-          payload.status === "template_review" || payload.status === "ready_for_review"
-            ? (payload.tasks ?? []).map((task) => ({
-                ...task,
-                description: task.description ?? "",
-              }))
-            : [],
-        );
+        await requestAssistantReply(nextMessages);
       } catch (requestError) {
         setError(
           requestError instanceof Error
@@ -153,43 +183,57 @@ export function StrategicTextDialogueModal({
     });
   }
 
-  function confirmTasks() {
-    if (!canConfirm || isConfirming) {
+  function sendMessage() {
+    const content = draft.trim();
+
+    if (!content || isPending) {
       return;
     }
+    sendManualReply(content);
+  }
 
+  async function persistTemplate() {
     if (!template) {
-      setError("Shelf needs a reusable template before it can prepare the backlog.");
+      throw new Error("Shelf needs a reusable template before it can prepare the backlog.");
+    }
+
+    const response = await fetch("/api/strategy/text/confirm", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        projectId: project.id,
+        messages,
+        template,
+        tasks: draftTasks,
+      }),
+    });
+
+    const payload = (await response.json()) as {
+      id?: string;
+      templateId?: string;
+      transcript?: string;
+      tasks?: ProposedTask[];
+      error?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Failed to prepare review.");
+    }
+
+    return payload;
+  }
+
+  function confirmTasks() {
+    if (!canConfirm || isConfirming) {
       return;
     }
 
     setError(null);
     startConfirmTransition(async () => {
       try {
-        const response = await fetch("/api/strategy/text/confirm", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId: project.id,
-            messages,
-            template,
-            tasks: draftTasks,
-          }),
-        });
-
-        const payload = (await response.json()) as {
-          id?: string;
-          templateId?: string;
-          transcript?: string;
-          tasks?: ProposedTask[];
-          error?: string;
-        };
-
-        if (!response.ok) {
-          throw new Error(payload.error ?? "Failed to prepare review.");
-        }
+        const payload = await persistTemplate();
 
         onProcessed({
           captureId: payload.id ?? crypto.randomUUID(),
@@ -213,20 +257,107 @@ export function StrategicTextDialogueModal({
     });
   }
 
-  return (
-    <Modal
-      open={open}
-      onClose={() => {
-        if (!isPending && !isConfirming) {
-          onClose();
+  function confirmTemplateLibraryItem() {
+    if (!template || draftTasks.length === 0 || isSavingTemplate) {
+      return;
+    }
+
+    const currentTemplate = template;
+    const taskCount = draftTasks.length;
+    setError(null);
+
+    startSaveTemplateTransition(async () => {
+      try {
+        await persistTemplate();
+        setSavedTemplate({
+          name: currentTemplate.name,
+          taskCount,
+        });
+        setTemplatePreviewStep("saved");
+        setTemplatePreviewOpen(true);
+        setStatus("discovery");
+        setTemplate(null);
+        setDraftTasks([]);
+        setMessages((current) => [
+          ...current,
+          {
+            role: "assistant",
+            content: `Saved ${currentTemplate.name} to your template library.`,
+          },
+        ]);
+        onTasksCreated();
+      } catch (saveError) {
+        setError(
+          saveError instanceof Error
+            ? saveError.message
+            : "Failed to save template.",
+        );
+      }
+    });
+  }
+
+  function continueChatting() {
+    setTemplatePreviewOpen(false);
+    setTemplatePreviewStep("template");
+    setSavedTemplate(null);
+    setMessages((current) => [
+      ...current,
+      {
+        role: "assistant",
+        content: "Continue if you want to plan another workflow or map out a project-specific backlog.",
+      },
+    ]);
+  }
+
+  function handleQuickAdd() {
+    if (!canConfirm || isApplying) {
+      return;
+    }
+
+    setError(null);
+    startApplyTransition(async () => {
+      try {
+        const payload = await persistTemplate();
+        const templateId = payload.templateId ?? null;
+
+        if (!templateId) {
+          throw new Error("Failed to save the workflow template.");
         }
-      }}
-      title="Strategic text dialogue"
-      description={`Work through the goal for ${project.name}, then move the aligned task set into review.`}
-      fullScreen
-          className="flex min-h-full flex-col bg-[linear-gradient(180deg,rgba(252,250,246,0.98),rgba(243,238,231,0.98))]"
-    >
-      <div className="flex min-h-0 flex-1 flex-col gap-5">
+
+        await createTasksFromTemplateAction({
+          projectId: project.id,
+          boardId,
+          templateId,
+          columnMap: buildColumnMap(),
+        });
+
+        onTasksCreated();
+        onClose();
+      } catch (applyError) {
+        setError(
+          applyError instanceof Error
+            ? applyError.message
+            : "Failed to add tasks to the backlog.",
+        );
+      }
+    });
+  }
+
+  return (
+    <>
+      <Modal
+        open={open}
+        onClose={() => {
+          if (!isPending && !isConfirming) {
+            onClose();
+          }
+        }}
+        title="Strategic text dialogue"
+        description={`Work through the goal for ${project.name}, then move the aligned task set into review.`}
+        fullScreen
+        className="flex min-h-full flex-col bg-[linear-gradient(180deg,rgba(252,250,246,0.98),rgba(243,238,231,0.98))]"
+      >
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto lg:overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] bg-white/70 px-5 py-4 ring-1 ring-black/6">
           <div className="flex items-center gap-4">
             <div className="overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-black/6">
@@ -253,8 +384,8 @@ export function StrategicTextDialogueModal({
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[1.18fr_0.82fr]">
-          <div className="flex min-h-0 flex-col rounded-[2rem] bg-white/72 ring-1 ring-black/6">
+        <div className="grid min-h-0 flex-1 gap-5 lg:overflow-hidden lg:grid-cols-[1.18fr_0.82fr]">
+          <div className="flex min-h-[65vh] min-h-0 flex-col overflow-hidden rounded-[2rem] bg-white/72 ring-1 ring-black/6 lg:min-h-0">
             <div className="border-b border-black/6 px-5 py-4">
               <p className="text-sm font-semibold text-[var(--ink)]">
                 Strategic text dialogue
@@ -263,36 +394,80 @@ export function StrategicTextDialogueModal({
                 Capture how you actually work, then turn it into a reusable task flow.
               </p>
             </div>
-            <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
               {messages.map((message, index) => (
-                <div
-                  key={`${message.role}-${index}`}
-                  className={cn(
-                    "flex gap-3",
-                    message.role === "user" && "justify-end",
-                  )}
-                >
-                  {message.role === "assistant" ? (
-                    <div className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
-                      <Bot className="size-4" />
-                    </div>
-                  ) : null}
+                <div key={`${message.role}-${index}`}>
                   <div
                     className={cn(
-                      "max-w-[82%] rounded-[1.7rem] px-4 py-3 text-sm leading-6 shadow-sm",
-                      message.role === "assistant"
-                        ? "rounded-tl-[0.55rem] bg-[var(--surface-muted)] text-[var(--ink)]"
-                        : "rounded-tr-[0.55rem] bg-[var(--ink)] text-white",
+                      "flex gap-3",
+                      message.role === "user" && "justify-end",
                     )}
                   >
-                    <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] opacity-65">
-                      {message.role === "assistant" ? "Shelf AI" : "You"}
+                    {message.role === "assistant" ? (
+                      <div className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
+                        <Bot className="size-4" />
+                      </div>
+                    ) : null}
+                    <div
+                      className={cn(
+                        "max-w-[82%] rounded-[1.7rem] px-4 py-3 text-sm leading-6 shadow-sm",
+                        message.role === "assistant"
+                          ? "rounded-tl-[0.55rem] bg-[var(--surface-muted)] text-[var(--ink)]"
+                          : "rounded-tr-[0.55rem] bg-[var(--ink)] text-white",
+                      )}
+                    >
+                      <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] opacity-65">
+                        {message.role === "assistant" ? "Shelf AI" : "You"}
+                      </div>
+                      <p className="whitespace-pre-wrap">{message.content}</p>
                     </div>
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    {message.role === "user" ? (
+                      <div className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-black text-white">
+                        <UserRound className="size-4" />
+                      </div>
+                    ) : null}
                   </div>
-                  {message.role === "user" ? (
-                    <div className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-black text-white">
-                      <UserRound className="size-4" />
+                  {message.role === "assistant" &&
+                  index === messages.length - 1 &&
+                  template &&
+                  draftTasks.length > 0 &&
+                  (status === "template_review" || status === "ready_for_review") ? (
+                    <div className="ml-12 mt-3 max-w-[82%] rounded-[1.5rem] bg-white/92 p-4 ring-1 ring-black/6 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-[var(--ink)]">
+                            {template.name}
+                          </p>
+                          <p className="mt-1 text-sm text-[var(--muted)]">
+                            {draftTasks.length} task{draftTasks.length === 1 ? "" : "s"} ready to review
+                          </p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          onClick={openTemplatePreview}
+                        >
+                          View template
+                        </Button>
+                      </div>
+                      {status === "template_review" ? (
+                        <div className="mt-3 flex flex-wrap gap-3">
+                          <Button
+                            onClick={confirmTemplateLibraryItem}
+                            disabled={isSavingTemplate}
+                          >
+                            {isSavingTemplate ? "Saving..." : "Confirm template"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => {
+                              setTemplatePreviewOpen(false);
+                              setDraft("This needs changes. I want to adjust the workflow before saving it.");
+                            }}
+                          >
+                            Needs changes
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -313,29 +488,29 @@ export function StrategicTextDialogueModal({
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-black/6 px-5 py-4">
+            <div className="sticky bottom-0 border-t border-black/6 bg-white/72 px-5 py-4 backdrop-blur-sm">
               <div className="rounded-[1.9rem] bg-[var(--surface-muted)] p-3">
                 <Textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
-                    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                    if (event.key === "Enter" && !event.shiftKey) {
                       event.preventDefault();
                       sendMessage();
                     }
                   }}
                   placeholder="Describe the kind of work you want Shelf to learn from you."
                   className="min-h-[118px] border-0 bg-transparent px-2 py-2 shadow-none focus:ring-0"
-                  disabled={isPending || isConfirming}
+                  disabled={isPending || isConfirming || isSavingTemplate}
                 />
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
                     <Sparkles className="size-3.5" />
-                    Shelf is learning your actual process, not a generic checklist.
+                    Enter sends. Shift + Enter adds a new line.
                   </div>
                   <Button
                     onClick={sendMessage}
-                    disabled={!draft.trim() || isPending || isConfirming}
+                    disabled={!draft.trim() || isPending || isConfirming || isSavingTemplate}
                     className="gap-2"
                   >
                     {isPending ? (
@@ -350,7 +525,7 @@ export function StrategicTextDialogueModal({
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-col gap-4">
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
             <div className="rounded-[1.75rem] bg-[var(--surface-muted)] p-5">
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                 <MessageSquareText className="size-4 text-[var(--accent)]" />
@@ -386,34 +561,46 @@ export function StrategicTextDialogueModal({
             </div>
 
             <div className="rounded-[1.75rem] bg-white/72 p-5 ring-1 ring-black/6">
-              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                <CheckCircle2 className="size-4 text-[var(--accent)]" />
-                Task library draft
-              </div>
-              {draftTasks.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {draftTasks.map((task, index) => (
-                    <div
-                      key={`${task.title}-${index}`}
-                      className="rounded-[1.25rem] bg-[var(--surface-muted)] px-4 py-3"
-                    >
-                      <p className="text-sm font-semibold text-[var(--ink)]">
-                        {index + 1}. {task.title}
-                      </p>
-                      {task.description ? (
-                        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                          {task.description}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))}
+              <button
+                type="button"
+                onClick={() => template && draftTasks.length > 0 && setTemplatePreviewOpen(true)}
+                className="flex w-full items-center justify-between gap-3 text-left"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                  <CheckCircle2 className="size-4 text-[var(--accent)]" />
+                  {template?.name ? template.name : "Drafted task library item"}
+                </div>
+                <div className="flex items-center gap-2">
+                  {draftTasks.length > 0 ? (
+                    <span className="text-xs text-[var(--muted)]">{draftTasks.length} tasks</span>
+                  ) : null}
+                  <ChevronDown className="size-4 text-[var(--muted)]" />
+                </div>
+              </button>
+              {template ? (
+                <div className="mt-3 rounded-[1.4rem] bg-[var(--surface-muted)] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                    Trigger phrase
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--ink)]">
+                    {template.triggerPhrase}
+                  </p>
                 </div>
               ) : (
                 <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                  No steps captured yet. Discovery mode will ask about the real
-                  sequence you follow before turning it into a reusable flow.
+                  No workflow object yet. Once Shelf understands your process, it
+                  will package it here as a reusable library item.
                 </p>
               )}
+              {draftTasks.length > 0 ? (
+                <Button
+                  variant="secondary"
+                  className="mt-4"
+                  onClick={openTemplatePreview}
+                >
+                  Open template
+                </Button>
+              ) : null}
             </div>
 
             {canConfirm ? (
@@ -422,20 +609,30 @@ export function StrategicTextDialogueModal({
                   Backlog draft is ready
                 </p>
                 <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                  Open the review modal to inspect the tasks for this chapter, or keep
-                  refining the workflow first.
+                  This library item is ready. Add the whole set to this chapter in one
+                  step, or open review if you want to edit the tasks first.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  <Button onClick={confirmTasks} disabled={isConfirming}>
-                    {isConfirming ? "Preparing review..." : "Review chapter tasks"}
+                  <Button
+                    onClick={handleQuickAdd}
+                    disabled={isApplying || isConfirming}
+                  >
+                    {isApplying ? "Adding to backlog..." : "Quick add to backlog"}
                   </Button>
                   <Button
                     variant="secondary"
+                    onClick={confirmTasks}
+                    disabled={isConfirming || isApplying}
+                  >
+                    {isConfirming ? "Preparing review..." : "Review before adding"}
+                  </Button>
+                  <Button
+                    variant="ghost"
                     onClick={() => {
                       setStatus("discovery");
                       setError(null);
                     }}
-                    disabled={isConfirming}
+                    disabled={isConfirming || isApplying}
                   >
                     Keep refining
                   </Button>
@@ -450,7 +647,127 @@ export function StrategicTextDialogueModal({
             {error}
           </p>
         ) : null}
-      </div>
-    </Modal>
+        </div>
+      </Modal>
+
+      <Modal
+        open={
+          templatePreviewOpen &&
+          ((templatePreviewStep === "template" && Boolean(template) && draftTasks.length > 0) ||
+            (templatePreviewStep === "saved" && Boolean(savedTemplate)))
+        }
+        onClose={() => setTemplatePreviewOpen(false)}
+        title={
+          templatePreviewStep === "saved"
+            ? savedTemplate?.name ?? "Template saved"
+            : template?.name ?? "Drafted task library item"
+        }
+        description={
+          templatePreviewStep === "saved"
+            ? "Saved to your template library."
+            : template
+              ? `${draftTasks.length} task${draftTasks.length === 1 ? "" : "s"} captured for ${template.triggerPhrase || "this workflow"}.`
+              : undefined
+        }
+        className="max-w-3xl"
+      >
+        {templatePreviewStep === "saved" && savedTemplate ? (
+          <div className="space-y-5">
+            <div className="rounded-[1.5rem] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--muted)]">
+              {savedTemplate.name} is now in your template library with {savedTemplate.taskCount} task
+              {savedTemplate.taskCount === 1 ? "" : "s"}.
+            </div>
+            <div className="flex flex-wrap justify-end gap-3">
+              <Button variant="secondary" onClick={continueChatting}>
+                Continue chatting
+              </Button>
+              <Button
+                onClick={() => {
+                  setTemplatePreviewOpen(false);
+                  setSavedTemplate(null);
+                  onClose();
+                }}
+              >
+                Return to board
+              </Button>
+            </div>
+          </div>
+        ) : template ? (
+          <div className="space-y-5">
+            {template.description ? (
+              <div className="rounded-[1.5rem] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--muted)]">
+                {template.description}
+              </div>
+            ) : null}
+
+            <div className="space-y-3">
+              {draftTasks.map((task, index) => (
+                <div
+                  key={`${task.title}-${index}`}
+                  className="rounded-[1.4rem] bg-[var(--surface-muted)] px-4 py-3"
+                >
+                  <p className="text-sm font-semibold text-[var(--ink)]">
+                    {index + 1}. {task.title}
+                  </p>
+                  {task.description ? (
+                    <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                      {task.description}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-3">
+              {status === "template_review" ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setTemplatePreviewOpen(false);
+                      setDraft("This needs changes. I want to adjust the workflow before saving it.");
+                    }}
+                  >
+                    Needs changes
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setTemplatePreviewOpen(false);
+                      confirmTemplateLibraryItem();
+                    }}
+                    disabled={isSavingTemplate}
+                  >
+                    {isSavingTemplate ? "Saving..." : "Confirm template"}
+                  </Button>
+                </>
+              ) : null}
+              {status === "ready_for_review" ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setTemplatePreviewOpen(false);
+                      confirmTasks();
+                    }}
+                    disabled={isConfirming || isApplying}
+                  >
+                    {isConfirming ? "Preparing review..." : "Review before adding"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setTemplatePreviewOpen(false);
+                      handleQuickAdd();
+                    }}
+                    disabled={isApplying || isConfirming}
+                  >
+                    {isApplying ? "Adding to backlog..." : "Quick add to backlog"}
+                  </Button>
+                </>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+    </>
   );
 }

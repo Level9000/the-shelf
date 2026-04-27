@@ -38,11 +38,16 @@ export function ProjectAccessModal({
   );
 
   function initials(value: string) {
-    const segments = value.split("@")[0].split(/[.\s_-]+/).filter(Boolean);
+    const normalized = value.includes("@") ? value.split("@")[0] : value;
+    const segments = normalized.split(/[.\s_-]+/).filter(Boolean);
     return segments
       .slice(0, 2)
       .map((segment) => segment.charAt(0).toUpperCase())
       .join("") || "?";
+  }
+
+  function memberName(member: ProjectMember) {
+    return member.displayName?.trim() || member.email;
   }
 
   function handleInvite() {
@@ -107,10 +112,13 @@ export function ProjectAccessModal({
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">
-                      {initials(member.email)}
+                      {initials(memberName(member))}
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-[var(--ink)]">
+                        {memberName(member)}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-[var(--muted)]">
                         {member.email}
                       </p>
                       <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
@@ -150,7 +158,7 @@ export function ProjectAccessModal({
 
           {owner ? (
             <div className="mt-4 rounded-[1.4rem] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--muted)]">
-              Project owner: <span className="font-semibold text-[var(--ink)]">{owner.email}</span>
+              Project owner: <span className="font-semibold text-[var(--ink)]">{memberName(owner)}</span>
             </div>
           ) : null}
 

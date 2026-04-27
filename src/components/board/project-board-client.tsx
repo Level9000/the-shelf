@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import {
   closestCenter,
@@ -26,11 +26,7 @@ import { BoardColumnView } from "@/components/board/board-column";
 import { ProjectAccessModal } from "@/components/projects/project-access-modal";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
-import {
-  VoiceCapturePanel,
-  type VoiceCapturePanelHandle,
-  type VoiceProcessingResult,
-} from "@/components/voice/voice-capture-panel";
+import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
 
 type ReviewState = {
@@ -52,7 +48,6 @@ function getColumnTasks(tasks: Task[], columnId: string) {
 
 export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
   const router = useRouter();
-  const voiceCaptureRef = useRef<VoiceCapturePanelHandle | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -90,8 +85,13 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
     [snapshot.projectMembers],
   );
 
+  function displayName(member: { displayName: string | null; email: string | null }) {
+    return member.displayName?.trim() || member.email?.trim() || "Unknown user";
+  }
+
   function initials(value: string) {
-    const segments = value.split("@")[0].split(/[.\s_-]+/).filter(Boolean);
+    const normalized = value.includes("@") ? value.split("@")[0] : value;
+    const segments = normalized.split(/[.\s_-]+/).filter(Boolean);
     return segments
       .slice(0, 2)
       .map((segment) => segment.charAt(0).toUpperCase())
@@ -229,8 +229,8 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
 
   return (
     <>
-      <div className="space-y-6">
-        <section className="surface hairline rounded-[2rem] p-4 sm:p-5">
+      <div className="space-y-6 lg:h-full">
+        <section className="surface hairline flex h-full flex-col rounded-[2rem] p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-2xl">
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
@@ -249,10 +249,10 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
                 {visibleMembers.map((member) => (
                   <div
                     key={member.id}
-                    title={member.email}
+                    title={`${displayName(member)}${member.email ? ` (${member.email})` : ""}`}
                     className="flex size-9 items-center justify-center rounded-full border-2 border-[var(--app-bg)] bg-[var(--accent-soft)] text-[11px] font-semibold text-[var(--accent)]"
                   >
-                    {initials(member.email)}
+                    {initials(displayName(member))}
                   </div>
                 ))}
                 {snapshot.projectMembers.length > visibleMembers.length ? (
@@ -273,41 +273,38 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
             </p>
           ) : null}
           {isPending ? <Badge className="mb-4">Saving changes...</Badge> : null}
-          <VoiceCapturePanel
-            ref={voiceCaptureRef}
-            project={snapshot.project}
-            onProcessed={openReview}
-          />
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="overflow-x-auto pb-2">
-              <div
-                className="grid grid-cols-1 gap-4 lg:min-w-full lg:[grid-template-columns:repeat(var(--column-count),minmax(280px,1fr))]"
-                style={
-                  {
-                    "--column-count": snapshot.columns.length,
-                  } as CSSProperties
-                }
-              >
-                {snapshot.columns.map((column) => (
-                  <BoardColumnView
-                    key={column.id}
-                    column={column}
-                    columns={snapshot.columns}
-                    tasks={getColumnTasks(tasks, column.id)}
-                    onOpenTask={setSelectedTaskId}
-                    onCreateTask={openManualTask}
-                    onMoveTask={handleMoveTask}
-                    movingTaskId={movingTaskId === null ? dragTaskId : movingTaskId}
-                  />
-                ))}
+          <div className="min-h-0 flex-1">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="h-full overflow-x-auto pb-2">
+                <div
+                  className="grid grid-cols-1 gap-4 lg:h-full lg:min-w-full lg:[grid-template-columns:repeat(var(--column-count),minmax(280px,1fr))]"
+                  style={
+                    {
+                      "--column-count": snapshot.columns.length,
+                    } as CSSProperties
+                  }
+                >
+                  {snapshot.columns.map((column) => (
+                    <BoardColumnView
+                      key={column.id}
+                      column={column}
+                      columns={snapshot.columns}
+                      tasks={getColumnTasks(tasks, column.id)}
+                      onOpenTask={setSelectedTaskId}
+                      onCreateTask={openManualTask}
+                      onMoveTask={handleMoveTask}
+                      movingTaskId={movingTaskId === null ? dragTaskId : movingTaskId}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          </DndContext>
+            </DndContext>
+          </div>
         </section>
       </div>
 
@@ -317,6 +314,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
         projectId={snapshot.project.id}
         boardId={snapshot.board.id}
         columns={snapshot.columns}
+        assignableMembers={snapshot.projectMembers}
         open={Boolean(selectedTask)}
         onClose={() => setSelectedTaskId(null)}
         onSaved={refreshData}
@@ -330,12 +328,14 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
           setManualOpen(false);
           setManualColumnId(null);
         }}
-        projectId={snapshot.project.id}
+        project={snapshot.project}
         board={snapshot.board}
         columns={snapshot.columns}
+        assignableMembers={snapshot.projectMembers}
         templates={snapshot.workflowTemplates}
         initialColumnId={manualColumnId}
         onCreated={refreshData}
+        onProcessed={openReview}
       />
 
       <ReviewTasksModal
@@ -344,6 +344,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
         projectId={snapshot.project.id}
         board={snapshot.board}
         columns={snapshot.columns}
+        assignableMembers={snapshot.projectMembers}
         captureId={reviewState.captureId}
         templateId={reviewState.templateId}
         transcript={reviewState.transcript}

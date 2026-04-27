@@ -9,6 +9,14 @@ export type VoiceCaptureStatus =
 export type AppUser = {
   id: string;
   email: string | null;
+  displayName: string | null;
+};
+
+export type UserProfile = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  updatedAt: string;
 };
 
 export type Project = {
@@ -25,6 +33,7 @@ export type ProjectMember = {
   projectId: string;
   userId: string;
   email: string;
+  displayName: string | null;
   invitedBy: string | null;
   role: "owner" | "editor";
   createdAt: string;

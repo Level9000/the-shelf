@@ -2,46 +2,51 @@
 
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import type { BoardSnapshot, ProjectWithChapters } from "@/types";
+import type { BoardSnapshot, ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectBoardClient } from "@/components/board/project-board-client";
 import { ProjectSidebar } from "@/components/projects/project-sidebar";
+import { SettingsDrawer } from "@/components/settings/settings-drawer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function ProjectWorkspaceShell({
   snapshot,
   projects,
+  profile,
   currentProjectId,
   currentChapterId,
 }: {
   snapshot: BoardSnapshot;
   projects: ProjectWithChapters[];
+  profile: UserProfile;
   currentProjectId: string;
   currentChapterId: string;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <>
       <div
         className={cn(
-          "grid gap-6 lg:items-start",
+          "grid gap-6 lg:h-[calc(100dvh-4rem)] lg:items-stretch",
           collapsed
             ? "lg:grid-cols-[88px_minmax(0,1fr)]"
             : "lg:grid-cols-[300px_minmax(0,1fr)]",
         )}
       >
-        <div className="hidden lg:block">
+        <div className="hidden lg:block lg:h-full">
           <ProjectSidebar
             projects={projects}
             currentProjectId={currentProjectId}
             currentChapterId={currentChapterId}
             collapsed={collapsed}
             onToggle={() => setCollapsed((current) => !current)}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 lg:h-full">
           <div className="mb-4 flex items-center justify-between lg:hidden">
             <Button
               variant="secondary"
@@ -60,6 +65,18 @@ export function ProjectWorkspaceShell({
               </p>
             </div>
           </div>
+          {collapsed ? (
+            <div className="mb-4 hidden lg:flex">
+              <Button
+                variant="secondary"
+                className="gap-2 px-4"
+                onClick={() => setCollapsed(false)}
+              >
+                <Menu className="size-4" />
+                Open shelf
+              </Button>
+            </div>
+          ) : null}
           <ProjectBoardClient snapshot={snapshot} />
         </div>
       </div>
@@ -100,10 +117,20 @@ export function ProjectWorkspaceShell({
             currentChapterId={currentChapterId}
             collapsed={false}
             onToggle={() => {}}
+            onOpenSettings={() => {
+              setMobileSidebarOpen(false);
+              setSettingsOpen(true);
+            }}
             onNavigate={() => setMobileSidebarOpen(false)}
           />
         </div>
       </div>
+
+      <SettingsDrawer
+        open={settingsOpen}
+        profile={profile}
+        onClose={() => setSettingsOpen(false)}
+      />
     </>
   );
 }
