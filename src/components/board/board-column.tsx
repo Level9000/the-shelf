@@ -43,7 +43,7 @@ export function BoardColumnView({
               onClick={() => onCreateTask(column.id)}
             >
               <Plus className="mr-1.5 size-3.5" />
-              New task
+              Add
             </Button>
           </div>
         </div>

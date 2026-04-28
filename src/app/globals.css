@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Literata";
+  src: url("/fonts/Literata.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+}
+
 :root {
   --app-bg: #f6f3ee;
   --surface: rgba(255, 255, 255, 0.9);
@@ -90,4 +98,8 @@ pre,
 
 .text-balance {
   text-wrap: balance;
+}
+
+.font-literata {
+  font-family: "Literata", Georgia, serif;
 }

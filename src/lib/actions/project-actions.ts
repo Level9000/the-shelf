@@ -8,6 +8,10 @@ import { DEFAULT_COLUMNS } from "@/lib/constants";
 export async function createProjectAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
+  const goal = String(formData.get("goal") ?? "").trim();
+  const whyItMatters = String(formData.get("whyItMatters") ?? "").trim();
+  const successLooksLike = String(formData.get("successLooksLike") ?? "").trim();
+  const doneDefinition = String(formData.get("doneDefinition") ?? "").trim();
 
   if (!name) {
     throw new Error("Project name is required.");
@@ -20,6 +24,10 @@ export async function createProjectAction(formData: FormData) {
       user_id: user.id,
       name,
       description: description || null,
+      goal: goal || null,
+      why_it_matters: whyItMatters || null,
+      success_looks_like: successLooksLike || null,
+      done_definition: doneDefinition || null,
     })
     .select("id")
     .single();
@@ -30,6 +38,76 @@ export async function createProjectAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   redirect(`/projects/${data.id}`);
+}
+
+export async function updateProjectOverviewFieldAction(input: {
+  projectId: string;
+  field: "goal" | "whyItMatters" | "successLooksLike" | "doneDefinition";
+  value: string;
+}) {
+  const value = input.value.trim();
+
+  if (!value) {
+    throw new Error("Overview content cannot be empty.");
+  }
+
+  const fieldMap = {
+    goal: "goal",
+    whyItMatters: "why_it_matters",
+    successLooksLike: "success_looks_like",
+    doneDefinition: "done_definition",
+  } as const;
+
+  const { supabase } = await getAuthenticatedUser();
+  const { error } = await supabase
+    .from("projects")
+    .update({
+      [fieldMap[input.field]]: value,
+    })
+    .eq("id", input.projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath("/dashboard");
+}
+
+export async function updateBoardOverviewFieldAction(input: {
+  projectId: string;
+  boardId: string;
+  field: "goal" | "whyItMatters" | "successLooksLike" | "doneDefinition";
+  value: string;
+}) {
+  const value = input.value.trim();
+
+  if (!value) {
+    throw new Error("Overview content cannot be empty.");
+  }
+
+  const fieldMap = {
+    goal: "goal",
+    whyItMatters: "why_it_matters",
+    successLooksLike: "success_looks_like",
+    doneDefinition: "done_definition",
+  } as const;
+
+  const { supabase } = await getAuthenticatedUser();
+  const { error } = await supabase
+    .from("boards")
+    .update({
+      [fieldMap[input.field]]: value,
+    })
+    .eq("id", input.boardId)
+    .eq("project_id", input.projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
 }
 
 export async function inviteProjectMemberAction(input: {

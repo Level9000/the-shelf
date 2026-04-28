@@ -24,6 +24,10 @@ export type Project = {
   userId: string;
   name: string;
   description: string | null;
+  goal: string | null;
+  whyItMatters: string | null;
+  successLooksLike: string | null;
+  doneDefinition: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -43,6 +47,10 @@ export type Board = {
   id: string;
   projectId: string;
   name: string;
+  goal: string | null;
+  whyItMatters: string | null;
+  successLooksLike: string | null;
+  doneDefinition: string | null;
   position: number;
   createdAt: string;
 };

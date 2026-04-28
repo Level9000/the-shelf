@@ -3,9 +3,9 @@ import {
   getProjectBoardSnapshot,
   getProjectsWithChapters,
 } from "@/lib/supabase/queries";
-import { ChapterOverviewShell } from "@/components/projects/chapter-overview-shell";
+import { ProjectWorkspaceShell } from "@/components/projects/project-workspace-shell";
 
-export default async function ChapterPage({
+export default async function ChapterBoardPage({
   params,
 }: {
   params: Promise<{ projectId: string; chapterId: string }>;
@@ -19,7 +19,7 @@ export default async function ChapterPage({
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[1600px] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-      <ChapterOverviewShell
+      <ProjectWorkspaceShell
         snapshot={snapshot}
         projects={projects}
         profile={profile}

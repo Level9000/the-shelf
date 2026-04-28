@@ -146,6 +146,37 @@ export async function moveTaskAction(input: {
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
 }
 
+export async function moveTasksToColumnAction(input: {
+  projectId: string;
+  boardId: string;
+  taskIds: string[];
+  targetColumnId: string;
+}) {
+  if (input.taskIds.length === 0) {
+    return;
+  }
+
+  const { supabase } = await getAuthenticatedUser();
+  const startPosition = await getNextTaskPosition(input.boardId, input.targetColumnId);
+  const payload = input.taskIds.map((taskId, index) => ({
+    id: taskId,
+    column_id: input.targetColumnId,
+    position: startPosition + index * 1000,
+  }));
+
+  const { error } = await supabase.from("tasks").upsert(payload, {
+    onConflict: "id",
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
+}
+
 export async function persistTaskArrangementAction(input: {
   projectId: string;
   boardId: string;

@@ -24,10 +24,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BoardColumnView } from "@/components/board/board-column";
 import { ProjectAccessModal } from "@/components/projects/project-access-modal";
+import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
+import { WeeklyPlanningRefiner } from "@/components/board/weekly-planning-refiner";
 
 type ReviewState = {
   captureId: string | null;
@@ -46,7 +48,15 @@ function getColumnTasks(tasks: Task[], columnId: string) {
     .sort((left, right) => left.position - right.position);
 }
 
-export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
+export function ProjectBoardClient({
+  snapshot,
+  chapterProjectId,
+  chapterId,
+}: {
+  snapshot: BoardSnapshot;
+  chapterProjectId: string;
+  chapterId: string;
+}) {
   const router = useRouter();
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -66,6 +76,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
   const [accessOpen, setAccessOpen] = useState(false);
+  const [planningWeek, setPlanningWeek] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewState, setReviewState] = useState<ReviewState>({
     captureId: null,
@@ -230,21 +241,36 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
   return (
     <>
       <div className="space-y-6 lg:h-full">
+        {planningWeek ? (
+          <WeeklyPlanningRefiner
+            snapshot={snapshot}
+            onClose={() => setPlanningWeek(false)}
+          />
+        ) : null}
+
+        {!planningWeek ? (
         <section className="surface hairline flex h-full flex-col rounded-[2rem] p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-2xl">
-              <p className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                 {snapshot.board.name}
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-                {snapshot.project.name}
               </h1>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              <div className="mt-4">
+                <ChapterPageNav
+                  projectId={chapterProjectId}
+                  chapterId={chapterId}
+                  active="board"
+                />
+              </div>
+              <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
                 {snapshot.project.description ??
                   "Capture ideas by voice, review the extracted tasks, and move work through a lightweight board."}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              <Button variant="secondary" onClick={() => setPlanningWeek(true)}>
+                Plan this week
+              </Button>
               <div className="hidden items-center -space-x-2 sm:flex">
                 {visibleMembers.map((member) => (
                   <div
@@ -306,6 +332,7 @@ export function ProjectBoardClient({ snapshot }: { snapshot: BoardSnapshot }) {
             </DndContext>
           </div>
         </section>
+        ) : null}
       </div>
 
       <TaskDetailModal

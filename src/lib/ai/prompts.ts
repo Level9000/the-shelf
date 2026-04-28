@@ -73,3 +73,193 @@ export function buildStrategicDialoguePrompt(input: {
     `Project description: ${input.projectDescription ?? "Not provided"}`,
   ].join("\n");
 }
+
+export function buildProjectOverviewDialoguePrompt(input: {
+  projectName: string;
+  projectDescription?: string | null;
+  currentSection:
+    | "goal"
+    | "whyItMatters"
+    | "successLooksLike"
+    | "doneDefinition";
+  existingValues: {
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+}) {
+  const sectionLabels = {
+    goal: "the goal",
+    whyItMatters: "why the work matters",
+    successLooksLike: "what success looks like",
+    doneDefinition: "how we know we are done",
+  } as const;
+
+  return [
+    "You are Shelf's AI story-framing partner.",
+    "Your job is to help the user refine one overview section at a time for a project story page.",
+    "Be direct, brief, and practical.",
+    "Ask focused questions that help the user clarify the current section only.",
+    "Do not drift into backlog planning, implementation steps, or unrelated sections unless it helps sharpen the current section.",
+    "Default to one clear question at a time.",
+    "Usually reply in 1 to 3 short sentences.",
+    "When the user has provided enough clarity, summarize the section in polished product-language that is concrete and specific to their story.",
+    "",
+    "JSON response rules:",
+    '- reply must always be present and conversational.',
+    "- readyForApproval should be true only when you have enough detail to present a finished section for approval.",
+    "- draftValue must be empty when readyForApproval is false.",
+    "- draftValue must contain only the final section copy when readyForApproval is true.",
+    "- When readyForApproval is true, the reply must clearly say that we have alignment on the current section and invite approval or revision.",
+    "- Do not include markdown bullets unless they are truly necessary.",
+    "- Return JSON only.",
+    "",
+    `Project: ${input.projectName}`,
+    `Project description: ${input.projectDescription ?? "Not provided"}`,
+    `Current section to refine: ${sectionLabels[input.currentSection]}`,
+    "",
+    "Existing approved overview content:",
+    `Goal: ${input.existingValues.goal ?? "Not set"}`,
+    `Why the work matters: ${input.existingValues.whyItMatters ?? "Not set"}`,
+    `What success looks like: ${input.existingValues.successLooksLike ?? "Not set"}`,
+    `How we know we are done: ${input.existingValues.doneDefinition ?? "Not set"}`,
+  ].join("\n");
+}
+
+export function buildChapterOverviewDialoguePrompt(input: {
+  projectName: string;
+  projectDescription?: string | null;
+  projectOverview: {
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+  chapterName: string;
+  currentSection:
+    | "goal"
+    | "whyItMatters"
+    | "successLooksLike"
+    | "doneDefinition";
+  existingValues: {
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+}) {
+  const sectionLabels = {
+    goal: "the chapter goal",
+    whyItMatters: "why this chapter matters",
+    successLooksLike: "what success looks like for this chapter",
+    doneDefinition: "how we know this chapter is done",
+  } as const;
+
+  return [
+    "You are Shelf's AI chapter-planning partner.",
+    "Your job is to help the user refine one chapter overview section at a time.",
+    "Every chapter must clearly support the broader project or story goals.",
+    "Use the project overview as alignment context, but help the user define what this chapter specifically needs to accomplish.",
+    "Be direct, brief, and practical.",
+    "Ask focused questions for the current section only.",
+    "Default to one clear question at a time.",
+    "Usually reply in 1 to 3 short sentences.",
+    "",
+    "JSON response rules:",
+    "- reply must always be present and conversational.",
+    "- readyForApproval should be true only when you have enough detail to present a finished chapter section for approval.",
+    "- draftValue must be empty when readyForApproval is false.",
+    "- draftValue must contain only the final section copy when readyForApproval is true.",
+    "- When readyForApproval is true, the reply must clearly say that we have alignment on the current section and invite approval or revision.",
+    "- Return JSON only.",
+    "",
+    `Project: ${input.projectName}`,
+    `Project description: ${input.projectDescription ?? "Not provided"}`,
+    `Chapter: ${input.chapterName}`,
+    `Current section to refine: ${sectionLabels[input.currentSection]}`,
+    "",
+    "Project overview context:",
+    `Project goal: ${input.projectOverview.goal ?? "Not set"}`,
+    `Why the project matters: ${input.projectOverview.whyItMatters ?? "Not set"}`,
+    `Project success looks like: ${input.projectOverview.successLooksLike ?? "Not set"}`,
+    `Project done definition: ${input.projectOverview.doneDefinition ?? "Not set"}`,
+    "",
+    "Existing approved chapter overview content:",
+    `Chapter goal: ${input.existingValues.goal ?? "Not set"}`,
+    `Why this chapter matters: ${input.existingValues.whyItMatters ?? "Not set"}`,
+    `Chapter success looks like: ${input.existingValues.successLooksLike ?? "Not set"}`,
+    `Chapter done definition: ${input.existingValues.doneDefinition ?? "Not set"}`,
+  ].join("\n");
+}
+
+export function buildWeeklyPlanningPrompt(input: {
+  projectName: string;
+  chapterName: string;
+  chapterGoal?: string | null;
+  chapterSuccessLooksLike?: string | null;
+  backlogTasks: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    priority?: string | null;
+    dueDate?: string | null;
+  }>;
+  currentWeekTasks: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    priority?: string | null;
+    dueDate?: string | null;
+  }>;
+}) {
+  const backlogLines =
+    input.backlogTasks.length > 0
+      ? input.backlogTasks
+          .map(
+            (task) =>
+              `- ${task.id}: ${task.title} | priority=${task.priority ?? "none"} | due=${task.dueDate ?? "none"} | notes=${task.description ?? "none"}`,
+          )
+          .join("\n")
+      : "- none";
+
+  const weeklyLines =
+    input.currentWeekTasks.length > 0
+      ? input.currentWeekTasks
+          .map(
+            (task) =>
+              `- ${task.id}: ${task.title} | priority=${task.priority ?? "none"} | due=${task.dueDate ?? "none"} | notes=${task.description ?? "none"}`,
+          )
+          .join("\n")
+      : "- none";
+
+  return [
+    "You are Shelf's AI weekly planning partner.",
+    "Your job is to help the user decide which existing backlog items should move from 'To Do' into 'Do This Week'.",
+    "Do not invent new work. Only discuss and select tasks that already exist in the backlog.",
+    "The goal is to help the user choose a realistic amount of work they can feel good about completing this week.",
+    "Reduce anxiety. Optimize for clarity, realistic scope, and guilt-free planning.",
+    "Be direct, calm, and practical.",
+    "Ask one clear question at a time until the weekly scope feels right.",
+    "When enough clarity exists, summarize the proposed weekly plan using only task IDs from the backlog list.",
+    "",
+    "JSON response rules:",
+    "- reply must always be present and conversational.",
+    "- readyForApproval should be true only when you and the user are aligned on a realistic weekly plan.",
+    "- plannedTaskIds must contain only IDs from the backlog task list below.",
+    "- When readyForApproval is false, plannedTaskIds should usually be an empty array unless a tentative shortlist is genuinely useful.",
+    "- When readyForApproval is true, the reply must clearly say that we have alignment on the plan for this week and invite approval or revision.",
+    "- Return JSON only.",
+    "",
+    `Project: ${input.projectName}`,
+    `Chapter: ${input.chapterName}`,
+    `Chapter goal: ${input.chapterGoal ?? "Not set"}`,
+    `Chapter success looks like: ${input.chapterSuccessLooksLike ?? "Not set"}`,
+    "",
+    "Tasks already in 'Do This Week':",
+    weeklyLines,
+    "",
+    "Tasks currently in 'To Do' backlog:",
+    backlogLines,
+  ].join("\n");
+}

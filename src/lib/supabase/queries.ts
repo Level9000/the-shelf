@@ -21,6 +21,10 @@ function mapProject(row: Record<string, unknown>): Project {
     userId: String(row.user_id),
     name: String(row.name),
     description: (row.description as string | null) ?? null,
+    goal: (row.goal as string | null) ?? null,
+    whyItMatters: (row.why_it_matters as string | null) ?? null,
+    successLooksLike: (row.success_looks_like as string | null) ?? null,
+    doneDefinition: (row.done_definition as string | null) ?? null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -53,6 +57,10 @@ function mapBoard(row: Record<string, unknown>): Board {
     id: String(row.id),
     projectId: String(row.project_id),
     name: String(row.name),
+    goal: (row.goal as string | null) ?? null,
+    whyItMatters: (row.why_it_matters as string | null) ?? null,
+    successLooksLike: (row.success_looks_like as string | null) ?? null,
+    doneDefinition: (row.done_definition as string | null) ?? null,
     position: Number(row.position ?? 1000),
     createdAt: String(row.created_at),
   };

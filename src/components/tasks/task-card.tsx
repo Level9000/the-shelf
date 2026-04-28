@@ -135,12 +135,12 @@ export function TaskCard({
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
           Move to:
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-2">
           {moveTargets.map((target) => (
             <Button
               key={target.id}
               variant="secondary"
-              className="w-full rounded-2xl py-2 text-xs"
+              className="h-10 w-full justify-center rounded-2xl px-3 text-xs"
               onClick={() => onMove(task.id, target.id)}
               disabled={isMoving}
             >

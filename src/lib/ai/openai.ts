@@ -1,9 +1,15 @@
 import {
+  aiWeeklyPlanningDialogueSchema,
+  aiProjectOverviewDialogueSchema,
   aiStrategicDialogueSchema,
   aiTaskExtractionSchema,
+  type ProjectOverviewSection,
   type StrategicDialogueMessage,
 } from "@/lib/ai/schema";
 import {
+  buildWeeklyPlanningPrompt,
+  buildChapterOverviewDialoguePrompt,
+  buildProjectOverviewDialoguePrompt,
   buildStrategicDialoguePrompt,
   buildTaskExtractionPrompt,
 } from "@/lib/ai/prompts";
@@ -245,4 +251,249 @@ export async function runStrategicTextDialogue(input: {
   }
 
   return aiStrategicDialogueSchema.parse(safeJsonParse(content));
+}
+
+export async function runProjectOverviewDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  projectDescription?: string | null;
+  currentSection: ProjectOverviewSection;
+  existingValues: {
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+}) {
+  const apiKey = requireOpenAiKey();
+  const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: CHAT_MODEL,
+      temperature: 0.2,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Return valid JSON that matches the provided schema exactly. Do not include markdown fences.",
+        },
+        {
+          role: "system",
+          content: buildProjectOverviewDialoguePrompt(input),
+        },
+        ...input.messages.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "project_overview_dialogue",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            required: ["reply", "readyForApproval", "draftValue"],
+            properties: {
+              reply: { type: "string", minLength: 1, maxLength: 4000 },
+              readyForApproval: { type: "boolean" },
+              draftValue: { type: "string", maxLength: 2000 },
+            },
+          },
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Project overview dialogue failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+
+  const content = payload.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error("Project overview dialogue returned no content.");
+  }
+
+  return aiProjectOverviewDialogueSchema.parse(safeJsonParse(content));
+}
+
+export async function runChapterOverviewDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  projectDescription?: string | null;
+  projectOverview: {
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+  chapterName: string;
+  currentSection: ProjectOverviewSection;
+  existingValues: {
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+}) {
+  const apiKey = requireOpenAiKey();
+  const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: CHAT_MODEL,
+      temperature: 0.2,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Return valid JSON that matches the provided schema exactly. Do not include markdown fences.",
+        },
+        {
+          role: "system",
+          content: buildChapterOverviewDialoguePrompt(input),
+        },
+        ...input.messages.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "chapter_overview_dialogue",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            required: ["reply", "readyForApproval", "draftValue"],
+            properties: {
+              reply: { type: "string", minLength: 1, maxLength: 4000 },
+              readyForApproval: { type: "boolean" },
+              draftValue: { type: "string", maxLength: 2000 },
+            },
+          },
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Chapter overview dialogue failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+
+  const content = payload.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error("Chapter overview dialogue returned no content.");
+  }
+
+  return aiProjectOverviewDialogueSchema.parse(safeJsonParse(content));
+}
+
+export async function runWeeklyPlanningDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  chapterName: string;
+  chapterGoal?: string | null;
+  chapterSuccessLooksLike?: string | null;
+  backlogTasks: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    priority?: string | null;
+    dueDate?: string | null;
+  }>;
+  currentWeekTasks: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    priority?: string | null;
+    dueDate?: string | null;
+  }>;
+}) {
+  const apiKey = requireOpenAiKey();
+  const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: CHAT_MODEL,
+      temperature: 0.2,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Return valid JSON that matches the provided schema exactly. Do not include markdown fences.",
+        },
+        {
+          role: "system",
+          content: buildWeeklyPlanningPrompt(input),
+        },
+        ...input.messages.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "weekly_planning_dialogue",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            required: ["reply", "readyForApproval", "plannedTaskIds"],
+            properties: {
+              reply: { type: "string", minLength: 1, maxLength: 4000 },
+              readyForApproval: { type: "boolean" },
+              plannedTaskIds: {
+                type: "array",
+                maxItems: 12,
+                items: { type: "string", minLength: 1, maxLength: 120 },
+              },
+            },
+          },
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Weekly planning dialogue failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+
+  const content = payload.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error("Weekly planning dialogue returned no content.");
+  }
+
+  return aiWeeklyPlanningDialogueSchema.parse(safeJsonParse(content));
 }

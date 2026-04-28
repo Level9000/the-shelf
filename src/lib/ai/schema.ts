@@ -46,9 +46,37 @@ export const aiStrategicDialogueSchema = z.object({
   tasks: z.array(proposedTaskSchema).max(12),
 });
 
+export const projectOverviewSectionSchema = z.enum([
+  "goal",
+  "whyItMatters",
+  "successLooksLike",
+  "doneDefinition",
+]);
+
+export const aiProjectOverviewDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  readyForApproval: z.boolean(),
+  draftValue: z.string().trim().max(2000).default(""),
+});
+
+export const aiWeeklyPlanningDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  readyForApproval: z.boolean(),
+  plannedTaskIds: z.array(z.string().trim().min(1)).max(12).default([]),
+});
+
 export type AITaskExtraction = z.infer<typeof aiTaskExtractionSchema>;
 export type AIStrategicDialogue = z.infer<typeof aiStrategicDialogueSchema>;
+export type AIProjectOverviewDialogue = z.infer<
+  typeof aiProjectOverviewDialogueSchema
+>;
+export type AIWeeklyPlanningDialogue = z.infer<
+  typeof aiWeeklyPlanningDialogueSchema
+>;
 export type StrategicDialogueMessage = z.infer<
   typeof strategicDialogueMessageSchema
 >;
 export type StrategicTemplate = z.infer<typeof strategicTemplateSchema>;
+export type ProjectOverviewSection = z.infer<
+  typeof projectOverviewSectionSchema
+>;

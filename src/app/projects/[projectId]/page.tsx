@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
-import { getLatestChapterId } from "@/lib/supabase/queries";
+import { ProjectOverviewShell } from "@/components/projects/project-overview-shell";
+import {
+  getCurrentUserProfile,
+  getProjectsWithChapters,
+} from "@/lib/supabase/queries";
 
 export default async function ProjectPage({
   params,
@@ -7,11 +11,23 @@ export default async function ProjectPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const latestChapterId = await getLatestChapterId(projectId);
+  const [projects, profile] = await Promise.all([
+    getProjectsWithChapters(),
+    getCurrentUserProfile(),
+  ]);
+  const project = projects.find((item) => item.id === projectId) ?? null;
 
-  if (!latestChapterId) {
+  if (!project) {
     redirect("/dashboard");
   }
 
-  redirect(`/projects/${projectId}/chapters/${latestChapterId}`);
+  return (
+    <main className="mx-auto min-h-screen w-full max-w-[1600px] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <ProjectOverviewShell
+        project={project}
+        projects={projects}
+        profile={profile}
+      />
+    </main>
+  );
 }
