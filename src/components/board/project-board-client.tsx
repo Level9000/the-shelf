@@ -3,12 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import {
+  type CollisionDetection,
   closestCenter,
   DndContext,
   type DragEndEvent,
   type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -23,7 +25,6 @@ import { normalizeTaskOrder } from "@/lib/board-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BoardColumnView } from "@/components/board/board-column";
-import { ProjectAccessModal } from "@/components/projects/project-access-modal";
 import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
@@ -47,6 +48,34 @@ function getColumnTasks(tasks: Task[], columnId: string) {
     .filter((task) => task.columnId === columnId)
     .sort((left, right) => left.position - right.position);
 }
+
+const boardCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args).filter(
+    (collision) => collision.id !== args.active.id,
+  );
+
+  if (pointerCollisions.length > 0) {
+    const columnCollision = pointerCollisions.find((collision) => {
+      const droppable = args.droppableContainers.find(
+        (container) => container.id === collision.id,
+      );
+      return droppable?.data.current?.type === "column";
+    });
+
+    if (columnCollision) {
+      return [columnCollision];
+    }
+
+    return pointerCollisions;
+  }
+
+  return closestCenter({
+    ...args,
+    droppableContainers: args.droppableContainers.filter(
+      (container) => container.id !== args.active.id,
+    ),
+  });
+};
 
 export function ProjectBoardClient({
   snapshot,
@@ -75,7 +104,6 @@ export function ProjectBoardClient({
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
-  const [accessOpen, setAccessOpen] = useState(false);
   const [planningWeek, setPlanningWeek] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewState, setReviewState] = useState<ReviewState>({
@@ -91,24 +119,6 @@ export function ProjectBoardClient({
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
   );
-  const visibleMembers = useMemo(
-    () => snapshot.projectMembers.slice(0, 4),
-    [snapshot.projectMembers],
-  );
-
-  function displayName(member: { displayName: string | null; email: string | null }) {
-    return member.displayName?.trim() || member.email?.trim() || "Unknown user";
-  }
-
-  function initials(value: string) {
-    const normalized = value.includes("@") ? value.split("@")[0] : value;
-    const segments = normalized.split(/[.\s_-]+/).filter(Boolean);
-    return segments
-      .slice(0, 2)
-      .map((segment) => segment.charAt(0).toUpperCase())
-      .join("") || "?";
-  }
-
   function refreshData() {
     router.refresh();
   }
@@ -128,12 +138,6 @@ export function ProjectBoardClient({
     setReviewOpen(true);
   }
 
-  function findColumnIdForTarget(targetId: string | null) {
-    if (!targetId) return null;
-    const taskMatch = tasks.find((task) => task.id === targetId);
-    return taskMatch?.columnId ?? null;
-  }
-
   function handleDragStart(event: DragStartEvent) {
     setDragTaskId(String(event.active.id));
   }
@@ -147,19 +151,66 @@ export function ProjectBoardClient({
 
     const activeTask = tasks.find((task) => task.id === activeId);
     const sourceColumnId = activeTask?.columnId;
-    const destinationColumnId = findColumnIdForTarget(overId);
+    const overTask = tasks.find((task) => task.id === overId);
+    const destinationColumnId =
+      overTask?.columnId ??
+      snapshot.columns.find((column) => column.id === overId)?.id ??
+      null;
 
     if (!activeTask || !sourceColumnId || !destinationColumnId) return;
-    if (sourceColumnId !== destinationColumnId) return;
 
-    const columnTasks = tasks.filter((task) => task.columnId === sourceColumnId);
-    const sourceIndex = columnTasks.findIndex((task) => task.id === activeId);
-    const overIndex = columnTasks.findIndex((task) => task.id === overId);
-    if (sourceIndex === -1 || overIndex === -1) return;
+    let merged: Task[];
 
-    const reorderedColumnTasks = arrayMove(columnTasks, sourceIndex, overIndex);
-    const nonColumnTasks = tasks.filter((task) => task.columnId !== sourceColumnId);
-    const merged = [...nonColumnTasks, ...reorderedColumnTasks].map((task) => ({ ...task }));
+    if (sourceColumnId === destinationColumnId) {
+      const columnTasks = tasks.filter((task) => task.columnId === sourceColumnId);
+      const sourceIndex = columnTasks.findIndex((task) => task.id === activeId);
+      const overIndex =
+        overTask && overTask.columnId === sourceColumnId
+          ? columnTasks.findIndex((task) => task.id === overId)
+          : columnTasks.length - 1;
+
+      if (sourceIndex === -1 || overIndex === -1) return;
+
+      const reorderedColumnTasks = arrayMove(columnTasks, sourceIndex, overIndex);
+      const nonColumnTasks = tasks.filter((task) => task.columnId !== sourceColumnId);
+      merged = [...nonColumnTasks, ...reorderedColumnTasks].map((task) => ({ ...task }));
+    } else {
+      const sourceTasks = tasks.filter(
+        (task) => task.columnId === sourceColumnId && task.id !== activeId,
+      );
+      const destinationTasks = tasks.filter(
+        (task) => task.columnId === destinationColumnId,
+      );
+      const insertIndex =
+        overTask && overTask.columnId === destinationColumnId
+          ? destinationTasks.findIndex((task) => task.id === overId)
+          : destinationTasks.length;
+
+      const nextDestinationTasks = [...destinationTasks];
+      nextDestinationTasks.splice(
+        insertIndex < 0 ? destinationTasks.length : insertIndex,
+        0,
+        {
+          ...activeTask,
+          columnId: destinationColumnId,
+        },
+      );
+
+      merged = snapshot.columns.flatMap((column) => {
+        if (column.id === sourceColumnId) {
+          return sourceTasks.map((task) => ({ ...task }));
+        }
+
+        if (column.id === destinationColumnId) {
+          return nextDestinationTasks.map((task) => ({ ...task }));
+        }
+
+        return tasks
+          .filter((task) => task.columnId === column.id)
+          .map((task) => ({ ...task }));
+      });
+    }
+
     const normalized = normalizeTaskOrder(snapshot.columns, merged);
     const normalizedTasks = merged.map((task) => {
       const update = normalized.find((item) => item.id === task.id);
@@ -262,34 +313,10 @@ export function ProjectBoardClient({
                   active="board"
                 />
               </div>
-              <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-                {snapshot.project.description ??
-                  "Capture ideas by voice, review the extracted tasks, and move work through a lightweight board."}
-              </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button variant="secondary" onClick={() => setPlanningWeek(true)}>
                 Plan this week
-              </Button>
-              <div className="hidden items-center -space-x-2 sm:flex">
-                {visibleMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    title={`${displayName(member)}${member.email ? ` (${member.email})` : ""}`}
-                    className="flex size-9 items-center justify-center rounded-full border-2 border-[var(--app-bg)] bg-[var(--accent-soft)] text-[11px] font-semibold text-[var(--accent)]"
-                  >
-                    {initials(displayName(member))}
-                  </div>
-                ))}
-                {snapshot.projectMembers.length > visibleMembers.length ? (
-                  <div className="flex size-9 items-center justify-center rounded-full border-2 border-[var(--app-bg)] bg-black text-[11px] font-semibold text-white">
-                    +{snapshot.projectMembers.length - visibleMembers.length}
-                  </div>
-                ) : null}
-              </div>
-              <Badge>{snapshot.projectMembers.length} people</Badge>
-              <Button variant="secondary" onClick={() => setAccessOpen(true)}>
-                Share access
               </Button>
             </div>
           </div>
@@ -302,7 +329,7 @@ export function ProjectBoardClient({
           <div className="min-h-0 flex-1">
             <DndContext
               sensors={sensors}
-              collisionDetection={closestCenter}
+              collisionDetection={boardCollisionDetection}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
@@ -379,17 +406,6 @@ export function ProjectBoardClient({
         onClose={() => setReviewOpen(false)}
         onAccepted={refreshData}
       />
-
-      {accessOpen ? (
-        <ProjectAccessModal
-          open={accessOpen}
-          onClose={() => setAccessOpen(false)}
-          project={snapshot.project}
-          currentUser={snapshot.currentUser}
-          members={snapshot.projectMembers}
-          onUpdated={refreshData}
-        />
-      ) : null}
     </>
   );
 }

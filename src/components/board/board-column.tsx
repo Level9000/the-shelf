@@ -1,5 +1,6 @@
 "use client";
 
+import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import type { BoardColumn, Task } from "@/types";
@@ -25,9 +26,21 @@ export function BoardColumnView({
   onMoveTask: (taskId: string, targetColumnId: string) => void;
   movingTaskId?: string | null;
 }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: column.id,
+    data: {
+      type: "column",
+      columnId: column.id,
+    },
+  });
+
   return (
     <section
-      className="surface hairline flex min-h-[420px] min-w-0 flex-col rounded-[2rem] p-4 transition lg:h-full lg:min-h-0"
+      ref={setNodeRef}
+      className={cn(
+        "surface hairline flex min-h-[420px] min-w-0 flex-col rounded-[2rem] p-4 transition lg:h-full lg:min-h-0",
+        isOver && "ring-2 ring-[var(--accent)]/25 ring-offset-2 ring-offset-transparent",
+      )}
     >
       <div className={cn("rounded-[1.5rem] bg-gradient-to-b p-4", COLUMN_TINTS[column.name])}>
         <div className="flex items-start justify-between gap-3">

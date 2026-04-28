@@ -1,9 +1,16 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { CalendarDays, GripVertical, MessageSquareText, UserRound } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
+  MessageSquareText,
+  UserRound,
+} from "lucide-react";
 import type { Task } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +37,7 @@ export function TaskCard({
   isMoving?: boolean;
 }) {
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
   const {
     attributes,
     listeners,
@@ -132,22 +140,37 @@ export function TaskCard({
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-          Move to:
-        </p>
-        <div className="flex flex-col gap-2">
-          {moveTargets.map((target) => (
-            <Button
-              key={target.id}
-              variant="secondary"
-              className="h-10 w-full justify-center rounded-2xl px-3 text-xs"
-              onClick={() => onMove(task.id, target.id)}
-              disabled={isMoving}
-            >
-              {target.name}
-            </Button>
-          ))}
-        </div>
+        <Button
+          variant="secondary"
+          className="h-10 w-full justify-between rounded-2xl px-3 text-xs"
+          onClick={() => setMoveMenuOpen((current) => !current)}
+          disabled={isMoving || moveTargets.length === 0}
+        >
+          Move
+          {moveMenuOpen ? (
+            <ChevronUp className="size-4 text-[var(--muted)]" />
+          ) : (
+            <ChevronDown className="size-4 text-[var(--muted)]" />
+          )}
+        </Button>
+        {moveMenuOpen ? (
+          <div className="mt-2 flex flex-col gap-2">
+            {moveTargets.map((target) => (
+              <Button
+                key={target.id}
+                variant="secondary"
+                className="h-10 w-full justify-center rounded-2xl px-3 text-xs"
+                onClick={() => {
+                  onMove(task.id, target.id);
+                  setMoveMenuOpen(false);
+                }}
+                disabled={isMoving}
+              >
+                {target.name}
+              </Button>
+            ))}
+          </div>
+        ) : null}
       </div>
     </article>
   );

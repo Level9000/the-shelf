@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ProjectOverviewShell } from "@/components/projects/project-overview-shell";
 import {
   getCurrentUserProfile,
+  getProjectAccessSnapshot,
   getProjectsWithChapters,
 } from "@/lib/supabase/queries";
 
@@ -11,9 +12,10 @@ export default async function ProjectPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const [projects, profile] = await Promise.all([
+  const [projects, profile, access] = await Promise.all([
     getProjectsWithChapters(),
     getCurrentUserProfile(),
+    getProjectAccessSnapshot(projectId),
   ]);
   const project = projects.find((item) => item.id === projectId) ?? null;
 
@@ -27,6 +29,8 @@ export default async function ProjectPage({
         project={project}
         projects={projects}
         profile={profile}
+        currentUser={access.currentUser}
+        projectMembers={access.projectMembers}
       />
     </main>
   );

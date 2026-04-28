@@ -158,18 +158,19 @@ export async function moveTasksToColumnAction(input: {
 
   const { supabase } = await getAuthenticatedUser();
   const startPosition = await getNextTaskPosition(input.boardId, input.targetColumnId);
-  const payload = input.taskIds.map((taskId, index) => ({
-    id: taskId,
-    column_id: input.targetColumnId,
-    position: startPosition + index * 1000,
-  }));
+  for (const [index, taskId] of input.taskIds.entries()) {
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        column_id: input.targetColumnId,
+        position: startPosition + index * 1000,
+      })
+      .eq("id", taskId)
+      .eq("project_id", input.projectId);
 
-  const { error } = await supabase.from("tasks").upsert(payload, {
-    onConflict: "id",
-  });
-
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      throw new Error(error.message);
+    }
   }
 
   revalidatePath(`/projects/${input.projectId}`);
@@ -188,18 +189,19 @@ export async function persistTaskArrangementAction(input: {
     return;
   }
 
-  const payload = input.updates.map((update) => ({
-    id: update.id,
-    column_id: update.columnId,
-    position: update.position,
-  }));
+  for (const update of input.updates) {
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        column_id: update.columnId,
+        position: update.position,
+      })
+      .eq("id", update.id)
+      .eq("project_id", input.projectId);
 
-  const { error } = await supabase.from("tasks").upsert(payload, {
-    onConflict: "id",
-  });
-
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      throw new Error(error.message);
+    }
   }
 
   revalidatePath(`/projects/${input.projectId}`);

@@ -232,6 +232,102 @@ export async function getProjectsWithChapters(): Promise<ProjectWithChapters[]> 
   });
 }
 
+export async function getProjectAccessSnapshot(projectId: string): Promise<{
+  currentUser: AppUser;
+  projectMembers: ProjectMember[];
+}> {
+  const { supabase, user } = await getAuthenticatedUser();
+  const { data: projectRow, error: projectError } = await supabase
+    .from("projects")
+    .select("id, user_id, created_at")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (projectError) {
+    throw new Error(projectError.message);
+  }
+
+  if (!projectRow) {
+    redirect("/dashboard");
+  }
+
+  const [{ data: memberData, error: memberError }, { data: ownerProfileRow, error: ownerProfileError }] =
+    await Promise.all([
+      supabase
+        .from("project_members")
+        .select("id, project_id, user_id, invited_by, created_at")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("user_profiles")
+        .select("email, display_name")
+        .eq("id", String(projectRow.user_id))
+        .maybeSingle(),
+    ]);
+
+  if (memberError || ownerProfileError) {
+    throw new Error(memberError?.message ?? ownerProfileError?.message);
+  }
+
+  const memberUserIds = [
+    String(projectRow.user_id),
+    ...(memberData ?? []).map((row) => String(row.user_id)),
+  ];
+
+  const { data: memberProfiles, error: memberProfilesError } = await supabase
+    .from("user_profiles")
+    .select("id, email, display_name")
+    .in("id", memberUserIds);
+
+  if (memberProfilesError) {
+    throw new Error(memberProfilesError.message);
+  }
+
+  const profileByUserId = new Map(
+    (memberProfiles ?? []).map((row) => [
+      String(row.id),
+      {
+        email: String(row.email),
+        displayName: (row.display_name as string | null) ?? null,
+      },
+    ]),
+  );
+
+  return {
+    currentUser: {
+      id: user.id,
+      email: user.email ?? null,
+      displayName:
+        profileByUserId.get(user.id)?.displayName ??
+        ((user.user_metadata?.display_name as string | undefined) ?? null),
+    },
+    projectMembers: [
+      {
+        id: `owner-${projectRow.id}`,
+        projectId: String(projectRow.id),
+        userId: String(projectRow.user_id),
+        email:
+          profileByUserId.get(String(projectRow.user_id))?.email ??
+          String(ownerProfileRow?.email ?? ""),
+        displayName:
+          profileByUserId.get(String(projectRow.user_id))?.displayName ??
+          ((ownerProfileRow?.display_name as string | null) ?? null),
+        invitedBy: null,
+        role: "owner",
+        createdAt: String(projectRow.created_at),
+      },
+      ...(memberData ?? []).map((row) =>
+        mapProjectMember({
+          ...row,
+          email: profileByUserId.get(String(row.user_id))?.email ?? "",
+          display_name: profileByUserId.get(String(row.user_id))?.displayName ?? null,
+          role: "editor",
+        }),
+      ),
+    ],
+  };
+}
+
 export async function getProjectBoardSnapshot(
   projectId: string,
   boardId: string,
