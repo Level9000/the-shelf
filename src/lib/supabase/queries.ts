@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type {
+  AppUser,
   Board,
   BoardColumn,
   BoardSnapshot,
