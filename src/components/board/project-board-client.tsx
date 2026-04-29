@@ -6,6 +6,7 @@ import {
   type CollisionDetection,
   closestCenter,
   DndContext,
+  DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
   KeyboardSensor,
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { BoardColumnView } from "@/components/board/board-column";
 import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
+import { TaskCardPreview } from "@/components/tasks/task-card";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
@@ -118,6 +120,10 @@ export function ProjectBoardClient({
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
+  );
+  const dragTask = useMemo(
+    () => tasks.find((task) => task.id === dragTaskId) ?? null,
+    [dragTaskId, tasks],
   );
   function refreshData() {
     router.refresh();
@@ -356,6 +362,9 @@ export function ProjectBoardClient({
                   ))}
                 </div>
               </div>
+              <DragOverlay adjustScale={false}>
+                {dragTask ? <TaskCardPreview task={dragTask} /> : null}
+              </DragOverlay>
             </DndContext>
           </div>
         </section>

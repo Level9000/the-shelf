@@ -86,7 +86,7 @@ export function TaskCard({
       }}
       className={cn(
         "surface-card hairline group rounded-[1.5rem] p-4 transition-shadow",
-        isDragging && "rotate-[1.5deg] shadow-2xl shadow-black/10",
+        isDragging && "scale-[0.98] opacity-35 shadow-none",
         isMoving && "opacity-70",
       )}
       onPointerDown={handlePointerDown}
@@ -94,47 +94,7 @@ export function TaskCard({
       {...attributes}
       {...listeners}
     >
-      <div className="min-w-0 text-left">
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            className="rounded-full p-1 text-[var(--muted)] opacity-40 transition group-hover:bg-black/5 group-hover:opacity-100"
-            aria-hidden="true"
-          >
-            <GripVertical className="size-4" />
-          </div>
-          <h4 className="text-sm font-semibold leading-6 text-[var(--ink)]">
-            {task.title}
-          </h4>
-          <Badge className={priorityTone(task.priority)}>
-            {task.priority ? task.priority : "No priority"}
-          </Badge>
-        </div>
-        {task.description ? (
-          <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted)]">
-            {task.description}
-          </p>
-        ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
-          {task.dueDate ? (
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarDays className="size-3.5" />
-              {formatDate(task.dueDate)}
-            </span>
-          ) : null}
-          {task.assigneeName ? (
-            <span className="inline-flex items-center gap-1.5">
-              <UserRound className="size-3.5" />
-              {task.assigneeName}
-            </span>
-          ) : null}
-          {task.sourceVoiceCaptureId ? (
-            <span className="inline-flex items-center gap-1.5">
-              <MessageSquareText className="size-3.5" />
-              Voice capture
-            </span>
-          ) : null}
-        </div>
-      </div>
+      <TaskCardContent task={task} />
       <div
         className="mt-4"
         onClick={(event) => event.stopPropagation()}
@@ -173,5 +133,59 @@ export function TaskCard({
         ) : null}
       </div>
     </article>
+  );
+}
+
+export function TaskCardPreview({ task }: { task: Task }) {
+  return (
+    <article className="surface-card hairline w-[min(360px,calc(100vw-3rem))] rounded-[1.5rem] p-4 shadow-2xl shadow-black/15 ring-1 ring-black/8">
+      <TaskCardContent task={task} />
+    </article>
+  );
+}
+
+function TaskCardContent({ task }: { task: Task }) {
+  return (
+    <div className="min-w-0 text-left">
+      <div className="flex flex-wrap items-center gap-2">
+        <div
+          className="rounded-full p-1 text-[var(--muted)] opacity-40 transition group-hover:bg-black/5 group-hover:opacity-100"
+          aria-hidden="true"
+        >
+          <GripVertical className="size-4" />
+        </div>
+        <h4 className="text-sm font-semibold leading-6 text-[var(--ink)]">
+          {task.title}
+        </h4>
+        <Badge className={priorityTone(task.priority)}>
+          {task.priority ? task.priority : "No priority"}
+        </Badge>
+      </div>
+      {task.description ? (
+        <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted)]">
+          {task.description}
+        </p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
+        {task.dueDate ? (
+          <span className="inline-flex items-center gap-1.5">
+            <CalendarDays className="size-3.5" />
+            {formatDate(task.dueDate)}
+          </span>
+        ) : null}
+        {task.assigneeName ? (
+          <span className="inline-flex items-center gap-1.5">
+            <UserRound className="size-3.5" />
+            {task.assigneeName}
+          </span>
+        ) : null}
+        {task.sourceVoiceCaptureId ? (
+          <span className="inline-flex items-center gap-1.5">
+            <MessageSquareText className="size-3.5" />
+            Voice capture
+          </span>
+        ) : null}
+      </div>
+    </div>
   );
 }

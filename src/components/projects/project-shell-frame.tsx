@@ -49,7 +49,7 @@ export function ProjectShellFrame({
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
-        <div className="min-w-0 lg:h-full">
+        <div className="min-w-0 lg:h-full lg:min-h-0">
           <div className="mb-4 flex items-center justify-between lg:hidden">
             <Button
               variant="secondary"
@@ -68,7 +68,9 @@ export function ProjectShellFrame({
               </p>
             </div>
           </div>
-          {children}
+          <div className="lg:flex lg:h-[calc(100%-4.5rem)] lg:min-h-0 lg:flex-col lg:overflow-y-auto">
+            {children}
+          </div>
         </div>
       </div>
 
