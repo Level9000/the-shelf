@@ -149,19 +149,17 @@ export function TaskDetailModal({
           {error}
         </p>
       ) : null}
-      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
         <Button variant="ghost" onClick={handleDelete} disabled={isPending}>
           <Trash2 className="mr-2 size-4" />
           Delete task
         </Button>
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={isPending}>
-            {isPending ? "Saving..." : "Save changes"}
-          </Button>
-        </div>
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} disabled={isPending}>
+          {isPending ? "Saving..." : "Save changes"}
+        </Button>
       </div>
     </Modal>
   );

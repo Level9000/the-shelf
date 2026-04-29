@@ -17,13 +17,17 @@ export async function createProjectAction(formData: FormData) {
     throw new Error("Project name is required.");
   }
 
+  if (!description) {
+    throw new Error("Project description is required.");
+  }
+
   const { supabase, user } = await getAuthenticatedUser();
   const { data, error } = await supabase
     .from("projects")
     .insert({
       user_id: user.id,
       name,
-      description: description || null,
+      description,
       goal: goal || null,
       why_it_matters: whyItMatters || null,
       success_looks_like: successLooksLike || null,
@@ -74,6 +78,47 @@ export async function updateProjectOverviewFieldAction(input: {
   revalidatePath("/dashboard");
 }
 
+export async function updateProjectOverviewAction(input: {
+  projectId: string;
+  name: string;
+  description: string;
+  goal: string;
+  whyItMatters: string;
+  successLooksLike: string;
+  doneDefinition: string;
+}) {
+  const name = input.name.trim();
+  const description = input.description.trim();
+
+  if (!name) {
+    throw new Error("Project title is required.");
+  }
+
+  if (!description) {
+    throw new Error("Project description is required.");
+  }
+
+  const { supabase } = await getAuthenticatedUser();
+  const { error } = await supabase
+    .from("projects")
+    .update({
+      name,
+      description,
+      goal: input.goal.trim() || null,
+      why_it_matters: input.whyItMatters.trim() || null,
+      success_looks_like: input.successLooksLike.trim() || null,
+      done_definition: input.doneDefinition.trim() || null,
+    })
+    .eq("id", input.projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath("/dashboard");
+}
+
 export async function updateBoardOverviewFieldAction(input: {
   projectId: string;
   boardId: string;
@@ -108,6 +153,43 @@ export async function updateBoardOverviewFieldAction(input: {
 
   revalidatePath(`/projects/${input.projectId}`);
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+}
+
+export async function updateBoardOverviewAction(input: {
+  projectId: string;
+  boardId: string;
+  name: string;
+  goal: string;
+  whyItMatters: string;
+  successLooksLike: string;
+  doneDefinition: string;
+}) {
+  const name = input.name.trim();
+
+  if (!name) {
+    throw new Error("Chapter title is required.");
+  }
+
+  const { supabase } = await getAuthenticatedUser();
+  const { error } = await supabase
+    .from("boards")
+    .update({
+      name,
+      goal: input.goal.trim() || null,
+      why_it_matters: input.whyItMatters.trim() || null,
+      success_looks_like: input.successLooksLike.trim() || null,
+      done_definition: input.doneDefinition.trim() || null,
+    })
+    .eq("id", input.boardId)
+    .eq("project_id", input.projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
 export async function inviteProjectMemberAction(input: {
@@ -205,6 +287,142 @@ export async function revokeProjectMemberAction(input: {
 
   revalidatePath(`/projects/${input.projectId}`);
   revalidatePath("/dashboard");
+}
+
+export async function deleteProjectAction(input: { projectId: string }) {
+  const { supabase, user } = await getAuthenticatedUser();
+  const { data: project, error: projectError } = await supabase
+    .from("projects")
+    .select("id,user_id")
+    .eq("id", input.projectId)
+    .maybeSingle();
+
+  if (projectError || !project) {
+    throw new Error(projectError?.message ?? "Project not found.");
+  }
+
+  if (String(project.user_id) !== user.id) {
+    throw new Error("Only the project owner can delete the project.");
+  }
+
+  const { data: boards, error: boardsError } = await supabase
+    .from("boards")
+    .select("id")
+    .eq("project_id", input.projectId);
+
+  if (boardsError) {
+    throw new Error(boardsError.message);
+  }
+
+  const boardIds = (boards ?? []).map((board) => String(board.id));
+
+  if (boardIds.length > 0) {
+    const { error: tasksError } = await supabase
+      .from("tasks")
+      .delete()
+      .in("board_id", boardIds);
+
+    if (tasksError) {
+      throw new Error(tasksError.message);
+    }
+
+    const { error: columnsError } = await supabase
+      .from("board_columns")
+      .delete()
+      .in("board_id", boardIds);
+
+    if (columnsError) {
+      throw new Error(columnsError.message);
+    }
+
+    const { error: boardDeleteError } = await supabase
+      .from("boards")
+      .delete()
+      .in("id", boardIds);
+
+    if (boardDeleteError) {
+      throw new Error(boardDeleteError.message);
+    }
+  }
+
+  const { error: captureError } = await supabase
+    .from("voice_captures")
+    .delete()
+    .eq("project_id", input.projectId);
+
+  if (captureError) {
+    throw new Error(captureError.message);
+  }
+
+  const { error: memberError } = await supabase
+    .from("project_members")
+    .delete()
+    .eq("project_id", input.projectId);
+
+  if (memberError) {
+    throw new Error(memberError.message);
+  }
+
+  const { error: deleteError } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", input.projectId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  revalidatePath("/dashboard");
+}
+
+export async function deleteChapterAction(input: {
+  projectId: string;
+  boardId: string;
+}) {
+  const { supabase } = await getAuthenticatedUser();
+  const { data: board, error: boardError } = await supabase
+    .from("boards")
+    .select("id,project_id")
+    .eq("id", input.boardId)
+    .eq("project_id", input.projectId)
+    .maybeSingle();
+
+  if (boardError || !board) {
+    throw new Error(boardError?.message ?? "Chapter not found.");
+  }
+
+  const { error: tasksError } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("board_id", input.boardId);
+
+  if (tasksError) {
+    throw new Error(tasksError.message);
+  }
+
+  const { error: columnsError } = await supabase
+    .from("board_columns")
+    .delete()
+    .eq("board_id", input.boardId);
+
+  if (columnsError) {
+    throw new Error(columnsError.message);
+  }
+
+  const { error: deleteError } = await supabase
+    .from("boards")
+    .delete()
+    .eq("id", input.boardId)
+    .eq("project_id", input.projectId);
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
 async function getNextBoardPosition(projectId: string) {

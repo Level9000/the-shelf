@@ -1,36 +1,107 @@
-import { CheckCircle2, Flag, Sparkles, Target } from "lucide-react";
-import type { Board, Project } from "@/types";
+"use client";
+
+import { useState, useTransition } from "react";
+import {
+  CheckCircle2,
+  Flag,
+  PencilLine,
+  Save,
+  Settings2,
+  Sparkles,
+  Target,
+  X,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import type { Board } from "@/types";
+import { updateBoardOverviewAction } from "@/lib/actions/project-actions";
 import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 function copyOrFallback(value: string | null, fallback: string) {
   return value?.trim() || fallback;
 }
 
 export function ChapterOverviewPanel({
-  project,
   board,
   projectId,
   chapterId,
   onRefine,
+  onOpenSettings,
 }: {
-  project: Project;
   board: Board;
   projectId: string;
   chapterId: string;
   onRefine: () => void;
+  onOpenSettings: () => void;
 }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [form, setForm] = useState({
+    name: board.name,
+    goal: board.goal ?? "",
+    whyItMatters: board.whyItMatters ?? "",
+    successLooksLike: board.successLooksLike ?? "",
+    doneDefinition: board.doneDefinition ?? "",
+  });
+
+  function handleChange(field: keyof typeof form, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function handleCancelEdit() {
+    setForm({
+      name: board.name,
+      goal: board.goal ?? "",
+      whyItMatters: board.whyItMatters ?? "",
+      successLooksLike: board.successLooksLike ?? "",
+      doneDefinition: board.doneDefinition ?? "",
+    });
+    setError(null);
+    setEditing(false);
+  }
+
+  function handleSave() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await updateBoardOverviewAction({
+          projectId,
+          boardId: board.id,
+          ...form,
+        });
+        setEditing(false);
+        router.refresh();
+      } catch (saveError) {
+        setError(
+          saveError instanceof Error
+            ? saveError.message
+            : "Failed to save the chapter overview.",
+        );
+      }
+    });
+  }
+
   return (
-    <div className="space-y-6">
-      <section className="surface hairline rounded-[2rem] p-5 sm:p-6">
+    <div className="flex h-full min-h-0 flex-col gap-6 overflow-y-auto">
+      <section className="surface hairline shrink-0 rounded-[2rem] p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-              <Sparkles className="size-3.5" />
-              Chapter framing
-            </div>
-            <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {board.name}
-            </h2>
+            {editing ? (
+              <Input
+                value={form.name}
+                onChange={(event) => handleChange("name", event.target.value)}
+                placeholder="Chapter title"
+                className="mt-5 text-2xl font-semibold sm:text-3xl"
+              />
+            ) : (
+              <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
+                {board.name}
+              </h2>
+            )}
             <div className="mt-4">
               <ChapterPageNav
                 projectId={projectId}
@@ -38,23 +109,59 @@ export function ChapterOverviewPanel({
                 active="overview"
               />
             </div>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)] sm:text-lg">
-              Use this chapter overview to define how {board.name} advances{" "}
-              {project.name} before you drive execution through the board.
-            </p>
           </div>
-          <button
-            type="button"
-            onClick={onRefine}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:bg-black"
-          >
-            Refine this chapter with chat
-          </button>
+          <div className="flex flex-col items-start gap-4 lg:items-end">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                className="inline-flex size-11 items-center justify-center rounded-full bg-white/80 text-[var(--ink)] ring-1 ring-black/8 transition hover:bg-white"
+                aria-label="Open chapter settings"
+              >
+                <Settings2 className="size-4" />
+              </button>
+              {!editing ? (
+                <Button
+                  variant="secondary"
+                  className="size-11 rounded-full p-0"
+                  onClick={() => setEditing(true)}
+                  aria-label="Quick edit chapter overview"
+                >
+                  <PencilLine className="size-4" />
+                </Button>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={onRefine}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:bg-black"
+            >
+              Refine this chapter with chat
+            </button>
+            {editing ? (
+              <div className="flex flex-wrap gap-3">
+                <Button variant="secondary" onClick={handleCancelEdit} disabled={isPending}>
+                  <X className="mr-2 size-4" />
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} disabled={isPending}>
+                  <Save className="mr-2 size-4" />
+                  {isPending ? "Saving..." : "Save edits"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <article className="surface-card hairline rounded-[1.75rem] p-5 sm:p-6">
+      {error ? (
+        <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </p>
+      ) : null}
+
+      <section className="grid flex-1 auto-rows-fr gap-4 xl:grid-cols-2">
+        <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
               <Target className="size-5" />
@@ -66,15 +173,24 @@ export function ChapterOverviewPanel({
               </p>
             </div>
           </div>
-          <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
-            {copyOrFallback(
-              board.goal,
-              "Define the concrete change this chapter needs to create so the team can focus the board on meaningful progress.",
-            )}
-          </p>
+          {editing ? (
+            <Textarea
+              value={form.goal}
+              onChange={(event) => handleChange("goal", event.target.value)}
+              placeholder="Define the concrete change this chapter needs to create so the team can focus the board on meaningful progress."
+              className="mt-4 min-h-[180px] rounded-[1.5rem]"
+            />
+          ) : (
+            <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+              {copyOrFallback(
+                board.goal,
+                "Define the concrete change this chapter needs to create so the team can focus the board on meaningful progress.",
+              )}
+            </p>
+          )}
         </article>
 
-        <article className="surface-card hairline rounded-[1.75rem] p-5 sm:p-6">
+        <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
               <Flag className="size-5" />
@@ -86,15 +202,26 @@ export function ChapterOverviewPanel({
               </p>
             </div>
           </div>
-          <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
-            {copyOrFallback(
-              board.whyItMatters,
-              "Explain why this chapter matters now so the team can make stronger tradeoffs inside the sprint.",
-            )}
-          </p>
+          {editing ? (
+            <Textarea
+              value={form.whyItMatters}
+              onChange={(event) =>
+                handleChange("whyItMatters", event.target.value)
+              }
+              placeholder="Explain why this chapter matters now so the team can make stronger tradeoffs inside the sprint."
+              className="mt-4 min-h-[180px] rounded-[1.5rem]"
+            />
+          ) : (
+            <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+              {copyOrFallback(
+                board.whyItMatters,
+                "Explain why this chapter matters now so the team can make stronger tradeoffs inside the sprint.",
+              )}
+            </p>
+          )}
         </article>
 
-        <article className="surface-card hairline rounded-[1.75rem] p-5 sm:p-6">
+        <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
               <Sparkles className="size-5" />
@@ -106,15 +233,26 @@ export function ChapterOverviewPanel({
               </p>
             </div>
           </div>
-          <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
-            {copyOrFallback(
-              board.successLooksLike,
-              "Describe the chapter end state that would tell you this slice of work landed well.",
-            )}
-          </p>
+          {editing ? (
+            <Textarea
+              value={form.successLooksLike}
+              onChange={(event) =>
+                handleChange("successLooksLike", event.target.value)
+              }
+              placeholder="Describe the chapter end state that would tell you this slice of work landed well."
+              className="mt-4 min-h-[180px] rounded-[1.5rem]"
+            />
+          ) : (
+            <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+              {copyOrFallback(
+                board.successLooksLike,
+                "Describe the chapter end state that would tell you this slice of work landed well.",
+              )}
+            </p>
+          )}
         </article>
 
-        <article className="surface-card hairline rounded-[1.75rem] p-5 sm:p-6">
+        <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
               <CheckCircle2 className="size-5" />
@@ -126,12 +264,23 @@ export function ChapterOverviewPanel({
               </p>
             </div>
           </div>
-          <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
-            {copyOrFallback(
-              board.doneDefinition,
-              "Set a clear finish line for this chapter so the board can close cleanly before the next one begins.",
-            )}
-          </p>
+          {editing ? (
+            <Textarea
+              value={form.doneDefinition}
+              onChange={(event) =>
+                handleChange("doneDefinition", event.target.value)
+              }
+              placeholder="Set a clear finish line for this chapter so the board can close cleanly before the next one begins."
+              className="mt-4 min-h-[180px] rounded-[1.5rem]"
+            />
+          ) : (
+            <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+              {copyOrFallback(
+                board.doneDefinition,
+                "Set a clear finish line for this chapter so the board can close cleanly before the next one begins.",
+              )}
+            </p>
+          )}
         </article>
       </section>
     </div>

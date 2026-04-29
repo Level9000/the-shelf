@@ -40,12 +40,13 @@ export function ProjectCreateForm({
     <form
       action={action}
       className={cn(
+        "flex min-h-0 h-full flex-col",
         showHeader && "surface-card hairline rounded-[2rem] p-6",
         className,
       )}
     >
       {showHeader ? (
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 shrink-0">
           <div>
             <h2 className="text-lg font-semibold">Create a project</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
@@ -54,7 +55,7 @@ export function ProjectCreateForm({
           </div>
         </div>
       ) : null}
-      <div className={cn(showHeader && "mt-5", "space-y-4")}>
+      <div className={cn(showHeader && "mt-5", "min-h-0 flex-1 space-y-4 overflow-y-auto pr-1")}>
         <div>
           <label className="mb-2 block text-sm font-medium">Project name</label>
           <Input name="name" placeholder="New launch planning" required />
@@ -63,12 +64,13 @@ export function ProjectCreateForm({
           <label className="mb-2 block text-sm font-medium">Description</label>
           <Textarea
             name="description"
-            placeholder="Optional project framing for better AI task extraction."
+            placeholder="Add a short description of what this board is for."
             className="min-h-[110px]"
+            required
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-medium">Goal</label>
+          <label className="mb-2 block text-sm font-medium">Goal (optional)</label>
           <Textarea
             name="goal"
             placeholder="What is this project trying to achieve?"
@@ -76,7 +78,9 @@ export function ProjectCreateForm({
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-medium">Why this matters</label>
+          <label className="mb-2 block text-sm font-medium">
+            Why this matters (optional)
+          </label>
           <Textarea
             name="whyItMatters"
             placeholder="Why is this work worth doing now?"
@@ -85,7 +89,7 @@ export function ProjectCreateForm({
         </div>
         <div>
           <label className="mb-2 block text-sm font-medium">
-            What success looks like
+            What success looks like (optional)
           </label>
           <Textarea
             name="successLooksLike"
@@ -95,7 +99,7 @@ export function ProjectCreateForm({
         </div>
         <div>
           <label className="mb-2 block text-sm font-medium">
-            How we know we are done
+            How we know we are done (optional)
           </label>
           <Textarea
             name="doneDefinition"
@@ -105,11 +109,11 @@ export function ProjectCreateForm({
         </div>
       </div>
       {state.error ? (
-        <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p className="mt-4 shrink-0 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {state.error}
         </p>
       ) : null}
-      <div className="mt-5">
+      <div className="sticky bottom-0 mt-5 flex shrink-0 justify-center border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
         <Button type="submit" disabled={pending}>
           {pending ? "Creating..." : submitLabel}
         </Button>

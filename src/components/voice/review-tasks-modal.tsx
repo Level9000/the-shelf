@@ -290,11 +290,11 @@ export function ReviewTasksModal({
         </p>
       ) : null}
 
-      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky bottom-0 mt-6 flex flex-col items-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 text-center backdrop-blur">
         <p className="text-sm text-[var(--muted)]">
           Nothing is saved until you confirm.
         </p>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           <Button variant="secondary" onClick={onClose}>
             Keep reviewing
           </Button>

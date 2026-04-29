@@ -446,7 +446,7 @@ export function ProjectOverviewRefiner({
         <div className="rounded-[1.5rem] bg-[var(--surface-muted)] px-4 py-4 text-sm leading-7 text-[var(--ink)]">
           {approvalDraft}
         </div>
-        <div className="mt-5 flex flex-wrap justify-end gap-3">
+        <div className="sticky bottom-0 mt-5 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
           <Button
             variant="ghost"
             onClick={() => setApprovalOpen(false)}

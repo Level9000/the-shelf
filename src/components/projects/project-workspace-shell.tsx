@@ -24,7 +24,7 @@ export function ProjectWorkspaceShell({
       mobileEyebrow={snapshot.board.name}
       mobileTitle={snapshot.project.name}
     >
-      <div className="space-y-5 lg:h-full">
+      <div className="space-y-5 lg:min-h-[calc(100dvh-8.5rem)]">
         <ProjectBoardClient
           snapshot={snapshot}
           chapterProjectId={currentProjectId}
