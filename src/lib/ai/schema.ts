@@ -76,6 +76,24 @@ export type AIWeeklyPlanningDialogue = z.infer<
 export type StrategicDialogueMessage = z.infer<
   typeof strategicDialogueMessageSchema
 >;
+export const kickoffProposedTaskSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  source: z.enum(["ai_suggested", "component_library"]),
+});
+
+export const aiKickoffDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  done: z.boolean(),
+  goal: z.string().trim().max(2000).default(""),
+  whyItMatters: z.string().trim().max(2000).default(""),
+  successLooksLike: z.string().trim().max(2000).default(""),
+  doneDefinition: z.string().trim().max(2000).default(""),
+  openingLine: z.string().trim().max(500).default(""),
+  proposedTasks: z.array(kickoffProposedTaskSchema).max(12).default([]),
+});
+
+export type AIKickoffDialogue = z.infer<typeof aiKickoffDialogueSchema>;
+export type KickoffProposedTask = z.infer<typeof kickoffProposedTaskSchema>;
 export type StrategicTemplate = z.infer<typeof strategicTemplateSchema>;
 export type ProjectOverviewSection = z.infer<
   typeof projectOverviewSectionSchema
