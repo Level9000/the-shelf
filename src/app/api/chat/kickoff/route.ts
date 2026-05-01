@@ -65,9 +65,11 @@ export async function POST(request: Request) {
     );
   }
 
+  // Fetch previous chapters including their opening lines so Claude can
+  // maintain narrative continuity across the project story arc.
   const { data: previousBoards } = await supabase
     .from("boards")
-    .select("name,goal")
+    .select("name,goal,opening_line")
     .eq("project_id", projectId)
     .neq("id", chapterId)
     .order("position", { ascending: true });
@@ -77,13 +79,14 @@ export async function POST(request: Request) {
       messages,
       projectName: String(project.name),
       projectDescription: project.description as string | null,
-      projectStory: {
-        goal: project.goal as string | null,
-        whyItMatters: project.why_it_matters as string | null,
-      },
+      // Use the project goal as the north star proxy until the Project
+      // Kickoff Chat (Act 1) is built and produces a dedicated northStar field.
+      northStar: (project.goal as string | null) ?? null,
+      projectWhyItMatters: (project.why_it_matters as string | null) ?? null,
       previousChapters: (previousBoards ?? []).map((b) => ({
         name: String(b.name),
         goal: (b.goal as string | null) ?? null,
+        openingLine: (b.opening_line as string | null) ?? null,
       })),
       chapterName: String(board.name),
     });

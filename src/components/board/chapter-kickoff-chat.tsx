@@ -27,11 +27,12 @@ type DialogueMessage = {
 
 type Stage = "chatting" | "proposal" | "done";
 
-const OPENING_MESSAGE: DialogueMessage = {
-  role: "assistant",
-  content:
-    "Let's kick off your new chapter. What are you focused on getting done in this sprint?",
-};
+function buildOpeningMessage(projectName: string, chapterName: string): DialogueMessage {
+  return {
+    role: "assistant",
+    content: `You're building ${projectName}. Let's set up ${chapterName} — what's the main thing you need to get done this sprint?`,
+  };
+}
 
 function ProposedTaskList({
   tasks,
@@ -98,7 +99,9 @@ export function ChapterKickoffChat({
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [stage, setStage] = useState<Stage>("chatting");
-  const [messages, setMessages] = useState<DialogueMessage[]>([OPENING_MESSAGE]);
+  const [messages, setMessages] = useState<DialogueMessage[]>(() => [
+    buildOpeningMessage(project.name, board.name),
+  ]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [chapterData, setChapterData] = useState<AIKickoffDialogue | null>(null);
@@ -340,22 +343,26 @@ export function ChapterKickoffChat({
           <aside className="surface-card hairline min-h-0 rounded-[2rem] p-5 lg:flex lg:flex-col">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
               <Sparkles className="size-4 text-[var(--accent)]" />
-              Chapter overview
+              {board.name}
             </div>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              Here is what we captured from your kickoff conversation.
+            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+              This is the intent of the chapter — it will stay visible at the top
+              of your board while you work.
             </p>
-            <div className="mt-4 space-y-4 overflow-y-auto lg:min-h-0 lg:flex-1">
+            <div className="mt-4 space-y-3 overflow-y-auto lg:min-h-0 lg:flex-1">
               {[
-                { label: "Goal", value: chapterData.goal },
-                { label: "Why it matters", value: chapterData.whyItMatters },
-                { label: "Success looks like", value: chapterData.successLooksLike },
-                { label: "Done when", value: chapterData.doneDefinition },
-              ].map(({ label, value }) =>
+                { question: "What are you working on?", value: chapterData.goal },
+                { question: "Why does it matter right now?", value: chapterData.whyItMatters },
+                { question: "How will you know it worked?", value: chapterData.successLooksLike },
+                { question: "What does done look like?", value: chapterData.doneDefinition },
+              ].map(({ question, value }) =>
                 value ? (
-                  <div key={label} className="rounded-[1.25rem] bg-white/70 px-4 py-3 ring-1 ring-black/6">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
-                      {label}
+                  <div
+                    key={question}
+                    className="rounded-[1.25rem] bg-white/70 px-4 py-3 ring-1 ring-black/6"
+                  >
+                    <p className="text-[11px] font-medium text-[var(--muted)]">
+                      {question}
                     </p>
                     <p className="mt-1 text-sm leading-6 text-[var(--ink)]">{value}</p>
                   </div>

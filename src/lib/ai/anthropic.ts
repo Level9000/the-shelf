@@ -23,11 +23,13 @@ export async function runChapterKickoffDialogue(input: {
   messages: StrategicDialogueMessage[];
   projectName: string;
   projectDescription?: string | null;
-  projectStory?: {
+  northStar?: string | null;
+  projectWhyItMatters?: string | null;
+  previousChapters?: Array<{
+    name: string;
     goal?: string | null;
-    whyItMatters?: string | null;
-  };
-  previousChapters?: Array<{ name: string; goal?: string | null }>;
+    openingLine?: string | null;
+  }>;
   chapterName: string;
 }) {
   const apiKey = requireAnthropicKey();
