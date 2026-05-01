@@ -28,6 +28,5 @@ export async function updateUserProfileAction(input: { displayName: string }) {
   }
 
   revalidatePath("/settings");
-  revalidatePath("/dashboard");
   revalidatePath("/projects");
 }

@@ -25,7 +25,6 @@ import {
 } from "@/lib/actions/task-actions";
 import { normalizeTaskOrder } from "@/lib/board-utils";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { BoardColumnView } from "@/components/board/board-column";
 import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
@@ -353,11 +352,6 @@ export function ProjectBoardClient({
                 />
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Button variant="secondary" onClick={() => setPlanningWeek(true)}>
-                Plan this week
-              </Button>
-            </div>
           </div>
           {error ? (
             <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -391,6 +385,8 @@ export function ProjectBoardClient({
                       onCreateTask={openManualTask}
                       onMoveTask={handleMoveTask}
                       movingTaskId={movingTaskId === null ? dragTaskId : movingTaskId}
+                      showAddButton={column.name === "To Do"}
+                      onPlanWeek={column.name === "Do This Week" ? () => setPlanningWeek(true) : undefined}
                     />
                   ))}
                 </div>

@@ -20,7 +20,7 @@ export default async function ProjectPage({
   const project = projects.find((item) => item.id === projectId) ?? null;
 
   if (!project) {
-    redirect("/dashboard");
+    redirect("/projects");
   }
 
   return (

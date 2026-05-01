@@ -12,25 +12,35 @@ import {
   UserRound,
 } from "lucide-react";
 import type { Task } from "@/types";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatDate } from "@/lib/utils";
 
-function priorityTone(priority: Task["priority"]) {
-  if (priority === "high") return "bg-rose-100 text-rose-700";
-  if (priority === "medium") return "bg-amber-100 text-amber-700";
-  if (priority === "low") return "bg-sky-100 text-sky-700";
-  return "bg-black/5 text-[var(--muted)]";
+const POSTIT_PALETTE: Record<string, { body: string; tab: string }> = {
+  "To Do":         { body: "bg-yellow-100",  tab: "bg-yellow-200"  },
+  "Do This Week":  { body: "bg-sky-100",     tab: "bg-sky-200"     },
+  "In Progress":   { body: "bg-orange-50",   tab: "bg-orange-200"  },
+  "Done":          { body: "bg-green-50",    tab: "bg-green-200"   },
+};
+
+const DEFAULT_POSTIT = { body: "bg-yellow-100", tab: "bg-yellow-200" };
+
+function priorityDot(priority: Task["priority"]) {
+  if (priority === "high")   return "bg-rose-500";
+  if (priority === "medium") return "bg-amber-500";
+  if (priority === "low")    return "bg-sky-400";
+  return null;
 }
 
 export function TaskCard({
   task,
+  columnName,
   onOpen,
   moveTargets,
   onMove,
   isMoving,
 }: {
   task: Task;
+  columnName?: string;
   onOpen: (taskId: string) => void;
   moveTargets: Array<{ id: string; name: string }>;
   onMove: (taskId: string, targetColumnId: string) => void;
@@ -38,52 +48,31 @@ export function TaskCard({
 }) {
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const [moveMenuOpen, setMoveMenuOpen] = useState(false);
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: task.id,
-    data: {
-      type: "task",
-      taskId: task.id,
-      columnId: task.columnId,
-    },
-  });
+  const colors = POSTIT_PALETTE[columnName ?? ""] ?? DEFAULT_POSTIT;
+  const dot = priorityDot(task.priority);
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({
+      id: task.id,
+      data: { type: "task", taskId: task.id, columnId: task.columnId },
+    });
 
   function handlePointerDown(event: React.PointerEvent<HTMLElement>) {
-    pointerStartRef.current = {
-      x: event.clientX,
-      y: event.clientY,
-    };
+    pointerStartRef.current = { x: event.clientX, y: event.clientY };
   }
 
   function handleClick(event: React.MouseEvent<HTMLElement>) {
-    if (!pointerStartRef.current) {
-      onOpen(task.id);
-      return;
-    }
-
-    const movedX = Math.abs(event.clientX - pointerStartRef.current.x);
-    const movedY = Math.abs(event.clientY - pointerStartRef.current.y);
-
-    if (movedX < 6 && movedY < 6) {
-      onOpen(task.id);
-    }
-
+    if (!pointerStartRef.current) { onOpen(task.id); return; }
+    const dx = Math.abs(event.clientX - pointerStartRef.current.x);
+    const dy = Math.abs(event.clientY - pointerStartRef.current.y);
+    if (dx < 6 && dy < 6) onOpen(task.id);
     pointerStartRef.current = null;
   }
 
   return (
     <article
       ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
         "surface-card hairline group rounded-[1.5rem] p-4 transition-shadow",
         isDragging && "scale-[0.98] opacity-35 shadow-none",
@@ -96,41 +85,36 @@ export function TaskCard({
     >
       <TaskCardContent task={task} />
       <div
-        className="mt-4"
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
+        className="border-t border-black/8 px-2.5 py-1.5"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <Button
-          variant="secondary"
-          className="h-10 w-full justify-between rounded-2xl px-3 text-xs"
-          onClick={() => setMoveMenuOpen((current) => !current)}
+          variant="ghost"
+          className="h-7 w-full justify-between rounded-sm px-1.5 text-[11px] text-black/45 hover:bg-black/8 hover:text-black/70"
+          onClick={() => setMoveMenuOpen((v) => !v)}
           disabled={isMoving || moveTargets.length === 0}
         >
-          Move
-          {moveMenuOpen ? (
-            <ChevronUp className="size-4 text-[var(--muted)]" />
-          ) : (
-            <ChevronDown className="size-4 text-[var(--muted)]" />
-          )}
+          Move to
+          {moveMenuOpen
+            ? <ChevronUp className="size-3.5" />
+            : <ChevronDown className="size-3.5" />}
         </Button>
-        {moveMenuOpen ? (
-          <div className="mt-2 flex flex-col gap-2">
+        {moveMenuOpen && (
+          <div className="mt-1 flex flex-col gap-0.5">
             {moveTargets.map((target) => (
               <Button
                 key={target.id}
-                variant="secondary"
-                className="h-10 w-full justify-center rounded-2xl px-3 text-xs"
-                onClick={() => {
-                  onMove(task.id, target.id);
-                  setMoveMenuOpen(false);
-                }}
+                variant="ghost"
+                className="h-7 w-full justify-center rounded-sm px-1.5 text-[11px] text-black/55 hover:bg-black/8"
+                onClick={() => { onMove(task.id, target.id); setMoveMenuOpen(false); }}
                 disabled={isMoving}
               >
                 {target.name}
               </Button>
             ))}
           </div>
-        ) : null}
+        )}
       </div>
     </article>
   );

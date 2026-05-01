@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  FolderPlus,
   LogOut,
   PlusCircle,
   Settings,
@@ -16,7 +17,9 @@ import {
 import type { ProjectWithChapters } from "@/types";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { CreateChapterModal } from "@/components/projects/create-chapter-modal";
+import { ProjectCreateForm } from "@/components/projects/project-create-form";
 import { cn } from "@/lib/utils";
 
 export function ProjectSidebar({
@@ -39,6 +42,7 @@ export function ProjectSidebar({
   const router = useRouter();
   const [chapterProjectId, setChapterProjectId] = useState<string | null>(null);
   const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({});
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const chapterProject =
     projects.find((project) => project.id === chapterProjectId) ?? null;
 
@@ -76,7 +80,7 @@ export function ProjectSidebar({
           </span>
         </button>
         <Link
-          href="/dashboard"
+          href="/projects"
           onClick={onNavigate}
           className={cn(
             "inline-flex w-full items-stretch overflow-hidden rounded-2xl text-sm font-semibold transition",
@@ -246,6 +250,24 @@ export function ProjectSidebar({
               collapsed ? "justify-center px-0" : "justify-between",
             )}
             variant="secondary"
+            title={collapsed ? "Start new project" : undefined}
+            onClick={() => setCreateProjectOpen(true)}
+          >
+            {collapsed ? (
+              <FolderPlus className="size-4" />
+            ) : (
+              <>
+                Start new project
+                <FolderPlus className="size-4" />
+              </>
+            )}
+          </Button>
+          <Button
+            className={cn(
+              "w-full",
+              collapsed ? "justify-center px-0" : "justify-between",
+            )}
+            variant="secondary"
             title={collapsed ? "Settings" : undefined}
             onClick={onOpenSettings}
           >
@@ -291,6 +313,18 @@ export function ProjectSidebar({
           router.refresh();
         }}
       />
+      <Modal
+        open={createProjectOpen}
+        title="Start a new project"
+        description="Create a project and land directly in its default voice-ready board."
+        onClose={() => setCreateProjectOpen(false)}
+      >
+        <ProjectCreateForm
+          showHeader={false}
+          submitLabel="Create project"
+          className="space-y-0"
+        />
+      </Modal>
     </>
   );
 }
