@@ -87,7 +87,12 @@ export function ChapterRetroChat({
   completedTasks,
   remainingTasks,
 }: {
-  project: { id: string; name: string; accumulativeStory: string | null };
+  project: {
+    id: string;
+    name: string;
+    northStar: string | null;
+    accumulativeStory: string | null;
+  };
   board: Board;
   completedTasks: Task[];
   remainingTasks: Task[];
@@ -177,6 +182,7 @@ export function ChapterRetroChat({
         const { shareSlug: slug } = await completeChapterRetroAction({
           projectId: project.id,
           boardId: board.id,
+          northStar: project.northStar,
           conversation: messages,
           chapterStory: editedStory,
           storyLength: retroData.story_length,
@@ -260,6 +266,17 @@ export function ChapterRetroChat({
         </div>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
+          {board.openingLine ? (
+            <div className="rounded-[1.5rem] border border-dashed border-black/12 px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                When you started
+              </p>
+              <blockquote className="mt-2 text-sm italic leading-6 text-[var(--ink)]">
+                &ldquo;{board.openingLine}&rdquo;
+              </blockquote>
+            </div>
+          ) : null}
+
           {messages.map((message, index) => (
             <div key={`${message.role}-${index}`}>
               <div

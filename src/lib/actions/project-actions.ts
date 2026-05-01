@@ -579,6 +579,7 @@ export async function completeChapterKickoffAction(input: {
 export async function completeChapterRetroAction(input: {
   projectId: string;
   boardId: string;
+  northStar: string | null;
   conversation: Array<{ role: string; content: string }>;
   chapterStory: string;
   storyLength: "short" | "long";
@@ -621,9 +622,13 @@ export async function completeChapterRetroAction(input: {
   }
 
   const existingStory = (project?.accumulative_story as string | null) ?? "";
+  // On the first retro, the accumulative story opens with the north star —
+  // the founding sentence that anchors the entire project narrative.
   const updatedStory = existingStory
     ? `${existingStory}\n\n${input.accumulativeParagraph.trim()}`
-    : input.accumulativeParagraph.trim();
+    : input.northStar?.trim()
+      ? `${input.northStar.trim()}\n\n${input.accumulativeParagraph.trim()}`
+      : input.accumulativeParagraph.trim();
 
   const { error: projectError } = await supabase
     .from("projects")

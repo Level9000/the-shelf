@@ -97,6 +97,7 @@ export function ChapterOverviewShell({
               project={{
                 id: snapshot.project.id,
                 name: snapshot.project.name,
+                northStar: snapshot.project.northStar,
                 accumulativeStory: snapshot.project.accumulativeStory,
               }}
               board={snapshot.board}
