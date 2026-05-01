@@ -47,12 +47,12 @@ export async function POST(request: Request) {
     await Promise.all([
       supabase
         .from("projects")
-        .select("id,name,description,goal,why_it_matters")
+        .select("id,name,description,goal,why_it_matters,north_star,project_goal,project_audience,project_success,project_biggest_risk")
         .eq("id", projectId)
         .maybeSingle(),
       supabase
         .from("boards")
-        .select("id,name")
+        .select("id,name,goal,why_it_matters,success_looks_like,done_definition,kickoff_prefilled_at")
         .eq("id", chapterId)
         .eq("project_id", projectId)
         .maybeSingle(),
@@ -72,6 +72,8 @@ export async function POST(request: Request) {
     .neq("id", chapterId)
     .order("position", { ascending: true });
 
+  const isPrefilled = Boolean(board.kickoff_prefilled_at);
+
   try {
     const result = await runChapterKickoffDialogue({
       messages,
@@ -81,11 +83,26 @@ export async function POST(request: Request) {
         goal: project.goal as string | null,
         whyItMatters: project.why_it_matters as string | null,
       },
+      projectKickoff: {
+        northStar: (project.north_star as string | null) ?? null,
+        projectGoal: (project.project_goal as string | null) ?? null,
+        projectAudience: (project.project_audience as string | null) ?? null,
+        projectSuccess: (project.project_success as string | null) ?? null,
+        projectBiggestRisk: (project.project_biggest_risk as string | null) ?? null,
+      },
       previousChapters: (previousBoards ?? []).map((b) => ({
         name: String(b.name),
         goal: (b.goal as string | null) ?? null,
       })),
       chapterName: String(board.name),
+      prefill: isPrefilled
+        ? {
+            goal: (board.goal as string | null) ?? null,
+            value: (board.why_it_matters as string | null) ?? null,
+            measure: (board.success_looks_like as string | null) ?? null,
+            done: (board.done_definition as string | null) ?? null,
+          }
+        : null,
     });
 
     return NextResponse.json(result);

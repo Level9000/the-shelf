@@ -27,11 +27,30 @@ type DialogueMessage = {
 
 type Stage = "chatting" | "proposal" | "done";
 
-const OPENING_MESSAGE: DialogueMessage = {
+const STANDARD_OPENING: DialogueMessage = {
   role: "assistant",
   content:
     "Let's kick off your new chapter. What are you focused on getting done in this sprint?",
 };
+
+function buildPrefillOpeningMessage(
+  projectName: string,
+  board: Board,
+): DialogueMessage {
+  const lines: string[] = [
+    `Based on what you told me about ${projectName}, here's how I'd frame ${board.name}. Does this feel right, or do you want to adjust anything?`,
+    "",
+  ];
+  if (board.goal) lines.push(`**Goal:** ${board.goal}`);
+  if (board.whyItMatters) lines.push(`**Why it matters:** ${board.whyItMatters}`);
+  if (board.successLooksLike) lines.push(`**Success looks like:** ${board.successLooksLike}`);
+  if (board.doneDefinition) lines.push(`**Done when:** ${board.doneDefinition}`);
+
+  return {
+    role: "assistant",
+    content: lines.join("\n"),
+  };
+}
 
 function ProposedTaskList({
   tasks,
@@ -88,17 +107,23 @@ export function ChapterKickoffChat({
   board,
   columns,
   onComplete,
+  isPrefilled = false,
 }: {
   project: Project;
   board: Board;
   columns: BoardColumn[];
   onComplete: () => void;
+  isPrefilled?: boolean;
 }) {
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  const openingMessage = isPrefilled
+    ? buildPrefillOpeningMessage(project.name, board)
+    : STANDARD_OPENING;
+
   const [stage, setStage] = useState<Stage>("chatting");
-  const [messages, setMessages] = useState<DialogueMessage[]>([OPENING_MESSAGE]);
+  const [messages, setMessages] = useState<DialogueMessage[]>([openingMessage]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [chapterData, setChapterData] = useState<AIKickoffDialogue | null>(null);

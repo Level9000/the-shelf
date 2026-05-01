@@ -8,18 +8,22 @@ import { ChapterOverviewRefiner } from "@/components/board/chapter-overview-refi
 import { ChapterOverviewSettingsDrawer } from "@/components/projects/chapter-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 
-function chapterNeedsKickoff(snapshot: BoardSnapshot): boolean {
+type KickoffMode = "full" | "confirmation" | false;
+
+function chapterKickoffMode(snapshot: BoardSnapshot): KickoffMode {
   const { board } = snapshot;
-  // A chapter that has never been through kickoff has no overview content at all.
-  // Once kickoff_completed_at is saved the field is populated; if the column
-  // doesn't exist yet we fall back to checking whether all four fields are empty.
   if (board.kickoffCompletedAt) return false;
+  // Pre-filled from project kickoff — open in confirmation mode
+  if (board.kickoffPrefilledAt) return "confirmation";
+  // No data at all — full kickoff required
   return (
     !board.goal?.trim() &&
     !board.whyItMatters?.trim() &&
     !board.successLooksLike?.trim() &&
     !board.doneDefinition?.trim()
-  );
+  )
+    ? "full"
+    : false;
 }
 
 export function ChapterOverviewShell({
@@ -35,12 +39,12 @@ export function ChapterOverviewShell({
   currentProjectId: string;
   currentChapterId: string;
 }) {
-  const needsKickoff = chapterNeedsKickoff(snapshot);
+  const kickoffMode = chapterKickoffMode(snapshot);
   const [kickoffDismissed, setKickoffDismissed] = useState(false);
   const [refining, setRefining] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const showKickoff = needsKickoff && !kickoffDismissed;
+  const showKickoff = kickoffMode !== false && !kickoffDismissed;
 
   return (
     <>
@@ -59,6 +63,7 @@ export function ChapterOverviewShell({
               board={snapshot.board}
               columns={snapshot.columns}
               onComplete={() => setKickoffDismissed(true)}
+              isPrefilled={kickoffMode === "confirmation"}
             />
           ) : refining ? (
             <ChapterOverviewRefiner

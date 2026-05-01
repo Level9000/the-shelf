@@ -26,6 +26,15 @@ function mapProject(row: Record<string, unknown>): Project {
     whyItMatters: (row.why_it_matters as string | null) ?? null,
     successLooksLike: (row.success_looks_like as string | null) ?? null,
     doneDefinition: (row.done_definition as string | null) ?? null,
+    northStar: (row.north_star as string | null) ?? null,
+    projectGoal: (row.project_goal as string | null) ?? null,
+    projectAudience: (row.project_audience as string | null) ?? null,
+    projectSuccess: (row.project_success as string | null) ?? null,
+    projectBiggestRisk: (row.project_biggest_risk as string | null) ?? null,
+    projectKickoffConversation:
+      (row.project_kickoff_conversation as Array<{ role: string; content: string }> | null) ?? null,
+    projectKickoffCompletedAt: (row.project_kickoff_completed_at as string | null) ?? null,
+    accumulativeStory: (row.accumulative_story as string | null) ?? null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -64,6 +73,7 @@ function mapBoard(row: Record<string, unknown>): Board {
     doneDefinition: (row.done_definition as string | null) ?? null,
     openingLine: (row.opening_line as string | null) ?? null,
     kickoffCompletedAt: (row.kickoff_completed_at as string | null) ?? null,
+    kickoffPrefilledAt: (row.kickoff_prefilled_at as string | null) ?? null,
     position: Number(row.position ?? 1000),
     createdAt: String(row.created_at),
   };

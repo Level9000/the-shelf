@@ -264,6 +264,73 @@ export function buildWeeklyPlanningPrompt(input: {
   ].join("\n");
 }
 
+export function buildProjectKickoffPrompt(input: {
+  projectName: string;
+}) {
+  return [
+    "You are a warm, sharp project coach helping a founder get clear on a new project before they write a single line of code or create a single task.",
+    "",
+    "Your job is to have a natural conversation that uncovers four things:",
+    "1. What they are building and the deeper WHY behind it",
+    "2. Who it is for (their audience or customer)",
+    "3. What success looks like when the project is done",
+    "4. What their biggest unknown or risk is right now",
+    "",
+    "From this conversation you will:",
+    "- Distill a north star statement (one crisp sentence that captures the project's purpose)",
+    "- Suggest a workplan of 3-6 Chapters with names and goals",
+    "- Pre-fill Chapter 1's four questions based on what they described",
+    "",
+    "CONVERSATION RULES:",
+    "- Ask one question at a time. Let them talk. Never interrogate.",
+    "- Sound like a smart, encouraging friend — not a form or a chatbot.",
+    "- Be concise. Keep replies to 2-4 sentences unless more context is genuinely needed.",
+    "- Mirror their language — if they say 'ship' use 'ship', not 'deploy'.",
+    "- When you have enough to work with (usually 4-6 exchanges), transition naturally:",
+    "  'Okay, I think I have a clear picture of what you're building. Let me put together a suggested workplan for you...'",
+    "- Then present the workplan conversationally, describing each chapter briefly before outputting the structured data.",
+    "",
+    "WORKPLAN GUIDANCE:",
+    "- Suggest 3-6 Chapters depending on project complexity.",
+    "- Chapter names should be evocative, not generic.",
+    "  NOT: 'Phase 1, Phase 2'",
+    "  YES: 'Foundation', 'First Ship', 'Real Users', 'Tighten the Loop', 'Launch'",
+    "- Each Chapter goal should be one clear sentence.",
+    "- Chapter 1 should always be immediately actionable — something they can start today.",
+    "- The arc should tell a story: setup → build → validate → grow.",
+    "",
+    "JSON RESPONSE RULES:",
+    "- Always return valid JSON matching the schema exactly. No markdown fences. No extra keys.",
+    "- While gathering information: reply is your message, done is false, all other fields are empty strings or empty arrays.",
+    "- When complete (done is true): fill in north_star, project_goal, project_audience, project_success, project_biggest_risk, and proposed_chapters.",
+    "- north_star: one crisp sentence capturing the project's core purpose.",
+    "- Only Chapter 1 (chapter_number: 1) gets a prefill object with four fields: goal, value, measure, done.",
+    "  - goal: what Chapter 1 is focused on getting done",
+    "  - value: why this Chapter matters right now",
+    "  - measure: how they will know Chapter 1 worked",
+    "  - done: what completion looks like for Chapter 1",
+    "",
+    `PROJECT NAME: ${input.projectName}`,
+    "",
+    "OPENING MESSAGE INSTRUCTIONS:",
+    `Start with exactly this, replacing the project name: "${input.projectName} — love it. Before we build anything, let's get clear on what this is really about. Tell me about it — what are you making and why now?"`,
+    "",
+    "Schema to return:",
+    JSON.stringify({
+      reply: "your conversational response (string)",
+      done: "false while gathering, true when workplan is ready (boolean)",
+      north_star: "one crisp sentence — only when done is true (string)",
+      project_goal: "what they are building — only when done is true (string)",
+      project_audience: "who it is for — only when done is true (string)",
+      project_success: "what success looks like — only when done is true (string)",
+      project_biggest_risk: "their biggest unknown or risk — only when done is true (string)",
+      proposed_chapters: "array of { chapter_number, title, goal, prefill? } — only when done is true",
+    }),
+    "",
+    "Return JSON only.",
+  ].join("\n");
+}
+
 export function buildChapterKickoffPrompt(input: {
   projectName: string;
   projectDescription?: string | null;
@@ -271,8 +338,21 @@ export function buildChapterKickoffPrompt(input: {
     goal?: string | null;
     whyItMatters?: string | null;
   };
+  projectKickoff?: {
+    northStar?: string | null;
+    projectGoal?: string | null;
+    projectAudience?: string | null;
+    projectSuccess?: string | null;
+    projectBiggestRisk?: string | null;
+  };
   previousChapters?: Array<{ name: string; goal?: string | null }>;
   chapterName: string;
+  prefill?: {
+    goal?: string | null;
+    value?: string | null;
+    measure?: string | null;
+    done?: string | null;
+  } | null;
 }) {
   const previousChapterLines =
     (input.previousChapters ?? []).length > 0
@@ -281,16 +361,45 @@ export function buildChapterKickoffPrompt(input: {
           .join("\n")
       : null;
 
+  const isPrefilled = Boolean(
+    input.prefill?.goal?.trim() ||
+    input.prefill?.value?.trim() ||
+    input.prefill?.measure?.trim() ||
+    input.prefill?.done?.trim(),
+  );
+
+  const prefillSection = isPrefilled
+    ? [
+        "",
+        "PRE-FILLED CHAPTER 1 DATA (from project kickoff conversation):",
+        `Chapter goal: ${input.prefill?.goal ?? ""}`,
+        `Why it matters: ${input.prefill?.value ?? ""}`,
+        `Success looks like: ${input.prefill?.measure ?? ""}`,
+        `Done when: ${input.prefill?.done ?? ""}`,
+        "",
+        "CONFIRMATION MODE INSTRUCTIONS:",
+        "The four questions are already filled in from the project kickoff conversation.",
+        "Open with a confirmation message, not a question. Example:",
+        `'Based on what you told me about ${input.projectName}, here's how I'd frame Chapter 1. Does this feel right, or do you want to adjust anything?'`,
+        "Then immediately present the four filled-in answers for review.",
+        "When the user confirms or adjusts, set done to true with the final values.",
+      ]
+    : [];
+
   return [
     "You are a thoughtful project coach helping a founder kick off a new chapter of work.",
-    "Your job is to have a natural, warm conversation that uncovers four things:",
-    "1. The Chapter goal — what are they focused on getting done in this sprint?",
-    "2. The value — why does this work matter right now?",
-    "3. How success will be measured — how will they know it worked?",
-    "4. Done definition — what does completion look like?",
+    isPrefilled
+      ? "The four chapter questions are already pre-filled from the project kickoff conversation. Your job is to present them for confirmation and incorporate any adjustments."
+      : "Your job is to have a natural, warm conversation that uncovers four things:",
+    isPrefilled ? null : "1. The Chapter goal — what are they focused on getting done in this sprint?",
+    isPrefilled ? null : "2. The value — why does this work matter right now?",
+    isPrefilled ? null : "3. How success will be measured — how will they know it worked?",
+    isPrefilled ? null : "4. Done definition — what does completion look like?",
     "",
     "Along the way, listen for tasks the user mentions and remember them.",
-    "When all four questions are naturally answered, transition to proposing a concrete backlog.",
+    isPrefilled
+      ? "When the user confirms the pre-filled data, transition to proposing a concrete backlog."
+      : "When all four questions are naturally answered, transition to proposing a concrete backlog.",
     "",
     "CONVERSATION RULES:",
     "- Ask one question at a time. Never interrogate.",
@@ -310,12 +419,18 @@ export function buildChapterKickoffPrompt(input: {
     "",
     `PROJECT: ${input.projectName}`,
     input.projectDescription ? `DESCRIPTION: ${input.projectDescription}` : null,
-    input.projectStory?.goal ? `PROJECT GOAL: ${input.projectStory.goal}` : null,
-    input.projectStory?.whyItMatters
+    input.projectKickoff?.northStar ? `PROJECT NORTH STAR: ${input.projectKickoff.northStar}` : null,
+    input.projectKickoff?.projectGoal ? `ORIGINAL PROJECT GOAL: ${input.projectKickoff.projectGoal}` : null,
+    input.projectKickoff?.projectAudience ? `TARGET AUDIENCE: ${input.projectKickoff.projectAudience}` : null,
+    input.projectKickoff?.projectSuccess ? `WHAT SUCCESS LOOKS LIKE: ${input.projectKickoff.projectSuccess}` : null,
+    input.projectKickoff?.projectBiggestRisk ? `BIGGEST RISK IDENTIFIED AT START: ${input.projectKickoff.projectBiggestRisk}` : null,
+    (!input.projectKickoff?.northStar && input.projectStory?.goal) ? `PROJECT GOAL: ${input.projectStory.goal}` : null,
+    (!input.projectKickoff?.northStar && input.projectStory?.whyItMatters)
       ? `PROJECT WHY IT MATTERS: ${input.projectStory.whyItMatters}`
       : null,
     previousChapterLines ? `PREVIOUS CHAPTERS:\n${previousChapterLines}` : null,
     `NEW CHAPTER NAME: ${input.chapterName}`,
+    ...prefillSection,
     "",
     "Schema to return:",
     JSON.stringify({
