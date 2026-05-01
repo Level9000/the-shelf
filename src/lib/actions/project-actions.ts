@@ -5,6 +5,124 @@ import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
 import { DEFAULT_COLUMNS } from "@/lib/constants";
 
+export async function completeProjectKickoffAction(input: {
+  name: string;
+  northStar: string;
+  projectGoal: string;
+  projectAudience: string;
+  projectSuccess: string;
+  projectBiggestRisk: string;
+  conversation: Array<{ role: string; content: string }>;
+  proposedChapters: Array<{
+    chapterNumber: number;
+    title: string;
+    goal: string;
+    prefill?: {
+      goal: string;
+      value: string;
+      measure: string;
+      done: string;
+    } | null;
+  }>;
+}): Promise<{ projectId: string; chapter1Id: string }> {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  const accumulativeStory = input.northStar
+    ? `${input.northStar}`
+    : null;
+
+  // 1. Create the project with all kickoff fields
+  const { data: project, error: projectError } = await supabase
+    .from("projects")
+    .insert({
+      user_id: user.id,
+      name: input.name.trim(),
+      description: input.projectGoal.trim() || null,
+      north_star: input.northStar.trim() || null,
+      project_goal: input.projectGoal.trim() || null,
+      project_audience: input.projectAudience.trim() || null,
+      project_success: input.projectSuccess.trim() || null,
+      project_biggest_risk: input.projectBiggestRisk.trim() || null,
+      project_kickoff_conversation: input.conversation,
+      project_kickoff_completed_at: new Date().toISOString(),
+      accumulative_story: accumulativeStory,
+      story_updated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (projectError || !project) {
+    throw new Error(projectError?.message ?? "Failed to create project.");
+  }
+
+  const projectId = String(project.id);
+
+  // 2. Insert proposed chapters
+  if (input.proposedChapters.length > 0) {
+    const { error: chaptersError } = await supabase
+      .from("proposed_chapters")
+      .insert(
+        input.proposedChapters.map((ch) => ({
+          project_id: projectId,
+          chapter_number: ch.chapterNumber,
+          title: ch.title,
+          goal: ch.goal || null,
+          accepted: true,
+        })),
+      );
+
+    if (chaptersError) {
+      throw new Error(chaptersError.message);
+    }
+  }
+
+  // 3. Create Chapter 1 board with pre-filled data
+  const chapter1 = input.proposedChapters.find((ch) => ch.chapterNumber === 1);
+  const chapter1Name = chapter1?.title ?? "Chapter 1";
+  const chapter1Prefill = chapter1?.prefill ?? null;
+
+  const { data: board, error: boardError } = await supabase
+    .from("boards")
+    .insert({
+      project_id: projectId,
+      name: chapter1Name,
+      position: 1000,
+      goal: chapter1Prefill?.goal?.trim() || null,
+      why_it_matters: chapter1Prefill?.value?.trim() || null,
+      success_looks_like: chapter1Prefill?.measure?.trim() || null,
+      done_definition: chapter1Prefill?.done?.trim() || null,
+      kickoff_prefilled_at: chapter1Prefill ? new Date().toISOString() : null,
+    })
+    .select("id")
+    .single();
+
+  if (boardError || !board) {
+    throw new Error(boardError?.message ?? "Failed to create Chapter 1 board.");
+  }
+
+  const chapter1Id = String(board.id);
+
+  // 4. Create board columns for Chapter 1
+  const { error: columnsError } = await supabase
+    .from("board_columns")
+    .insert(
+      DEFAULT_COLUMNS.map((name, index) => ({
+        board_id: chapter1Id,
+        name,
+        position: (index + 1) * 1000,
+      })),
+    );
+
+  if (columnsError) {
+    throw new Error(columnsError.message);
+  }
+
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+
+  return { projectId, chapter1Id };
+}
+
 export async function createProjectAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();

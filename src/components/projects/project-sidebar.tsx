@@ -316,12 +316,12 @@ export function ProjectSidebar({
       <Modal
         open={createProjectOpen}
         title="Start a new project"
-        description="Create a project and land directly in its default voice-ready board."
+        description="Name your project and Shelf AI will walk you through setting your north star and workplan."
         onClose={() => setCreateProjectOpen(false)}
       >
         <ProjectCreateForm
           showHeader={false}
-          submitLabel="Create project"
+          submitLabel="Start kickoff →"
           className="space-y-0"
         />
       </Modal>

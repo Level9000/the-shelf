@@ -28,8 +28,26 @@ export type Project = {
   whyItMatters: string | null;
   successLooksLike: string | null;
   doneDefinition: string | null;
+  northStar: string | null;
+  projectGoal: string | null;
+  projectAudience: string | null;
+  projectSuccess: string | null;
+  projectBiggestRisk: string | null;
+  projectKickoffConversation: Array<{ role: string; content: string }> | null;
+  projectKickoffCompletedAt: string | null;
+  accumulativeStory: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ProposedChapter = {
+  id: string;
+  projectId: string;
+  chapterNumber: number;
+  title: string;
+  goal: string | null;
+  accepted: boolean;
+  createdAt: string;
 };
 
 export type ProjectMember = {
@@ -53,6 +71,7 @@ export type Board = {
   doneDefinition: string | null;
   openingLine: string | null;
   kickoffCompletedAt: string | null;
+  kickoffPrefilledAt: string | null;
   position: number;
   createdAt: string;
 };
