@@ -390,7 +390,7 @@ export function WeeklyPlanningRefiner({
             </div>
           ))}
         </div>
-        <div className="mt-5 flex flex-wrap justify-end gap-3">
+        <div className="sticky bottom-0 mt-5 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
           <Button
             variant="ghost"
             onClick={() => setApprovalOpen(false)}

@@ -80,7 +80,7 @@ export function SettingsForm({ profile }: { profile: UserProfile }) {
           </p>
         ) : null}
 
-        <div className="mt-6 flex justify-end">
+        <div className="sticky bottom-0 mt-6 flex justify-center border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
           <Button onClick={handleSave} disabled={isPending || !displayName.trim()}>
             <Save className="mr-2 size-4" />
             {isPending ? "Saving..." : "Save profile"}

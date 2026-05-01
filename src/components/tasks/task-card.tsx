@@ -74,69 +74,16 @@ export function TaskCard({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-[3px]",
-        "shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]",
-        "transition-all duration-150",
-        colors.body,
-        isDragging &&
-          "rotate-[2.5deg] scale-[1.04] shadow-[5px_12px_32px_rgba(0,0,0,0.22)]",
-        isMoving && "opacity-60",
+        "surface-card hairline group rounded-[1.5rem] p-4 transition-shadow",
+        isDragging && "scale-[0.98] opacity-35 shadow-none",
+        isMoving && "opacity-70",
       )}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
       {...attributes}
       {...listeners}
     >
-      {/* Adhesive tab */}
-      <div className={cn("flex h-6 shrink-0 items-center justify-end px-2.5", colors.tab)}>
-        <GripVertical className="size-3.5 text-black/30 opacity-0 transition-opacity group-hover:opacity-100" />
-      </div>
-
-      {/* Note body */}
-      <div className="flex-1 px-3.5 pb-3 pt-2.5">
-        <div className="flex items-start gap-2">
-          {dot && (
-            <span
-              className={cn("mt-[5px] size-2 shrink-0 rounded-full", dot)}
-              title={task.priority ?? undefined}
-            />
-          )}
-          <h4 className="text-[13px] font-semibold leading-5 text-[var(--ink)]">
-            {task.title}
-          </h4>
-        </div>
-
-        {task.description ? (
-          <p className="mt-2 line-clamp-3 text-[12px] leading-5 text-black/50">
-            {task.description}
-          </p>
-        ) : null}
-
-        {(task.dueDate || task.assigneeName || task.sourceVoiceCaptureId) ? (
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-black/45">
-            {task.dueDate && (
-              <span className="inline-flex items-center gap-1">
-                <CalendarDays className="size-3" />
-                {formatDate(task.dueDate)}
-              </span>
-            )}
-            {task.assigneeName && (
-              <span className="inline-flex items-center gap-1">
-                <UserRound className="size-3" />
-                {task.assigneeName}
-              </span>
-            )}
-            {task.sourceVoiceCaptureId && (
-              <span className="inline-flex items-center gap-1">
-                <MessageSquareText className="size-3" />
-                Voice
-              </span>
-            )}
-          </div>
-        ) : null}
-      </div>
-
-      {/* Move controls */}
+      <TaskCardContent task={task} />
       <div
         className="border-t border-black/8 px-2.5 py-1.5"
         onClick={(e) => e.stopPropagation()}
@@ -170,5 +117,59 @@ export function TaskCard({
         )}
       </div>
     </article>
+  );
+}
+
+export function TaskCardPreview({ task }: { task: Task }) {
+  return (
+    <article className="surface-card hairline w-[min(360px,calc(100vw-3rem))] rounded-[1.5rem] p-4 shadow-2xl shadow-black/15 ring-1 ring-black/8">
+      <TaskCardContent task={task} />
+    </article>
+  );
+}
+
+function TaskCardContent({ task }: { task: Task }) {
+  return (
+    <div className="min-w-0 text-left">
+      <div className="flex flex-wrap items-center gap-2">
+        <div
+          className="rounded-full p-1 text-[var(--muted)] opacity-40 transition group-hover:bg-black/5 group-hover:opacity-100"
+          aria-hidden="true"
+        >
+          <GripVertical className="size-4" />
+        </div>
+        <h4 className="text-sm font-semibold leading-6 text-[var(--ink)]">
+          {task.title}
+        </h4>
+        <Badge className={priorityTone(task.priority)}>
+          {task.priority ? task.priority : "No priority"}
+        </Badge>
+      </div>
+      {task.description ? (
+        <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted)]">
+          {task.description}
+        </p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
+        {task.dueDate ? (
+          <span className="inline-flex items-center gap-1.5">
+            <CalendarDays className="size-3.5" />
+            {formatDate(task.dueDate)}
+          </span>
+        ) : null}
+        {task.assigneeName ? (
+          <span className="inline-flex items-center gap-1.5">
+            <UserRound className="size-3.5" />
+            {task.assigneeName}
+          </span>
+        ) : null}
+        {task.sourceVoiceCaptureId ? (
+          <span className="inline-flex items-center gap-1.5">
+            <MessageSquareText className="size-3.5" />
+            Voice capture
+          </span>
+        ) : null}
+      </div>
+    </div>
   );
 }

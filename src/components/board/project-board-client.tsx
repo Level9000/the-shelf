@@ -4,8 +4,10 @@ import { useMemo, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import {
   type CollisionDetection,
+  type Modifier,
   closestCenter,
   DndContext,
+  DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
   KeyboardSensor,
@@ -26,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { BoardColumnView } from "@/components/board/board-column";
 import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
+import { TaskCardPreview } from "@/components/tasks/task-card";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
@@ -76,6 +79,38 @@ const boardCollisionDetection: CollisionDetection = (args) => {
   });
 };
 
+const centerOverlayUnderCursor: Modifier = ({
+  activatorEvent,
+  activeNodeRect,
+  overlayNodeRect,
+  transform,
+}) => {
+  if (!activatorEvent || !activeNodeRect || !overlayNodeRect) {
+    return transform;
+  }
+
+  const pointerEvent = activatorEvent as Event & {
+    clientX?: number;
+    clientY?: number;
+  };
+
+  if (
+    typeof pointerEvent.clientX !== "number" ||
+    typeof pointerEvent.clientY !== "number"
+  ) {
+    return transform;
+  }
+
+  const pointerOffsetX = pointerEvent.clientX - activeNodeRect.left;
+  const pointerOffsetY = pointerEvent.clientY - activeNodeRect.top;
+
+  return {
+    ...transform,
+    x: transform.x - (pointerOffsetX - overlayNodeRect.width / 2),
+    y: transform.y - (pointerOffsetY - overlayNodeRect.height / 2),
+  };
+};
+
 export function ProjectBoardClient({
   snapshot,
   chapterProjectId,
@@ -117,6 +152,10 @@ export function ProjectBoardClient({
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
+  );
+  const dragTask = useMemo(
+    () => tasks.find((task) => task.id === dragTaskId) ?? null,
+    [dragTaskId, tasks],
   );
   function refreshData() {
     router.refresh();
@@ -290,7 +329,7 @@ export function ProjectBoardClient({
 
   return (
     <>
-      <div className="space-y-6 lg:h-full">
+      <div className="space-y-6 lg:min-h-[calc(100dvh-8.5rem)]">
         {planningWeek ? (
           <WeeklyPlanningRefiner
             snapshot={snapshot}
@@ -299,7 +338,7 @@ export function ProjectBoardClient({
         ) : null}
 
         {!planningWeek ? (
-        <section className="surface hairline flex h-full flex-col rounded-[2rem] p-4 sm:p-5">
+        <section className="surface hairline flex min-h-[calc(100dvh-8.5rem)] flex-col rounded-[2rem] p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-2xl">
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -327,9 +366,9 @@ export function ProjectBoardClient({
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="h-full overflow-x-auto pb-2">
+              <div className="overflow-x-auto pb-2">
                 <div
-                  className="grid grid-cols-1 gap-4 lg:h-full lg:min-w-full lg:[grid-template-columns:repeat(var(--column-count),minmax(280px,1fr))]"
+                  className="grid grid-cols-1 gap-4 lg:min-w-full lg:[grid-template-columns:repeat(var(--column-count),minmax(280px,1fr))]"
                   style={
                     {
                       "--column-count": snapshot.columns.length,
@@ -352,6 +391,9 @@ export function ProjectBoardClient({
                   ))}
                 </div>
               </div>
+              <DragOverlay adjustScale={false} modifiers={[centerOverlayUnderCursor]}>
+                {dragTask ? <TaskCardPreview task={dragTask} /> : null}
+              </DragOverlay>
             </DndContext>
           </div>
         </section>

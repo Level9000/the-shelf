@@ -269,18 +269,16 @@ export function ManualTaskModal({
               assignableMembers={assignableMembers}
               onChange={handleChange}
             />
-            <div className="mt-6 flex justify-between gap-3">
+            <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
               <Button variant="secondary" onClick={() => setMode("chooser")}>
                 Back
               </Button>
-              <div className="flex gap-3">
-                <Button variant="secondary" onClick={onClose}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreate} disabled={isPending}>
-                  {isPending ? "Creating..." : "Create task"}
-                </Button>
-              </div>
+              <Button variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreate} disabled={isPending}>
+                {isPending ? "Creating..." : "Create task"}
+              </Button>
             </div>
           </>
         ) : null}
@@ -387,7 +385,7 @@ export function ManualTaskModal({
         ) : null}
 
         {mode === "chooser" ? (
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
             <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
@@ -395,21 +393,19 @@ export function ManualTaskModal({
         ) : null}
 
         {mode === "template" ? (
-          <div className="mt-6 flex justify-between gap-3">
+          <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
             <Button variant="secondary" onClick={() => setMode("chooser")}>
               Back
             </Button>
-            <div className="flex gap-3">
-              <Button variant="secondary" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleApplyTemplate}
-                disabled={isPending || !selectedTemplate}
-              >
-                {isPending ? "Adding..." : "Add template to backlog"}
-              </Button>
-            </div>
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleApplyTemplate}
+              disabled={isPending || !selectedTemplate}
+            >
+              {isPending ? "Adding..." : "Add template to backlog"}
+            </Button>
           </div>
         ) : null}
       </Modal>

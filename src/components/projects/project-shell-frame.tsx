@@ -33,13 +33,13 @@ export function ProjectShellFrame({
     <>
       <div
         className={cn(
-          "grid gap-6 lg:h-[calc(100dvh-4rem)] lg:items-stretch",
+          "grid gap-6 lg:min-h-[calc(100dvh-4rem)] lg:items-stretch",
           collapsed
             ? "lg:grid-cols-[88px_minmax(0,1fr)]"
             : "lg:grid-cols-[300px_minmax(0,1fr)]",
         )}
       >
-        <div className="hidden lg:block lg:h-full">
+        <div className="hidden lg:block lg:min-h-[calc(100dvh-4rem)]">
           <ProjectSidebar
             projects={projects}
             currentProjectId={currentProjectId}
@@ -49,7 +49,7 @@ export function ProjectShellFrame({
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
-        <div className="min-w-0 lg:h-full">
+        <div className="min-w-0 lg:min-h-[calc(100dvh-4rem)]">
           <div className="mb-4 flex items-center justify-between lg:hidden">
             <Button
               variant="secondary"
@@ -68,7 +68,9 @@ export function ProjectShellFrame({
               </p>
             </div>
           </div>
-          {children}
+          <div className="lg:flex lg:min-h-[calc(100dvh-8.5rem)] lg:flex-col">
+            {children}
+          </div>
         </div>
       </div>
 

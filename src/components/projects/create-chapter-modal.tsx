@@ -91,7 +91,7 @@ export function CreateChapterModal({
           {error}
         </p>
       ) : null}
-      <div className="mt-6 flex justify-end gap-3">
+      <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
