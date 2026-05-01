@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
+  BookOpen,
   CheckCircle2,
   Flag,
   PencilLine,
@@ -12,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { Board } from "@/types";
+import type { Board, Task, BoardColumn } from "@/types";
 import { updateBoardOverviewAction } from "@/lib/actions/project-actions";
 import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { Button } from "@/components/ui/button";
@@ -27,16 +28,40 @@ export function ChapterOverviewPanel({
   board,
   projectId,
   chapterId,
+  tasks,
+  columns,
   onRefine,
   onOpenSettings,
+  onStartRetro,
+  onEndChapter,
 }: {
   board: Board;
   projectId: string;
   chapterId: string;
+  tasks?: Task[];
+  columns?: BoardColumn[];
   onRefine: () => void;
   onOpenSettings: () => void;
+  onStartRetro?: () => void;
+  onEndChapter?: () => void;
 }) {
   const router = useRouter();
+
+  const doneColumnId = columns?.find(
+    (col) => col.name.toLowerCase() === "done",
+  )?.id;
+  const allTasksDone =
+    tasks !== undefined &&
+    tasks.length > 0 &&
+    tasks.every((t) => t.columnId === doneColumnId);
+  const hasIncompleteTasks =
+    tasks !== undefined &&
+    tasks.some((t) => t.columnId !== doneColumnId);
+
+  const retroAvailable =
+    Boolean(board.kickoffCompletedAt) && !board.retroCompletedAt;
+  const retroDone = Boolean(board.retroCompletedAt);
+
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -138,6 +163,30 @@ export function ChapterOverviewPanel({
             >
               Refine this chapter with chat
             </button>
+
+            {retroDone ? (
+              <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 ring-1 ring-green-200">
+                <BookOpen className="size-4" />
+                Story published
+              </div>
+            ) : retroAvailable && allTasksDone && onStartRetro ? (
+              <button
+                type="button"
+                onClick={onStartRetro}
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--accent)]/20 transition duration-200 hover:-translate-y-0.5"
+              >
+                <BookOpen className="size-4" />
+                All done — write the story
+              </button>
+            ) : retroAvailable && onEndChapter ? (
+              <button
+                type="button"
+                onClick={onEndChapter}
+                className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-[var(--ink)] ring-1 ring-black/12 transition duration-200 hover:bg-[var(--surface-muted)]"
+              >
+                End chapter
+              </button>
+            ) : null}
             {editing ? (
               <div className="flex flex-wrap gap-3">
                 <Button variant="secondary" onClick={handleCancelEdit} disabled={isPending}>

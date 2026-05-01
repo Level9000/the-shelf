@@ -127,3 +127,12 @@ export const aiProjectKickoffDialogueSchema = z.object({
 export type AIProjectKickoffDialogue = z.infer<typeof aiProjectKickoffDialogueSchema>;
 export type KickoffProposedChapter = z.infer<typeof kickoffProposedChapterSchema>;
 export type KickoffChapterPrefill = z.infer<typeof kickoffChapterPrefillSchema>;
+
+export const retroDataSchema = z.object({
+  chapter_story: z.string().trim().min(1),
+  story_length: z.enum(["short", "long"]),
+  pull_quote: z.string().trim().min(1),
+  accumulative_paragraph: z.string().trim().min(1),
+});
+
+export type RetroData = z.infer<typeof retroDataSchema>;

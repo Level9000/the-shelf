@@ -36,6 +36,7 @@ export type Project = {
   projectKickoffConversation: Array<{ role: string; content: string }> | null;
   projectKickoffCompletedAt: string | null;
   accumulativeStory: string | null;
+  storyUpdatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -72,6 +73,12 @@ export type Board = {
   openingLine: string | null;
   kickoffCompletedAt: string | null;
   kickoffPrefilledAt: string | null;
+  retroConversation: Array<{ role: string; content: string }> | null;
+  chapterStory: string | null;
+  storyLength: "short" | "long" | null;
+  retroCompletedAt: string | null;
+  sharedAt: string | null;
+  shareSlug: string | null;
   position: number;
   createdAt: string;
 };

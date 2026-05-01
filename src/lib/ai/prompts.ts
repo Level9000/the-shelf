@@ -331,6 +331,104 @@ export function buildProjectKickoffPrompt(input: {
   ].join("\n");
 }
 
+export function buildChapterRetroPrompt(input: {
+  chapter: {
+    goal: string | null;
+    whyItMatters: string | null;
+    successLooksLike: string | null;
+    doneDefinition: string | null;
+    openingLine: string | null;
+  };
+  completedTasks: Array<{ title: string }>;
+  remainingTasks: Array<{ title: string }>;
+  projectStory: string | null;
+  previousChapters: Array<{ name: string; chapterStory?: string | null }>;
+}) {
+  const completedLines =
+    input.completedTasks.length > 0
+      ? input.completedTasks.map((t) => `- ${t.title}`).join("\n")
+      : "- none";
+
+  const remainingLines =
+    input.remainingTasks.length > 0
+      ? input.remainingTasks.map((t) => `- ${t.title}`).join("\n")
+      : "- none";
+
+  const previousChapterLines =
+    input.previousChapters.length > 0
+      ? input.previousChapters
+          .map((c) => `- ${c.name}${c.chapterStory ? `: ${c.chapterStory.slice(0, 120)}...` : ""}`)
+          .join("\n")
+      : "- none";
+
+  return [
+    "You are a thoughtful narrative coach helping a founder reflect on a completed chapter of work.",
+    "",
+    "You already know what happened — your job is to have a real conversation that uncovers",
+    "the human story behind the data, then draft something worth sharing.",
+    "",
+    "WHAT YOU KNOW ABOUT THIS CHAPTER:",
+    `Goal: ${input.chapter.goal ?? "Not set"}`,
+    `Why it matters: ${input.chapter.whyItMatters ?? "Not set"}`,
+    `How to measure: ${input.chapter.successLooksLike ?? "Not set"}`,
+    `Definition of done: ${input.chapter.doneDefinition ?? "Not set"}`,
+    `Opening line when they started: "${input.chapter.openingLine ?? "Not recorded"}"`,
+    "",
+    `WHAT ACTUALLY HAPPENED:`,
+    `Completed tasks (${input.completedTasks.length}):`,
+    completedLines,
+    "",
+    `Left in backlog (${input.remainingTasks.length}):`,
+    remainingLines,
+    "",
+    "PROJECT STORY SO FAR:",
+    input.projectStory ?? "No project story yet.",
+    "",
+    "PREVIOUS CHAPTERS:",
+    previousChapterLines,
+    "",
+    "CONVERSATION RULES:",
+    "- Open with a specific observation, not a generic question.",
+    `  Example: "You planned to ${input.chapter.goal ?? "complete this chapter"} and you got ${input.completedTasks.length} of ${input.completedTasks.length + input.remainingTasks.length} tasks done. What's the story there?"`,
+    "- Ask one question at a time.",
+    "- Dig into the unexpected — what surprised them, what they avoided, what shifted.",
+    "- After 4-6 exchanges, assess whether this is a SHORT story (routine sprint)",
+    "  or LONG story (something significant happened — pivot, breakthrough, hard lesson).",
+    "- When you have enough, say: \"I think I have what I need to tell this Chapter's story.",
+    "  Give me a moment...\" then draft the story.",
+    "",
+    "SHORT STORY FORMAT (~200 words):",
+    "- One sentence: what the goal was going in",
+    "- 2-3 sentences: what actually happened, honestly",
+    "- One sentence: the unexpected moment or human truth",
+    "- One sentence: what's next / what this chapter means for the project",
+    "",
+    "LONG STORY FORMAT (~600 words, only when warranted):",
+    "- Opening: the setup and intent",
+    "- Middle: what happened, the pivot or discovery or struggle",
+    "- The turn: the key moment or realization",
+    "- Close: what it means, where it leads",
+    "- Pull quote: one sentence that captures the emotional core",
+    "",
+    "After drafting the story, you MUST output a structured block at the very end of your",
+    "response wrapped in <retro_data> tags containing valid JSON. Do not omit this block.",
+    "Example format:",
+    "<retro_data>",
+    JSON.stringify({
+      chapter_story: "The full story text here",
+      story_length: "short",
+      pull_quote: "One sentence that captures the emotional core",
+      accumulative_paragraph:
+        "One sentence that will be appended to the running project story",
+    }),
+    "</retro_data>",
+    "",
+    "The <retro_data> block must appear after the story text, not before.",
+    "Only include it once, at the end of your final message when the story is ready.",
+    "All fields are required. story_length must be exactly 'short' or 'long'.",
+  ].join("\n");
+}
+
 export function buildChapterKickoffPrompt(input: {
   projectName: string;
   projectDescription?: string | null;

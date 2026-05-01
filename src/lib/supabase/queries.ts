@@ -35,6 +35,7 @@ function mapProject(row: Record<string, unknown>): Project {
       (row.project_kickoff_conversation as Array<{ role: string; content: string }> | null) ?? null,
     projectKickoffCompletedAt: (row.project_kickoff_completed_at as string | null) ?? null,
     accumulativeStory: (row.accumulative_story as string | null) ?? null,
+    storyUpdatedAt: (row.story_updated_at as string | null) ?? null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -74,6 +75,13 @@ function mapBoard(row: Record<string, unknown>): Board {
     openingLine: (row.opening_line as string | null) ?? null,
     kickoffCompletedAt: (row.kickoff_completed_at as string | null) ?? null,
     kickoffPrefilledAt: (row.kickoff_prefilled_at as string | null) ?? null,
+    retroConversation:
+      (row.retro_conversation as Array<{ role: string; content: string }> | null) ?? null,
+    chapterStory: (row.chapter_story as string | null) ?? null,
+    storyLength: (row.story_length as "short" | "long" | null) ?? null,
+    retroCompletedAt: (row.retro_completed_at as string | null) ?? null,
+    sharedAt: (row.shared_at as string | null) ?? null,
+    shareSlug: (row.share_slug as string | null) ?? null,
     position: Number(row.position ?? 1000),
     createdAt: String(row.created_at),
   };
