@@ -30,6 +30,8 @@ export function ChapterOverviewPanel({
   chapterId,
   tasks,
   columns,
+  projectName,
+  northStar,
   onRefine,
   onOpenSettings,
   onStartRetro,
@@ -40,6 +42,8 @@ export function ChapterOverviewPanel({
   chapterId: string;
   tasks?: Task[];
   columns?: BoardColumn[];
+  projectName?: string | null;
+  northStar?: string | null;
   onRefine: () => void;
   onOpenSettings: () => void;
   onStartRetro?: () => void;
@@ -115,6 +119,11 @@ export function ChapterOverviewPanel({
       <section className="surface hairline shrink-0 rounded-[2rem] p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
+            {northStar ? (
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                {projectName ?? "Project"} &mdash; {northStar}
+              </p>
+            ) : null}
             {editing ? (
               <Input
                 value={form.name}
@@ -123,10 +132,15 @@ export function ChapterOverviewPanel({
                 className="mt-5 text-2xl font-semibold sm:text-3xl"
               />
             ) : (
-              <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
+              <h2 className={`text-3xl font-semibold tracking-tight sm:text-4xl ${northStar ? "mt-2" : "mt-5"}`}>
                 {board.name}
               </h2>
             )}
+            {board.openingLine && !editing ? (
+              <blockquote className="mt-3 border-l-2 border-[var(--accent)]/30 pl-4 text-sm italic leading-7 text-[var(--muted)]">
+                &ldquo;{board.openingLine}&rdquo;
+              </blockquote>
+            ) : null}
             <div className="mt-4">
               <ChapterPageNav
                 projectId={projectId}

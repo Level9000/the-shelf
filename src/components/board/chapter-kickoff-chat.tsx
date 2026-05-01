@@ -298,10 +298,10 @@ export function ChapterKickoffChat({
               </div>
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">
-                  Your proposed backlog
+                  {board.name} — ready to start
                 </h1>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  Select the tasks you want to add to {board.name}.
+                  Review your backlog and add it to the board in one tap.
                 </p>
               </div>
             </div>
@@ -315,10 +315,10 @@ export function ChapterKickoffChat({
           <section className="surface hairline flex min-h-0 flex-col rounded-[2rem] overflow-hidden">
             <div className="border-b border-black/6 px-5 py-4">
               <p className="text-sm font-semibold text-[var(--ink)]">
-                Based on our conversation
+                Suggested tasks
               </p>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Toggle tasks off to exclude them. You can always add more from the board.
+                Deselect any you don&apos;t need. You can always add more once you&apos;re in the board.
               </p>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-5">
@@ -353,24 +353,31 @@ export function ChapterKickoffChat({
                     <Check className="size-4" />
                   )}
                   {isSaving
-                    ? "Saving..."
+                    ? "Populating board..."
                     : acceptedCount === 0
-                      ? "Skip tasks"
-                      : `Add ${acceptedCount} task${acceptedCount === 1 ? "" : "s"} to backlog`}
+                      ? "Start with an empty board"
+                      : `Add ${acceptedCount} task${acceptedCount === 1 ? "" : "s"} to the board`}
                 </Button>
               </div>
             </div>
           </section>
 
           <aside className="surface-card hairline min-h-0 rounded-[2rem] p-5 lg:flex lg:flex-col">
+            {chapterData.openingLine ? (
+              <div className="mb-4 rounded-[1.25rem] bg-[var(--ink)] px-4 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+                  This chapter opens with
+                </p>
+                <blockquote className="mt-2 text-sm font-medium leading-6 text-white">
+                  &ldquo;{chapterData.openingLine}&rdquo;
+                </blockquote>
+              </div>
+            ) : null}
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
               <Sparkles className="size-4 text-[var(--accent)]" />
-              Chapter overview
+              {board.name}
             </div>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              Here is what we captured from your kickoff conversation.
-            </p>
-            <div className="mt-4 space-y-4 overflow-y-auto lg:min-h-0 lg:flex-1">
+            <div className="mt-4 space-y-3 overflow-y-auto lg:min-h-0 lg:flex-1">
               {[
                 { label: "Goal", value: chapterData.goal },
                 { label: "Why it matters", value: chapterData.whyItMatters },

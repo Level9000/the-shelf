@@ -116,6 +116,8 @@ export function ChapterOverviewShell({
               chapterId={currentChapterId}
               tasks={snapshot.tasks}
               columns={snapshot.columns}
+              projectName={snapshot.project.name}
+              northStar={snapshot.project.northStar}
               onRefine={() => setRefining(true)}
               onOpenSettings={() => setSettingsOpen(true)}
               onStartRetro={() => setRetroOpen(true)}
