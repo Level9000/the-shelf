@@ -62,6 +62,8 @@ function mapBoard(row: Record<string, unknown>): Board {
     whyItMatters: (row.why_it_matters as string | null) ?? null,
     successLooksLike: (row.success_looks_like as string | null) ?? null,
     doneDefinition: (row.done_definition as string | null) ?? null,
+    openingLine: (row.opening_line as string | null) ?? null,
+    kickoffCompletedAt: (row.kickoff_completed_at as string | null) ?? null,
     position: Number(row.position ?? 1000),
     createdAt: String(row.created_at),
   };

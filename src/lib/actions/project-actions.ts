@@ -376,6 +376,88 @@ export async function deleteProjectAction(input: { projectId: string }) {
   revalidatePath("/dashboard");
 }
 
+export async function completeChapterKickoffAction(input: {
+  projectId: string;
+  boardId: string;
+  goal: string;
+  whyItMatters: string;
+  successLooksLike: string;
+  doneDefinition: string;
+  openingLine: string;
+  conversation: Array<{ role: string; content: string }>;
+  tasks: Array<{ title: string }>;
+  columns: Array<{ id: string; name: string }>;
+}) {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  // Save the chapter overview fields + kickoff metadata
+  const { error: boardError } = await supabase
+    .from("boards")
+    .update({
+      goal: input.goal.trim() || null,
+      why_it_matters: input.whyItMatters.trim() || null,
+      success_looks_like: input.successLooksLike.trim() || null,
+      done_definition: input.doneDefinition.trim() || null,
+      opening_line: input.openingLine.trim() || null,
+      kickoff_conversation: input.conversation,
+      kickoff_completed_at: new Date().toISOString(),
+    })
+    .eq("id", input.boardId)
+    .eq("project_id", input.projectId);
+
+  if (boardError) {
+    throw new Error(boardError.message);
+  }
+
+  // Insert proposed tasks into the "To Do" column
+  if (input.tasks.length > 0) {
+    const toDoColumn =
+      input.columns.find((col) => col.name === "To Do") ?? input.columns[0];
+
+    if (toDoColumn) {
+      const { data: existingTasks, error: positionError } = await supabase
+        .from("tasks")
+        .select("position")
+        .eq("board_id", input.boardId)
+        .eq("column_id", toDoColumn.id)
+        .order("position", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (positionError) {
+        throw new Error(positionError.message);
+      }
+
+      const startPosition = (existingTasks?.position ?? 0) + 1000;
+
+      const inserts = input.tasks.map((task, index) => ({
+        project_id: input.projectId,
+        board_id: input.boardId,
+        column_id: toDoColumn.id,
+        title: task.title.trim(),
+        description: null,
+        assignee_name: null,
+        priority: null,
+        due_date: null,
+        position: startPosition + index * 1000,
+        created_by: user.id,
+        source_voice_capture_id: null,
+        source_template_id: null,
+      }));
+
+      const { error: tasksError } = await supabase.from("tasks").insert(inserts);
+
+      if (tasksError) {
+        throw new Error(tasksError.message);
+      }
+    }
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
+}
+
 export async function deleteChapterAction(input: {
   projectId: string;
   boardId: string;

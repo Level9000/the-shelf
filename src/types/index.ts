@@ -51,6 +51,8 @@ export type Board = {
   whyItMatters: string | null;
   successLooksLike: string | null;
   doneDefinition: string | null;
+  openingLine: string | null;
+  kickoffCompletedAt: string | null;
   position: number;
   createdAt: string;
 };
