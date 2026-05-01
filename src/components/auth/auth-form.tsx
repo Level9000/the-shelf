@@ -63,7 +63,7 @@ export function AuthForm({
             </p>
           </div>
           <form action={formAction} className="mt-8 space-y-4">
-            <input type="hidden" name="next" value={nextPath ?? "/dashboard"} />
+            <input type="hidden" name="next" value={nextPath ?? "/projects"} />
             <div>
               <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
                 Email

@@ -17,6 +17,8 @@ export function BoardColumnView({
   onCreateTask,
   onMoveTask,
   movingTaskId,
+  showAddButton,
+  onPlanWeek,
 }: {
   column: BoardColumn;
   columns: BoardColumn[];
@@ -25,6 +27,8 @@ export function BoardColumnView({
   onCreateTask: (columnId: string) => void;
   onMoveTask: (taskId: string, targetColumnId: string) => void;
   movingTaskId?: string | null;
+  showAddButton?: boolean;
+  onPlanWeek?: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -51,13 +55,24 @@ export function BoardColumnView({
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <Button
-              className="h-9 px-3 py-0 text-xs"
-              onClick={() => onCreateTask(column.id)}
-            >
-              <Plus className="mr-1.5 size-3.5" />
-              Add
-            </Button>
+            {showAddButton && (
+              <Button
+                className="h-9 px-3 py-0 text-xs"
+                onClick={() => onCreateTask(column.id)}
+              >
+                <Plus className="mr-1.5 size-3.5" />
+                Add
+              </Button>
+            )}
+            {onPlanWeek && (
+              <Button
+                className="h-9 px-3 py-0 text-xs"
+                variant="secondary"
+                onClick={onPlanWeek}
+              >
+                Plan this week
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -67,6 +82,7 @@ export function BoardColumnView({
             <TaskCard
               key={task.id}
               task={task}
+              columnName={column.name}
               onOpen={onOpenTask}
               moveTargets={columns
                 .filter((candidate) => candidate.id !== task.columnId)

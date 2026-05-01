@@ -36,7 +36,7 @@ export async function createProjectAction(formData: FormData) {
     throw new Error(error?.message ?? "Failed to create project.");
   }
 
-  revalidatePath("/dashboard");
+  revalidatePath("/projects");
   redirect(`/projects/${data.id}`);
 }
 
@@ -71,7 +71,7 @@ export async function updateProjectOverviewFieldAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath("/dashboard");
+  revalidatePath("/projects");
 }
 
 export async function updateBoardOverviewFieldAction(input: {
@@ -167,7 +167,7 @@ export async function inviteProjectMemberAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath("/dashboard");
+  revalidatePath("/projects");
 }
 
 export async function revokeProjectMemberAction(input: {
@@ -204,7 +204,7 @@ export async function revokeProjectMemberAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath("/dashboard");
+  revalidatePath("/projects");
 }
 
 async function getNextBoardPosition(projectId: string) {

@@ -249,7 +249,7 @@ export async function getProjectAccessSnapshot(projectId: string): Promise<{
   }
 
   if (!projectRow) {
-    redirect("/dashboard");
+    redirect("/projects");
   }
 
   const [{ data: memberData, error: memberError }, { data: ownerProfileRow, error: ownerProfileError }] =
@@ -351,7 +351,7 @@ export async function getProjectBoardSnapshot(
   }
 
   if (!projectRow) {
-    redirect("/dashboard");
+    redirect("/projects");
   }
 
   if (boardError || !boardRow) {
