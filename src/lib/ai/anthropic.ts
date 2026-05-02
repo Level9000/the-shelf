@@ -76,6 +76,8 @@ export async function runChapterKickoffDialogue(input: {
   messages: StrategicDialogueMessage[];
   projectName: string;
   projectDescription?: string | null;
+  northStar?: string | null;
+  projectWhyItMatters?: string | null;
   projectStory?: {
     goal?: string | null;
     whyItMatters?: string | null;
@@ -87,7 +89,11 @@ export async function runChapterKickoffDialogue(input: {
     projectSuccess?: string | null;
     projectBiggestRisk?: string | null;
   };
-  previousChapters?: Array<{ name: string; goal?: string | null }>;
+  previousChapters?: Array<{
+    name: string;
+    goal?: string | null;
+    openingLine?: string | null;
+  }>;
   chapterName: string;
   prefill?: {
     goal?: string | null;

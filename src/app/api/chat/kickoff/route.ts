@@ -65,9 +65,11 @@ export async function POST(request: Request) {
     );
   }
 
+  // Fetch previous chapters including their opening lines so Claude can
+  // maintain narrative continuity across the project story arc.
   const { data: previousBoards } = await supabase
     .from("boards")
-    .select("name,goal")
+    .select("name,goal,opening_line")
     .eq("project_id", projectId)
     .neq("id", chapterId)
     .order("position", { ascending: true });
@@ -93,6 +95,7 @@ export async function POST(request: Request) {
       previousChapters: (previousBoards ?? []).map((b) => ({
         name: String(b.name),
         goal: (b.goal as string | null) ?? null,
+        openingLine: (b.opening_line as string | null) ?? null,
       })),
       chapterName: String(board.name),
       prefill: isPrefilled

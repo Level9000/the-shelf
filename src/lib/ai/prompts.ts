@@ -432,6 +432,8 @@ export function buildChapterRetroPrompt(input: {
 export function buildChapterKickoffPrompt(input: {
   projectName: string;
   projectDescription?: string | null;
+  northStar?: string | null;
+  projectWhyItMatters?: string | null;
   projectStory?: {
     goal?: string | null;
     whyItMatters?: string | null;
@@ -443,7 +445,11 @@ export function buildChapterKickoffPrompt(input: {
     projectSuccess?: string | null;
     projectBiggestRisk?: string | null;
   };
-  previousChapters?: Array<{ name: string; goal?: string | null }>;
+  previousChapters?: Array<{
+    name: string;
+    goal?: string | null;
+    openingLine?: string | null;
+  }>;
   chapterName: string;
   prefill?: {
     goal?: string | null;
@@ -452,12 +458,18 @@ export function buildChapterKickoffPrompt(input: {
     done?: string | null;
   } | null;
 }) {
-  const previousChapterLines =
-    (input.previousChapters ?? []).length > 0
-      ? (input.previousChapters ?? [])
-          .map((c) => `- ${c.name}${c.goal ? `: ${c.goal}` : ""}`)
-          .join("\n")
-      : null;
+  const hasPreviousChapters = (input.previousChapters ?? []).length > 0;
+
+  const previousChapterLines = hasPreviousChapters
+    ? (input.previousChapters ?? [])
+        .map((c) => {
+          const parts = [`- ${c.name}`];
+          if (c.goal) parts.push(`(goal: ${c.goal})`);
+          if (c.openingLine) parts.push(`| opening: "${c.openingLine}"`);
+          return parts.join(" ");
+        })
+        .join("\n")
+    : null;
 
   const isPrefilled = Boolean(
     input.prefill?.goal?.trim() ||
@@ -487,8 +499,12 @@ export function buildChapterKickoffPrompt(input: {
   const northStar = input.projectKickoff?.northStar ?? null;
 
   return [
-    "You are a project coach helping a founder start a new chapter of work with intention.",
-    "Your job is not to fill out a form. Your job is to help the user understand what story this chapter is going to tell — and then turn that into a backlog.",
+    "You are a narrative-minded project coach helping a founder open the next chapter of their story.",
+    "Your job is to help the user understand what story this chapter is going to tell — and then turn that into a backlog.",
+    "",
+    "This is not a form. This is a real conversation — and it has a purpose beyond filling four fields.",
+    "When it ends, the founder should feel clear on why this sprint matters, ready to start work,",
+    "and like someone genuinely understood what they are trying to do.",
     "",
     isPrefilled
       ? "The four chapter questions are already pre-filled from the project kickoff conversation. Your job is to present them for confirmation and incorporate any adjustments."
@@ -505,6 +521,7 @@ export function buildChapterKickoffPrompt(input: {
     "",
     "VOICE:",
     "- Sound like a smart, experienced friend who already knows this project — not a coach running through a checklist.",
+    "- Warm but never sycophantic. Do not say 'Great!' or 'Absolutely!' or 'Of course!'.",
     "- Mirror the user's exact language. If they say 'ship', say 'ship'. If they say 'push live', say 'push live'. If they say 'get it in front of people', use that phrase back.",
     "- Be concise. Keep replies to 2-4 sentences. Ask one question at a time. Never interrogate.",
     "- Listen carefully and build on what the user actually says. Reference their specific words, not generic sprint language.",
@@ -514,17 +531,25 @@ export function buildChapterKickoffPrompt(input: {
       : null,
     "",
     "BACKLOG TRANSITION:",
-    "When you are ready to propose the backlog, do NOT use generic phrasing like 'Based on what you described'. Instead, reference specific things the user actually mentioned.",
+    "When you have clear answers to all four questions, do not immediately list tasks.",
+    "First: reflect back what you heard in 1–2 sentences. Show you understood the shape of this sprint.",
+    "Then, reference specific things the user actually mentioned — do NOT use generic phrasing like 'Based on what you described'.",
     "For example: 'You mentioned wanting to [specific thing they said]. And you flagged [other specific thing]. Here's how I'd turn that into a backlog for [chapter name]:'",
-    "Then list the tasks as a short bullet list.",
-    "After the list, close with one sentence that frames what this chapter is really about — not a summary, a statement.",
-    "Then set done to true.",
+    "Then list the tasks as a short bullet list. Then set done to true.",
     "",
-    "JSON RESPONSE RULES:",
-    "- Always return valid JSON matching the schema exactly. No markdown fences. No extra keys.",
-    "- While gathering information: reply is your message, done is false, all other fields are empty strings or empty arrays.",
-    "- When complete (done is true): fill in goal, whyItMatters, successLooksLike, doneDefinition, openingLine, and proposedTasks.",
-    "- proposedTasks: 4-10 concrete, action-oriented task titles based on the conversation. Each has title and source set to 'ai_suggested'.",
+    "The reflection beat is what separates a conversation from a form.",
+    "It is the moment the founder feels heard, not processed.",
+    "",
+    "THE FOUR ANSWERS:",
+    "These answers will live permanently at the top of the Chapter view.",
+    "The founder will read them every day while they work. Write them as complete,",
+    "standalone commitments — not conversation fragments, not notes.",
+    "",
+    "  BAD:  'Ship auth'",
+    "  GOOD: 'Get authentication working end-to-end so real users can sign up without help.'",
+    "",
+    "  BAD:  'It matters because we need users'",
+    "  GOOD: 'Until real people can log in, everything else is hypothetical.'",
     "",
     "OPENING LINE — READ THIS CAREFULLY:",
     "The opening line is the most important output of this conversation.",
@@ -541,8 +566,34 @@ export function buildChapterKickoffPrompt(input: {
     '  "The foundation is almost solid enough to build on. This chapter is about knowing for certain."',
     '  "The idea has been proven. Now comes the harder part: getting strangers to care."',
     '  "Three weeks of groundwork. This is the chapter where it either holds or it doesn\'t."',
+    '  "The part where we stop building for ourselves and start building for someone else."',
     "",
     "Write in second or third person. Never first person. Never start with 'This chapter'.",
+    "",
+    "TASK TITLES:",
+    "Use the founder's own language in task titles wherever possible.",
+    "Specificity beats polish. 'Fix the messy redirect bug' is better than 'Resolve authentication redirect issue'.",
+    "",
+    "JSON RESPONSE RULES:",
+    "- Always return valid JSON matching the schema exactly. No markdown fences. No extra keys.",
+    "- While gathering information: reply is your message, done is false, all other fields are empty strings or empty arrays.",
+    "- When complete (done is true): fill in goal, whyItMatters, successLooksLike, doneDefinition, openingLine, and proposedTasks.",
+    "- proposedTasks: 4-10 concrete, action-oriented task titles based on the conversation. Each has title and source set to 'ai_suggested'.",
+    "",
+    "Schema:",
+    JSON.stringify({
+      reply: "your conversational response (string)",
+      done: "false while gathering, true when complete (boolean)",
+      goal: "chapter goal as a complete commitment — only when done is true (string)",
+      whyItMatters: "why it matters as a complete statement — only when done is true (string)",
+      successLooksLike: "what success looks like as a complete statement — only when done is true (string)",
+      doneDefinition: "done definition as a complete statement — only when done is true (string)",
+      openingLine: "the seed sentence — only when done is true (string)",
+      proposedTasks:
+        "array of { title: string, source: 'ai_suggested' } — only when done is true",
+    }),
+    "",
+    "Return JSON only.",
     "",
     `PROJECT: ${input.projectName}`,
     input.projectDescription ? `DESCRIPTION: ${input.projectDescription}` : null,
@@ -558,21 +609,6 @@ export function buildChapterKickoffPrompt(input: {
     previousChapterLines ? `PREVIOUS CHAPTERS:\n${previousChapterLines}` : null,
     `NEW CHAPTER NAME: ${input.chapterName}`,
     ...prefillSection,
-    "",
-    "Schema to return:",
-    JSON.stringify({
-      reply: "your conversational response (string)",
-      done: "false while gathering, true when complete (boolean)",
-      goal: "chapter goal — only when done is true (string)",
-      whyItMatters: "why it matters — only when done is true (string)",
-      successLooksLike: "what success looks like — only when done is true (string)",
-      doneDefinition: "done definition — only when done is true (string)",
-      openingLine: "vivid single sentence — only when done is true (string)",
-      proposedTasks:
-        "array of { title: string, source: 'ai_suggested' } — only when done is true",
-    }),
-    "",
-    "Return JSON only.",
   ]
     .filter((line) => line !== null)
     .join("\n");
