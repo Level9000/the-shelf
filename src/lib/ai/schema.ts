@@ -98,3 +98,41 @@ export type StrategicTemplate = z.infer<typeof strategicTemplateSchema>;
 export type ProjectOverviewSection = z.infer<
   typeof projectOverviewSectionSchema
 >;
+
+export const kickoffChapterPrefillSchema = z.object({
+  goal: z.string().trim().max(2000).default(""),
+  value: z.string().trim().max(2000).default(""),
+  measure: z.string().trim().max(2000).default(""),
+  done: z.string().trim().max(2000).default(""),
+});
+
+export const kickoffProposedChapterSchema = z.object({
+  chapter_number: z.number().int().min(1),
+  title: z.string().trim().min(1).max(120),
+  goal: z.string().trim().max(2000).default(""),
+  prefill: kickoffChapterPrefillSchema.optional(),
+});
+
+export const aiProjectKickoffDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(8000),
+  done: z.boolean(),
+  north_star: z.string().trim().max(500).default(""),
+  project_goal: z.string().trim().max(2000).default(""),
+  project_audience: z.string().trim().max(2000).default(""),
+  project_success: z.string().trim().max(2000).default(""),
+  project_biggest_risk: z.string().trim().max(2000).default(""),
+  proposed_chapters: z.array(kickoffProposedChapterSchema).max(8).default([]),
+});
+
+export type AIProjectKickoffDialogue = z.infer<typeof aiProjectKickoffDialogueSchema>;
+export type KickoffProposedChapter = z.infer<typeof kickoffProposedChapterSchema>;
+export type KickoffChapterPrefill = z.infer<typeof kickoffChapterPrefillSchema>;
+
+export const retroDataSchema = z.object({
+  chapter_story: z.string().trim().min(1),
+  story_length: z.enum(["short", "long"]),
+  pull_quote: z.string().trim().min(1),
+  accumulative_paragraph: z.string().trim().min(1),
+});
+
+export type RetroData = z.infer<typeof retroDataSchema>;

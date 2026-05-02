@@ -34,6 +34,25 @@ function buildOpeningMessage(projectName: string, chapterName: string): Dialogue
   };
 }
 
+function buildPrefillOpeningMessage(
+  projectName: string,
+  board: Board,
+): DialogueMessage {
+  const lines: string[] = [
+    `Based on what you told me about ${projectName}, here's how I'd frame ${board.name}. Does this feel right, or do you want to adjust anything?`,
+    "",
+  ];
+  if (board.goal) lines.push(`**Goal:** ${board.goal}`);
+  if (board.whyItMatters) lines.push(`**Why it matters:** ${board.whyItMatters}`);
+  if (board.successLooksLike) lines.push(`**Success looks like:** ${board.successLooksLike}`);
+  if (board.doneDefinition) lines.push(`**Done when:** ${board.doneDefinition}`);
+
+  return {
+    role: "assistant",
+    content: lines.join("\n"),
+  };
+}
+
 function ProposedTaskList({
   tasks,
   selected,
@@ -89,19 +108,23 @@ export function ChapterKickoffChat({
   board,
   columns,
   onComplete,
+  isPrefilled = false,
 }: {
   project: Project;
   board: Board;
   columns: BoardColumn[];
   onComplete: () => void;
+  isPrefilled?: boolean;
 }) {
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  const openingMessage = isPrefilled
+    ? buildPrefillOpeningMessage(project.name, board)
+    : buildOpeningMessage(project.name, board.name);
+
   const [stage, setStage] = useState<Stage>("chatting");
-  const [messages, setMessages] = useState<DialogueMessage[]>(() => [
-    buildOpeningMessage(project.name, board.name),
-  ]);
+  const [messages, setMessages] = useState<DialogueMessage[]>([openingMessage]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [chapterData, setChapterData] = useState<AIKickoffDialogue | null>(null);
@@ -276,10 +299,10 @@ export function ChapterKickoffChat({
               </div>
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">
-                  Your proposed backlog
+                  {board.name} — ready to start
                 </h1>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  Select the tasks you want to add to {board.name}.
+                  Review your backlog and add it to the board in one tap.
                 </p>
               </div>
             </div>
@@ -293,10 +316,10 @@ export function ChapterKickoffChat({
           <section className="surface hairline flex min-h-0 flex-col rounded-[2rem] overflow-hidden">
             <div className="border-b border-black/6 px-5 py-4">
               <p className="text-sm font-semibold text-[var(--ink)]">
-                Based on our conversation
+                Suggested tasks
               </p>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Toggle tasks off to exclude them. You can always add more from the board.
+                Deselect any you don&apos;t need. You can always add more once you&apos;re in the board.
               </p>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-5">
@@ -331,16 +354,26 @@ export function ChapterKickoffChat({
                     <Check className="size-4" />
                   )}
                   {isSaving
-                    ? "Saving..."
+                    ? "Populating board..."
                     : acceptedCount === 0
-                      ? "Skip tasks"
-                      : `Add ${acceptedCount} task${acceptedCount === 1 ? "" : "s"} to backlog`}
+                      ? "Start with an empty board"
+                      : `Add ${acceptedCount} task${acceptedCount === 1 ? "" : "s"} to the board`}
                 </Button>
               </div>
             </div>
           </section>
 
           <aside className="surface-card hairline min-h-0 rounded-[2rem] p-5 lg:flex lg:flex-col">
+            {chapterData.openingLine ? (
+              <div className="mb-4 rounded-[1.25rem] bg-[var(--ink)] px-4 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+                  This chapter opens with
+                </p>
+                <blockquote className="mt-2 text-sm font-medium leading-6 text-white">
+                  &ldquo;{chapterData.openingLine}&rdquo;
+                </blockquote>
+              </div>
+            ) : null}
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
               <Sparkles className="size-4 text-[var(--accent)]" />
               {board.name}

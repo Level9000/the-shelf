@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
+  BookOpen,
   CheckCircle2,
   Flag,
   PencilLine,
@@ -12,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { Board } from "@/types";
+import type { Board, Task, BoardColumn } from "@/types";
 import { updateBoardOverviewAction } from "@/lib/actions/project-actions";
 import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { Button } from "@/components/ui/button";
@@ -27,16 +28,44 @@ export function ChapterOverviewPanel({
   board,
   projectId,
   chapterId,
+  tasks,
+  columns,
+  projectName,
+  northStar,
   onRefine,
   onOpenSettings,
+  onStartRetro,
+  onEndChapter,
 }: {
   board: Board;
   projectId: string;
   chapterId: string;
+  tasks?: Task[];
+  columns?: BoardColumn[];
+  projectName?: string | null;
+  northStar?: string | null;
   onRefine: () => void;
   onOpenSettings: () => void;
+  onStartRetro?: () => void;
+  onEndChapter?: () => void;
 }) {
   const router = useRouter();
+
+  const doneColumnId = columns?.find(
+    (col) => col.name.toLowerCase() === "done",
+  )?.id;
+  const allTasksDone =
+    tasks !== undefined &&
+    tasks.length > 0 &&
+    tasks.every((t) => t.columnId === doneColumnId);
+  const hasIncompleteTasks =
+    tasks !== undefined &&
+    tasks.some((t) => t.columnId !== doneColumnId);
+
+  const retroAvailable =
+    Boolean(board.kickoffCompletedAt) && !board.retroCompletedAt;
+  const retroDone = Boolean(board.retroCompletedAt);
+
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -90,6 +119,11 @@ export function ChapterOverviewPanel({
       <section className="surface hairline shrink-0 rounded-[2rem] p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
+            {northStar ? (
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                {projectName ?? "Project"} &mdash; {northStar}
+              </p>
+            ) : null}
             {editing ? (
               <Input
                 value={form.name}
@@ -98,10 +132,15 @@ export function ChapterOverviewPanel({
                 className="mt-5 text-2xl font-semibold sm:text-3xl"
               />
             ) : (
-              <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
+              <h2 className={`text-3xl font-semibold tracking-tight sm:text-4xl ${northStar ? "mt-2" : "mt-5"}`}>
                 {board.name}
               </h2>
             )}
+            {board.openingLine && !editing ? (
+              <blockquote className="mt-3 border-l-2 border-[var(--accent)]/30 pl-4 text-sm italic leading-7 text-[var(--muted)]">
+                &ldquo;{board.openingLine}&rdquo;
+              </blockquote>
+            ) : null}
             <div className="mt-4">
               <ChapterPageNav
                 projectId={projectId}
@@ -138,6 +177,30 @@ export function ChapterOverviewPanel({
             >
               Refine this chapter with chat
             </button>
+
+            {retroDone ? (
+              <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 ring-1 ring-green-200">
+                <BookOpen className="size-4" />
+                Story published
+              </div>
+            ) : retroAvailable && allTasksDone && onStartRetro ? (
+              <button
+                type="button"
+                onClick={onStartRetro}
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--accent)]/20 transition duration-200 hover:-translate-y-0.5"
+              >
+                <BookOpen className="size-4" />
+                All done — write the story
+              </button>
+            ) : retroAvailable && onEndChapter ? (
+              <button
+                type="button"
+                onClick={onEndChapter}
+                className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-[var(--ink)] ring-1 ring-black/12 transition duration-200 hover:bg-[var(--surface-muted)]"
+              >
+                End chapter
+              </button>
+            ) : null}
             {editing ? (
               <div className="flex flex-wrap gap-3">
                 <Button variant="secondary" onClick={handleCancelEdit} disabled={isPending}>
