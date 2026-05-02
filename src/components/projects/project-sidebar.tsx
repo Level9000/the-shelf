@@ -5,22 +5,254 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
-  FolderPlus,
   LogOut,
+  Plus,
   PlusCircle,
   Settings,
 } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
 import { logoutAction } from "@/lib/actions/auth-actions";
-import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { CreateChapterModal } from "@/components/projects/create-chapter-modal";
 import { ProjectCreateForm } from "@/components/projects/project-create-form";
 import { cn } from "@/lib/utils";
+
+// A curated palette of book cover colors — rich, saturated, distinct.
+const BOOK_PALETTE = [
+  { cover: "#2C3E2D", label: "#8fbfa4", ribbon: "#5a9b78" }, // forest
+  { cover: "#3B2A4A", label: "#b8a0d4", ribbon: "#8b6ab8" }, // plum
+  { cover: "#4A2525", label: "#d49696", ribbon: "#b86060" }, // burgundy
+  { cover: "#1E3049", label: "#90aed4", ribbon: "#5880b8" }, // navy
+  { cover: "#3A3020", label: "#c5b882", ribbon: "#9e8d50" }, // antique
+  { cover: "#2A3B3A", label: "#8fbfbb", ribbon: "#5a9b98" }, // teal
+  { cover: "#49291E", label: "#d4aa96", ribbon: "#b87d60" }, // rust
+  { cover: "#243040", label: "#94a8c8", ribbon: "#5e7aac" }, // slate
+];
+
+function bookColor(index: number) {
+  return BOOK_PALETTE[index % BOOK_PALETTE.length];
+}
+
+// ─── Closed book (other projects) ───────────────────────────────────────────
+
+function ClosedBook({
+  name,
+  href,
+  colorIndex,
+  onClick,
+}: {
+  name: string;
+  href: string;
+  colorIndex: number;
+  onClick?: () => void;
+}) {
+  const c = bookColor(colorIndex);
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="group block rounded-[1rem] transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+      style={{
+        background: `linear-gradient(105deg, ${c.cover}f0 0%, ${c.cover} 40%, ${c.cover}e0 100%)`,
+        boxShadow:
+          "0 4px 18px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08)",
+      }}
+      title={name}
+    >
+      <div className="flex items-center gap-3 px-3.5 py-3.5">
+        {/* Binding ribbon */}
+        <div
+          className="w-[3px] self-stretch rounded-full shrink-0"
+          style={{ background: c.ribbon, opacity: 0.7 }}
+        />
+        <span
+          className="flex-1 text-[13px] font-semibold leading-tight line-clamp-2 tracking-tight"
+          style={{ color: c.label }}
+        >
+          {name}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+// ─── "New Story" book (bottom of stack) ──────────────────────────────────────
+
+function NewStoryBook({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group w-full rounded-[1rem] text-left transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+      style={{
+        background:
+          "linear-gradient(105deg, #c4a87a 0%, #d4b88a 40%, #c0a070 100%)",
+        boxShadow:
+          "0 4px 18px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.20)",
+      }}
+    >
+      <div className="flex items-center gap-3 px-3.5 py-3.5">
+        <div
+          className="w-[3px] self-stretch rounded-full shrink-0"
+          style={{ background: "#f0d5a0", opacity: 0.6 }}
+        />
+        <span className="flex-1 text-[13px] font-semibold tracking-tight text-[#6B4820]">
+          New Story
+        </span>
+        <Plus className="size-3.5 shrink-0 text-[#8B6030] opacity-80" />
+      </div>
+    </button>
+  );
+}
+
+// ─── Open book (current project) ─────────────────────────────────────────────
+
+function OpenBook({
+  project,
+  currentChapterId,
+  onNavigate,
+  onAddChapter,
+}: {
+  project: ProjectWithChapters;
+  currentChapterId?: string | null;
+  onNavigate?: () => void;
+  onAddChapter: () => void;
+}) {
+  return (
+    <div
+      className="rounded-[1.25rem] overflow-hidden shrink-0"
+      style={{
+        background:
+          "linear-gradient(to right, #ede4d4 0%, #faf6ef 12%, #fdfaf6 50%, #faf6ef 88%, #ede4d4 100%)",
+        boxShadow:
+          "0 8px 32px rgba(0,0,0,0.32), 0 2px 6px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.9)",
+      }}
+    >
+      {/* Book header — the "cover" showing through */}
+      <div
+        className="px-4 pt-3 pb-2.5"
+        style={{
+          background:
+            "linear-gradient(to bottom, #e8d9c0, #dfd0b4)",
+          borderBottom: "1px solid rgba(0,0,0,0.10)",
+        }}
+      >
+        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#9C7A4A] mb-0.5">
+          Currently reading
+        </p>
+        <Link
+          href={`/projects/${project.id}`}
+          onClick={onNavigate}
+          className="block text-[13px] font-semibold leading-snug text-[#2C1A08] hover:text-[#4a3010] transition line-clamp-2 tracking-tight"
+        >
+          {project.name}
+        </Link>
+      </div>
+
+      {/* Page crease + chapter list */}
+      <div className="relative">
+        {/* Subtle centre-fold crease */}
+        <div
+          className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-px opacity-20"
+          style={{
+            background:
+              "linear-gradient(to bottom, transparent, #8B6A40 20%, #8B6A40 80%, transparent)",
+          }}
+        />
+
+        {/* Overview */}
+        <Link
+          href={`/projects/${project.id}`}
+          onClick={onNavigate}
+          className={cn(
+            "flex items-center gap-2.5 px-4 py-2.5 text-[12.5px] font-medium transition",
+            !currentChapterId
+              ? "text-[var(--accent)] font-semibold bg-[var(--accent-soft)]"
+              : "text-[#5C4030] hover:text-[#2C1A08] hover:bg-black/5",
+          )}
+        >
+          <span className="size-1 rounded-full shrink-0 bg-current opacity-40" />
+          Overview
+        </Link>
+
+        {/* Chapters */}
+        {project.chapters.map((chapter, i) => (
+          <Link
+            key={chapter.id}
+            href={`/projects/${project.id}/chapters/${chapter.id}`}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-2.5 px-4 py-2.5 text-[12.5px] font-medium transition border-t border-black/[0.05]",
+              currentChapterId === chapter.id
+                ? "text-[var(--accent)] font-semibold bg-[var(--accent-soft)]"
+                : "text-[#5C4030] hover:text-[#2C1A08] hover:bg-black/5",
+            )}
+          >
+            <span className="text-[#9C7A50] text-[10px] font-semibold tabular-nums w-3.5 shrink-0 text-right">
+              {i + 1}
+            </span>
+            <span className="line-clamp-1">{chapter.name}</span>
+          </Link>
+        ))}
+
+        {/* Add chapter */}
+        <button
+          type="button"
+          onClick={onAddChapter}
+          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-[11.5px] font-medium text-[#9C7A50] transition hover:text-[#5C4030] hover:bg-black/5 border-t border-black/[0.05]"
+        >
+          <PlusCircle className="size-3 shrink-0" />
+          New chapter
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Collapsed mode book dot ──────────────────────────────────────────────────
+
+function CollapsedBook({
+  name,
+  href,
+  colorIndex,
+  active,
+  onClick,
+}: {
+  name: string;
+  href: string;
+  colorIndex: number;
+  active: boolean;
+  onClick?: () => void;
+}) {
+  const c = bookColor(colorIndex);
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      title={name}
+      className="flex size-11 shrink-0 items-center justify-center rounded-[0.75rem] text-[11px] font-bold tracking-wide transition hover:scale-105 active:scale-95"
+      style={
+        active
+          ? {
+              background: "#faf6ef",
+              color: "#2C1A08",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.30)",
+            }
+          : {
+              background: `${c.cover}`,
+              color: c.label,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.30)",
+            }
+      }
+    >
+      {name.slice(0, 2).toUpperCase()}
+    </Link>
+  );
+}
+
+// ─── Main sidebar ─────────────────────────────────────────────────────────────
 
 export function ProjectSidebar({
   projects,
@@ -41,267 +273,180 @@ export function ProjectSidebar({
 }) {
   const router = useRouter();
   const [chapterProjectId, setChapterProjectId] = useState<string | null>(null);
-  const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({});
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const chapterProject =
     projects.find((project) => project.id === chapterProjectId) ?? null;
 
-  function toggleProject(projectId: string) {
-    setCollapsedProjects((current) => ({
-      ...current,
-      [projectId]: !current[projectId],
-    }));
-  }
+  const currentProject = projects.find((p) => p.id === currentProjectId);
+  // Other projects — preserve original ordering for consistent color assignment
+  const otherProjects = projects
+    .map((p, i) => ({ project: p, originalIndex: i }))
+    .filter(({ project }) => project.id !== currentProjectId);
 
   return (
     <>
       <aside
         className={cn(
-          "surface hairline relative flex h-full flex-col rounded-[2rem] p-4 transition-all duration-300",
-          collapsed ? "lg:px-3" : "lg:p-5",
+          "relative flex h-full flex-col rounded-[2rem] transition-all duration-300 overflow-hidden",
         )}
+        style={{
+          background:
+            "linear-gradient(165deg, #b07840 0%, #9a6530 35%, #8a5a28 65%, #7a5020 100%)",
+          boxShadow: "inset -1px 0 0 rgba(255,255,255,0.06)",
+        }}
       >
+        {/* Subtle wood grain overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[2rem] opacity-[0.04]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,1) 3px, rgba(0,0,0,1) 4px)",
+          }}
+        />
+
+        {/* Collapse toggle */}
         <button
           type="button"
           onClick={onToggle}
-          className={cn(
-            "absolute right-0 top-0 hidden h-full w-8 items-center justify-center rounded-r-[2rem] text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)] lg:flex",
-            collapsed && "w-7",
-          )}
-          aria-label={collapsed ? "Expand projects sidebar" : "Collapse projects sidebar"}
+          className="absolute right-0 top-5 z-20 hidden h-9 w-7 items-center justify-center rounded-l-xl text-white/50 transition hover:bg-black/20 hover:text-white lg:flex"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <span className="flex size-8 items-center justify-center rounded-full bg-white/80 shadow-sm shadow-black/5">
-            {collapsed ? (
-              <ChevronRight className="size-4" />
-            ) : (
-              <ChevronLeft className="size-4" />
-            )}
-          </span>
-        </button>
-        <Link
-          href="/projects"
-          onClick={onNavigate}
-          className={cn(
-            "inline-flex w-full items-stretch overflow-hidden rounded-2xl text-sm font-semibold transition",
-            collapsed
-              ? "justify-center p-0"
-              : "justify-start gap-0 p-0 pr-6",
-            "bg-white/75 text-[var(--ink)] ring-1 ring-black/8 hover:bg-white",
-          )}
-          title={collapsed ? "The Shelf" : undefined}
-        >
           {collapsed ? (
+            <ChevronRight className="size-3.5" />
+          ) : (
+            <ChevronLeft className="size-3.5" />
+          )}
+        </button>
+
+        {/* ── Header ── */}
+        <div className={cn("relative z-10 px-4 pt-4 pb-3 shrink-0", collapsed && "px-2.5")}>
+          <Link
+            href="/projects"
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center overflow-hidden rounded-xl transition hover:bg-white/10",
+              collapsed ? "justify-center p-1.5" : "gap-2 px-2 py-1.5",
+            )}
+            title="The Shelf"
+          >
             <Image
               src="/icons/authored_by_icon_512.png"
               alt="Shelf"
-              width={64}
-              height={64}
-              className="h-full w-auto rounded-md"
+              width={32}
+              height={32}
+              className="size-8 shrink-0 rounded-lg"
             />
-          ) : (
-            <>
-              <Image
-                src="/icons/authored_by_icon_512.png"
-                alt="Shelf"
-                width={64}
-                height={64}
-                className="h-full w-auto shrink-0"
-              />
-              <span className="font-literata flex items-center px-3 text-3xl leading-none tracking-tight">
+            {!collapsed && (
+              <span
+                className="font-literata text-[1.35rem] leading-none tracking-tight text-white/90"
+                style={{ textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}
+              >
                 The Shelf
               </span>
-            </>
-          )}
-        </Link>
+            )}
+          </Link>
+        </div>
+
+        {/* ── Scrollable book stack ── */}
         <div
           className={cn(
-            "mt-4 flex-1 space-y-2 overflow-y-auto",
-            collapsed ? "pr-0" : "pr-1",
+            "relative z-10 min-h-0 flex-1 overflow-y-auto",
+            collapsed ? "flex flex-col items-center gap-2 px-2 pb-3" : "space-y-2 px-3 pb-3",
           )}
         >
-          {projects.map((project) => (
-            <div
-              key={project.id}
-              className={cn(
-                "rounded-2xl bg-white/45",
-                collapsed ? "flex justify-center p-0" : "overflow-hidden p-0",
-              )}
-            >
-              {collapsed ? (
-                <Link
+          {collapsed ? (
+            // ── Collapsed: mini book dots ──────────────────────────────────
+            <>
+              {projects.map((project, i) => (
+                <CollapsedBook
+                  key={project.id}
+                  name={project.name}
                   href={`/projects/${project.id}`}
+                  colorIndex={i}
+                  active={project.id === currentProjectId}
                   onClick={onNavigate}
-                  className={cn(
-                    "block rounded-2xl text-sm transition",
-                    "flex size-16 items-center justify-center lg:text-center",
-                    currentProjectId === project.id
-                      ? "bg-[var(--ink)] text-white shadow-lg shadow-black/10"
-                      : "bg-white/60 text-[var(--muted)] hover:bg-white hover:text-[var(--ink)]",
-                  )}
-                  title={project.name}
-                >
-                  <div className="flex size-16 items-center justify-center rounded-2xl bg-white/10 font-semibold">
-                    {project.name.slice(0, 2).toUpperCase()}
-                  </div>
-                </Link>
-              ) : (
-                <>
-                  <div
-                    className={cn(
-                      "flex items-start gap-2 px-4 py-3",
-                      currentProjectId === project.id
-                        ? "bg-[var(--ink)] text-white shadow-lg shadow-black/10"
-                        : "bg-white/60 text-[var(--muted)]",
-                    )}
-                  >
-                    <Link
-                      href={`/projects/${project.id}`}
-                      onClick={onNavigate}
-                      className="min-w-0 flex-1"
-                    >
-                      <div className="font-semibold">{project.name}</div>
-                      <div
-                        className={cn(
-                          "mt-1 line-clamp-2 text-xs leading-5",
-                          currentProjectId === project.id
-                            ? "text-white/72"
-                            : "text-[var(--muted)]",
-                        )}
-                      >
-                        {project.description ?? "Voice-first planning board"}
-                      </div>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => toggleProject(project.id)}
-                      className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-xl transition",
-                        currentProjectId === project.id
-                          ? "hover:bg-white/10"
-                          : "hover:bg-white",
-                      )}
-                      aria-label={
-                        collapsedProjects[project.id]
-                          ? `Expand ${project.name}`
-                          : `Collapse ${project.name}`
-                      }
-                      title={
-                        collapsedProjects[project.id]
-                          ? "Expand project"
-                          : "Collapse project"
-                      }
-                    >
-                      {collapsedProjects[project.id] ? (
-                        <ChevronDown className="size-4" />
-                      ) : (
-                        <ChevronUp className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                  {collapsedProjects[project.id] ? null : (
-                    <div className="border-t border-black/6 bg-white/35">
-                      <Link
-                        href={`/projects/${project.id}`}
-                        onClick={onNavigate}
-                        className={cn(
-                          "block border-b border-black/6 px-4 py-3 text-xs font-medium transition",
-                          !currentChapterId && currentProjectId === project.id
-                            ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                            : "text-[var(--muted)] hover:bg-white/70 hover:text-[var(--ink)]",
-                        )}
-                      >
-                        Overview
-                      </Link>
-                      {project.chapters.map((chapter) => (
-                        <Link
-                          key={chapter.id}
-                          href={`/projects/${project.id}/chapters/${chapter.id}`}
-                          onClick={onNavigate}
-                          className={cn(
-                            "block border-b border-black/6 px-4 py-3 text-xs font-medium transition last:border-b-0",
-                            currentChapterId === chapter.id
-                              ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                              : "text-[var(--muted)] hover:bg-white/70 hover:text-[var(--ink)]",
-                          )}
-                        >
-                          {chapter.name}
-                        </Link>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setChapterProjectId(project.id)}
-                        className="flex w-full items-center gap-2 px-4 py-3 text-xs font-medium text-[var(--muted)] transition hover:bg-white/70 hover:text-[var(--ink)]"
-                      >
-                        <PlusCircle className="size-3.5" />
-                        New chapter
-                      </button>
-                    </div>
-                  )}
-                </>
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setCreateProjectOpen(true)}
+                title="New Story"
+                className="flex size-11 shrink-0 items-center justify-center rounded-[0.75rem] transition hover:scale-105 active:scale-95"
+                style={{
+                  background: "#c4a87a",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.30)",
+                }}
+              >
+                <Plus className="size-4 text-[#6B4820]" />
+              </button>
+            </>
+          ) : (
+            // ── Expanded: open book + closed book stack ────────────────────
+            <>
+              {/* Open book — current project */}
+              {currentProject && (
+                <OpenBook
+                  project={currentProject}
+                  currentChapterId={currentChapterId}
+                  onNavigate={onNavigate}
+                  onAddChapter={() => setChapterProjectId(currentProject.id)}
+                />
               )}
-            </div>
-          ))}
+
+              {/* Closed books — other projects */}
+              {otherProjects.map(({ project, originalIndex }) => (
+                <ClosedBook
+                  key={project.id}
+                  name={project.name}
+                  href={`/projects/${project.id}`}
+                  colorIndex={originalIndex}
+                  onClick={onNavigate}
+                />
+              ))}
+
+              {/* New Story — bottom of stack */}
+              <NewStoryBook onClick={() => setCreateProjectOpen(true)} />
+            </>
+          )}
         </div>
-        <div className="mt-5 grid gap-3">
-          <Button
-            className={cn(
-              "w-full",
-              collapsed ? "justify-center px-0" : "justify-between",
-            )}
-            variant="secondary"
-            title={collapsed ? "Start new project" : undefined}
-            onClick={() => setCreateProjectOpen(true)}
-          >
-            {collapsed ? (
-              <FolderPlus className="size-4" />
-            ) : (
-              <>
-                Start new project
-                <FolderPlus className="size-4" />
-              </>
-            )}
-          </Button>
-          <Button
-            className={cn(
-              "w-full",
-              collapsed ? "justify-center px-0" : "justify-between",
-            )}
-            variant="secondary"
-            title={collapsed ? "Settings" : undefined}
+
+        {/* ── Bottom actions ── */}
+        <div
+          className={cn(
+            "relative z-10 shrink-0 border-t border-white/10 px-3 pb-3 pt-2",
+            collapsed ? "flex flex-col items-center gap-1" : "flex gap-1",
+          )}
+        >
+          <button
+            type="button"
             onClick={onOpenSettings}
-          >
-            {collapsed ? (
-              <Settings className="size-4" />
-            ) : (
-              <>
-                Settings
-                <Settings className="size-4" />
-              </>
+            title="Settings"
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] font-medium text-white/55 transition hover:bg-white/10 hover:text-white/90",
+              collapsed ? "justify-center" : "flex-1",
             )}
-          </Button>
+          >
+            <Settings className="size-3.5 shrink-0" />
+            {!collapsed && "Settings"}
+          </button>
           <form action={logoutAction}>
-            <Button
-              className={cn(
-                "w-full",
-                collapsed ? "justify-center px-0" : "justify-between",
-              )}
-              variant="ghost"
+            <button
               type="submit"
-              title={collapsed ? "Sign out" : undefined}
-            >
-              {collapsed ? (
-                <LogOut className="size-4" />
-              ) : (
-                <>
-                  Sign out
-                  <LogOut className="size-4" />
-                </>
+              title="Sign out"
+              className={cn(
+                "flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] font-medium text-white/55 transition hover:bg-white/10 hover:text-white/90",
+                collapsed ? "justify-center" : "flex-1",
               )}
-            </Button>
+            >
+              <LogOut className="size-3.5 shrink-0" />
+              {!collapsed && "Sign out"}
+            </button>
           </form>
         </div>
       </aside>
+
+      {/* ── Modals ── */}
       <CreateChapterModal
         open={Boolean(chapterProject)}
         project={chapterProject}
