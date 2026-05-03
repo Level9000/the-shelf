@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import {
   type CollisionDetection,
@@ -133,11 +133,17 @@ export function ProjectBoardClient({
   );
 
   const [tasks, setTasks] = useState<Task[]>(() => sortTasks(snapshot.tasks));
+
+  // Sync local task state when the server sends a fresh snapshot (after router.refresh())
+  useEffect(() => {
+    if (!dragTaskId) {
+      setTasks(sortTasks(snapshot.tasks));
+    }
+  }, [snapshot.tasks]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
-  const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
   const [planningWeek, setPlanningWeek] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewState, setReviewState] = useState<ReviewState>({
@@ -259,50 +265,6 @@ export function ProjectBoardClient({
     persistArrangement(normalized);
   }
 
-  function handleMoveTask(taskId: string, targetColumnId: string) {
-    const task = tasks.find((item) => item.id === taskId);
-    if (!task || task.columnId === targetColumnId) return;
-
-    const nextPosition =
-      Math.max(
-        0,
-        ...tasks
-          .filter((item) => item.columnId === targetColumnId)
-          .map((item) => item.position),
-      ) + 1000;
-
-    setTasks((current) =>
-      sortTasks(
-        current.map((item) =>
-          item.id === taskId
-            ? { ...item, columnId: targetColumnId, position: nextPosition }
-            : item,
-        ),
-      ),
-    );
-    setError(null);
-    setMovingTaskId(taskId);
-    startTransition(async () => {
-      try {
-        await moveTaskAction({
-          taskId,
-          projectId: snapshot.project.id,
-          boardId: snapshot.board.id,
-          targetColumnId,
-        });
-        refreshData();
-      } catch (persistError) {
-        setError(
-          persistError instanceof Error
-            ? persistError.message
-            : "Failed to move task.",
-        );
-        refreshData();
-      } finally {
-        setMovingTaskId(null);
-      }
-    });
-  }
 
   function persistArrangement(
     updates: Array<{ id: string; columnId: string; position: number }>,
@@ -379,12 +341,10 @@ export function ProjectBoardClient({
                     <BoardColumnView
                       key={column.id}
                       column={column}
-                      columns={snapshot.columns}
                       tasks={getColumnTasks(tasks, column.id)}
                       onOpenTask={setSelectedTaskId}
                       onCreateTask={openManualTask}
-                      onMoveTask={handleMoveTask}
-                      movingTaskId={movingTaskId === null ? dragTaskId : movingTaskId}
+                      movingTaskId={dragTaskId}
                       showAddButton={column.name === "To Do"}
                       onPlanWeek={column.name === "Do This Week" ? () => setPlanningWeek(true) : undefined}
                     />

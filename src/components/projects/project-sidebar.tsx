@@ -53,7 +53,7 @@ function ClosedBook({
     <Link
       href={href}
       onClick={onClick}
-      className="group block rounded-[1rem] transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+      className="group block rounded-[3px] transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
       style={{
         background: `linear-gradient(105deg, ${c.cover}f0 0%, ${c.cover} 40%, ${c.cover}e0 100%)`,
         boxShadow:
@@ -85,7 +85,7 @@ function NewStoryBook({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="group w-full rounded-[1rem] text-left transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+      className="group w-full rounded-[3px] text-left transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
       style={{
         background:
           "linear-gradient(105deg, #c4a87a 0%, #d4b88a 40%, #c0a070 100%)",
@@ -122,7 +122,7 @@ function OpenBook({
 }) {
   return (
     <div
-      className="rounded-[1.25rem] overflow-hidden shrink-0"
+      className="rounded-[3px] overflow-hidden shrink-0"
       style={{
         background:
           "linear-gradient(to right, #ede4d4 0%, #faf6ef 12%, #fdfaf6 50%, #faf6ef 88%, #ede4d4 100%)",
@@ -232,7 +232,7 @@ function CollapsedBook({
       href={href}
       onClick={onClick}
       title={name}
-      className="flex size-11 shrink-0 items-center justify-center rounded-[0.75rem] text-[11px] font-bold tracking-wide transition hover:scale-105 active:scale-95"
+      className="flex size-11 shrink-0 items-center justify-center rounded-[3px] text-[11px] font-bold tracking-wide transition hover:scale-105 active:scale-95"
       style={
         active
           ? {
@@ -372,7 +372,7 @@ export function ProjectSidebar({
                 type="button"
                 onClick={() => setCreateProjectOpen(true)}
                 title="New Story"
-                className="flex size-11 shrink-0 items-center justify-center rounded-[0.75rem] transition hover:scale-105 active:scale-95"
+                className="flex size-11 shrink-0 items-center justify-center rounded-[3px] transition hover:scale-105 active:scale-95"
                 style={{
                   background: "#c4a87a",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.30)",

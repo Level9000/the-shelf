@@ -64,7 +64,7 @@ export async function createTaskAction(input: TaskMutationInput) {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
 export async function updateTaskAction(input: {
@@ -97,7 +97,7 @@ export async function updateTaskAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
 export async function deleteTaskAction(input: {
@@ -117,7 +117,7 @@ export async function deleteTaskAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
 export async function moveTaskAction(input: {
@@ -143,7 +143,7 @@ export async function moveTaskAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
 export async function moveTasksToColumnAction(input: {
@@ -174,7 +174,6 @@ export async function moveTasksToColumnAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
@@ -205,7 +204,7 @@ export async function persistTaskArrangementAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
 export async function acceptProposedTasksAction(input: {
@@ -267,7 +266,7 @@ export async function acceptProposedTasksAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
 export async function createTasksFromTemplateAction(input: {
@@ -358,5 +357,5 @@ export async function createTasksFromTemplateAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }

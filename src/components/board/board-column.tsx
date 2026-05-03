@@ -11,21 +11,17 @@ import { COLUMN_TINTS } from "@/lib/constants";
 
 export function BoardColumnView({
   column,
-  columns,
   tasks,
   onOpenTask,
   onCreateTask,
-  onMoveTask,
   movingTaskId,
   showAddButton,
   onPlanWeek,
 }: {
   column: BoardColumn;
-  columns: BoardColumn[];
   tasks: Task[];
   onOpenTask: (taskId: string) => void;
   onCreateTask: (columnId: string) => void;
-  onMoveTask: (taskId: string, targetColumnId: string) => void;
   movingTaskId?: string | null;
   showAddButton?: boolean;
   onPlanWeek?: () => void;
@@ -84,10 +80,6 @@ export function BoardColumnView({
               task={task}
               columnName={column.name}
               onOpen={onOpenTask}
-              moveTargets={columns
-                .filter((candidate) => candidate.id !== task.columnId)
-                .map((candidate) => ({ id: candidate.id, name: candidate.name }))}
-              onMove={onMoveTask}
               isMoving={movingTaskId === task.id}
             />
           ))}
