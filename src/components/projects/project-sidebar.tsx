@@ -124,8 +124,7 @@ function OpenBook({
     <div
       className="rounded-[3px] overflow-hidden shrink-0"
       style={{
-        background:
-          "linear-gradient(to right, #ede4d4 0%, #faf6ef 12%, #fdfaf6 50%, #faf6ef 88%, #ede4d4 100%)",
+        background: "#fdfaf6",
         boxShadow:
           "0 8px 32px rgba(0,0,0,0.32), 0 2px 6px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.9)",
       }}
@@ -151,17 +150,8 @@ function OpenBook({
         </Link>
       </div>
 
-      {/* Page crease + chapter list */}
-      <div className="relative">
-        {/* Subtle centre-fold crease */}
-        <div
-          className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-px opacity-20"
-          style={{
-            background:
-              "linear-gradient(to bottom, transparent, #8B6A40 20%, #8B6A40 80%, transparent)",
-          }}
-        />
-
+      {/* Chapter list */}
+      <div>
         {/* Overview */}
         <Link
           href={`/projects/${project.id}`}
@@ -173,7 +163,6 @@ function OpenBook({
               : "text-[#5C4030] hover:text-[#2C1A08] hover:bg-black/5",
           )}
         >
-          <span className="size-1 rounded-full shrink-0 bg-current opacity-40" />
           Overview
         </Link>
 
@@ -190,9 +179,6 @@ function OpenBook({
                 : "text-[#5C4030] hover:text-[#2C1A08] hover:bg-black/5",
             )}
           >
-            <span className="text-[#9C7A50] text-[10px] font-semibold tabular-nums w-3.5 shrink-0 text-right">
-              {i + 1}
-            </span>
             <span className="line-clamp-1">{chapter.name}</span>
           </Link>
         ))}
@@ -287,28 +273,14 @@ export function ProjectSidebar({
     <>
       <aside
         className={cn(
-          "relative flex h-full flex-col rounded-[2rem] transition-all duration-300 overflow-hidden",
+          "surface hairline relative flex h-full flex-col rounded-[2rem] transition-all duration-300 overflow-hidden",
         )}
-        style={{
-          background:
-            "linear-gradient(165deg, #b07840 0%, #9a6530 35%, #8a5a28 65%, #7a5020 100%)",
-          boxShadow: "inset -1px 0 0 rgba(255,255,255,0.06)",
-        }}
       >
-        {/* Subtle wood grain overlay */}
-        <div
-          className="pointer-events-none absolute inset-0 rounded-[2rem] opacity-[0.04]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,1) 3px, rgba(0,0,0,1) 4px)",
-          }}
-        />
-
         {/* Collapse toggle */}
         <button
           type="button"
           onClick={onToggle}
-          className="absolute right-0 top-5 z-20 hidden h-9 w-7 items-center justify-center rounded-l-xl text-white/50 transition hover:bg-black/20 hover:text-white lg:flex"
+          className="absolute right-0 top-5 z-20 hidden h-9 w-7 items-center justify-center rounded-l-xl text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)] lg:flex"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
@@ -325,7 +297,7 @@ export function ProjectSidebar({
             href="/projects"
             onClick={onNavigate}
             className={cn(
-              "flex items-center overflow-hidden rounded-xl transition hover:bg-white/10",
+              "flex items-center overflow-hidden rounded-xl transition hover:bg-black/5",
               collapsed ? "justify-center p-1.5" : "gap-2 px-2 py-1.5",
             )}
             title="The Shelf"
@@ -339,8 +311,7 @@ export function ProjectSidebar({
             />
             {!collapsed && (
               <span
-                className="font-literata text-[1.35rem] leading-none tracking-tight text-white/90"
-                style={{ textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}
+                className="font-literata text-[1.35rem] leading-none tracking-tight text-[var(--ink)]"
               >
                 The Shelf
               </span>
@@ -414,7 +385,7 @@ export function ProjectSidebar({
         {/* ── Bottom actions ── */}
         <div
           className={cn(
-            "relative z-10 shrink-0 border-t border-white/10 px-3 pb-3 pt-2",
+            "relative z-10 shrink-0 border-t border-[var(--stroke)] px-3 pb-3 pt-2",
             collapsed ? "flex flex-col items-center gap-1" : "flex gap-1",
           )}
         >
@@ -423,7 +394,7 @@ export function ProjectSidebar({
             onClick={onOpenSettings}
             title="Settings"
             className={cn(
-              "flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] font-medium text-white/55 transition hover:bg-white/10 hover:text-white/90",
+              "flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] font-medium text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]",
               collapsed ? "justify-center" : "flex-1",
             )}
           >
@@ -435,7 +406,7 @@ export function ProjectSidebar({
               type="submit"
               title="Sign out"
               className={cn(
-                "flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] font-medium text-white/55 transition hover:bg-white/10 hover:text-white/90",
+                "flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] font-medium text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]",
                 collapsed ? "justify-center" : "flex-1",
               )}
             >
