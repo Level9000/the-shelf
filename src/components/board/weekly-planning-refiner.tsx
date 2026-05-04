@@ -283,7 +283,7 @@ export function WeeklyPlanningRefiner({
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-black/6 bg-white/72 px-5 py-4">
+            <div className="sticky bottom-0 border-t border-black/6 bg-white/72 px-5 py-4 backdrop-blur-sm">
               <div className="rounded-[1.9rem] bg-[var(--surface-muted)] p-3">
                 <Textarea
                   value={draft}

@@ -169,7 +169,7 @@ export function ProjectKickoffChat({
 
   // ─── Stage: Chatting ─────────────────────────────────────────────────────────
   return (
-    <div className="flex min-h-dvh flex-col bg-[var(--ink)]">
+    <div className="flex h-dvh flex-col bg-[var(--ink)]">
       {/* Header */}
       <div className="shrink-0 border-b border-white/8 px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-2xl items-center gap-4">
@@ -251,7 +251,7 @@ export function ProjectKickoffChat({
       </div>
 
       {/* Input */}
-      <div className="shrink-0 border-t border-white/8 px-4 py-4 sm:px-6">
+      <div className="sticky bottom-0 border-t border-white/8 bg-[var(--ink)]/90 px-4 py-4 sm:px-6 backdrop-blur-sm">
         <div className="mx-auto max-w-2xl">
           {error ? (
             <p className="mb-4 rounded-2xl bg-rose-900/50 px-4 py-3 text-sm text-rose-300">

@@ -762,7 +762,7 @@ export function ChapterKickoffChat({
             </div>
           ) : null}
 
-          <div className="border-t border-black/6 bg-white/72 px-5 py-4">
+          <div className="sticky bottom-0 border-t border-black/6 bg-white/72 px-5 py-4 backdrop-blur-sm">
             {error ? (
               <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 {error}
