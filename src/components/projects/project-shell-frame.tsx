@@ -68,7 +68,7 @@ export function ProjectShellFrame({
               </p>
             </div>
           </div>
-          <div className="lg:flex lg:min-h-[calc(100dvh-8.5rem)] lg:flex-col">
+          <div className="lg:flex lg:h-[calc(100dvh-8.5rem)] lg:flex-col">
             {children}
           </div>
         </div>

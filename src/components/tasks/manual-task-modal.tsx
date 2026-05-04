@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
-import { Layers3, MessageSquareText, Mic, PencilLine, Sparkles } from "lucide-react";
+import { Layers3, MessageSquareText, Mic, PencilLine, Sparkles, Wand2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type {
   Board,
   BoardColumn,
@@ -18,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { TaskFormFields } from "@/components/tasks/task-form-fields";
+import { StrategicTextDialogueModal } from "@/components/voice/strategic-text-dialogue-modal";
 import {
   VoiceCapturePanel,
   type VoiceCapturePanelHandle,
@@ -67,8 +69,10 @@ export function ManualTaskModal({
   onCreated: () => void;
   onProcessed: (result: VoiceProcessingResult) => void;
 }) {
+  const router = useRouter();
   const aiLauncherRef = useRef<VoiceCapturePanelHandle | null>(null);
   const [mode, setMode] = useState<"chooser" | "manual" | "template">("chooser");
+  const [strategyDialogueOpen, setStrategyDialogueOpen] = useState(false);
   const [form, setForm] = useState<FormState>(() => ({
     ...getInitialState(columns),
     columnId: initialColumnId ?? columns[0]?.id ?? "",
@@ -295,8 +299,23 @@ export function ManualTaskModal({
               </p>
 
               {templates.length === 0 ? (
-                <div className="mt-4 rounded-[1.5rem] bg-white/75 p-4 text-sm text-[var(--muted)]">
-                  No templates saved yet. Build one through Plan with AI first.
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-[1.5rem] bg-white/75 p-4 text-sm text-[var(--muted)]">
+                    No templates saved yet. Use AI to capture a repeatable process and turn it into a reusable workflow.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStrategyDialogueOpen(true)}
+                    className="flex w-full items-center gap-3 rounded-[1.5rem] bg-white p-4 text-left ring-1 ring-[var(--accent)]/20 transition hover:shadow-md hover:shadow-black/5"
+                  >
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                      <Wand2 className="size-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--ink)]">Build with AI</p>
+                      <p className="text-xs text-[var(--muted)]">Describe a process and Shelf will capture it as a template.</p>
+                    </div>
+                  </button>
                 </div>
               ) : (
                 <div className="mt-4 space-y-3">
@@ -327,6 +346,19 @@ export function ManualTaskModal({
                       ) : null}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setStrategyDialogueOpen(true)}
+                    className="flex w-full items-center gap-3 rounded-[1.5rem] border border-dashed border-[var(--accent)]/30 bg-white/60 p-4 text-left transition hover:bg-white hover:shadow-sm"
+                  >
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                      <Wand2 className="size-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--ink)]">Build new template with AI</p>
+                      <p className="text-xs text-[var(--muted)]">Capture another repeatable process.</p>
+                    </div>
+                  </button>
                 </div>
               )}
             </section>
@@ -424,6 +456,23 @@ export function ManualTaskModal({
           onClose();
         }}
         showLauncher={false}
+      />
+
+      <StrategicTextDialogueModal
+        open={strategyDialogueOpen}
+        project={project}
+        boardId={board.id}
+        columns={columns}
+        onClose={() => setStrategyDialogueOpen(false)}
+        onProcessed={(result) => {
+          setStrategyDialogueOpen(false);
+          onClose();
+          onProcessed(result);
+        }}
+        onTasksCreated={() => {
+          setStrategyDialogueOpen(false);
+          router.refresh();
+        }}
       />
     </>
   );

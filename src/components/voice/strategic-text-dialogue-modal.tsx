@@ -125,6 +125,7 @@ export function StrategicTextDialogueModal({
       },
       body: JSON.stringify({
         projectId: project.id,
+        boardId,
         messages: nextMessages,
       }),
     });

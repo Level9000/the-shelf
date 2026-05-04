@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Image from "next/image";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
@@ -643,9 +644,12 @@ export function ChapterKickoffChat({
     { label: "How you'll know you're done", value: liveData.doneDefinition },
   ];
   const completedCount = checklistItems.filter((item) => item.value).length;
+  const visibleSuggestions = (liveData.proposedTasks ?? []).filter(
+    (t) => !removedTaskTitles.has(t.title),
+  );
 
   return (
-    <>
+    <React.Fragment>
     <div className="flex h-full min-h-0 flex-col gap-5">
       <section className="surface hairline shrink-0 rounded-[2rem] p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -849,60 +853,53 @@ export function ChapterKickoffChat({
           </div>
 
           {/* Live backlog */}
-          {(() => {
-            const visibleTasks = (liveData.proposedTasks ?? []).filter(
-              (t) => !removedTaskTitles.has(t.title),
-            );
-            return (
-              <div className="surface-card hairline flex min-h-0 flex-1 flex-col rounded-[2rem] overflow-hidden">
-                <div className="border-b border-black/6 px-5 py-4 shrink-0">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                      Backlog Suggestions
-                    </p>
-                    {visibleTasks.length > 0 ? (
-                      <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
-                        {visibleTasks.length} task{visibleTasks.length === 1 ? "" : "s"}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="flex-1 overflow-y-auto px-4 py-4">
-                  {visibleTasks.length === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-                      <Sparkles className="size-6 text-[var(--muted)] opacity-30" />
-                      <p className="text-[12px] leading-5 text-[var(--muted)] opacity-60">
-                        Tasks will appear here as we talk
-                      </p>
-                    </div>
-                  ) : (
-                    <ul className="space-y-2">
-                      {visibleTasks.map((task) => (
-                        <li
-                          key={task.title}
-                          className="group flex items-center gap-2 rounded-xl bg-white/70 px-3.5 py-2.5 ring-1 ring-black/6"
-                        >
-                          <p className="flex-1 text-[12.5px] font-medium leading-snug text-[var(--ink)]">
-                            {task.title}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setRemovedTaskTitles((prev) => new Set([...prev, task.title]))
-                            }
-                            className="flex size-5 shrink-0 items-center justify-center rounded-full text-[var(--muted)] opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
-                            aria-label="Remove suggestion"
-                          >
-                            <X className="size-3" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+          <div className="surface-card hairline flex min-h-0 flex-1 flex-col rounded-[2rem] overflow-hidden">
+            <div className="border-b border-black/6 px-5 py-4 shrink-0">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                  Backlog Suggestions
+                </p>
+                {visibleSuggestions.length > 0 ? (
+                  <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
+                    {visibleSuggestions.length} task{visibleSuggestions.length === 1 ? "" : "s"}
+                  </span>
+                ) : null}
               </div>
-            );
-          })()}
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              {visibleSuggestions.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                  <Sparkles className="size-6 text-[var(--muted)] opacity-30" />
+                  <p className="text-[12px] leading-5 text-[var(--muted)] opacity-60">
+                    Tasks will appear here as we talk
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {visibleSuggestions.map((task) => (
+                    <li
+                      key={task.title}
+                      className="group flex items-center gap-2 rounded-xl bg-white/70 px-3.5 py-2.5 ring-1 ring-black/6"
+                    >
+                      <p className="flex-1 text-[12.5px] font-medium leading-snug text-[var(--ink)]">
+                        {task.title}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRemovedTaskTitles((prev) => new Set([...prev, task.title]))
+                        }
+                        className="flex size-5 shrink-0 items-center justify-center rounded-full text-[var(--muted)] opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
+                        aria-label="Remove suggestion"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
 
         </aside>
 
@@ -921,6 +918,6 @@ export function ChapterKickoffChat({
         error={error}
       />
     ) : null}
-    </>
+    </React.Fragment>
   );
 }

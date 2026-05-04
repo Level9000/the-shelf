@@ -66,7 +66,7 @@ export function BoardColumnView({
                 variant="secondary"
                 onClick={onPlanWeek}
               >
-                Plan this week
+                Plan week
               </Button>
             )}
           </div>

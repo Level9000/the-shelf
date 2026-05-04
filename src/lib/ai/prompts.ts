@@ -25,13 +25,72 @@ export function buildTaskExtractionPrompt(input: {
 export function buildStrategicDialoguePrompt(input: {
   projectName: string;
   projectDescription?: string | null;
+  chapterContext?: {
+    name: string;
+    goal: string | null;
+    whyItMatters: string | null;
+    successLooksLike: string | null;
+    doneDefinition: string | null;
+  } | null;
+  existingTasks?: Array<{ title: string; columnName: string }>;
 }) {
+  const hasChapter = Boolean(input.chapterContext?.name);
+  const hasChapterGoal = Boolean(input.chapterContext?.goal);
+  const hasExistingTasks = (input.existingTasks ?? []).length > 0;
+
+  const chapterSection = hasChapter
+    ? [
+        "",
+        "CURRENT CHAPTER CONTEXT:",
+        `Chapter: ${input.chapterContext!.name}`,
+        `Goal: ${input.chapterContext!.goal ?? "Not yet set"}`,
+        `Why it matters: ${input.chapterContext!.whyItMatters ?? "Not yet set"}`,
+        `Success looks like: ${input.chapterContext!.successLooksLike ?? "Not yet set"}`,
+        `Done when: ${input.chapterContext!.doneDefinition ?? "Not yet set"}`,
+      ]
+    : [];
+
+  const backlogSection = hasExistingTasks
+    ? [
+        "",
+        "EXISTING BACKLOG (tasks already created for this chapter):",
+        ...(input.existingTasks ?? []).map(
+          (task) => `- [${task.columnName}] ${task.title}`,
+        ),
+      ]
+    : [];
+
+  const chapterAwarenessRules = hasChapter
+    ? [
+        "",
+        "CHAPTER ALIGNMENT RULES:",
+        hasChapterGoal
+          ? `The chapter goal is: "${input.chapterContext!.goal}". Every workflow template and every suggested task must directly serve this goal.`
+          : "The chapter goal has not been set yet. Help the user stay focused on work that moves this chapter forward.",
+        "If the user describes work that seems unrelated to the chapter goal, gently note the tension and ask whether it belongs here or in a separate chapter.",
+        "When proposing tasks, connect them explicitly to the chapter goal. Do not let the user drift into work that belongs in a future chapter.",
+        "If the user seems stuck or unfocused, remind them of the chapter goal and ask what is blocking progress toward it.",
+      ]
+    : [];
+
+  const backlogAwarenessRules = hasExistingTasks
+    ? [
+        "",
+        "BACKLOG AWARENESS RULES:",
+        "You can see the tasks already in the backlog for this chapter (listed above).",
+        "Do not suggest tasks that duplicate what is already there.",
+        "If the user describes work that maps to an existing task, acknowledge it: 'That sounds like it overlaps with [task title] already in your backlog — do you want to refine that one instead?'",
+        "When the user asks what is missing, compare their described workflow against the existing backlog and identify gaps.",
+        "If the backlog looks thin for the chapter goal, proactively flag that and suggest what might be missing.",
+        "If a task already exists and is in 'Done', do not re-suggest it.",
+      ]
+    : [];
+
   return [
     "You are Shelf's AI planning partner.",
-    "Your job is to extract the work the user needs to do and get it into the backlog quickly.",
-    "If the work is something the user does repeatedly, capture it as a reusable personal task template.",
+    "Your job is to help the founder capture repeatable workflows as reusable templates — and make sure this chapter's backlog is complete and focused.",
     "Be direct, brief, and practical.",
-    "Do not be chatty, warm, playful, or reflective unless it helps you get the missing workflow detail.",
+    "Do not be chatty, warm, playful, or reflective unless it helps you extract a missing workflow detail.",
     "Always learn from the user. Never assume their workflow.",
     "Default to short replies. Usually ask one clear question at a time.",
     "Prefer 1 to 3 short sentences in discovery mode.",
@@ -53,6 +112,8 @@ export function buildStrategicDialoguePrompt(input: {
     "3. RAPID BACKLOG POPULATION",
     "When the workflow is clear and the user is ready, move toward turning the captured workflow into backlog tasks for the current chapter.",
     "The goal is not a long conversation. The goal is a usable backlog.",
+    ...chapterAwarenessRules,
+    ...backlogAwarenessRules,
     "",
     "JSON response rules:",
     '- status must be one of: "discovery", "template_review", "ready_for_review".',
@@ -71,6 +132,8 @@ export function buildStrategicDialoguePrompt(input: {
     "",
     `Project: ${input.projectName}`,
     `Project description: ${input.projectDescription ?? "Not provided"}`,
+    ...chapterSection,
+    ...backlogSection,
   ].join("\n");
 }
 

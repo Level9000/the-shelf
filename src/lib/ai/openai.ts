@@ -150,6 +150,14 @@ export async function runStrategicTextDialogue(input: {
   messages: StrategicDialogueMessage[];
   projectName: string;
   projectDescription?: string | null;
+  chapterContext?: {
+    name: string;
+    goal: string | null;
+    whyItMatters: string | null;
+    successLooksLike: string | null;
+    doneDefinition: string | null;
+  } | null;
+  existingTasks?: Array<{ title: string; columnName: string }>;
 }) {
   const apiKey = requireOpenAiKey();
   const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
@@ -169,7 +177,12 @@ export async function runStrategicTextDialogue(input: {
         },
         {
           role: "system",
-          content: buildStrategicDialoguePrompt(input),
+          content: buildStrategicDialoguePrompt({
+            projectName: input.projectName,
+            projectDescription: input.projectDescription,
+            chapterContext: input.chapterContext,
+            existingTasks: input.existingTasks,
+          }),
         },
         ...input.messages.map((message) => ({
           role: message.role,
