@@ -66,8 +66,8 @@ export function AuthForm({
               className="mt-3 text-xl font-medium leading-[1.4]"
               style={{ fontFamily: literata.style.fontFamily }}
             >
-              <span className="box-decoration-clone bg-white px-2 py-0.5">
-                Helping you tell your story, while you build.
+              <span className="box-decoration-clone bg-[#fef9c3] px-2 py-0.5">
+                Helping you tell the story, while you build.
               </span>
             </p>
           </div>
@@ -76,18 +76,7 @@ export function AuthForm({
         {/* Right — login widget centered, frosted white panel */}
         <div className="relative flex items-center justify-center bg-white px-12 py-16">
           <div className="w-full max-w-md">
-            <div className="flex flex-col items-center gap-3">
-              <div className="shrink-0 overflow-hidden rounded-[22px] drop-shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
-                <Image
-                  src="/icons/authored_by_icon_512.png"
-                  alt="Authored by"
-                  width={68}
-                  height={68}
-                  className="object-cover"
-                />
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-            </div>
+            <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{subtitle}</p>
             <form action={formAction} className="mt-8 space-y-4">
               <input type="hidden" name="next" value={nextPath ?? "/projects"} />

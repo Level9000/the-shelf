@@ -15,7 +15,7 @@ export default async function LoginPage({
       submitLabel="Sign in"
       secondaryHref="/signup"
       secondaryLabel="Create an account"
-      secondaryPrompt="New to Shelf?"
+      secondaryPrompt="New to Authored By?"
       action={loginAction}
       nextPath={next}
     />
