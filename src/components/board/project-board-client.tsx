@@ -7,7 +7,6 @@ import {
   type Modifier,
   closestCenter,
   DndContext,
-  DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
   KeyboardSensor,
@@ -25,13 +24,14 @@ import {
 } from "@/lib/actions/task-actions";
 import { normalizeTaskOrder } from "@/lib/board-utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BoardColumnView } from "@/components/board/board-column";
 import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
-import { TaskCardPreview } from "@/components/tasks/task-card";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
+import { EndChapterModal } from "@/components/board/end-chapter-modal";
 import { WeeklyPlanningRefiner } from "@/components/board/weekly-planning-refiner";
 
 type ReviewState = {
@@ -64,7 +64,10 @@ const boardCollisionDetection: CollisionDetection = (args) => {
       return droppable?.data.current?.type === "column";
     });
 
-    if (columnCollision) {
+    // Only prefer a column collision when dragging to a *different* column.
+    // For same-column drags, fall through to card collisions so the
+    // sortable strategy can compute the precise insertion index.
+    if (columnCollision && columnCollision.id !== args.active.data.current?.columnId) {
       return [columnCollision];
     }
 
@@ -79,36 +82,16 @@ const boardCollisionDetection: CollisionDetection = (args) => {
   });
 };
 
-const centerOverlayUnderCursor: Modifier = ({
-  activatorEvent,
-  activeNodeRect,
-  overlayNodeRect,
-  transform,
-}) => {
-  if (!activatorEvent || !activeNodeRect || !overlayNodeRect) {
-    return transform;
+
+// When dragging within the same column, lock horizontal movement to zero
+// so cards only slide up/down and don't drift left/right.
+const restrictSameColumnToVertical: Modifier = ({ active, over, transform }) => {
+  const sourceColumnId = active?.data.current?.columnId;
+  const overColumnId = over?.data.current?.columnId;
+  if (sourceColumnId && (!overColumnId || sourceColumnId === overColumnId)) {
+    return { ...transform, x: 0 };
   }
-
-  const pointerEvent = activatorEvent as Event & {
-    clientX?: number;
-    clientY?: number;
-  };
-
-  if (
-    typeof pointerEvent.clientX !== "number" ||
-    typeof pointerEvent.clientY !== "number"
-  ) {
-    return transform;
-  }
-
-  const pointerOffsetX = pointerEvent.clientX - activeNodeRect.left;
-  const pointerOffsetY = pointerEvent.clientY - activeNodeRect.top;
-
-  return {
-    ...transform,
-    x: transform.x - (pointerOffsetX - overlayNodeRect.width / 2),
-    y: transform.y - (pointerOffsetY - overlayNodeRect.height / 2),
-  };
+  return transform;
 };
 
 export function ProjectBoardClient({
@@ -145,6 +128,7 @@ export function ProjectBoardClient({
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [planningWeek, setPlanningWeek] = useState(false);
+  const [endChapterModalOpen, setEndChapterModalOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewState, setReviewState] = useState<ReviewState>({
     captureId: null,
@@ -158,10 +142,6 @@ export function ProjectBoardClient({
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
-  );
-  const dragTask = useMemo(
-    () => tasks.find((task) => task.id === dragTaskId) ?? null,
-    [dragTaskId, tasks],
   );
   function refreshData() {
     router.refresh();
@@ -266,6 +246,15 @@ export function ProjectBoardClient({
   }
 
 
+  const todoColumn = snapshot.columns.find((col) => col.name === "To Do");
+  const hasTodoTasks = todoColumn ? getColumnTasks(tasks, todoColumn.id).length > 0 : false;
+
+  const doneColumn = snapshot.columns.find((col) => col.name.toLowerCase() === "done");
+  const remainingTasks = doneColumn
+    ? tasks.filter((t) => t.columnId !== doneColumn.id)
+    : tasks;
+  const retroAvailable = Boolean(snapshot.board.kickoffCompletedAt) && !snapshot.board.retroCompletedAt;
+
   function persistArrangement(
     updates: Array<{ id: string; columnId: string; position: number }>,
   ) {
@@ -291,7 +280,7 @@ export function ProjectBoardClient({
 
   return (
     <>
-      <div className="space-y-6 lg:min-h-[calc(100dvh-8.5rem)]">
+      <div className="space-y-6 lg:h-full">
         {planningWeek ? (
           <WeeklyPlanningRefiner
             snapshot={snapshot}
@@ -300,19 +289,26 @@ export function ProjectBoardClient({
         ) : null}
 
         {!planningWeek ? (
-        <section className="surface hairline flex min-h-[calc(100dvh-8.5rem)] flex-col rounded-[2rem] p-4 sm:p-5">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-            <div className="max-w-2xl">
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                {snapshot.board.name}
-              </h1>
-              <div className="mt-4">
-                <ChapterPageNav
-                  projectId={chapterProjectId}
-                  chapterId={chapterId}
-                  active="board"
-                />
-              </div>
+        <section className="surface hairline flex h-full flex-col rounded-[2rem] p-4 sm:p-5">
+          <div className="mb-4">
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              {snapshot.board.name}
+            </h1>
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <ChapterPageNav
+                projectId={chapterProjectId}
+                chapterId={chapterId}
+                active="board"
+              />
+              {retroAvailable && (
+                <Button
+                  variant="secondary"
+                  className="shrink-0"
+                  onClick={() => setEndChapterModalOpen(true)}
+                >
+                  End chapter
+                </Button>
+              )}
             </div>
           </div>
           {error ? (
@@ -323,8 +319,10 @@ export function ProjectBoardClient({
           {isPending ? <Badge className="mb-4">Saving changes...</Badge> : null}
           <div className="min-h-0 flex-1">
             <DndContext
+              id="board-dnd-context"
               sensors={sensors}
               collisionDetection={boardCollisionDetection}
+              modifiers={[restrictSameColumnToVertical]}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
@@ -344,16 +342,13 @@ export function ProjectBoardClient({
                       tasks={getColumnTasks(tasks, column.id)}
                       onOpenTask={setSelectedTaskId}
                       onCreateTask={openManualTask}
-                      movingTaskId={dragTaskId}
                       showAddButton={column.name === "To Do"}
-                      onPlanWeek={column.name === "Do This Week" ? () => setPlanningWeek(true) : undefined}
+                      onPlanWeek={column.name === "Do This Week" && hasTodoTasks ? () => setPlanningWeek(true) : undefined}
+                      dragInProgress={!!dragTaskId}
                     />
                   ))}
                 </div>
               </div>
-              <DragOverlay adjustScale={false} modifiers={[centerOverlayUnderCursor]}>
-                {dragTask ? <TaskCardPreview task={dragTask} /> : null}
-              </DragOverlay>
             </DndContext>
           </div>
         </section>
@@ -403,6 +398,21 @@ export function ProjectBoardClient({
         proposals={reviewState.proposals}
         onClose={() => setReviewOpen(false)}
         onAccepted={refreshData}
+      />
+
+      <EndChapterModal
+        open={endChapterModalOpen}
+        onClose={() => setEndChapterModalOpen(false)}
+        onConfirm={() => {
+          setEndChapterModalOpen(false);
+          refreshData();
+        }}
+        projectId={snapshot.project.id}
+        boardId={snapshot.board.id}
+        incompleteTasks={{
+          count: remainingTasks.length,
+          titles: remainingTasks.map((t) => t.title),
+        }}
       />
     </>
   );

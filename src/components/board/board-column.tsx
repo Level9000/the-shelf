@@ -14,17 +14,17 @@ export function BoardColumnView({
   tasks,
   onOpenTask,
   onCreateTask,
-  movingTaskId,
   showAddButton,
   onPlanWeek,
+  dragInProgress,
 }: {
   column: BoardColumn;
   tasks: Task[];
   onOpenTask: (taskId: string) => void;
   onCreateTask: (columnId: string) => void;
-  movingTaskId?: string | null;
   showAddButton?: boolean;
   onPlanWeek?: () => void;
+  dragInProgress?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -34,12 +34,14 @@ export function BoardColumnView({
     },
   });
 
+  const showDropHere = dragInProgress && isOver;
+
   return (
     <section
       ref={setNodeRef}
       className={cn(
         "surface hairline flex min-h-[420px] min-w-0 flex-col rounded-[2rem] p-4 transition lg:h-full lg:min-h-0",
-        isOver && "ring-2 ring-[var(--accent)]/25 ring-offset-2 ring-offset-transparent",
+        showDropHere && "ring-2 ring-[var(--accent)]/40 ring-offset-2 ring-offset-transparent",
       )}
     >
       <div className={cn("rounded-[1.5rem] bg-gradient-to-b p-4", COLUMN_TINTS[column.name])}>
@@ -60,34 +62,40 @@ export function BoardColumnView({
                 Add
               </Button>
             )}
-            {onPlanWeek && (
-              <Button
-                className="h-9 px-3 py-0 text-xs"
-                variant="secondary"
-                onClick={onPlanWeek}
-              >
-                Plan week
-              </Button>
-            )}
           </div>
         </div>
       </div>
+      {onPlanWeek && tasks.length === 0 && (
+        <button
+          onClick={onPlanWeek}
+          className="mt-3 w-full rounded-full border border-black/10 bg-white/60 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-white/90"
+        >
+          Plan my week
+        </button>
+      )}
       <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
-        <div className="mt-4 flex flex-1 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+        <div className="relative mt-4 flex flex-1 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
           {tasks.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
               columnName={column.name}
               onOpen={onOpenTask}
-              isMoving={movingTaskId === task.id}
+              dragInProgress={dragInProgress}
             />
           ))}
-          {tasks.length === 0 ? (
+          {tasks.length === 0 && !showDropHere ? (
             <div className="flex flex-1 items-center justify-center rounded-[1.5rem] border border-dashed border-black/10 bg-white/40 p-6 text-center text-sm text-[var(--muted)]">
               No tasks here yet
             </div>
           ) : null}
+          {showDropHere && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[1.5rem] border-2 border-dashed border-[var(--accent)]/60 bg-[var(--accent)]/8">
+              <span className="rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm font-semibold text-white shadow-sm">
+                Drop here
+              </span>
+            </div>
+          )}
         </div>
       </SortableContext>
     </section>

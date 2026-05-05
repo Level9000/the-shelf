@@ -90,12 +90,12 @@ export function TaskCard({
   task,
   columnName,
   onOpen,
-  isMoving,
+  dragInProgress,
 }: {
   task: Task;
   columnName?: string;
   onOpen: (taskId: string) => void;
-  isMoving?: boolean;
+  dragInProgress?: boolean;
 }) {
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const colors = POSTIT_PALETTE[columnName ?? ""] ?? DEFAULT_POSTIT;
@@ -127,9 +127,9 @@ export function TaskCard({
         "shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]",
         "transition-all duration-150",
         colors.body,
-        isDragging &&
-          "rotate-[2.5deg] scale-[1.04] shadow-[5px_12px_32px_rgba(0,0,0,0.22)]",
-        isMoving && "opacity-60",
+        isDragging
+          ? "rotate-[2.5deg] scale-[1.04] shadow-[5px_12px_32px_rgba(0,0,0,0.22)] z-50 relative"
+          : dragInProgress && "opacity-40 grayscale transition-[opacity,filter] duration-150",
       )}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
@@ -137,22 +137,6 @@ export function TaskCard({
       {...listeners}
     >
       <NoteBody task={task} columnName={columnName} />
-    </article>
-  );
-}
-
-export function TaskCardPreview({ task }: { task: Task }) {
-  const colors = DEFAULT_POSTIT;
-
-  return (
-    <article
-      className={cn(
-        "flex w-[min(320px,calc(100vw-3rem))] flex-col overflow-hidden rounded-[3px]",
-        "shadow-[5px_12px_32px_rgba(0,0,0,0.22)] rotate-[2.5deg]",
-        colors.body,
-      )}
-    >
-      <NoteBody task={task} />
     </article>
   );
 }
