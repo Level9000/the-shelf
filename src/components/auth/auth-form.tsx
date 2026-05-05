@@ -1,11 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import localFont from "next/font/local";
 import { useActionState } from "react";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { FormState } from "@/lib/actions/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+const literata = localFont({
+  src: "../../../public/fonts/Literata.ttf",
+});
 
 const initialState: FormState = {};
 
@@ -31,74 +37,97 @@ export function AuthForm({
   const [state, formAction, pending] = useActionState(action, initialState);
 
   return (
-    <div className="surface hairline grid min-h-screen grid-cols-1 overflow-hidden lg:grid-cols-[1.1fr_0.9fr]">
-      <section className="relative hidden overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.9),_transparent_45%),linear-gradient(180deg,_rgba(47,111,103,0.94),_rgba(24,68,63,0.96))] p-10 text-white lg:flex lg:flex-col">
-        <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white/12 px-4 py-2 text-sm font-medium backdrop-blur-sm">
-          <Sparkles className="size-4" />
-          Shelf
-        </div>
-        <div className="mt-auto max-w-xl">
-          <p className="text-sm uppercase tracking-[0.25em] text-white/60">
-            Spoken thoughts into organized motion
-          </p>
-          <h1 className="mt-4 text-5xl font-semibold leading-[1.02] text-balance">
-            Talk it out. Watch the board fill itself in.
-          </h1>
-          <p className="mt-6 max-w-lg text-lg leading-8 text-white/78">
-            Shelf is a voice-first AI kanban experience for people who think out
-            loud and want their next actions captured without friction.
-          </p>
-        </div>
-      </section>
-      <section className="flex min-h-screen items-center justify-center px-5 py-12 sm:px-8">
-        <div className="w-full max-w-md rounded-[2rem] border border-black/6 bg-white/88 p-8 shadow-2xl shadow-black/5 backdrop-blur-xl">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)] lg:hidden">
-            <Sparkles className="size-3.5" />
-            Shelf
-          </div>
-          <div className="mt-6">
-            <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              {subtitle}
+    <div className="flex min-h-screen items-center justify-center bg-neutral-100 p-8">
+
+      {/* Two-column card */}
+      <div className="relative grid w-full max-w-6xl grid-cols-2 overflow-hidden rounded-[3rem] border border-black/10 shadow-2xl shadow-black/20" style={{ minHeight: "680px" }}>
+
+        {/* Left — hero text bottom-left */}
+        <div className="relative flex flex-col px-12 py-12">
+          <Image
+            src="/images/paper.png"
+            alt=""
+            fill
+            sizes="50vw"
+            className="object-cover object-center"
+            priority
+          />
+          <div className="flex-1" />
+          <div className="relative">
+            <h1
+              className="text-5xl font-bold leading-[1.35]"
+              style={{ fontFamily: literata.style.fontFamily }}
+            >
+              <span className="box-decoration-clone bg-white px-2 py-0.5">
+                Welcome to Authored By.
+              </span>
+            </h1>
+            <p
+              className="mt-3 text-xl font-medium leading-[1.4]"
+              style={{ fontFamily: literata.style.fontFamily }}
+            >
+              <span className="box-decoration-clone bg-white px-2 py-0.5">
+                Helping you tell your story, while you build.
+              </span>
             </p>
           </div>
-          <form action={formAction} className="mt-8 space-y-4">
-            <input type="hidden" name="next" value={nextPath ?? "/projects"} />
-            <div>
-              <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
-                Email
-              </label>
-              <Input name="email" type="email" placeholder="you@company.com" required />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
-                Password
-              </label>
-              <Input
-                name="password"
-                type="password"
-                placeholder="At least 8 characters"
-                required
-              />
-            </div>
-            {state.error ? (
-              <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {state.error}
-              </p>
-            ) : null}
-            <Button className="w-full" type="submit" disabled={pending}>
-              {pending ? "Working..." : submitLabel}
-              <ArrowRight className="ml-2 size-4" />
-            </Button>
-          </form>
-          <p className="mt-6 text-sm text-[var(--muted)]">
-            {secondaryPrompt}{" "}
-            <Link className="font-semibold text-[var(--ink)]" href={secondaryHref}>
-              {secondaryLabel}
-            </Link>
-          </p>
         </div>
-      </section>
+
+        {/* Right — login widget centered, frosted white panel */}
+        <div className="relative flex items-center justify-center bg-white px-12 py-16">
+          <div className="w-full max-w-md">
+            <div className="flex flex-col items-center gap-3">
+              <div className="shrink-0 overflow-hidden rounded-[22px] drop-shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
+                <Image
+                  src="/icons/authored_by_icon_512.png"
+                  alt="Authored by"
+                  width={68}
+                  height={68}
+                  className="object-cover"
+                />
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{subtitle}</p>
+            <form action={formAction} className="mt-8 space-y-4">
+              <input type="hidden" name="next" value={nextPath ?? "/projects"} />
+              <div>
+                <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
+                  Email
+                </label>
+                <Input name="email" type="email" placeholder="you@company.com" required />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
+                  Password
+                </label>
+                <Input
+                  name="password"
+                  type="password"
+                  placeholder="At least 8 characters"
+                  required
+                />
+              </div>
+              {state.error ? (
+                <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {state.error}
+                </p>
+              ) : null}
+              <Button className="w-full" type="submit" disabled={pending}>
+                {pending ? "Working..." : submitLabel}
+                <ArrowRight className="ml-2 size-4" />
+              </Button>
+            </form>
+            <p className="mt-6 text-sm text-[var(--muted)]">
+              {secondaryPrompt}{" "}
+              <Link className="font-semibold text-[var(--ink)]" href={secondaryHref}>
+                {secondaryLabel}
+              </Link>
+            </p>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

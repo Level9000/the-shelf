@@ -10,8 +10,8 @@ export default async function LoginPage({
 
   return (
     <AuthForm
-      title="Welcome back"
-      subtitle="Sign in to capture loose voice notes and turn them into motion."
+      title="Welcome Back"
+      subtitle="Sign in to continue making progress on your founders story."
       submitLabel="Sign in"
       secondaryHref="/signup"
       secondaryLabel="Create an account"
