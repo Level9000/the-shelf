@@ -36,26 +36,71 @@ export function AuthForm({
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
 
+  const loginWidget = (
+    <div className="w-full max-w-md">
+      <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{subtitle}</p>
+      <form action={formAction} className="mt-8 space-y-4">
+        <input type="hidden" name="next" value={nextPath ?? "/projects"} />
+        <div>
+          <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
+            Email
+          </label>
+          <Input name="email" type="email" placeholder="you@company.com" required />
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
+            Password
+          </label>
+          <Input name="password" type="password" placeholder="At least 8 characters" required />
+        </div>
+        {state.error ? (
+          <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {state.error}
+          </p>
+        ) : null}
+        <Button className="w-full" type="submit" disabled={pending}>
+          {pending ? "Working..." : submitLabel}
+          <ArrowRight className="ml-2 size-4" />
+        </Button>
+      </form>
+      <p className="mt-6 text-sm text-[var(--muted)]">
+        {secondaryPrompt}{" "}
+        <Link className="font-semibold text-[var(--ink)]" href={secondaryHref}>
+          {secondaryLabel}
+        </Link>
+      </p>
+    </div>
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-100 p-8">
+    <div className="flex min-h-screen bg-neutral-100 lg:items-center lg:justify-center lg:p-8">
 
-      {/* Two-column card */}
-      <div className="relative grid w-full max-w-6xl grid-cols-2 overflow-hidden rounded-[3rem] border border-black/10 shadow-2xl shadow-black/20" style={{ minHeight: "680px" }}>
+      {/* Card */}
+      <div className="relative w-full overflow-hidden lg:max-w-6xl lg:rounded-[3rem] lg:border lg:border-black/10 lg:shadow-2xl lg:shadow-black/20 lg:grid lg:grid-cols-2 lg:min-h-[680px]">
 
-        {/* Left — hero text bottom-left */}
-        <div className="relative flex flex-col px-12 py-12">
+        {/* Hero panel — full screen on mobile (with login widget inside), left half on desktop */}
+        <div className="relative flex min-h-screen flex-col px-8 py-10 sm:px-12 sm:py-12 lg:min-h-0">
           <Image
             src="/images/paper.png"
             alt=""
             fill
-            sizes="50vw"
-            className="object-cover object-center"
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            className="object-cover object-top"
             priority
           />
-          <div className="flex-1" />
+
+          {/* Login form floats in the middle on mobile only */}
+          <div className="relative flex flex-1 items-center justify-center lg:hidden">
+            <div className="w-full rounded-[1.5rem] bg-white/92 p-7 shadow-xl backdrop-blur-md">
+              {loginWidget}
+            </div>
+          </div>
+
+          {/* Hero text — always pinned to bottom */}
           <div className="relative">
             <h1
-              className="text-5xl font-bold leading-[1.35]"
+              className="text-3xl font-bold leading-[1.35] sm:text-4xl lg:text-5xl"
               style={{ fontFamily: literata.style.fontFamily }}
             >
               <span className="box-decoration-clone bg-white px-2 py-0.5">
@@ -63,7 +108,7 @@ export function AuthForm({
               </span>
             </h1>
             <p
-              className="mt-3 text-xl font-medium leading-[1.4]"
+              className="mt-3 text-base font-medium leading-[1.4] sm:text-xl"
               style={{ fontFamily: literata.style.fontFamily }}
             >
               <span className="box-decoration-clone bg-[#fef9c3] px-2 py-0.5">
@@ -73,47 +118,9 @@ export function AuthForm({
           </div>
         </div>
 
-        {/* Right — login widget centered, frosted white panel */}
-        <div className="relative flex items-center justify-center bg-white px-12 py-16">
-          <div className="w-full max-w-md">
-            <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{subtitle}</p>
-            <form action={formAction} className="mt-8 space-y-4">
-              <input type="hidden" name="next" value={nextPath ?? "/projects"} />
-              <div>
-                <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
-                  Email
-                </label>
-                <Input name="email" type="email" placeholder="you@company.com" required />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
-                  Password
-                </label>
-                <Input
-                  name="password"
-                  type="password"
-                  placeholder="At least 8 characters"
-                  required
-                />
-              </div>
-              {state.error ? (
-                <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {state.error}
-                </p>
-              ) : null}
-              <Button className="w-full" type="submit" disabled={pending}>
-                {pending ? "Working..." : submitLabel}
-                <ArrowRight className="ml-2 size-4" />
-              </Button>
-            </form>
-            <p className="mt-6 text-sm text-[var(--muted)]">
-              {secondaryPrompt}{" "}
-              <Link className="font-semibold text-[var(--ink)]" href={secondaryHref}>
-                {secondaryLabel}
-              </Link>
-            </p>
-          </div>
+        {/* Login panel — desktop only */}
+        <div className="relative hidden items-center justify-center bg-white px-12 py-16 lg:flex">
+          {loginWidget}
         </div>
 
       </div>
