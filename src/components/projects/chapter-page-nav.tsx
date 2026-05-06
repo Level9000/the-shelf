@@ -25,7 +25,7 @@ export function ChapterPageNav({
         )}
       >
         <LayoutPanelTop className="size-4" />
-        Overview
+        Story
       </Link>
       <Link
         href={`${base}/board`}

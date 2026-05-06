@@ -15,7 +15,6 @@ import {
 import { useRouter } from "next/navigation";
 import type { Board, Task, BoardColumn } from "@/types";
 import { updateBoardOverviewAction } from "@/lib/actions/project-actions";
-import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -141,13 +140,6 @@ export function ChapterOverviewPanel({
                 &ldquo;{board.openingLine}&rdquo;
               </blockquote>
             ) : null}
-            <div className="mt-4">
-              <ChapterPageNav
-                projectId={projectId}
-                chapterId={chapterId}
-                active="overview"
-              />
-            </div>
           </div>
           <div className="flex flex-col items-start gap-4 lg:items-end">
             <div className="flex items-center gap-3">

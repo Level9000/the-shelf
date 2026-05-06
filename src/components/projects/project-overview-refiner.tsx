@@ -377,7 +377,7 @@ export function ProjectOverviewRefiner({
           <aside className="surface-card hairline min-h-0 rounded-[2rem] p-5 lg:flex lg:flex-col">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
               <CheckCircle2 className="size-4 text-[var(--accent)]" />
-              Overview alignment
+              Story alignment
             </div>
             <div className="mt-4 space-y-2 overflow-y-auto lg:min-h-0 lg:flex-1">
               {SECTIONS.map((section) => {

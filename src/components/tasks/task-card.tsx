@@ -1,15 +1,16 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   CalendarDays,
+  CheckCircle2,
   GripVertical,
   MessageSquareText,
   UserRound,
 } from "lucide-react";
-import type { Task } from "@/types";
+import type { BoardColumn, Task } from "@/types";
 import { cn, formatDate } from "@/lib/utils";
 
 const POSTIT_PALETTE: Record<string, { body: string; tab: string }> = {
@@ -91,14 +92,25 @@ export function TaskCard({
   columnName,
   onOpen,
   dragInProgress,
+  allColumns,
+  onMoveToColumn,
 }: {
   task: Task;
   columnName?: string;
   onOpen: (taskId: string) => void;
   dragInProgress?: boolean;
+  allColumns?: BoardColumn[];
+  onMoveToColumn?: (taskId: string, columnId: string) => void;
 }) {
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [moved, setMoved] = useState(false);
   const colors = POSTIT_PALETTE[columnName ?? ""] ?? DEFAULT_POSTIT;
+
+  function handleMoveTo(taskId: string, columnId: string) {
+    if (!onMoveToColumn) return;
+    setMoved(true);
+    setTimeout(() => onMoveToColumn(taskId, columnId), 500);
+  }
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({
@@ -137,6 +149,43 @@ export function TaskCard({
       {...listeners}
     >
       <NoteBody task={task} columnName={columnName} />
+
+      {/* Mobile-only: quick-tap column move buttons */}
+      {allColumns && onMoveToColumn && (
+        <div className="lg:hidden">
+          <p className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-black/30">
+            Move to
+          </p>
+          <div className="flex divide-x divide-black/8 border-t border-black/8">
+            {allColumns
+              .filter((col) => col.id !== task.columnId)
+              .map((col) => (
+                <button
+                  key={col.id}
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMoveTo(task.id, col.id);
+                  }}
+                  className="flex-1 py-2 text-center text-[11px] font-medium text-black/50 transition-colors active:bg-black/8"
+                >
+                  {col.name}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Success overlay — fades in on move, card disappears shortly after */}
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 flex items-center justify-center rounded-[3px] bg-green-100/90 transition-opacity duration-200",
+          moved ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <CheckCircle2 className="size-8 text-green-600 drop-shadow-sm" strokeWidth={1.5} />
+      </div>
     </article>
   );
 }

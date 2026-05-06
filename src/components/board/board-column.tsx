@@ -17,6 +17,8 @@ export function BoardColumnView({
   showAddButton,
   onPlanWeek,
   dragInProgress,
+  allColumns,
+  onMoveToColumn,
 }: {
   column: BoardColumn;
   tasks: Task[];
@@ -25,6 +27,8 @@ export function BoardColumnView({
   showAddButton?: boolean;
   onPlanWeek?: () => void;
   dragInProgress?: boolean;
+  allColumns?: BoardColumn[];
+  onMoveToColumn?: (taskId: string, columnId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -82,6 +86,8 @@ export function BoardColumnView({
               columnName={column.name}
               onOpen={onOpenTask}
               dragInProgress={dragInProgress}
+              allColumns={allColumns}
+              onMoveToColumn={onMoveToColumn}
             />
           ))}
           {tasks.length === 0 && !showDropHere ? (

@@ -10,7 +10,8 @@ import {
   type DragEndEvent,
   type DragStartEvent,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   pointerWithin,
   useSensor,
   useSensors,
@@ -26,7 +27,6 @@ import { normalizeTaskOrder } from "@/lib/board-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BoardColumnView } from "@/components/board/board-column";
-import { ChapterPageNav } from "@/components/projects/chapter-page-nav";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
@@ -98,17 +98,24 @@ export function ProjectBoardClient({
   snapshot,
   chapterProjectId,
   chapterId,
+  endChapterOpen = false,
+  onEndChapterClose,
 }: {
   snapshot: BoardSnapshot;
   chapterProjectId: string;
   chapterId: string;
+  endChapterOpen?: boolean;
+  onEndChapterClose?: () => void;
 }) {
   const router = useRouter();
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      // Delay gives a clear tap-and-hold feel on mobile and avoids
+      // intercepting normal scroll gestures.
+      activationConstraint: { delay: 250, tolerance: 8 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -128,7 +135,6 @@ export function ProjectBoardClient({
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [planningWeek, setPlanningWeek] = useState(false);
-  const [endChapterModalOpen, setEndChapterModalOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewState, setReviewState] = useState<ReviewState>({
     captureId: null,
@@ -143,6 +149,7 @@ export function ProjectBoardClient({
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
   );
+
   function refreshData() {
     router.refresh();
   }
@@ -246,6 +253,36 @@ export function ProjectBoardClient({
   }
 
 
+  function handleMoveToColumn(taskId: string, destinationColumnId: string) {
+    const activeTask = tasks.find((t) => t.id === taskId);
+    if (!activeTask || activeTask.columnId === destinationColumnId) return;
+
+    const sourceColumnId = activeTask.columnId;
+    const sourceTasks = tasks.filter(
+      (t) => t.columnId === sourceColumnId && t.id !== taskId,
+    );
+    const destinationTasks = tasks.filter((t) => t.columnId === destinationColumnId);
+    const nextDestinationTasks = [
+      ...destinationTasks,
+      { ...activeTask, columnId: destinationColumnId },
+    ];
+
+    const merged = snapshot.columns.flatMap((column) => {
+      if (column.id === sourceColumnId) return sourceTasks.map((t) => ({ ...t }));
+      if (column.id === destinationColumnId) return nextDestinationTasks.map((t) => ({ ...t }));
+      return tasks.filter((t) => t.columnId === column.id).map((t) => ({ ...t }));
+    });
+
+    const normalized = normalizeTaskOrder(snapshot.columns, merged);
+    const normalizedTasks = merged.map((task) => {
+      const update = normalized.find((item) => item.id === task.id);
+      return update ? { ...task, columnId: update.columnId, position: update.position } : task;
+    });
+
+    setTasks(sortTasks(normalizedTasks));
+    persistArrangement(normalized);
+  }
+
   const todoColumn = snapshot.columns.find((col) => col.name === "To Do");
   const hasTodoTasks = todoColumn ? getColumnTasks(tasks, todoColumn.id).length > 0 : false;
 
@@ -253,8 +290,6 @@ export function ProjectBoardClient({
   const remainingTasks = doneColumn
     ? tasks.filter((t) => t.columnId !== doneColumn.id)
     : tasks;
-  const retroAvailable = Boolean(snapshot.board.kickoffCompletedAt) && !snapshot.board.retroCompletedAt;
-
   function persistArrangement(
     updates: Array<{ id: string; columnId: string; position: number }>,
   ) {
@@ -289,28 +324,7 @@ export function ProjectBoardClient({
         ) : null}
 
         {!planningWeek ? (
-        <section className="surface hairline flex h-full flex-col rounded-[2rem] p-4 sm:p-5">
-          <div className="mb-4">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              {snapshot.board.name}
-            </h1>
-            <div className="mt-4 flex items-center justify-between gap-4">
-              <ChapterPageNav
-                projectId={chapterProjectId}
-                chapterId={chapterId}
-                active="board"
-              />
-              {retroAvailable && (
-                <Button
-                  variant="secondary"
-                  className="shrink-0"
-                  onClick={() => setEndChapterModalOpen(true)}
-                >
-                  End chapter
-                </Button>
-              )}
-            </div>
-          </div>
+        <section className="flex h-full flex-col p-4 sm:p-5">
           {error ? (
             <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {error}
@@ -345,6 +359,8 @@ export function ProjectBoardClient({
                       showAddButton={column.name === "To Do"}
                       onPlanWeek={column.name === "Do This Week" && hasTodoTasks ? () => setPlanningWeek(true) : undefined}
                       dragInProgress={!!dragTaskId}
+                      allColumns={snapshot.columns}
+                      onMoveToColumn={handleMoveToColumn}
                     />
                   ))}
                 </div>
@@ -401,10 +417,10 @@ export function ProjectBoardClient({
       />
 
       <EndChapterModal
-        open={endChapterModalOpen}
-        onClose={() => setEndChapterModalOpen(false)}
+        open={endChapterOpen}
+        onClose={() => onEndChapterClose?.()}
         onConfirm={() => {
-          setEndChapterModalOpen(false);
+          onEndChapterClose?.();
           refreshData();
         }}
         projectId={snapshot.project.id}

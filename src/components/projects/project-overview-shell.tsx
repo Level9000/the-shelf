@@ -101,7 +101,7 @@ export function ProjectOverviewShell({
         projects={projects}
         profile={profile}
         currentProjectId={project.id}
-        mobileEyebrow="Overview"
+        mobileEyebrow="Story"
         mobileTitle={project.name}
       >
         {refining ? (

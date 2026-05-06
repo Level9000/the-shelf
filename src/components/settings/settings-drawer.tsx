@@ -17,7 +17,7 @@ export function SettingsDrawer({
       title="Settings"
       description="Manage your Shelf profile and membership."
       onClose={onClose}
-      side="left"
+      side="right"
     >
       <SettingsForm profile={profile} />
     </SideDrawer>

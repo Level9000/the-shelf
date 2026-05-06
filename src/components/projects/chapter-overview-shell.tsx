@@ -82,6 +82,7 @@ export function ChapterOverviewShell({
         currentChapterId={currentChapterId}
         mobileEyebrow={snapshot.board.name}
         mobileTitle={snapshot.project.name}
+        activeNav="overview"
       >
         <div className="flex h-full min-h-0 flex-col">
           {showKickoff ? (

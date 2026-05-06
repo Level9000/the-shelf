@@ -163,7 +163,7 @@ function OpenBook({
               : "text-[#5C4030] hover:text-[#2C1A08] hover:bg-black/5",
           )}
         >
-          Overview
+          Story
         </Link>
 
         {/* Chapters */}

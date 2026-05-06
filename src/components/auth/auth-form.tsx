@@ -38,8 +38,22 @@ export function AuthForm({
 
   const loginWidget = (
     <div className="w-full max-w-md">
-      <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{subtitle}</p>
+      {/* Mobile header — hero text with highlights replaces title/subtitle */}
+      <div className="mb-6 lg:hidden" style={{ fontFamily: literata.style.fontFamily }}>
+        <h1 className="text-3xl font-bold leading-[1.35]">
+          <span className="box-decoration-clone bg-[#fef9c3] px-2 py-0.5">
+            Welcome to Authored By.
+          </span>
+        </h1>
+        <p className="mt-3 text-base font-medium leading-[1.4]">
+          <span className="box-decoration-clone bg-black px-2 py-0.5 text-white">
+            Helping you tell your founders story, while you build.
+          </span>
+        </p>
+      </div>
+      {/* Desktop header */}
+      <h1 className="hidden text-3xl font-semibold tracking-tight lg:block">{title}</h1>
+      <p className="mt-2 hidden text-sm leading-6 text-[var(--muted)] lg:block">{subtitle}</p>
       <form action={formAction} className="mt-8 space-y-4">
         <input type="hidden" name="next" value={nextPath ?? "/projects"} />
         <div>
@@ -97,8 +111,8 @@ export function AuthForm({
             </div>
           </div>
 
-          {/* Hero text — always pinned to bottom */}
-          <div className="relative">
+          {/* Hero text — desktop only, pinned to bottom */}
+          <div className="relative hidden lg:block">
             <h1
               className="text-3xl font-bold leading-[1.35] sm:text-4xl lg:text-5xl"
               style={{ fontFamily: literata.style.fontFamily }}
@@ -111,8 +125,8 @@ export function AuthForm({
               className="mt-3 text-base font-medium leading-[1.4] sm:text-xl"
               style={{ fontFamily: literata.style.fontFamily }}
             >
-              <span className="box-decoration-clone bg-[#fef9c3] px-2 py-0.5">
-                Helping you tell the story, while you build.
+              <span className="box-decoration-clone bg-black px-2 py-0.5 text-white">
+                Helping you tell your founders story, while you build.
               </span>
             </p>
           </div>

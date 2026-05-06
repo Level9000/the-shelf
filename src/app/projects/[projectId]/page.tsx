@@ -24,7 +24,7 @@ export default async function ProjectPage({
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[1600px] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    <main className="mx-auto min-h-screen w-full max-w-[1600px] px-4 py-4 sm:px-6 sm:py-6 lg:p-0">
       <ProjectOverviewShell
         project={project}
         projects={projects}
