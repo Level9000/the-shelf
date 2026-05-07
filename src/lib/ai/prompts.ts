@@ -394,6 +394,122 @@ export function buildProjectKickoffPrompt(input: {
   ].join("\n");
 }
 
+export function buildShareEmailPrompt(input: {
+  chapterName: string;
+  goal: string | null;
+  whyItMatters: string | null;
+  chapterStory: string | null;
+  completedTasks: string[];
+  remainingTasks: string[];
+  projectName: string;
+  projectStory: string | null;
+  audienceType: string;
+}) {
+  return [
+    "You are a skilled writer helping a founder share their chapter story as a personal email update.",
+    "Write exactly one email body — no subject line, no sign-off, just the body text.",
+    "Be authentic, specific, and grounded in the actual work. No filler. No corporate language.",
+    "3-4 paragraphs maximum. Conversational but credible.",
+    "If messages are provided, treat the last user message as a refinement instruction and return a complete revised version.",
+    "Return only the email body.",
+    "",
+    `Project: ${input.projectName}`,
+    `Chapter: ${input.chapterName}`,
+    `Chapter goal: ${input.goal ?? "Not set"}`,
+    `Why it matters: ${input.whyItMatters ?? "Not set"}`,
+    `Completed: ${input.completedTasks.join(", ") || "None recorded"}`,
+    `Remaining: ${input.remainingTasks.join(", ") || "None"}`,
+    "",
+    `Chapter story:\n${input.chapterStory ?? "No story yet — synthesize from the goal and tasks."}`,
+    "",
+    input.projectStory ? `Running project story:\n${input.projectStory}` : null,
+    "",
+    `Audience: ${input.audienceType}. Tailor the tone and emphasis for that specific reader.`,
+  ].filter(Boolean).join("\n");
+}
+
+export function buildShareBlogPrompt(input: {
+  chapterName: string;
+  goal: string | null;
+  chapterStory: string | null;
+  completedTasks: string[];
+  projectName: string;
+  projectStory: string | null;
+}) {
+  return [
+    "You are a skilled writer helping a founder turn their chapter story into a blog post.",
+    "Write a blog post in authentic founder voice. 400-600 words.",
+    "Use the story and tasks as raw material — not as a list to regurgitate.",
+    "Include a punchy opening sentence. End with one forward-looking thought.",
+    "No padding, no listicles, no headings unless they genuinely help.",
+    "If messages are provided, treat the last user message as a refinement instruction and return a complete revised version.",
+    "Return only the blog post body. No title.",
+    "",
+    `Project: ${input.projectName}`,
+    `Chapter: ${input.chapterName}`,
+    `Chapter goal: ${input.goal ?? "Not set"}`,
+    `Completed tasks: ${input.completedTasks.join(", ") || "None recorded"}`,
+    "",
+    `Chapter story:\n${input.chapterStory ?? "No story yet — synthesize from the goal and tasks."}`,
+    "",
+    input.projectStory ? `Running project story:\n${input.projectStory}` : null,
+  ].filter(Boolean).join("\n");
+}
+
+export function buildShareLinkedInPrompt(input: {
+  chapterName: string;
+  goal: string | null;
+  chapterStory: string | null;
+  completedTasks: string[];
+  projectName: string;
+}) {
+  return [
+    "You are a skilled writer helping a founder share their chapter story on LinkedIn.",
+    "Write a single LinkedIn post. 150-200 words max.",
+    "Pull the most interesting insight or moment from the story.",
+    "Avoid all startup clichés: no 'excited to announce', no 'learnings', no 'journey', no 'thrilled'.",
+    "No hashtag block at the end. At most one relevant hashtag if it flows naturally.",
+    "Make it feel like a real person sharing real work — not a press release.",
+    "If messages are provided, treat the last user message as a refinement instruction and return a complete revised version.",
+    "Return only the post body.",
+    "",
+    `Project: ${input.projectName}`,
+    `Chapter: ${input.chapterName}`,
+    `Chapter goal: ${input.goal ?? "Not set"}`,
+    `Completed tasks: ${input.completedTasks.join(", ") || "None recorded"}`,
+    "",
+    `Chapter story:\n${input.chapterStory ?? "No story yet — synthesize from the goal and tasks."}`,
+  ].filter(Boolean).join("\n");
+}
+
+export function buildSharePodcastPrompt(input: {
+  chapterName: string;
+  goal: string | null;
+  chapterStory: string | null;
+  completedTasks: string[];
+  projectName: string;
+  projectStory: string | null;
+}) {
+  return [
+    "You are a skilled writer helping a founder write a solo podcast monologue about their chapter.",
+    "Write a conversational solo-cast script — like a founder sharing what they shipped this sprint.",
+    "~350 words (2-3 minutes spoken). Conversational, not written. Present tense where natural.",
+    "No sponsor breaks, no episode numbers, no intro music cues. Just the founder talking.",
+    "Start mid-thought, as if the listener already knows who they are.",
+    "If messages are provided, treat the last user message as a refinement instruction and return a complete revised version.",
+    "Return only the script body.",
+    "",
+    `Project: ${input.projectName}`,
+    `Chapter: ${input.chapterName}`,
+    `Chapter goal: ${input.goal ?? "Not set"}`,
+    `Completed tasks: ${input.completedTasks.join(", ") || "None recorded"}`,
+    "",
+    `Chapter story:\n${input.chapterStory ?? "No story yet — synthesize from the goal and tasks."}`,
+    "",
+    input.projectStory ? `Running project story:\n${input.projectStory}` : null,
+  ].filter(Boolean).join("\n");
+}
+
 export function buildChapterRetroPrompt(input: {
   chapter: {
     goal: string | null;

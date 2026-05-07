@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { BoardSnapshot, ProjectWithChapters, Task, UserProfile } from "@/types";
 import { ChapterKickoffChat } from "@/components/board/chapter-kickoff-chat";
 import { ChapterOverviewPanel } from "@/components/board/chapter-overview-panel";
 import { ChapterOverviewRefiner } from "@/components/board/chapter-overview-refiner";
 import { ChapterRetroChat } from "@/components/board/chapter-retro-chat";
 import { EndChapterModal } from "@/components/board/end-chapter-modal";
+import { StoryHub } from "@/components/board/story-hub";
 import { ChapterOverviewSettingsDrawer } from "@/components/projects/chapter-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 
@@ -54,6 +56,7 @@ export function ChapterOverviewShell({
   currentProjectId: string;
   currentChapterId: string;
 }) {
+  const router = useRouter();
   const kickoffMode = chapterKickoffMode(snapshot);
   const [kickoffDismissed, setKickoffDismissed] = useState(false);
   const [refining, setRefining] = useState(false);
@@ -71,6 +74,11 @@ export function ChapterOverviewShell({
   function handleEndChapterConfirmed(_nextChapterId: string | null) {
     setEndChapterModalOpen(false);
     setRetroOpen(true);
+  }
+
+  function handleRetroComplete() {
+    setRetroOpen(false);
+    router.refresh();
   }
 
   return (
@@ -103,12 +111,25 @@ export function ChapterOverviewShell({
               board={snapshot.board}
               completedTasks={completedTasks}
               remainingTasks={remainingTasks}
+              onComplete={handleRetroComplete}
             />
           ) : refining ? (
             <ChapterOverviewRefiner
               project={snapshot.project}
               board={snapshot.board}
               onClose={() => setRefining(false)}
+            />
+          ) : snapshot.board.retroCompletedAt ? (
+            <StoryHub
+              board={snapshot.board}
+              project={{
+                id: snapshot.project.id,
+                name: snapshot.project.name,
+                accumulativeStory: snapshot.project.accumulativeStory,
+              }}
+              completedTasks={completedTasks}
+              remainingTasks={remainingTasks}
+              onEndChapter={() => setEndChapterModalOpen(true)}
             />
           ) : (
             <ChapterOverviewPanel

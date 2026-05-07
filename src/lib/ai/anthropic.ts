@@ -7,6 +7,10 @@ import {
   buildChapterKickoffPrompt,
   buildChapterRetroPrompt,
   buildProjectKickoffPrompt,
+  buildShareBlogPrompt,
+  buildShareEmailPrompt,
+  buildShareLinkedInPrompt,
+  buildSharePodcastPrompt,
 } from "@/lib/ai/prompts";
 import { safeJsonParse } from "@/lib/utils";
 
@@ -227,4 +231,109 @@ export async function runChapterRetroDialogue(input: {
   }
 
   return { reply: content };
+}
+
+// ── Share format generation ──────────────────────────────────────────────────
+
+async function runShareGeneration(input: {
+  messages: StrategicDialogueMessage[];
+  systemPrompt: string;
+}): Promise<{ content: string }> {
+  const apiKey = requireAnthropicKey();
+
+  const apiMessages =
+    input.messages.length > 0
+      ? input.messages.map((m) => ({ role: m.role, content: m.content }))
+      : [{ role: "user" as const, content: "Generate the content now." }];
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      system: input.systemPrompt,
+      messages: apiMessages,
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Share generation failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+
+  const text = payload.content?.find((block) => block.type === "text")?.text;
+  if (!text) throw new Error("Share generation returned no content.");
+
+  return { content: text.trim() };
+}
+
+export async function runShareEmailGeneration(input: {
+  messages: StrategicDialogueMessage[];
+  chapterName: string;
+  goal: string | null;
+  whyItMatters: string | null;
+  chapterStory: string | null;
+  completedTasks: string[];
+  remainingTasks: string[];
+  projectName: string;
+  projectStory: string | null;
+  audienceType: string;
+}) {
+  return runShareGeneration({
+    messages: input.messages,
+    systemPrompt: buildShareEmailPrompt(input),
+  });
+}
+
+export async function runShareBlogGeneration(input: {
+  messages: StrategicDialogueMessage[];
+  chapterName: string;
+  goal: string | null;
+  chapterStory: string | null;
+  completedTasks: string[];
+  projectName: string;
+  projectStory: string | null;
+}) {
+  return runShareGeneration({
+    messages: input.messages,
+    systemPrompt: buildShareBlogPrompt(input),
+  });
+}
+
+export async function runShareLinkedInGeneration(input: {
+  messages: StrategicDialogueMessage[];
+  chapterName: string;
+  goal: string | null;
+  chapterStory: string | null;
+  completedTasks: string[];
+  projectName: string;
+}) {
+  return runShareGeneration({
+    messages: input.messages,
+    systemPrompt: buildShareLinkedInPrompt(input),
+  });
+}
+
+export async function runSharePodcastGeneration(input: {
+  messages: StrategicDialogueMessage[];
+  chapterName: string;
+  goal: string | null;
+  chapterStory: string | null;
+  completedTasks: string[];
+  projectName: string;
+  projectStory: string | null;
+}) {
+  return runShareGeneration({
+    messages: input.messages,
+    systemPrompt: buildSharePodcastPrompt(input),
+  });
 }

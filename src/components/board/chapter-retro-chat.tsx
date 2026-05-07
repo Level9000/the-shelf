@@ -86,11 +86,13 @@ export function ChapterRetroChat({
   board,
   completedTasks,
   remainingTasks,
+  onComplete,
 }: {
   project: { id: string; name: string; accumulativeStory: string | null };
   board: Board;
   completedTasks: Task[];
   remainingTasks: Task[];
+  onComplete?: () => void;
 }) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const opener = buildRetroOpener(board, completedTasks, remainingTasks);
@@ -185,6 +187,7 @@ export function ChapterRetroChat({
         });
         setShareSlug(slug);
         setStage("share");
+        onComplete?.();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to publish story.");
       }
