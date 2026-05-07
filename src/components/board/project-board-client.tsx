@@ -124,6 +124,19 @@ export function ProjectBoardClient({
 
   const [tasks, setTasks] = useState<Task[]>(() => sortTasks(snapshot.tasks));
 
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(
+    () => new Set(snapshot.columns.filter((c) => c.name === "Stuff I Need to Do").map((c) => c.id)),
+  );
+
+  function toggleColumn(columnId: string) {
+    setCollapsedColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(columnId)) next.delete(columnId);
+      else next.add(columnId);
+      return next;
+    });
+  }
+
   // Sync local task state when the server sends a fresh snapshot (after router.refresh())
   useEffect(() => {
     if (!dragTaskId) {
@@ -283,7 +296,7 @@ export function ProjectBoardClient({
     persistArrangement(normalized);
   }
 
-  const todoColumn = snapshot.columns.find((col) => col.name === "To Do");
+  const todoColumn = snapshot.columns.find((col) => col.name === "Stuff I Need to Do");
   const hasTodoTasks = todoColumn ? getColumnTasks(tasks, todoColumn.id).length > 0 : false;
 
   const doneColumn = snapshot.columns.find((col) => col.name.toLowerCase() === "done");
@@ -315,7 +328,7 @@ export function ProjectBoardClient({
 
   return (
     <>
-      <div className="space-y-6 lg:h-full">
+      <div className="space-y-6">
         {planningWeek ? (
           <WeeklyPlanningRefiner
             snapshot={snapshot}
@@ -324,14 +337,14 @@ export function ProjectBoardClient({
         ) : null}
 
         {!planningWeek ? (
-        <section className="flex h-full flex-col p-4 sm:p-5">
+        <section className="flex flex-col p-4 sm:p-5">
           {error ? (
             <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {error}
             </p>
           ) : null}
           {isPending ? <Badge className="mb-4">Saving changes...</Badge> : null}
-          <div className="min-h-0 flex-1">
+          <div>
             <DndContext
               id="board-dnd-context"
               sensors={sensors}
@@ -342,10 +355,14 @@ export function ProjectBoardClient({
             >
               <div className="overflow-x-auto pb-2">
                 <div
-                  className="grid grid-cols-1 gap-4 lg:min-w-full lg:[grid-template-columns:repeat(var(--column-count),minmax(280px,1fr))]"
+                  className="board-columns-grid grid gap-4"
                   style={
                     {
-                      "--column-count": snapshot.columns.length,
+                      "--board-col-template": snapshot.columns
+                        .map((col) =>
+                          collapsedColumns.has(col.id) ? "3.5rem" : "minmax(280px, 1fr)",
+                        )
+                        .join(" "),
                     } as CSSProperties
                   }
                 >
@@ -356,11 +373,13 @@ export function ProjectBoardClient({
                       tasks={getColumnTasks(tasks, column.id)}
                       onOpenTask={setSelectedTaskId}
                       onCreateTask={openManualTask}
-                      showAddButton={column.name === "To Do"}
+                      showAddButton={["Stuff I Need to Do", "Do This Week", "Do Today"].includes(column.name)}
                       onPlanWeek={column.name === "Do This Week" && hasTodoTasks ? () => setPlanningWeek(true) : undefined}
                       dragInProgress={!!dragTaskId}
                       allColumns={snapshot.columns}
                       onMoveToColumn={handleMoveToColumn}
+                      isCollapsed={collapsedColumns.has(column.id)}
+                      onToggleCollapse={column.name === "Stuff I Need to Do" ? () => toggleColumn(column.id) : undefined}
                     />
                   ))}
                 </div>

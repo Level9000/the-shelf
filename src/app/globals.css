@@ -103,3 +103,14 @@ pre,
 .font-literata {
   font-family: "Literata", Georgia, serif;
 }
+
+.board-columns-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .board-columns-grid {
+    grid-template-columns: var(--board-col-template);
+    min-width: 100%;
+  }
+}

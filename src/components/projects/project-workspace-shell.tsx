@@ -35,7 +35,7 @@ export function ProjectWorkspaceShell({
       retroAvailable={retroAvailable}
       onEndChapter={() => setEndChapterOpen(true)}
     >
-      <div className="space-y-5 lg:h-full">
+      <div className="space-y-5">
         <ProjectBoardClient
           snapshot={snapshot}
           chapterProjectId={currentProjectId}

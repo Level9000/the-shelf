@@ -1,9 +1,10 @@
 import type { Priority } from "@/types";
 
 export const DEFAULT_COLUMNS = [
-  "To Do",
+  "Stuff I Need to Do",
   "Do This Week",
-  "In Progress",
+  "Do Today",
+  "Blocked",
   "Done",
 ] as const;
 
@@ -17,8 +18,9 @@ export const PRIORITY_OPTIONS: Array<{
 ];
 
 export const COLUMN_TINTS: Record<string, string> = {
-  "To Do": "from-white to-slate-100/90",
+  "Stuff I Need to Do": "from-white to-slate-100/90",
   "Do This Week": "from-white to-sky-50",
-  "In Progress": "from-white to-amber-50",
+  "Do Today": "from-white to-amber-50",
+  "Blocked": "from-white to-rose-50",
   Done: "from-white to-emerald-50",
 };
