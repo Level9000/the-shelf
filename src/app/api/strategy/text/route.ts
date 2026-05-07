@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       existingTasks = tasks.map((task) => ({
         title: task.title,
         columnName:
-          (task.board_columns as { name?: string } | null)?.name ?? "To Do",
+          (task.board_columns as { name?: string } | null)?.name ?? "Do This Week",
       }));
     }
   }

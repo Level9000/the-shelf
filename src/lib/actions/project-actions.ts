@@ -527,10 +527,10 @@ export async function completeChapterKickoffAction(input: {
     throw new Error(boardError.message);
   }
 
-  // Insert proposed tasks into the "To Do" column
+  // Insert proposed tasks into the "Do This Week" column
   if (input.tasks.length > 0) {
     const toDoColumn =
-      input.columns.find((col) => col.name === "To Do") ?? input.columns[0];
+      input.columns.find((col) => col.name === "Do This Week") ?? input.columns[0];
 
     if (toDoColumn) {
       const { data: existingTasks, error: positionError } = await supabase
@@ -759,10 +759,10 @@ export async function endChapterEarlyAction(input: {
   if (incompleteTasks.length > 0) {
     const inserts = incompleteTasks.map((task, index) => {
       const sourceColName =
-        sourceColumnNameById.get(String(task.column_id)) ?? "To Do";
+        sourceColumnNameById.get(String(task.column_id)) ?? "Do This Week";
       const targetColId =
         targetColumnIdByName.get(sourceColName) ??
-        targetColumnIdByName.get("To Do");
+        targetColumnIdByName.get("Do This Week");
 
       return {
         project_id: input.projectId,
@@ -930,10 +930,10 @@ export async function createChapterAction(input: {
     if (incompleteTasks.length > 0) {
       const inserts = incompleteTasks.map((task, index) => {
         const sourceColumnName =
-          sourceColumnNameById.get(String(task.column_id)) ?? "To Do";
+          sourceColumnNameById.get(String(task.column_id)) ?? "Do This Week";
         const targetColumnId =
           targetColumnIdByName.get(sourceColumnName) ??
-          targetColumnIdByName.get("To Do");
+          targetColumnIdByName.get("Do This Week");
 
         return {
           project_id: input.projectId,

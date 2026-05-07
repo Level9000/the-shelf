@@ -32,7 +32,6 @@ import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
 import { EndChapterModal } from "@/components/board/end-chapter-modal";
-import { WeeklyPlanningRefiner } from "@/components/board/weekly-planning-refiner";
 
 type ReviewState = {
   captureId: string | null;
@@ -124,19 +123,6 @@ export function ProjectBoardClient({
 
   const [tasks, setTasks] = useState<Task[]>(() => sortTasks(snapshot.tasks));
 
-  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(
-    () => new Set(snapshot.columns.filter((c) => c.name === "Stuff I Need to Do").map((c) => c.id)),
-  );
-
-  function toggleColumn(columnId: string) {
-    setCollapsedColumns((prev) => {
-      const next = new Set(prev);
-      if (next.has(columnId)) next.delete(columnId);
-      else next.add(columnId);
-      return next;
-    });
-  }
-
   // Sync local task state when the server sends a fresh snapshot (after router.refresh())
   useEffect(() => {
     if (!dragTaskId) {
@@ -147,7 +133,6 @@ export function ProjectBoardClient({
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
-  const [planningWeek, setPlanningWeek] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewState, setReviewState] = useState<ReviewState>({
     captureId: null,
@@ -296,13 +281,6 @@ export function ProjectBoardClient({
     persistArrangement(normalized);
   }
 
-  const todoColumn = snapshot.columns.find((col) => col.name === "Stuff I Need to Do");
-  const hasTodoTasks = todoColumn ? getColumnTasks(tasks, todoColumn.id).length > 0 : false;
-
-  const doneColumn = snapshot.columns.find((col) => col.name.toLowerCase() === "done");
-  const remainingTasks = doneColumn
-    ? tasks.filter((t) => t.columnId !== doneColumn.id)
-    : tasks;
   function persistArrangement(
     updates: Array<{ id: string; columnId: string; position: number }>,
   ) {
@@ -329,14 +307,6 @@ export function ProjectBoardClient({
   return (
     <>
       <div className="space-y-6">
-        {planningWeek ? (
-          <WeeklyPlanningRefiner
-            snapshot={snapshot}
-            onClose={() => setPlanningWeek(false)}
-          />
-        ) : null}
-
-        {!planningWeek ? (
         <section className="flex flex-col p-4 sm:p-5">
           {error ? (
             <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -355,16 +325,8 @@ export function ProjectBoardClient({
             >
               <div className="overflow-x-auto pb-2">
                 <div
-                  className="board-columns-grid grid gap-4"
-                  style={
-                    {
-                      "--board-col-template": snapshot.columns
-                        .map((col) =>
-                          collapsedColumns.has(col.id) ? "3.5rem" : "minmax(280px, 1fr)",
-                        )
-                        .join(" "),
-                    } as CSSProperties
-                  }
+                  className="board-grid grid grid-cols-1 gap-4"
+                  style={{ "--col-count": snapshot.columns.length } as CSSProperties}
                 >
                   {snapshot.columns.map((column) => (
                     <BoardColumnView
@@ -373,13 +335,10 @@ export function ProjectBoardClient({
                       tasks={getColumnTasks(tasks, column.id)}
                       onOpenTask={setSelectedTaskId}
                       onCreateTask={openManualTask}
-                      showAddButton={["Stuff I Need to Do", "Do This Week", "Do Today"].includes(column.name)}
-                      onPlanWeek={column.name === "Do This Week" && hasTodoTasks ? () => setPlanningWeek(true) : undefined}
+                      showAddButton={["Do This Week", "Do Today"].includes(column.name)}
                       dragInProgress={!!dragTaskId}
                       allColumns={snapshot.columns}
                       onMoveToColumn={handleMoveToColumn}
-                      isCollapsed={collapsedColumns.has(column.id)}
-                      onToggleCollapse={column.name === "Stuff I Need to Do" ? () => toggleColumn(column.id) : undefined}
                     />
                   ))}
                 </div>
@@ -387,7 +346,6 @@ export function ProjectBoardClient({
             </DndContext>
           </div>
         </section>
-        ) : null}
       </div>
 
       <TaskDetailModal
@@ -445,8 +403,16 @@ export function ProjectBoardClient({
         projectId={snapshot.project.id}
         boardId={snapshot.board.id}
         incompleteTasks={{
-          count: remainingTasks.length,
-          titles: remainingTasks.map((t) => t.title),
+          count: tasks.filter((t) => {
+            const doneCol = snapshot.columns.find((c) => c.name.toLowerCase() === "done");
+            return !doneCol || t.columnId !== doneCol.id;
+          }).length,
+          titles: tasks
+            .filter((t) => {
+              const doneCol = snapshot.columns.find((c) => c.name.toLowerCase() === "done");
+              return !doneCol || t.columnId !== doneCol.id;
+            })
+            .map((t) => t.title),
         }}
       />
     </>

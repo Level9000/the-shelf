@@ -226,7 +226,7 @@ export async function acceptProposedTasksAction(input: {
   input.proposals.forEach((proposal) => {
     const targetColumn =
       input.columnMap.find((column) => column.name === proposal.suggestedColumn) ??
-      input.columnMap.find((column) => column.name === "To Do") ??
+      input.columnMap.find((column) => column.name === "Do This Week") ??
       input.columnMap[0];
 
     if (!targetColumn) return;
@@ -297,7 +297,7 @@ export async function createTasksFromTemplateAction(input: {
       id: String(step.id ?? randomUUID()),
       title: String(step.title ?? "").trim(),
       description: String(step.description ?? "").trim(),
-      suggestedColumn: String(step.suggested_column ?? "To Do"),
+      suggestedColumn: String(step.suggested_column ?? "Do This Week"),
       priority: (step.priority as Priority) ?? null,
       dueDate: (step.due_date as string | null) ?? null,
       position: Number(step.position ?? 0),
@@ -317,7 +317,7 @@ export async function createTasksFromTemplateAction(input: {
   steps.forEach((step) => {
     const targetColumn =
       input.columnMap.find((column) => column.name === step.suggestedColumn) ??
-      input.columnMap.find((column) => column.name === "To Do") ??
+      input.columnMap.find((column) => column.name === "Do This Week") ??
       input.columnMap[0];
 
     if (!targetColumn) return;

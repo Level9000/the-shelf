@@ -24,5 +24,5 @@ export function normalizeTaskOrder(
 export function fallbackColumnName(columnName: string) {
   return DEFAULT_COLUMNS.includes(columnName as (typeof DEFAULT_COLUMNS)[number])
     ? columnName
-    : "To Do";
+    : "Do This Week";
 }

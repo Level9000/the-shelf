@@ -8,7 +8,7 @@ export const proposedTaskSchema = z.object({
     .trim()
     .min(1)
     .max(32)
-    .transform((value) => value || "To Do"),
+    .transform((value) => value || "Do This Week"),
   priority: z.enum(["low", "medium", "high"]).nullable().default(null),
   dueDate: z
     .string()

@@ -87,7 +87,7 @@ export async function POST(request: Request) {
   );
 
   const backlogTasks = tasks
-    .filter((task) => columnNameById.get(String(task.column_id)) === "To Do")
+    .filter((task) => columnNameById.get(String(task.column_id)) === "Do This Week")
     .map((task) => ({
       id: String(task.id),
       title: String(task.title),

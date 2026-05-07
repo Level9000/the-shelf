@@ -149,7 +149,7 @@ export function ManualTaskModal({
     <>
       <Modal
         open={open}
-        title="Add to backlog"
+        title="Add to the board"
         description="Create a task manually, use a saved workflow, or let AI generate the work."
         onClose={onClose}
         className="max-w-5xl"
@@ -170,7 +170,7 @@ export function ManualTaskModal({
                     <PencilLine className="size-5" />
                   </div>
                   <div>
-                    <p className="text-base font-semibold text-[var(--ink)]">Create a task</p>
+                    <p className="text-base font-semibold text-[var(--ink)]">Create a Task</p>
                     <p className="mt-1 text-sm text-[var(--muted)]">
                       Add one card manually with your own title, details, and due date.
                     </p>
@@ -193,7 +193,7 @@ export function ManualTaskModal({
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-base font-semibold text-[var(--ink)]">
-                        Add from my template library
+                        My Template Library
                       </p>
                       <Badge>{templates.length}</Badge>
                     </div>
@@ -224,7 +224,7 @@ export function ManualTaskModal({
                     </div>
                     <div>
                       <p className="text-base font-semibold text-[var(--ink)]">
-                        Speech to backlog
+                        Brain Dump
                       </p>
                       <p className="mt-1 text-sm text-[var(--muted)]">
                         Record a note and turn it into reviewable tasks.
@@ -247,7 +247,7 @@ export function ManualTaskModal({
                     </div>
                     <div>
                       <p className="text-base font-semibold text-[var(--ink)]">
-                        Plan with AI
+                        Talk it Out
                       </p>
                       <p className="mt-1 text-sm text-[var(--muted)]">
                         Talk through the work and extract backlog tasks fast.

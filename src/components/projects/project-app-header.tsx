@@ -18,34 +18,36 @@ function NavDropdown({
   displayValue,
   options,
   onSelect,
+  actionLabel,
+  onAction,
+  isOpen,
+  onOpenChange,
 }: {
   label: string;
   displayValue: string;
   options: { value: string; label: string }[];
   onSelect: (value: string) => void;
+  actionLabel?: string;
+  onAction?: () => void;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Recalculate position whenever the dropdown opens so it tracks the button.
   useEffect(() => {
-    if (!open || !buttonRef.current) return;
+    if (!isOpen || !buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     setPos({ top: rect.bottom + 6, left: rect.left });
-  }, [open]);
-
-  function handleToggle() {
-    setOpen((v) => !v);
-  }
+  }, [isOpen]);
 
   return (
     <div>
       <button
         ref={buttonRef}
         type="button"
-        onClick={handleToggle}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onClick={() => onOpenChange(!isOpen)}
+        onBlur={() => setTimeout(() => onOpenChange(false), 150)}
         className="flex flex-col items-start text-left"
       >
         <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/50 mb-0.5">
@@ -59,19 +61,34 @@ function NavDropdown({
         </span>
       </button>
 
-      {/* Portal — renders outside overflow:hidden header so it floats over the board */}
-      {open && typeof document !== "undefined" && createPortal(
+      {isOpen && typeof document !== "undefined" && createPortal(
         <div
           style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999 }}
           className="min-w-[220px] overflow-hidden rounded-xl border border-black/5 bg-white shadow-2xl shadow-black/25"
         >
+          {actionLabel && onAction && (
+            <>
+              <button
+                type="button"
+                onMouseDown={() => {
+                  onAction();
+                  onOpenChange(false);
+                }}
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-[var(--accent)] transition hover:bg-black/5"
+              >
+                <Plus className="size-3.5 shrink-0" />
+                {actionLabel}
+              </button>
+              <div className="mx-3 border-t border-black/8" />
+            </>
+          )}
           {options.map((opt) => (
             <button
               key={opt.value}
               type="button"
               onMouseDown={() => {
                 onSelect(opt.value);
-                setOpen(false);
+                onOpenChange(false);
               }}
               className="flex w-full items-center px-4 py-2.5 text-left text-sm font-medium text-[var(--ink)] transition hover:bg-black/5"
             >
@@ -106,6 +123,7 @@ export function ProjectAppHeader({
 }) {
   const router = useRouter();
   const [chapterModalOpen, setChapterModalOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<"project" | "chapter" | null>(null);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
   const chapterIndex =
@@ -162,6 +180,10 @@ export function ProjectAppHeader({
             displayValue={currentProject?.name ?? "Select project"}
             options={projectOptions}
             onSelect={(id) => router.push(`/projects/${id}`)}
+            actionLabel="New Project"
+            onAction={() => router.push("/projects/new")}
+            isOpen={openDropdown === "project"}
+            onOpenChange={(open) => setOpenDropdown(open ? "project" : null)}
           />
 
           <div className="mx-2 h-5 w-px shrink-0 bg-white/20" />
@@ -175,11 +197,13 @@ export function ProjectAppHeader({
               if (!val) {
                 router.push(`/projects/${currentProjectId}`);
               } else {
-                router.push(
-                  `/projects/${currentProjectId}/chapters/${val}`,
-                );
+                router.push(`/projects/${currentProjectId}/chapters/${val}`);
               }
             }}
+            actionLabel="New Chapter"
+            onAction={() => setChapterModalOpen(true)}
+            isOpen={openDropdown === "chapter"}
+            onOpenChange={(open) => setOpenDropdown(open ? "chapter" : null)}
           />
 
           {/* Overview / Board nav — only when inside a chapter */}

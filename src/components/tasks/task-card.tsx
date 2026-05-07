@@ -14,11 +14,10 @@ import type { BoardColumn, Task } from "@/types";
 import { cn, formatDate } from "@/lib/utils";
 
 const POSTIT_PALETTE: Record<string, { body: string; tab: string }> = {
-  "Stuff I Need to Do": { body: "bg-yellow-100", tab: "bg-yellow-200" },
-  "Do This Week":       { body: "bg-sky-100",    tab: "bg-sky-200"    },
-  "Do Today":           { body: "bg-orange-50",  tab: "bg-orange-200" },
-  "Blocked":            { body: "bg-rose-50",    tab: "bg-rose-200"   },
-  "Done":               { body: "bg-green-50",   tab: "bg-green-200"  },
+  "Do This Week": { body: "bg-yellow-100", tab: "bg-yellow-200" },
+  "Do Today":     { body: "bg-blue-100",   tab: "bg-blue-200"   },
+  "Blocked":      { body: "bg-pink-100",   tab: "bg-pink-200"   },
+  "Done":         { body: "bg-green-100",  tab: "bg-green-200"  },
 };
 
 const DEFAULT_POSTIT = { body: "bg-yellow-100", tab: "bg-yellow-200" };
