@@ -40,6 +40,44 @@ export type VoiceCapturePanelHandle = {
   openPlanWithAi: () => void;
 };
 
+// SpeechRecognition is a browser-native API not fully typed in all TS DOM libs.
+// We declare a minimal interface for what we actually use.
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly [index: number]: { readonly transcript: string };
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  readonly [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+}
+
+interface ISpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  addEventListener(type: "result", listener: (event: SpeechRecognitionEvent) => void): void;
+  addEventListener(type: "error", listener: (event: SpeechRecognitionErrorEvent) => void): void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => ISpeechRecognition;
+    webkitSpeechRecognition: new () => ISpeechRecognition;
+  }
+}
+
 export const VoiceCapturePanel = forwardRef<VoiceCapturePanelHandle, {
   project: Project;
   boardId: string;
@@ -60,7 +98,8 @@ function VoiceCapturePanel({
   idleDescription,
   showLauncher = true,
 }, ref) {
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
+  const transcriptRef = useRef<string>("");
   const sectionRef = useRef<HTMLElement | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [state, setState] = useState<RecorderState>("idle");
@@ -82,22 +121,16 @@ function VoiceCapturePanel({
     return () => window.clearInterval(timer);
   }, [state]);
 
-  const processRecording = useCallback((audioBlob: Blob) => {
+  const processTranscript = useCallback((transcript: string) => {
     setMessage(null);
     setState("processing");
 
     startTransition(async () => {
       try {
-        const formData = new FormData();
-        formData.append("projectId", project.id);
-        formData.append(
-          "audio",
-          new File([audioBlob], "voice-note.webm", { type: "audio/webm" }),
-        );
-
         const response = await fetch("/api/voice/process", {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: project.id, transcript }),
         });
 
         const payload = (await response.json()) as {
@@ -111,9 +144,9 @@ function VoiceCapturePanel({
           throw new Error(payload.error ?? "Voice processing failed.");
         }
 
-        const transcript = payload.transcript?.trim();
+        const returnedTranscript = (payload.transcript ?? transcript).trim();
 
-        if (!transcript) {
+        if (!returnedTranscript) {
           throw new Error("Transcription came back empty.");
         }
 
@@ -128,7 +161,7 @@ function VoiceCapturePanel({
         setModalOpen(false);
         onProcessed({
           captureId: payload.id ?? crypto.randomUUID(),
-          transcript,
+          transcript: returnedTranscript,
           proposals,
         });
       } catch (error) {
@@ -140,39 +173,70 @@ function VoiceCapturePanel({
     });
   }, [onProcessed, project.id, startTransition]);
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(() => {
+    const SpeechRecognitionClass =
+      window.SpeechRecognition ?? window.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionClass) {
+      setState("error");
+      setMessage("Speech recognition is not supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+
     try {
       setMessage(null);
       setModeNote(null);
       setElapsedSeconds(0);
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : undefined,
-      });
+      transcriptRef.current = "";
 
-      const chunks: Blob[] = [];
-      recorder.addEventListener("dataavailable", (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
+      const recognition: ISpeechRecognition = new SpeechRecognitionClass();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.addEventListener("result", (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            transcriptRef.current +=
+              (transcriptRef.current ? " " : "") +
+              event.results[i][0].transcript;
+          }
         }
       });
 
-      recorder.addEventListener("stop", () => {
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        stream.getTracks().forEach((track) => track.stop());
-        void processRecording(blob);
+      recognition.addEventListener("error", (event) => {
+        if (event.error === "not-allowed") {
+          setState("error");
+          setMessage("Microphone access denied. Check browser permissions and try again.");
+        } else if (event.error !== "no-speech" && event.error !== "aborted") {
+          setState("error");
+          setMessage(`Speech recognition error: ${event.error}`);
+        }
       });
 
-      mediaRecorderRef.current = recorder;
-      recorder.start();
+      recognitionRef.current = recognition;
+      recognition.start();
       setState("recording");
     } catch {
       setState("error");
       setMessage("Microphone access failed. Check browser permissions and try again.");
     }
-  }, [processRecording]);
+  }, []);
+
+  function stopRecording() {
+    if (!recognitionRef.current) return;
+    recognitionRef.current.stop();
+    recognitionRef.current = null;
+
+    const transcript = transcriptRef.current.trim();
+    if (!transcript) {
+      setState("error");
+      setMessage("No speech detected. Please try again.");
+      return;
+    }
+
+    processTranscript(transcript);
+  }
 
   useImperativeHandle(ref, () => ({
     startCapture: () => {
@@ -200,11 +264,6 @@ function VoiceCapturePanel({
       setStrategicTextOpen(true);
     },
   }), []);
-
-  function stopRecording() {
-    if (!mediaRecorderRef.current) return;
-    mediaRecorderRef.current.stop();
-  }
 
   return (
     <>
@@ -425,8 +484,8 @@ function VoiceCapturePanel({
                 {state === "recording"
                   ? `${elapsedSeconds}s recorded`
                   : state === "processing"
-                    ? "Audio stays in memory only while transcription runs."
-                    : "Start when you are ready, then stop to transcribe immediately."}
+                    ? "Transcribing and extracting tasks..."
+                    : "Start when you are ready, then stop to process immediately."}
               </p>
             </div>
           </div>

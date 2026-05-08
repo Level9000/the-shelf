@@ -1,16 +1,26 @@
 import {
   aiKickoffDialogueSchema,
   aiProjectKickoffDialogueSchema,
+  aiStrategicDialogueSchema,
+  aiTaskExtractionSchema,
+  aiProjectOverviewDialogueSchema,
+  aiWeeklyPlanningDialogueSchema,
+  type ProjectOverviewSection,
   type StrategicDialogueMessage,
 } from "@/lib/ai/schema";
 import {
   buildChapterKickoffPrompt,
+  buildChapterOverviewDialoguePrompt,
   buildChapterRetroPrompt,
   buildProjectKickoffPrompt,
+  buildProjectOverviewDialoguePrompt,
   buildShareBlogPrompt,
   buildShareEmailPrompt,
   buildShareLinkedInPrompt,
   buildSharePodcastPrompt,
+  buildStrategicDialoguePrompt,
+  buildTaskExtractionPrompt,
+  buildWeeklyPlanningPrompt,
 } from "@/lib/ai/prompts";
 import { safeJsonParse } from "@/lib/utils";
 
@@ -336,4 +346,154 @@ export async function runSharePodcastGeneration(input: {
     messages: input.messages,
     systemPrompt: buildSharePodcastPrompt(input),
   });
+}
+
+// ── Text AI functions (migrated from openai.ts) ───────────────────────────────
+
+async function runJsonDialogue<T>(
+  systemPrompt: string,
+  messages: StrategicDialogueMessage[],
+  parse: (text: string) => T,
+  maxTokens = 2048,
+): Promise<T> {
+  const apiKey = requireAnthropicKey();
+
+  const apiMessages =
+    messages.length > 0
+      ? messages.map((m) => ({ role: m.role, content: m.content }))
+      : [{ role: "user" as const, content: "Begin." }];
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: apiMessages,
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`AI request failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+
+  const text = payload.content?.find((b) => b.type === "text")?.text;
+  if (!text) throw new Error("AI returned no content.");
+
+  return parse(text);
+}
+
+export async function extractTasksFromTranscript(input: {
+  transcript: string;
+  projectName: string;
+  projectDescription?: string | null;
+}) {
+  return runJsonDialogue(
+    buildTaskExtractionPrompt(input),
+    [{ role: "user", content: "Extract tasks from the transcript above." }],
+    (text) => aiTaskExtractionSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
+export async function runStrategicTextDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  projectDescription?: string | null;
+  chapterContext?: {
+    name: string;
+    goal: string | null;
+    whyItMatters: string | null;
+    successLooksLike: string | null;
+    doneDefinition: string | null;
+  } | null;
+  existingTasks?: Array<{ title: string; columnName: string }>;
+}) {
+  return runJsonDialogue(
+    buildStrategicDialoguePrompt(input),
+    input.messages,
+    (text) => aiStrategicDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
+export async function runProjectOverviewDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  projectDescription?: string | null;
+  currentSection: ProjectOverviewSection;
+  existingValues: {
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+}) {
+  return runJsonDialogue(
+    buildProjectOverviewDialoguePrompt(input),
+    input.messages,
+    (text) => aiProjectOverviewDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
+export async function runChapterOverviewDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  projectDescription?: string | null;
+  projectOverview: {
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+  chapterName: string;
+  currentSection: ProjectOverviewSection;
+  existingValues: {
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+}) {
+  return runJsonDialogue(
+    buildChapterOverviewDialoguePrompt(input),
+    input.messages,
+    (text) => aiProjectOverviewDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
+export async function runWeeklyPlanningDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  chapterName: string;
+  chapterGoal?: string | null;
+  chapterSuccessLooksLike?: string | null;
+  backlogTasks: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    priority?: string | null;
+    dueDate?: string | null;
+  }>;
+  currentWeekTasks: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    priority?: string | null;
+    dueDate?: string | null;
+  }>;
+}) {
+  return runJsonDialogue(
+    buildWeeklyPlanningPrompt(input),
+    input.messages,
+    (text) => aiWeeklyPlanningDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
 }

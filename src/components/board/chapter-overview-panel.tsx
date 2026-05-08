@@ -3,21 +3,23 @@
 import { useState, useTransition } from "react";
 import {
   BookOpen,
-  CheckCircle2,
-  Flag,
+  ChevronDown,
+  FileText,
+  Link2,
+  Lock,
+  Mail,
+  MessageSquare,
+  Mic,
   PencilLine,
   Save,
-  Settings2,
-  Sparkles,
-  Target,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Board, Task, BoardColumn } from "@/types";
 import { updateBoardOverviewAction } from "@/lib/actions/project-actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 function copyOrFallback(value: string | null, fallback: string) {
   return value?.trim() || fallback;
@@ -32,7 +34,6 @@ export function ChapterOverviewPanel({
   projectName,
   northStar,
   onRefine,
-  onOpenSettings,
   onStartRetro,
   onEndChapter,
 }: {
@@ -44,7 +45,6 @@ export function ChapterOverviewPanel({
   projectName?: string | null;
   northStar?: string | null;
   onRefine: () => void;
-  onOpenSettings: () => void;
   onStartRetro?: () => void;
   onEndChapter?: () => void;
 }) {
@@ -57,39 +57,36 @@ export function ChapterOverviewPanel({
     tasks !== undefined &&
     tasks.length > 0 &&
     tasks.every((t) => t.columnId === doneColumnId);
-  const hasIncompleteTasks =
-    tasks !== undefined &&
-    tasks.some((t) => t.columnId !== doneColumnId);
-
-  const retroAvailable =
+const retroAvailable =
     Boolean(board.kickoffCompletedAt) && !board.retroCompletedAt;
   const retroDone = Boolean(board.retroCompletedAt);
 
-  const [editing, setEditing] = useState(false);
+  type EditableField = "goal" | "whyItMatters" | "successLooksLike" | "doneDefinition";
+
+  const [editingField, setEditingField] = useState<EditableField | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState({
-    name: board.name,
     goal: board.goal ?? "",
     whyItMatters: board.whyItMatters ?? "",
     successLooksLike: board.successLooksLike ?? "",
     doneDefinition: board.doneDefinition ?? "",
   });
 
-  function handleChange(field: keyof typeof form, value: string) {
+  function handleChange(field: EditableField, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
   function handleCancelEdit() {
     setForm({
-      name: board.name,
       goal: board.goal ?? "",
       whyItMatters: board.whyItMatters ?? "",
       successLooksLike: board.successLooksLike ?? "",
       doneDefinition: board.doneDefinition ?? "",
     });
     setError(null);
-    setEditing(false);
+    setEditingField(null);
   }
 
   function handleSave() {
@@ -99,9 +96,10 @@ export function ChapterOverviewPanel({
         await updateBoardOverviewAction({
           projectId,
           boardId: board.id,
+          name: board.name,
           ...form,
         });
-        setEditing(false);
+        setEditingField(null);
         router.refresh();
       } catch (saveError) {
         setError(
@@ -115,229 +113,366 @@ export function ChapterOverviewPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6 overflow-y-auto">
-      <section className="surface hairline shrink-0 rounded-[2rem] p-5 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            {northStar ? (
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                {projectName ?? "Project"} &mdash; {northStar}
-              </p>
-            ) : null}
-            {editing ? (
-              <Input
-                value={form.name}
-                onChange={(event) => handleChange("name", event.target.value)}
-                placeholder="Chapter title"
-                className="mt-5 text-2xl font-semibold sm:text-3xl"
-              />
-            ) : (
-              <h2 className={`text-3xl font-semibold tracking-tight sm:text-4xl ${northStar ? "mt-2" : "mt-5"}`}>
-                {board.name}
-              </h2>
-            )}
-            {board.openingLine && !editing ? (
-              <blockquote className="mt-3 border-l-2 border-[var(--accent)]/30 pl-4 text-sm italic leading-7 text-[var(--muted)]">
-                &ldquo;{board.openingLine}&rdquo;
-              </blockquote>
-            ) : null}
-          </div>
-          <div className="flex flex-col items-start gap-4 lg:items-end">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onOpenSettings}
-                className="inline-flex size-11 items-center justify-center rounded-full bg-white/80 text-[var(--ink)] ring-1 ring-black/8 transition hover:bg-white"
-                aria-label="Open chapter settings"
-              >
-                <Settings2 className="size-4" />
-              </button>
-              {!editing ? (
-                <Button
-                  variant="secondary"
-                  className="size-11 rounded-full p-0"
-                  onClick={() => setEditing(true)}
-                  aria-label="Quick edit chapter overview"
-                >
-                  <PencilLine className="size-4" />
-                </Button>
-              ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div />
+
+        <div className="flex flex-wrap items-center gap-3">
+          {retroDone ? (
+            <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 ring-1 ring-green-200">
+              <BookOpen className="size-4" />
+              Story published
             </div>
+          ) : retroAvailable && allTasksDone && onStartRetro ? (
             <button
               type="button"
-              onClick={onRefine}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:bg-black"
+              onClick={onStartRetro}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--accent)]/20 transition duration-200 hover:-translate-y-0.5"
             >
-              Refine this chapter with chat
+              <BookOpen className="size-4" />
+              All done — write the story
             </button>
-
-            {retroDone ? (
-              <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 ring-1 ring-green-200">
-                <BookOpen className="size-4" />
-                Story published
-              </div>
-            ) : retroAvailable && allTasksDone && onStartRetro ? (
-              <button
-                type="button"
-                onClick={onStartRetro}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--accent)]/20 transition duration-200 hover:-translate-y-0.5"
-              >
-                <BookOpen className="size-4" />
-                All done — write the story
-              </button>
-            ) : retroAvailable && onEndChapter ? (
-              <button
-                type="button"
-                onClick={onEndChapter}
-                className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-[var(--ink)] ring-1 ring-black/12 transition duration-200 hover:bg-[var(--surface-muted)]"
-              >
-                End chapter
-              </button>
-            ) : null}
-            {editing ? (
-              <div className="flex flex-wrap gap-3">
-                <Button variant="secondary" onClick={handleCancelEdit} disabled={isPending}>
-                  <X className="mr-2 size-4" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={isPending}>
-                  <Save className="mr-2 size-4" />
-                  {isPending ? "Saving..." : "Save edits"}
-                </Button>
-              </div>
-            ) : null}
-          </div>
+          ) : null}
         </div>
-      </section>
+      </div>
 
-      {error ? (
-        <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </p>
-      ) : null}
-
-      <section className="grid flex-1 auto-rows-fr gap-4 xl:grid-cols-2">
-        <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-              <Target className="size-5" />
+      {/* Mobile collapsible share teaser */}
+      {!retroDone && (
+        <div className="lg:hidden overflow-hidden rounded-[1.5rem] border border-black/6 bg-white">
+          <button
+            type="button"
+            onClick={() => setShareOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3.5"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-muted)] text-[var(--muted)]">
+                <Lock className="size-3.5" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-[var(--ink)]">Share your story</p>
+                <p className="text-xs text-[var(--muted)]">Unlocks when this chapter closes</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">The chapter goal</h3>
-              <p className="text-sm text-[var(--muted)]">
-                The specific contribution this chapter should make to the story.
-              </p>
-            </div>
-          </div>
-          {editing ? (
-            <Textarea
-              value={form.goal}
-              onChange={(event) => handleChange("goal", event.target.value)}
-              placeholder="Define the concrete change this chapter needs to create so the team can focus the board on meaningful progress."
-              className="mt-4 min-h-[180px] rounded-[1.5rem]"
-            />
-          ) : (
-            <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
-              {copyOrFallback(
-                board.goal,
-                "Define the concrete change this chapter needs to create so the team can focus the board on meaningful progress.",
+            <ChevronDown
+              className={cn(
+                "size-4 shrink-0 text-[var(--muted)] transition-transform duration-200",
+                shareOpen && "rotate-180",
               )}
-            </p>
-          )}
-        </article>
-
-        <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-              <Flag className="size-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Why this chapter matters</h3>
-              <p className="text-sm text-[var(--muted)]">
-                The reason this chapter deserves attention inside the larger story.
-              </p>
-            </div>
-          </div>
-          {editing ? (
-            <Textarea
-              value={form.whyItMatters}
-              onChange={(event) =>
-                handleChange("whyItMatters", event.target.value)
-              }
-              placeholder="Explain why this chapter matters now so the team can make stronger tradeoffs inside the sprint."
-              className="mt-4 min-h-[180px] rounded-[1.5rem]"
             />
-          ) : (
-            <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
-              {copyOrFallback(
-                board.whyItMatters,
-                "Explain why this chapter matters now so the team can make stronger tradeoffs inside the sprint.",
-              )}
-            </p>
-          )}
-        </article>
+          </button>
 
-        <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-              <Sparkles className="size-5" />
+          {shareOpen && (
+            <div className="flex flex-col gap-2.5 px-4 pb-4 opacity-50 pointer-events-none select-none">
+              {[
+                { icon: Mail, label: "Email update", description: "A personal email to your board, investors, or team" },
+                { icon: FileText, label: "Blog post", description: "A 400–600 word post in your authentic founder voice" },
+                { icon: Link2, label: "LinkedIn post", description: "A punchy 150–200 word post for your network" },
+                { icon: Mic, label: "Podcast script", description: "A 2–3 minute conversational solo-cast monologue" },
+              ].map(({ icon: Icon, label, description }) => (
+                <div key={label} className="surface-card hairline flex items-center gap-3 rounded-[1.25rem] p-3.5">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <Icon className="size-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
+                    <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div>
-              <h3 className="text-lg font-semibold">What success looks like here</h3>
-              <p className="text-sm text-[var(--muted)]">
-                The visible state you want this chapter to reach.
-              </p>
-            </div>
-          </div>
-          {editing ? (
-            <Textarea
-              value={form.successLooksLike}
-              onChange={(event) =>
-                handleChange("successLooksLike", event.target.value)
-              }
-              placeholder="Describe the chapter end state that would tell you this slice of work landed well."
-              className="mt-4 min-h-[180px] rounded-[1.5rem]"
-            />
-          ) : (
-            <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
-              {copyOrFallback(
-                board.successLooksLike,
-                "Describe the chapter end state that would tell you this slice of work landed well.",
-              )}
-            </p>
           )}
-        </article>
+        </div>
+      )}
 
-        <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-              <CheckCircle2 className="size-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">How we know this chapter is done</h3>
-              <p className="text-sm text-[var(--muted)]">
-                The completion signal for this chapter.
-              </p>
-            </div>
-          </div>
-          {editing ? (
-            <Textarea
-              value={form.doneDefinition}
-              onChange={(event) =>
-                handleChange("doneDefinition", event.target.value)
-              }
-              placeholder="Set a clear finish line for this chapter so the board can close cleanly before the next one begins."
-              className="mt-4 min-h-[180px] rounded-[1.5rem]"
-            />
-          ) : (
-            <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
-              {copyOrFallback(
-                board.doneDefinition,
-                "Set a clear finish line for this chapter so the board can close cleanly before the next one begins.",
+      <div className="grid items-start gap-4 lg:grid-cols-[1fr_30%]">
+        {/* Left: 4 overview cards */}
+        <section className="grid auto-rows-fr gap-4 sm:grid-cols-2">
+          <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
+                <div className="h-3 shrink-0 bg-yellow-200" />
+                <div className="flex flex-1 items-center justify-center bg-yellow-100">
+                  <span className="text-[10px] font-bold tracking-wide text-yellow-900/60">What</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">What value are we adding?</h3>
+                <p className="text-sm text-[var(--muted)]">
+                  What new utility will our project have at the end?
+                </p>
+              </div>
+              {editingField !== "goal" && (
+                <button
+                  type="button"
+                  onClick={() => setEditingField("goal")}
+                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
+                  aria-label="Edit chapter goal"
+                >
+                  <PencilLine className="size-3.5" />
+                </button>
               )}
-            </p>
-          )}
-        </article>
-      </section>
+            </div>
+            {editingField === "goal" ? (
+              <>
+                <Textarea
+                  value={form.goal}
+                  onChange={(event) => handleChange("goal", event.target.value)}
+                  placeholder="Define the concrete change this chapter needs to create so the team can focus the board on meaningful progress."
+                  className="mt-4 min-h-[140px] rounded-[1.5rem]"
+                  autoFocus
+                />
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button variant="secondary" onClick={handleCancelEdit} disabled={isPending}>
+                    <X className="mr-1.5 size-3.5" />Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={isPending}>
+                    <Save className="mr-1.5 size-3.5" />{isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+                {copyOrFallback(
+                  board.goal,
+                  "Define the concrete change this chapter needs to create so the team can focus the board on meaningful progress.",
+                )}
+              </p>
+            )}
+            {error && editingField === "goal" && (
+              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+            )}
+          </article>
+
+          <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
+                <div className="h-3 shrink-0 bg-blue-200" />
+                <div className="flex flex-1 items-center justify-center bg-blue-100">
+                  <span className="text-[10px] font-bold tracking-wide text-blue-900/60">Why</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">Why are we doing this work?</h3>
+                <p className="text-sm text-[var(--muted)]">
+                  The reason our project will be better at the end of the chapter.
+                </p>
+              </div>
+              {editingField !== "whyItMatters" && (
+                <button
+                  type="button"
+                  onClick={() => setEditingField("whyItMatters")}
+                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
+                  aria-label="Edit why this chapter matters"
+                >
+                  <PencilLine className="size-3.5" />
+                </button>
+              )}
+            </div>
+            {editingField === "whyItMatters" ? (
+              <>
+                <Textarea
+                  value={form.whyItMatters}
+                  onChange={(event) => handleChange("whyItMatters", event.target.value)}
+                  placeholder="Explain why this chapter matters now so the team can make stronger tradeoffs inside the sprint."
+                  className="mt-4 min-h-[140px] rounded-[1.5rem]"
+                  autoFocus
+                />
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button variant="secondary" onClick={handleCancelEdit} disabled={isPending}>
+                    <X className="mr-1.5 size-3.5" />Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={isPending}>
+                    <Save className="mr-1.5 size-3.5" />{isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+                {copyOrFallback(
+                  board.whyItMatters,
+                  "Explain why this chapter matters now so the team can make stronger tradeoffs inside the sprint.",
+                )}
+              </p>
+            )}
+            {error && editingField === "whyItMatters" && (
+              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+            )}
+          </article>
+
+          <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
+                <div className="h-3 shrink-0 bg-pink-200" />
+                <div className="flex flex-1 items-center justify-center bg-pink-100">
+                  <span className="text-[10px] font-bold tracking-wide text-pink-900/60">How</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">How can we be successful?</h3>
+                <p className="text-sm text-[var(--muted)]">
+                  The visible state you want this chapter to reach.
+                </p>
+              </div>
+              {editingField !== "successLooksLike" && (
+                <button
+                  type="button"
+                  onClick={() => setEditingField("successLooksLike")}
+                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
+                  aria-label="Edit what success looks like"
+                >
+                  <PencilLine className="size-3.5" />
+                </button>
+              )}
+            </div>
+            {editingField === "successLooksLike" ? (
+              <>
+                <Textarea
+                  value={form.successLooksLike}
+                  onChange={(event) => handleChange("successLooksLike", event.target.value)}
+                  placeholder="Describe the chapter end state that would tell you this slice of work landed well."
+                  className="mt-4 min-h-[140px] rounded-[1.5rem]"
+                  autoFocus
+                />
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button variant="secondary" onClick={handleCancelEdit} disabled={isPending}>
+                    <X className="mr-1.5 size-3.5" />Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={isPending}>
+                    <Save className="mr-1.5 size-3.5" />{isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+                {copyOrFallback(
+                  board.successLooksLike,
+                  "Describe the chapter end state that would tell you this slice of work landed well.",
+                )}
+              </p>
+            )}
+            {error && editingField === "successLooksLike" && (
+              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+            )}
+          </article>
+
+          <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
+                <div className="h-3 shrink-0 bg-green-200" />
+                <div className="flex flex-1 items-center justify-center bg-green-100">
+                  <span className="text-[10px] font-bold tracking-wide text-green-900/60">When</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">When are we done?</h3>
+                <p className="text-sm text-[var(--muted)]">
+                  The completion signal for this chapter.
+                </p>
+              </div>
+              {editingField !== "doneDefinition" && (
+                <button
+                  type="button"
+                  onClick={() => setEditingField("doneDefinition")}
+                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
+                  aria-label="Edit done definition"
+                >
+                  <PencilLine className="size-3.5" />
+                </button>
+              )}
+            </div>
+            {editingField === "doneDefinition" ? (
+              <>
+                <Textarea
+                  value={form.doneDefinition}
+                  onChange={(event) => handleChange("doneDefinition", event.target.value)}
+                  placeholder="Set a clear finish line for this chapter so the board can close cleanly before the next one begins."
+                  className="mt-4 min-h-[140px] rounded-[1.5rem]"
+                  autoFocus
+                />
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button variant="secondary" onClick={handleCancelEdit} disabled={isPending}>
+                    <X className="mr-1.5 size-3.5" />Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={isPending}>
+                    <Save className="mr-1.5 size-3.5" />{isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+                {copyOrFallback(
+                  board.doneDefinition,
+                  "Set a clear finish line for this chapter so the board can close cleanly before the next one begins.",
+                )}
+              </p>
+            )}
+            {error && editingField === "doneDefinition" && (
+              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+            )}
+          </article>
+        </section>
+
+        {/* Right: share teaser — desktop only, mobile uses collapsible above */}
+        {!retroDone && (
+          <section className="hidden surface hairline sticky top-6 rounded-[2rem] p-5 sm:p-6 lg:block">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                  Unlocks when you close this chapter
+                </p>
+                <h3 className="mt-1 text-lg font-semibold tracking-tight text-[var(--ink)]">
+                  Share your story
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                  End the chapter and complete the retro — AI will turn your work into polished updates ready to send.
+                </p>
+              </div>
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-muted)] text-[var(--muted)]">
+                <Lock className="size-4" />
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3 opacity-50 pointer-events-none select-none">
+              {[
+                { icon: Mail, label: "Email update", description: "A personal email to your board, investors, or team" },
+                { icon: FileText, label: "Blog post", description: "A 400–600 word post in your authentic founder voice" },
+                { icon: Link2, label: "LinkedIn post", description: "A punchy 150–200 word post for your network" },
+                { icon: Mic, label: "Podcast script", description: "A 2–3 minute conversational solo-cast monologue" },
+              ].map(({ icon: Icon, label, description }) => (
+                <div
+                  key={label}
+                  className="surface-card hairline flex items-center gap-3 rounded-[1.25rem] p-4"
+                >
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <Icon className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
+                    <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* Floating refine button — bottom-right FAB */}
+      <button
+        type="button"
+        onClick={onRefine}
+        className="group fixed bottom-6 right-6 z-40 flex h-14 items-center overflow-hidden rounded-full bg-[var(--ink)] shadow-xl shadow-black/20 transition-all duration-300 ease-out hover:shadow-2xl hover:shadow-black/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        style={{ width: "3.5rem" }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "220px"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "3.5rem"; }}
+        aria-label="Refine this page with chat"
+      >
+        <span className="flex size-14 shrink-0 items-center justify-center text-white">
+          <MessageSquare className="size-5" />
+        </span>
+        <span className="whitespace-nowrap pr-5 text-sm font-semibold text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          Refine story with chat
+        </span>
+      </button>
     </div>
   );
 }

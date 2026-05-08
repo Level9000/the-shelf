@@ -9,7 +9,6 @@ import { ChapterOverviewRefiner } from "@/components/board/chapter-overview-refi
 import { ChapterRetroChat } from "@/components/board/chapter-retro-chat";
 import { EndChapterModal } from "@/components/board/end-chapter-modal";
 import { StoryHub } from "@/components/board/story-hub";
-import { ChapterOverviewSettingsDrawer } from "@/components/projects/chapter-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 
 type KickoffMode = "full" | "confirmation" | false;
@@ -60,7 +59,6 @@ export function ChapterOverviewShell({
   const kickoffMode = chapterKickoffMode(snapshot);
   const [kickoffDismissed, setKickoffDismissed] = useState(false);
   const [refining, setRefining] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [retroOpen, setRetroOpen] = useState(false);
   const [endChapterModalOpen, setEndChapterModalOpen] = useState(false);
 
@@ -141,20 +139,12 @@ export function ChapterOverviewShell({
               projectName={snapshot.project.name}
               northStar={snapshot.project.northStar}
               onRefine={() => setRefining(true)}
-              onOpenSettings={() => setSettingsOpen(true)}
               onStartRetro={() => setRetroOpen(true)}
               onEndChapter={() => setEndChapterModalOpen(true)}
             />
           )}
         </div>
       </ProjectShellFrame>
-
-      <ChapterOverviewSettingsDrawer
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        projectId={currentProjectId}
-        board={snapshot.board}
-      />
 
       <EndChapterModal
         open={endChapterModalOpen}

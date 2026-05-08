@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runStrategicTextDialogue } from "@/lib/ai/openai";
+import { runStrategicTextDialogue } from "@/lib/ai/anthropic";
 import { strategicDialogueMessageSchema } from "@/lib/ai/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 

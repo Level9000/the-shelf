@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runWeeklyPlanningDialogue } from "@/lib/ai/openai";
+import { runWeeklyPlanningDialogue } from "@/lib/ai/anthropic";
 import { strategicDialogueMessageSchema } from "@/lib/ai/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 

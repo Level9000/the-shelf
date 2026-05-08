@@ -324,10 +324,7 @@ export function ProjectBoardClient({
               onDragEnd={handleDragEnd}
             >
               <div className="overflow-x-auto pb-2">
-                <div
-                  className="board-grid grid grid-cols-1 gap-4"
-                  style={{ "--col-count": snapshot.columns.length } as CSSProperties}
-                >
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
                   {snapshot.columns.map((column) => (
                     <BoardColumnView
                       key={column.id}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runChapterOverviewDialogue } from "@/lib/ai/openai";
+import { runChapterOverviewDialogue } from "@/lib/ai/anthropic";
 import {
   projectOverviewSectionSchema,
   strategicDialogueMessageSchema,

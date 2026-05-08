@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { extractTasksFromTranscript, transcribeAudioFile } from "@/lib/ai/openai";
+import { extractTasksFromTranscript } from "@/lib/ai/anthropic";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -14,16 +14,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  const formData = await request.formData();
-  const file = formData.get("audio");
-  const projectId = String(formData.get("projectId") ?? "");
+  const payload = (await request.json()) as {
+    projectId?: string;
+    transcript?: string;
+  };
 
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Audio file is required." }, { status: 400 });
-  }
+  const projectId = String(payload.projectId ?? "");
+  const transcript = (payload.transcript ?? "").trim();
 
   if (!projectId) {
     return NextResponse.json({ error: "Project is required." }, { status: 400 });
+  }
+
+  if (!transcript) {
+    return NextResponse.json({ error: "Transcript is required." }, { status: 400 });
   }
 
   const { data: project, error: projectError } = await supabase
@@ -61,7 +65,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const transcript = await transcribeAudioFile(file);
     const parsed = await extractTasksFromTranscript({
       transcript,
       projectName: project.name,
