@@ -99,10 +99,10 @@ const KICKOFF_TOOL = {
     properties: {
       reply: { type: "string", description: "Your conversational response to the user." },
       done: { type: "boolean", description: "True only when you have collected all four answers and are ready to propose tasks." },
-      goal: { type: "string", description: "Chapter goal as a complete commitment. Empty string while gathering." },
-      whyItMatters: { type: "string", description: "Why the chapter matters. Empty string while gathering." },
-      successLooksLike: { type: "string", description: "What success looks like. Empty string while gathering." },
-      doneDefinition: { type: "string", description: "Done definition. Empty string while gathering." },
+      goal: { type: "string", description: "The bet — the hypothesis being acted on, as a complete conviction statement. Empty string while gathering." },
+      whyItMatters: { type: "string", description: "Why now — the urgency or window behind this chapter. Empty string while gathering." },
+      successLooksLike: { type: "string", description: "What has to be true — specific conditions that need to hold; primary source for task generation. Empty string while gathering." },
+      doneDefinition: { type: "string", description: "The proof point — the tangible thing that will exist at the end. Empty string while gathering." },
       openingLine: { type: "string", description: "The narrative seed sentence. Empty string while gathering." },
       proposedTasks: {
         type: "array",

@@ -195,9 +195,9 @@ const retroAvailable =
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">What value are we adding?</h3>
+                <h3 className="text-lg font-semibold">What's the bet we're making?</h3>
                 <p className="text-sm text-[var(--muted)]">
-                  What new utility will our project have at the end?
+                  The core hypothesis we're acting on this chapter.
                 </p>
               </div>
               {editingField !== "goal" && (
@@ -216,7 +216,7 @@ const retroAvailable =
                 <Textarea
                   value={form.goal}
                   onChange={(event) => handleChange("goal", event.target.value)}
-                  placeholder="Define the concrete change this chapter needs to create so the team can focus the board on meaningful progress."
+                  placeholder="What belief are you acting on? State the bet plainly — what you expect to be true if this chapter succeeds."
                   className="mt-4 min-h-[140px] rounded-[1.5rem]"
                   autoFocus
                 />
@@ -233,7 +233,7 @@ const retroAvailable =
               <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
                 {copyOrFallback(
                   board.goal,
-                  "Define the concrete change this chapter needs to create so the team can focus the board on meaningful progress.",
+                  "What belief are you acting on? State the bet plainly — what you expect to be true if this chapter succeeds.",
                 )}
               </p>
             )}
@@ -251,9 +251,9 @@ const retroAvailable =
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">Why are we doing this work?</h3>
+                <h3 className="text-lg font-semibold">Why does this matter right now?</h3>
                 <p className="text-sm text-[var(--muted)]">
-                  The reason our project will be better at the end of the chapter.
+                  The urgency and stakes behind this chapter.
                 </p>
               </div>
               {editingField !== "whyItMatters" && (
@@ -272,7 +272,7 @@ const retroAvailable =
                 <Textarea
                   value={form.whyItMatters}
                   onChange={(event) => handleChange("whyItMatters", event.target.value)}
-                  placeholder="Explain why this chapter matters now so the team can make stronger tradeoffs inside the sprint."
+                  placeholder="What's the window? What's the pressure? Why is this the right chapter to run right now?"
                   className="mt-4 min-h-[140px] rounded-[1.5rem]"
                   autoFocus
                 />
@@ -289,7 +289,7 @@ const retroAvailable =
               <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
                 {copyOrFallback(
                   board.whyItMatters,
-                  "Explain why this chapter matters now so the team can make stronger tradeoffs inside the sprint.",
+                  "What's the window? What's the pressure? Why is this the right chapter to run right now?",
                 )}
               </p>
             )}
@@ -307,9 +307,9 @@ const retroAvailable =
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">How can we be successful?</h3>
+                <h3 className="text-lg font-semibold">What has to be true?</h3>
                 <p className="text-sm text-[var(--muted)]">
-                  The visible state you want this chapter to reach.
+                  The conditions that need to hold for this chapter to work.
                 </p>
               </div>
               {editingField !== "successLooksLike" && (
@@ -328,7 +328,7 @@ const retroAvailable =
                 <Textarea
                   value={form.successLooksLike}
                   onChange={(event) => handleChange("successLooksLike", event.target.value)}
-                  placeholder="Describe the chapter end state that would tell you this slice of work landed well."
+                  placeholder="List the conditions that need to hold. Each one is something the board can work toward directly."
                   className="mt-4 min-h-[140px] rounded-[1.5rem]"
                   autoFocus
                 />
@@ -345,7 +345,7 @@ const retroAvailable =
               <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
                 {copyOrFallback(
                   board.successLooksLike,
-                  "Describe the chapter end state that would tell you this slice of work landed well.",
+                  "List the conditions that need to hold. Each one is something the board can work toward directly.",
                 )}
               </p>
             )}
@@ -363,9 +363,9 @@ const retroAvailable =
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">When are we done?</h3>
+                <h3 className="text-lg font-semibold">What will we have to show?</h3>
                 <p className="text-sm text-[var(--muted)]">
-                  The completion signal for this chapter.
+                  The proof point at the end of this chapter.
                 </p>
               </div>
               {editingField !== "doneDefinition" && (
@@ -384,7 +384,7 @@ const retroAvailable =
                 <Textarea
                   value={form.doneDefinition}
                   onChange={(event) => handleChange("doneDefinition", event.target.value)}
-                  placeholder="Set a clear finish line for this chapter so the board can close cleanly before the next one begins."
+                  placeholder="What tangible thing will exist or be demonstrably true at the end? This is what the retro will hold you to."
                   className="mt-4 min-h-[140px] rounded-[1.5rem]"
                   autoFocus
                 />
@@ -401,7 +401,7 @@ const retroAvailable =
               <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
                 {copyOrFallback(
                   board.doneDefinition,
-                  "Set a clear finish line for this chapter so the board can close cleanly before the next one begins.",
+                  "What tangible thing will exist or be demonstrably true at the end? This is what the retro will hold you to.",
                 )}
               </p>
             )}

@@ -41,34 +41,34 @@ type SectionConfig = {
 const SECTIONS: SectionConfig[] = [
   {
     key: "goal",
-    title: "The chapter goal",
-    shortTitle: "Goal",
+    title: "What’s the bet?",
+    shortTitle: "The bet",
     prompt:
-      "Let’s align on the chapter goal first. What should this chapter move forward inside the larger story?",
+      "Let’s sharpen the bet. What’s the core hypothesis this chapter is acting on?",
     icon: Target,
   },
   {
     key: "whyItMatters",
-    title: "Why this chapter matters",
-    shortTitle: "Why it matters",
+    title: "Why does this matter right now?",
+    shortTitle: "Why now",
     prompt:
-      "Now let’s sharpen why this chapter matters. Why is this slice of work important right now?",
+      "What’s the urgency here? Why is this the right chapter to run at this moment?",
     icon: Flag,
   },
   {
     key: "successLooksLike",
-    title: "What success looks like here",
-    shortTitle: "Success",
+    title: "What has to be true?",
+    shortTitle: "Conditions",
     prompt:
-      "Let’s define what success looks like for this chapter. What should be true when this chapter goes well?",
+      "What are the specific conditions that need to hold for this chapter to work? Each one should be something the board can act on.",
     icon: Sparkles,
   },
   {
     key: "doneDefinition",
-    title: "How we know this chapter is done",
-    shortTitle: "Done",
+    title: "What will we have to show?",
+    shortTitle: "Proof point",
     prompt:
-      "Finally, let’s define done for this chapter. What signal tells us this chapter is complete?",
+      "What tangible thing will exist at the end? This is the proof point the retro will hold you to.",
     icon: CheckCircle2,
   },
 ];

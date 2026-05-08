@@ -45,10 +45,10 @@ function buildPrefillOpeningMessage(
     `Based on what you told me about ${projectName}, here's how I'd frame ${board.name}. Does this feel right, or do you want to adjust anything?`,
     "",
   ];
-  if (board.goal) lines.push(`**Goal:** ${board.goal}`);
-  if (board.whyItMatters) lines.push(`**Why it matters:** ${board.whyItMatters}`);
-  if (board.successLooksLike) lines.push(`**Success looks like:** ${board.successLooksLike}`);
-  if (board.doneDefinition) lines.push(`**Done when:** ${board.doneDefinition}`);
+  if (board.goal) lines.push(`**The bet:** ${board.goal}`);
+  if (board.whyItMatters) lines.push(`**Why now:** ${board.whyItMatters}`);
+  if (board.successLooksLike) lines.push(`**What has to be true:** ${board.successLooksLike}`);
+  if (board.doneDefinition) lines.push(`**What we'll have to show:** ${board.doneDefinition}`);
 
   return {
     role: "assistant",
@@ -612,10 +612,10 @@ export function ChapterKickoffChat({
             </p>
             <div className="mt-4 space-y-3 overflow-y-auto lg:min-h-0 lg:flex-1">
               {[
-                { question: "What are you working on?", value: chapterData.goal },
-                { question: "Why does it matter right now?", value: chapterData.whyItMatters },
-                { question: "How will you know it worked?", value: chapterData.successLooksLike },
-                { question: "What does done look like?", value: chapterData.doneDefinition },
+                { question: "What's the bet?", value: chapterData.goal },
+                { question: "Why does this matter right now?", value: chapterData.whyItMatters },
+                { question: "What has to be true?", value: chapterData.successLooksLike },
+                { question: "What will we have to show?", value: chapterData.doneDefinition },
               ].map(({ question, value }) =>
                 value ? (
                   <div
@@ -638,10 +638,10 @@ export function ChapterKickoffChat({
 
   // ─── Stage: Chatting ─────────────────────────────────────────────────────────
   const checklistItems = [
-    { label: "What you're working on", value: liveData.goal },
-    { label: "Why it matters", value: liveData.whyItMatters },
-    { label: "What success looks like", value: liveData.successLooksLike },
-    { label: "How you'll know you're done", value: liveData.doneDefinition },
+    { label: "The bet", value: liveData.goal },
+    { label: "Why now", value: liveData.whyItMatters },
+    { label: "What has to be true", value: liveData.successLooksLike },
+    { label: "What we'll have to show", value: liveData.doneDefinition },
   ];
   const completedCount = checklistItems.filter((item) => item.value).length;
   const visibleSuggestions = (liveData.proposedTasks ?? []).filter(

@@ -8,10 +8,12 @@ import {
 
 export default async function ProjectPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ chapter?: string }>;
 }) {
-  const { projectId } = await params;
+  const [{ projectId }, { chapter }] = await Promise.all([params, searchParams]);
   const [projects, profile, access] = await Promise.all([
     getProjectsWithChapters(),
     getCurrentUserProfile(),
@@ -23,6 +25,10 @@ export default async function ProjectPage({
     redirect("/projects");
   }
 
+  // Validate that the chapter param actually belongs to this project
+  const lastChapterId =
+    chapter && project.chapters.some((ch) => ch.id === chapter) ? chapter : null;
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-[1600px] lg:p-0">
       <ProjectOverviewShell
@@ -31,6 +37,7 @@ export default async function ProjectPage({
         profile={profile}
         currentUser={access.currentUser}
         projectMembers={access.projectMembers}
+        lastChapterId={lastChapterId}
       />
     </main>
   );

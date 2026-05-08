@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ChevronDown, LayoutPanelTop, Settings, SquareKanban } from "lucide-react";
+import { ChevronDown, Layers, LayoutPanelTop, Settings, SquareKanban } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ProjectWithChapters, UserProfile } from "@/types";
@@ -80,6 +80,7 @@ export function ProjectShellFrame({
   profile,
   currentProjectId,
   currentChapterId = null,
+  lastChapterId = null,
   mobileEyebrow: _mobileEyebrow,
   mobileTitle: _mobileTitle,
   activeNav,
@@ -91,9 +92,11 @@ export function ProjectShellFrame({
   profile: UserProfile;
   currentProjectId: string;
   currentChapterId?: string | null;
+  /** The chapter to return to when navigating away from the Arc page */
+  lastChapterId?: string | null;
   mobileEyebrow: string;
   mobileTitle: string;
-  activeNav?: "overview" | "board";
+  activeNav?: "arc" | "overview" | "board";
   retroAvailable?: boolean;
   onEndChapter?: () => void;
   children: React.ReactNode;
@@ -102,33 +105,38 @@ export function ProjectShellFrame({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
+  // The chapter used for Story/Board pill links — current chapter, or the last
+  // visited chapter persisted via ?chapter= when navigating to Arc.
+  const navChapterId = currentChapterId ?? lastChapterId;
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStart.current || !currentChapterId || !activeNav) return;
+    if (!touchStart.current || !navChapterId || activeNav === "arc") return;
     const dx = e.changedTouches[0].clientX - touchStart.current.x;
     const dy = e.changedTouches[0].clientY - touchStart.current.y;
     touchStart.current = null;
     // Only trigger if horizontal swipe dominates and exceeds threshold
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
     if (dx < 0 && activeNav === "overview") {
-      router.push(`/projects/${currentProjectId}/chapters/${currentChapterId}/board`);
+      router.push(`/projects/${currentProjectId}/chapters/${navChapterId}/board`);
     } else if (dx > 0 && activeNav === "board") {
-      router.push(`/projects/${currentProjectId}/chapters/${currentChapterId}`);
+      router.push(`/projects/${currentProjectId}/chapters/${navChapterId}`);
     }
-  }, [activeNav, currentChapterId, currentProjectId, router]);
+  }, [activeNav, navChapterId, currentProjectId, router]);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
+  const navChapterIndex =
+    currentProject?.chapters.findIndex((ch) => ch.id === navChapterId) ?? -1;
   const chapterIndex =
     currentProject?.chapters.findIndex((ch) => ch.id === currentChapterId) ?? -1;
   const chapterDisplayValue =
-    chapterIndex >= 0 ? `Chapter ${chapterIndex + 1}` : "Story";
+    chapterIndex >= 0 ? `Chapter ${chapterIndex + 1}` : navChapterIndex >= 0 ? `Chapter ${navChapterIndex + 1}` : "Select";
 
   const projectOptions = projects.map((p) => ({ value: p.id, label: p.name }));
   const chapterOptions = [
-    { value: "", label: "Story" },
     ...(currentProject?.chapters.map((ch, i) => ({
       value: ch.id,
       label: `Chapter ${i + 1}`,
@@ -143,6 +151,7 @@ export function ProjectShellFrame({
           projects={projects}
           currentProjectId={currentProjectId}
           currentChapterId={currentChapterId}
+          navChapterId={navChapterId}
           onOpenSettings={() => setSettingsOpen(true)}
           activeNav={activeNav}
           retroAvailable={retroAvailable}
@@ -171,11 +180,7 @@ export function ProjectShellFrame({
             displayValue={chapterDisplayValue}
             options={chapterOptions}
             onSelect={(val) => {
-              if (!val) {
-                router.push(`/projects/${currentProjectId}`);
-              } else {
-                router.push(`/projects/${currentProjectId}/chapters/${val}`);
-              }
+              router.push(`/projects/${currentProjectId}/chapters/${val}`);
             }}
           />
 
@@ -192,11 +197,23 @@ export function ProjectShellFrame({
         </div>
 
         {/* Story / Board tab row — centered floating pills */}
-        {currentChapterId && activeNav && (
+        {navChapterId && (
           <div className="flex justify-center">
             <div className="my-3 inline-flex gap-1 rounded-full bg-black/6 p-1 shadow-sm">
               <Link
-                href={`/projects/${currentProjectId}/chapters/${currentChapterId}`}
+                href={`/projects/${currentProjectId}${navChapterId ? `?chapter=${navChapterId}` : ""}`}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                  activeNav === "arc"
+                    ? "bg-white text-[var(--ink)] shadow-sm"
+                    : "text-[var(--muted)]",
+                )}
+              >
+                <Layers className="size-3.5" />
+                Arc
+              </Link>
+              <Link
+                href={`/projects/${currentProjectId}/chapters/${navChapterId}`}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
                   activeNav === "overview"
@@ -208,7 +225,7 @@ export function ProjectShellFrame({
                 Story
               </Link>
               <Link
-                href={`/projects/${currentProjectId}/chapters/${currentChapterId}/board`}
+                href={`/projects/${currentProjectId}/chapters/${navChapterId}/board`}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
                   activeNav === "board"

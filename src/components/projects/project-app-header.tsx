@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LayoutPanelTop, LogOut, Plus, Settings, SquareKanban } from "lucide-react";
+import { ChevronDown, Layers, LayoutPanelTop, LogOut, Plus, Settings, SquareKanban } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { cn } from "@/lib/utils";
@@ -108,6 +108,7 @@ export function ProjectAppHeader({
   projects,
   currentProjectId,
   currentChapterId,
+  navChapterId,
   onOpenSettings,
   activeNav,
   retroAvailable,
@@ -116,8 +117,10 @@ export function ProjectAppHeader({
   projects: ProjectWithChapters[];
   currentProjectId: string;
   currentChapterId?: string | null;
+  /** The chapter to link Story/Board pills to (falls back to currentChapterId) */
+  navChapterId?: string | null;
   onOpenSettings: () => void;
-  activeNav?: "overview" | "board";
+  activeNav?: "arc" | "overview" | "board";
   retroAvailable?: boolean;
   onEndChapter?: () => void;
 }) {
@@ -128,17 +131,19 @@ export function ProjectAppHeader({
   const currentProject = projects.find((p) => p.id === currentProjectId);
   const chapterIndex =
     currentProject?.chapters.findIndex((ch) => ch.id === currentChapterId) ?? -1;
+  const navChapterIndex =
+    currentProject?.chapters.findIndex((ch) => ch.id === navChapterId) ?? -1;
   const chapterDisplayValue =
-    chapterIndex >= 0 ? `Chapter ${chapterIndex + 1}` : "Story";
+    chapterIndex >= 0 ? `Chapter ${chapterIndex + 1}` : navChapterIndex >= 0 ? `Chapter ${navChapterIndex + 1}` : "Select";
+  const effectiveNavChapterId = navChapterId ?? currentChapterId;
 
   const projectOptions = projects.map((p) => ({ value: p.id, label: p.name }));
   const chapterOptions = [
-    { value: "", label: "Story" },
     ...(currentProject?.chapters.map((ch, i) => ({
       value: ch.id,
       label: `Chapter ${i + 1}`,
     })) ?? []),
-  ];
+  ] as { value: string; label: string }[];
 
   return (
     <>
@@ -194,11 +199,7 @@ export function ProjectAppHeader({
             displayValue={chapterDisplayValue}
             options={chapterOptions}
             onSelect={(val) => {
-              if (!val) {
-                router.push(`/projects/${currentProjectId}`);
-              } else {
-                router.push(`/projects/${currentProjectId}/chapters/${val}`);
-              }
+              router.push(`/projects/${currentProjectId}/chapters/${val}`);
             }}
             actionLabel="New Chapter"
             onAction={() => setChapterModalOpen(true)}
@@ -206,13 +207,25 @@ export function ProjectAppHeader({
             onOpenChange={(open) => setOpenDropdown(open ? "chapter" : null)}
           />
 
-          {/* Overview / Board nav — only when inside a chapter */}
-          {currentChapterId && activeNav && (
+          {/* Arc / Story / Board nav — visible whenever we have a chapter context */}
+          {effectiveNavChapterId && (
             <>
               <div className="mx-1 h-5 w-px shrink-0 bg-white/20" />
               <div className="flex gap-1">
                 <Link
-                  href={`/projects/${currentProjectId}/chapters/${currentChapterId}`}
+                  href={`/projects/${currentProjectId}${effectiveNavChapterId ? `?chapter=${effectiveNavChapterId}` : ""}`}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                    activeNav === "arc"
+                      ? "bg-white text-[var(--ink)]"
+                      : "bg-white/15 text-white hover:bg-white/25",
+                  )}
+                >
+                  <Layers className="size-3.5" />
+                  Arc
+                </Link>
+                <Link
+                  href={`/projects/${currentProjectId}/chapters/${effectiveNavChapterId}`}
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
                     activeNav === "overview"
@@ -224,7 +237,7 @@ export function ProjectAppHeader({
                   Story
                 </Link>
                 <Link
-                  href={`/projects/${currentProjectId}/chapters/${currentChapterId}/board`}
+                  href={`/projects/${currentProjectId}/chapters/${effectiveNavChapterId}/board`}
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
                     activeNav === "board"
