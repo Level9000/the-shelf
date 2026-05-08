@@ -41,7 +41,7 @@ export function BoardColumnView({
     <section
       ref={setNodeRef}
       className={cn(
-        "surface hairline flex min-h-[420px] min-w-0 flex-col rounded-[2rem] p-4 transition",
+        "surface flex min-h-[420px] min-w-0 flex-col rounded-[1.5rem] border-b border-black/6 p-4 transition last:border-b-0 lg:rounded-[2rem] lg:border lg:border-black/6",
         showDropHere && "ring-2 ring-[var(--accent)]/40 ring-offset-2 ring-offset-transparent",
       )}
     >

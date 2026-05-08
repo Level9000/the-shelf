@@ -153,6 +153,8 @@ export function ProjectShellFrame({
 
       {/* ── Mobile layout (<lg) ── */}
       <div className="lg:hidden">
+        {/* Sticky header: top bar + tab pills */}
+        <div className="sticky top-0 z-30 bg-[var(--app-bg)]">
         {/* Top bar: project + chapter dropdowns + settings gear */}
         <div className="flex items-center gap-3 border-b border-black/6 bg-white px-4 py-3">
           <MobileDropdown
@@ -189,39 +191,45 @@ export function ProjectShellFrame({
           </button>
         </div>
 
-        {/* Story / Board tab row — only inside a chapter */}
+        {/* Story / Board tab row — centered floating pills */}
         {currentChapterId && activeNav && (
-          <div className="flex gap-1 border-b border-black/6 bg-white px-4 py-2">
-            <Link
-              href={`/projects/${currentProjectId}/chapters/${currentChapterId}`}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                activeNav === "overview"
-                  ? "bg-black/8 text-[var(--ink)]"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]",
-              )}
-            >
-              <LayoutPanelTop className="size-3.5" />
-              Story
-            </Link>
-            <Link
-              href={`/projects/${currentProjectId}/chapters/${currentChapterId}/board`}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                activeNav === "board"
-                  ? "bg-black/8 text-[var(--ink)]"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]",
-              )}
-            >
-              <SquareKanban className="size-3.5" />
-              Board
-            </Link>
+          <div className="flex justify-center">
+            <div className="my-3 inline-flex gap-1 rounded-full bg-black/6 p-1 shadow-sm">
+              <Link
+                href={`/projects/${currentProjectId}/chapters/${currentChapterId}`}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                  activeNav === "overview"
+                    ? "bg-white text-[var(--ink)] shadow-sm"
+                    : "text-[var(--muted)]",
+                )}
+              >
+                <LayoutPanelTop className="size-3.5" />
+                Story
+              </Link>
+              <Link
+                href={`/projects/${currentProjectId}/chapters/${currentChapterId}/board`}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                  activeNav === "board"
+                    ? "bg-white text-[var(--ink)] shadow-sm"
+                    : "text-[var(--muted)]",
+                )}
+              >
+                <SquareKanban className="size-3.5" />
+                Board
+              </Link>
+            </div>
           </div>
         )}
+        </div>{/* end sticky header */}
 
         {/* Page content — swipeable between Story and Board */}
         <div
-          className="p-4"
+          className={cn(
+            "pb-4 pt-0",
+            activeNav === "board" ? "px-0" : "px-4",
+          )}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
