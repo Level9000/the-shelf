@@ -196,6 +196,36 @@ export async function updateProjectOverviewFieldAction(input: {
   revalidatePath("/projects");
 }
 
+export async function updateProjectArcFieldAction(input: {
+  projectId: string;
+  field: "northStar" | "accumulativeStory";
+  value: string;
+}) {
+  const value = input.value.trim();
+
+  if (!value) {
+    throw new Error("Arc content cannot be empty.");
+  }
+
+  const fieldMap = {
+    northStar: "north_star",
+    accumulativeStory: "accumulative_story",
+  } as const;
+
+  const { supabase } = await getAuthenticatedUser();
+  const { error } = await supabase
+    .from("projects")
+    .update({ [fieldMap[input.field]]: value })
+    .eq("id", input.projectId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath("/projects");
+}
+
 export async function updateProjectOverviewAction(input: {
   projectId: string;
   name: string;
@@ -841,6 +871,97 @@ export async function deleteChapterAction(input: {
   revalidatePath(`/projects/${input.projectId}`);
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
+}
+
+/**
+ * Moves a specific set of tasks out of the current chapter into a new stub
+ * chapter (no kickoff required). The current chapter's backlog shrinks to only
+ * the tasks the founder committed to finishing.
+ */
+export async function deferTasksToNextChapterAction(input: {
+  projectId: string;
+  boardId: string;
+  taskIds: string[];
+}): Promise<{ nextChapterId: string; nextChapterName: string }> {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  if (input.taskIds.length === 0) {
+    throw new Error("No tasks to defer.");
+  }
+
+  // Verify the tasks actually belong to this board
+  const { data: tasks, error: tasksError } = await supabase
+    .from("tasks")
+    .select("id")
+    .eq("board_id", input.boardId)
+    .in("id", input.taskIds);
+
+  if (tasksError) throw new Error(tasksError.message);
+
+  const validIds = (tasks ?? []).map((t) => String(t.id));
+  if (validIds.length === 0) throw new Error("None of the specified tasks belong to this chapter.");
+
+  // Create the next stub chapter
+  const nextPosition = await getNextBoardPosition(input.projectId);
+  const chapterNumber = Math.max(1, Math.round(nextPosition / 1000));
+
+  const { data: newBoard, error: boardError } = await supabase
+    .from("boards")
+    .insert({
+      project_id: input.projectId,
+      name: `Chapter ${chapterNumber}`,
+      position: nextPosition,
+    })
+    .select("id")
+    .single();
+
+  if (boardError || !newBoard) {
+    throw new Error(boardError?.message ?? "Failed to create next chapter.");
+  }
+
+  const nextChapterId = String(newBoard.id);
+  const nextChapterName = `Chapter ${chapterNumber}`;
+
+  // Create default columns for the new chapter
+  const { data: newColumns, error: columnsError } = await supabase
+    .from("board_columns")
+    .insert(
+      DEFAULT_COLUMNS.map((name, index) => ({
+        board_id: nextChapterId,
+        name,
+        position: (index + 1) * 1000,
+      })),
+    )
+    .select("id,name");
+
+  if (columnsError || !newColumns) {
+    throw new Error(columnsError?.message ?? "Failed to create columns.");
+  }
+
+  const doThisWeekId = newColumns.find((c) => c.name === "Do This Week")?.id;
+  if (!doThisWeekId) throw new Error("Could not find 'Do This Week' column.");
+
+  // Move deferred tasks into the new chapter
+  const { error: moveError } = await supabase
+    .from("tasks")
+    .update({
+      board_id: nextChapterId,
+      column_id: doThisWeekId,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", validIds);
+
+  if (moveError) throw new Error(moveError.message);
+
+  // Suppress unused variable warning — user is fetched for auth but not used directly
+  void user;
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${nextChapterId}`);
+
+  return { nextChapterId, nextChapterName };
 }
 
 async function getNextBoardPosition(projectId: string) {

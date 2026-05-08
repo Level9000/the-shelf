@@ -32,6 +32,8 @@ import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
 import { EndChapterModal } from "@/components/board/end-chapter-modal";
+import { ChapterProgressBanner } from "@/components/board/chapter-progress-banner";
+import { ChapterRefocusChat } from "@/components/board/chapter-refocus-chat";
 
 type ReviewState = {
   captureId: string | null;
@@ -140,6 +142,7 @@ export function ProjectBoardClient({
     transcript: "",
     proposals: [],
   });
+  const [refocusOpen, setRefocusOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -307,6 +310,12 @@ export function ProjectBoardClient({
   return (
     <>
       <div className="space-y-6">
+        <ChapterProgressBanner
+          board={snapshot.board}
+          tasks={tasks}
+          columns={snapshot.columns}
+          onRefocus={() => setRefocusOpen(true)}
+        />
         <section className="flex flex-col p-4 sm:p-5">
           {error ? (
             <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -389,6 +398,30 @@ export function ProjectBoardClient({
         onClose={() => setReviewOpen(false)}
         onAccepted={refreshData}
       />
+
+      {refocusOpen ? (
+        (() => {
+          const doneCol = snapshot.columns.find((c) => c.name.toLowerCase() === "done");
+          const incompleteTasks = tasks.filter(
+            (t) => !doneCol || t.columnId !== doneCol.id,
+          );
+          return (
+            <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[var(--surface)] p-4 sm:p-6">
+              <ChapterRefocusChat
+                project={snapshot.project}
+                board={snapshot.board}
+                incompleteTasks={incompleteTasks}
+                columns={snapshot.columns}
+                onComplete={() => {
+                  setRefocusOpen(false);
+                  refreshData();
+                }}
+                onClose={() => setRefocusOpen(false)}
+              />
+            </div>
+          );
+        })()
+      ) : null}
 
       <EndChapterModal
         open={endChapterOpen}

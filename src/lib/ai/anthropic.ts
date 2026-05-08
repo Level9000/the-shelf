@@ -1,6 +1,8 @@
 import {
+  aiArcDialogueSchema,
   aiKickoffDialogueSchema,
   aiProjectKickoffDialogueSchema,
+  aiRefocusDialogueSchema,
   aiStrategicDialogueSchema,
   aiTaskExtractionSchema,
   aiProjectOverviewDialogueSchema,
@@ -11,7 +13,9 @@ import {
 import {
   buildChapterKickoffPrompt,
   buildChapterOverviewDialoguePrompt,
+  buildChapterRefocusPrompt,
   buildChapterRetroPrompt,
+  buildProjectArcDialoguePrompt,
   buildProjectKickoffPrompt,
   buildProjectOverviewDialoguePrompt,
   buildShareBlogPrompt,
@@ -495,5 +499,103 @@ export async function runWeeklyPlanningDialogue(input: {
     buildWeeklyPlanningPrompt(input),
     input.messages,
     (text) => aiWeeklyPlanningDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
+// Tool definition for chapter refocus — forces structured task split output.
+const REFOCUS_TOOL = {
+  name: "refocus_response",
+  description: "Submit the chapter refocus dialogue response. Always call this tool — never respond in plain text.",
+  input_schema: {
+    type: "object",
+    properties: {
+      reply: { type: "string", description: "Your conversational response to the user." },
+      done: { type: "boolean", description: "True only when you have enough context to propose the keep/defer split." },
+      keepTaskIds: {
+        type: "array",
+        description: "Task IDs to keep in this chapter. Empty array while conversing.",
+        items: { type: "string" },
+      },
+      deferTaskIds: {
+        type: "array",
+        description: "Task IDs to defer to the next chapter. Empty array while conversing.",
+        items: { type: "string" },
+      },
+      rationale: { type: "string", description: "One sentence explaining the principle behind the split. Empty string while conversing." },
+    },
+    required: ["reply", "done", "keepTaskIds", "deferTaskIds", "rationale"],
+  },
+} as const;
+
+export async function runChapterRefocusDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  chapterName: string;
+  ageDays: number;
+  openingLine: string | null;
+  goal: string | null;
+  incompleteTasks: Array<{ id: string; title: string; columnName: string }>;
+}) {
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildChapterRefocusPrompt(input);
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      tools: [REFOCUS_TOOL],
+      tool_choice: { type: "any" },
+      messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Refocus dialogue failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string; name?: string; input?: unknown }>;
+  };
+
+  const toolUse = payload.content?.find(
+    (block) => block.type === "tool_use" && block.name === "refocus_response",
+  );
+
+  if (!toolUse?.input) {
+    throw new Error("Refocus dialogue did not return a tool call.");
+  }
+
+  return aiRefocusDialogueSchema.parse(toolUse.input);
+}
+
+export async function runProjectArcDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  projectDescription?: string | null;
+  existingValues: {
+    northStar?: string | null;
+    accumulativeStory?: string | null;
+  };
+  chapters: Array<{
+    index: number;
+    name: string;
+    goal?: string | null;
+    openingLine?: string | null;
+    status: "upcoming" | "active" | "complete";
+  }>;
+}) {
+  return runJsonDialogue(
+    buildProjectArcDialoguePrompt(input),
+    input.messages,
+    (text) => aiArcDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+    3072,
   );
 }

@@ -15,6 +15,7 @@ import {
   createTaskAction,
   createTasksFromTemplateAction,
 } from "@/lib/actions/task-actions";
+import { getChapterAgeDays } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -25,6 +26,30 @@ import {
   type VoiceCapturePanelHandle,
   type VoiceProcessingResult,
 } from "@/components/voice/voice-capture-panel";
+
+// ── Chapter intent callout ────────────────────────────────────────────────────
+
+function ChapterIntentCallout({ board }: { board: Board }) {
+  const ageDays = getChapterAgeDays(board);
+  if (!ageDays || ageDays < 7 || !board.openingLine) return null;
+
+  return (
+    <div className="rounded-[1.75rem] bg-[var(--accent-soft)] px-5 py-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+        Chapter intent
+      </p>
+      <p className="mt-1 text-sm leading-6 text-[var(--ink)]">
+        &ldquo;{board.openingLine}&rdquo;
+      </p>
+      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+        This chapter is {ageDays} day{ageDays === 1 ? "" : "s"} in. Does this
+        task serve that goal — or does it belong in a future chapter?
+      </p>
+    </div>
+  );
+}
+
+// ── Form state ────────────────────────────────────────────────────────────────
 
 type FormState = {
   title: string;
@@ -156,6 +181,7 @@ export function ManualTaskModal({
       >
         {mode === "chooser" ? (
           <div className="space-y-6">
+            <ChapterIntentCallout board={board} />
             <div className="grid gap-4 md:grid-cols-2">
               <button
                 type="button"

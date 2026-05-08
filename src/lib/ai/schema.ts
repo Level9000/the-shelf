@@ -53,6 +53,27 @@ export const projectOverviewSectionSchema = z.enum([
   "doneDefinition",
 ]);
 
+export const arcSectionSchema = z.enum(["northStar", "accumulativeStory"]);
+
+export const aiArcDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  /** Which path the conversation is currently on. */
+  intent: z.enum(["exploring", "northStar", "accumulativeStory", "shareable"]).default("exploring"),
+  /** True when a north star or story draft is ready to save. */
+  readyForApproval: z.boolean().default(false),
+  /** Which project field the draftValue belongs to. */
+  draftField: z.enum(["northStar", "accumulativeStory", ""]).default(""),
+  /** The field copy to save when readyForApproval is true. */
+  draftValue: z.string().trim().max(4000).default(""),
+  /** True when the shareable content is ready to present. */
+  shareReady: z.boolean().default(false),
+  /** The shareable copy when shareReady is true. */
+  shareContent: z.string().trim().max(4000).default(""),
+});
+
+export type ArcSection = z.infer<typeof arcSectionSchema>;
+export type AIArcDialogue = z.infer<typeof aiArcDialogueSchema>;
+
 export const aiProjectOverviewDialogueSchema = z.object({
   reply: z.string().trim().min(1).max(4000),
   readyForApproval: z.boolean(),
@@ -127,6 +148,16 @@ export const aiProjectKickoffDialogueSchema = z.object({
 export type AIProjectKickoffDialogue = z.infer<typeof aiProjectKickoffDialogueSchema>;
 export type KickoffProposedChapter = z.infer<typeof kickoffProposedChapterSchema>;
 export type KickoffChapterPrefill = z.infer<typeof kickoffChapterPrefillSchema>;
+
+export const aiRefocusDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  done: z.boolean(),
+  keepTaskIds: z.array(z.string()).default([]),
+  deferTaskIds: z.array(z.string()).default([]),
+  rationale: z.string().trim().max(1000).default(""),
+});
+
+export type AIRefocusDialogue = z.infer<typeof aiRefocusDialogueSchema>;
 
 export const retroDataSchema = z.object({
   chapter_story: z.string().trim().min(1),

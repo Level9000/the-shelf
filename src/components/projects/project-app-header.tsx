@@ -234,7 +234,7 @@ export function ProjectAppHeader({
                   )}
                 >
                   <LayoutPanelTop className="size-3.5" />
-                  Story
+                  Narrative
                 </Link>
                 <Link
                   href={`/projects/${currentProjectId}/chapters/${effectiveNavChapterId}/board`}
@@ -253,23 +253,17 @@ export function ProjectAppHeader({
           )}
 
           {/* Chapter actions — grouped together on the right of nav */}
-          <div className="mx-1 h-5 w-px shrink-0 bg-white/20" />
-          <button
-            type="button"
-            onClick={() => setChapterModalOpen(true)}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
-          >
-            <Plus className="size-3" />
-            New chapter
-          </button>
           {retroAvailable && onEndChapter && (
-            <button
-              type="button"
-              onClick={onEndChapter}
-              className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
-            >
-              End chapter
-            </button>
+            <>
+              <div className="mx-1 h-5 w-px shrink-0 bg-white/20" />
+              <button
+                type="button"
+                onClick={onEndChapter}
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
+              >
+                End chapter early
+              </button>
+            </>
           )}
 
           <div className="flex-1" />

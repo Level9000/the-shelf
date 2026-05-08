@@ -1,26 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import {
   BookOpen,
   CheckCircle2,
   ChevronDown,
   Layers,
-  PencilLine,
-  Save,
-  Settings2,
+  MessageSquare,
   Share2,
   Sparkles,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { AppUser, Chapter, ProjectMember, ProjectWithChapters, UserProfile } from "@/types";
-import { updateProjectOverviewAction } from "@/lib/actions/project-actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { ProjectOverviewRefiner } from "@/components/projects/project-overview-refiner";
+import { ProjectArcRefiner } from "@/components/projects/project-arc-refiner";
 import { ProjectOverviewSettingsDrawer } from "@/components/projects/project-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 import { cn } from "@/lib/utils";
@@ -182,54 +175,12 @@ export function ProjectOverviewShell({
   const router = useRouter();
   const [refining, setRefining] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
   const [foundationsOpen, setFoundationsOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-
-  const [form, setForm] = useState({
-    name: project.name,
-    description: project.description ?? "",
-    goal: project.goal ?? "",
-    whyItMatters: project.whyItMatters ?? "",
-    successLooksLike: project.successLooksLike ?? "",
-    doneDefinition: project.doneDefinition ?? "",
-  });
 
   // Chronicle stats
   const totalChapters = project.chapters.length;
   const storiesWritten = project.chapters.filter((c) => c.retroCompletedAt).length;
   const storiesShared = project.chapters.filter((c) => c.sharedAt).length;
-
-  function handleChange(field: keyof typeof form, value: string) {
-    setForm((cur) => ({ ...cur, [field]: value }));
-  }
-
-  function handleCancelEdit() {
-    setForm({
-      name: project.name,
-      description: project.description ?? "",
-      goal: project.goal ?? "",
-      whyItMatters: project.whyItMatters ?? "",
-      successLooksLike: project.successLooksLike ?? "",
-      doneDefinition: project.doneDefinition ?? "",
-    });
-    setError(null);
-    setEditing(false);
-  }
-
-  function handleSave() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        await updateProjectOverviewAction({ projectId: project.id, ...form });
-        setEditing(false);
-        router.refresh();
-      } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : "Failed to save.");
-      }
-    });
-  }
 
   return (
     <>
@@ -243,96 +194,43 @@ export function ProjectOverviewShell({
         mobileTitle={project.name}
       >
         {refining ? (
-          <ProjectOverviewRefiner project={project} onClose={() => setRefining(false)} />
+          <ProjectArcRefiner project={project} onClose={() => setRefining(false)} />
         ) : (
           <div className="flex flex-col gap-6 overflow-y-auto px-4 py-6 lg:px-8">
 
             {/* ── Header: project identity ── */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="mb-1 flex items-center gap-2">
-                  <Layers className="size-4 text-[var(--muted)]" />
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                    Arc
-                  </span>
-                </div>
-                {editing ? (
-                  <Input
-                    value={form.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                    placeholder="Project title"
-                    className="text-2xl font-semibold sm:text-3xl"
-                  />
-                ) : (
-                  <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)] sm:text-3xl">
-                    {project.name}
-                  </h1>
-                )}
-                {editing ? (
-                  <Textarea
-                    value={form.description}
-                    onChange={(e) => handleChange("description", e.target.value)}
-                    placeholder="A short description of this project"
-                    className="mt-3 min-h-[80px] rounded-[1.5rem]"
-                  />
-                ) : project.description ? (
-                  <p className="mt-2 text-sm leading-6 text-[var(--muted)] sm:text-base">
-                    {project.description}
-                  </p>
-                ) : null}
-              </div>
-
-              {/* Actions */}
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  variant="secondary"
-                  className="size-10 rounded-full p-0"
-                  onClick={() => setSettingsOpen(true)}
-                  aria-label="Project settings"
-                >
-                  <Settings2 className="size-4" />
-                </Button>
-                {editing ? (
-                  <>
-                    <Button variant="secondary" onClick={handleCancelEdit} disabled={isPending}>
-                      <X className="mr-1.5 size-3.5" />Cancel
-                    </Button>
-                    <Button onClick={handleSave} disabled={isPending}>
-                      <Save className="mr-1.5 size-3.5" />
-                      {isPending ? "Saving…" : "Save"}
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    className="size-10 rounded-full p-0"
-                    onClick={() => setEditing(true)}
-                    aria-label="Edit project"
-                  >
-                    <PencilLine className="size-4" />
-                  </Button>
-                )}
-              </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)] sm:text-3xl">
+                {project.name}
+              </h1>
+              {project.description && (
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)] sm:text-base">
+                  {project.description}
+                </p>
+              )}
             </div>
 
-            {error && (
-              <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
-            )}
-
             {/* ── North Star ── */}
-            {project.northStar && (
-              <section className="relative overflow-hidden rounded-[2rem] bg-[var(--ink)] px-6 py-7">
-                <div className="absolute right-6 top-5 opacity-10">
-                  <Sparkles className="size-16" />
-                </div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
-                  North star
-                </p>
+            <section
+              className="relative overflow-hidden rounded-[2rem] bg-[var(--ink)] px-6 py-7 cursor-pointer"
+              onClick={() => !project.northStar && setRefining(true)}
+            >
+              <div className="absolute right-6 top-5 opacity-10">
+                <Sparkles className="size-16" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
+                North star
+              </p>
+              {project.northStar ? (
                 <p className="mt-2 text-lg font-semibold italic leading-8 text-white sm:text-xl">
                   &ldquo;{project.northStar}&rdquo;
                 </p>
-              </section>
-            )}
+              ) : (
+                <p className="mt-2 text-base italic text-white/40">
+                  Not set yet — tap "Refine with chat" to define your north star.
+                </p>
+              )}
+            </section>
 
             {/* ── Chronicle stats ── */}
             {totalChapters > 0 && (
@@ -346,16 +244,20 @@ export function ProjectOverviewShell({
             )}
 
             {/* ── Accumulative story ── */}
-            {project.accumulativeStory && (
-              <section className="surface hairline rounded-[2rem] p-5 sm:p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                  The story so far
-                </p>
+            <section className="surface hairline rounded-[2rem] p-5 sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                The story so far
+              </p>
+              {project.accumulativeStory ? (
                 <p className="mt-3 text-sm leading-7 text-[var(--ink)] sm:text-base">
                   {project.accumulativeStory}
                 </p>
-              </section>
-            )}
+              ) : (
+                <p className="mt-3 text-sm italic text-[var(--muted)]">
+                  Not written yet — use "Refine with chat" to build the narrative thread across your chapters.
+                </p>
+              )}
+            </section>
 
             {/* ── Chapter arc timeline ── */}
             {project.chapters.length > 0 ? (
@@ -419,28 +321,6 @@ export function ProjectOverviewShell({
                         </div>
                       ) : null,
                     )}
-                    {editing && (
-                      <div className="sm:col-span-2">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          {[
-                            { key: "goal" as const, label: "Goal", placeholder: "What is this project trying to achieve?" },
-                            { key: "whyItMatters" as const, label: "Why it matters", placeholder: "Why is this work worth doing?" },
-                            { key: "successLooksLike" as const, label: "What success looks like", placeholder: "What does the end state look like?" },
-                            { key: "doneDefinition" as const, label: "How we know we're done", placeholder: "What is the finish line?" },
-                          ].map(({ key, label, placeholder }) => (
-                            <div key={key}>
-                              <p className="mb-1.5 text-xs font-semibold text-[var(--muted)]">{label}</p>
-                              <Textarea
-                                value={form[key]}
-                                onChange={(e) => handleChange(key, e.target.value)}
-                                placeholder={placeholder}
-                                className="min-h-[100px] rounded-[1.5rem]"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </section>
@@ -457,7 +337,7 @@ export function ProjectOverviewShell({
               aria-label="Refine with chat"
             >
               <span className="flex size-14 shrink-0 items-center justify-center text-white">
-                <Sparkles className="size-5" />
+                <MessageSquare className="size-5" />
               </span>
               <span className="whitespace-nowrap pr-5 text-sm font-semibold text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                 Refine with chat

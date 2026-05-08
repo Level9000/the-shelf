@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ChevronDown, Layers, LayoutPanelTop, Settings, SquareKanban } from "lucide-react";
+import { ChevronDown, Layers, LayoutPanelTop, Plus, Settings, SquareKanban } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectAppHeader } from "@/components/projects/project-app-header";
+import { CreateChapterModal } from "@/components/projects/create-chapter-modal";
 import { SettingsDrawer } from "@/components/settings/settings-drawer";
 import { cn } from "@/lib/utils";
 
@@ -16,11 +17,15 @@ function MobileDropdown({
   displayValue,
   options,
   onSelect,
+  actionLabel,
+  onAction,
 }: {
   label: string;
   displayValue: string;
   options: { value: string; label: string }[];
   onSelect: (value: string) => void;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -54,6 +59,22 @@ function MobileDropdown({
 
       {open && (
         <div className="absolute left-0 top-full z-50 mt-2 min-w-[200px] overflow-hidden rounded-2xl border border-black/5 bg-white shadow-2xl shadow-black/20">
+          {actionLabel && onAction && (
+            <>
+              <button
+                type="button"
+                onMouseDown={() => {
+                  onAction();
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold text-[var(--accent)] transition hover:bg-black/5"
+              >
+                <Plus className="size-3.5 shrink-0" />
+                {actionLabel}
+              </button>
+              <div className="mx-3 border-t border-black/8" />
+            </>
+          )}
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -103,6 +124,7 @@ export function ProjectShellFrame({
 }) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [chapterModalOpen, setChapterModalOpen] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   // The chapter used for Story/Board pill links — current chapter, or the last
@@ -171,6 +193,8 @@ export function ProjectShellFrame({
             displayValue={currentProject?.name ?? "Select"}
             options={projectOptions}
             onSelect={(id) => router.push(`/projects/${id}`)}
+            actionLabel="New Project"
+            onAction={() => router.push("/projects/new")}
           />
 
           <div className="h-5 w-px shrink-0 bg-black/10" />
@@ -182,6 +206,8 @@ export function ProjectShellFrame({
             onSelect={(val) => {
               router.push(`/projects/${currentProjectId}/chapters/${val}`);
             }}
+            actionLabel="New Chapter"
+            onAction={() => setChapterModalOpen(true)}
           />
 
           <div className="flex-1" />
@@ -222,7 +248,7 @@ export function ProjectShellFrame({
                 )}
               >
                 <LayoutPanelTop className="size-3.5" />
-                Story
+                Narrative
               </Link>
               <Link
                 href={`/projects/${currentProjectId}/chapters/${navChapterId}/board`}
@@ -265,6 +291,17 @@ export function ProjectShellFrame({
             .find((p) => p.id === currentProjectId)
             ?.chapters.find((ch) => ch.id === currentChapterId)?.name ?? null
         }
+      />
+
+      <CreateChapterModal
+        open={chapterModalOpen}
+        project={currentProject ?? null}
+        onClose={() => setChapterModalOpen(false)}
+        onCreated={(chapterId) => {
+          setChapterModalOpen(false);
+          router.push(`/projects/${currentProjectId}/chapters/${chapterId}`);
+          router.refresh();
+        }}
       />
     </>
   );

@@ -190,6 +190,71 @@ export function buildProjectOverviewDialoguePrompt(input: {
   ].join("\n");
 }
 
+export function buildProjectArcDialoguePrompt(input: {
+  projectName: string;
+  projectDescription?: string | null;
+  existingValues: {
+    northStar?: string | null;
+    accumulativeStory?: string | null;
+  };
+  chapters: Array<{
+    index: number;
+    name: string;
+    goal?: string | null;
+    openingLine?: string | null;
+    status: "upcoming" | "active" | "complete";
+  }>;
+}) {
+  const chapterSummary =
+    input.chapters.length === 0
+      ? "No chapters yet."
+      : input.chapters
+          .map((ch) => {
+            const lines = [`Chapter ${ch.index + 1} — ${ch.name} [${ch.status}]`];
+            if (ch.goal) lines.push(`  Bet: ${ch.goal}`);
+            if (ch.openingLine) lines.push(`  Opening line: "${ch.openingLine}"`);
+            return lines.join("\n");
+          })
+          .join("\n\n");
+
+  return [
+    "You are Shelf's AI narrative partner, helping a founder articulate the through-line of their project.",
+    "You have three possible paths depending on what the user wants:",
+    "",
+    "PATH 1 — northStar: Help the user write or refine the north star (the mission that outlasts any single chapter).",
+    "PATH 2 — accumulativeStory: Help the user write or refine the accumulative project story (the narrative thread across all chapters).",
+    "PATH 3 — shareable: Ask about the intended audience, then craft a shareable version of the project story tailored to that audience.",
+    "",
+    "CONSTRAINTS:",
+    "- You work ONLY with project-level fields. Never rewrite individual chapter bets, why now, conditions, or proof points.",
+    "- Chapter data is context only.",
+    "- Be direct, brief, and specific. Write in the founder's voice — concrete, not corporate.",
+    "- Ask one focused question at a time. Usually reply in 1 to 3 short sentences.",
+    "",
+    "JSON response rules — always return all fields:",
+    "- intent: set to 'exploring' until the user picks a path, then set to 'northStar', 'accumulativeStory', or 'shareable' and keep it for the rest of the conversation.",
+    "- reply: always present and conversational.",
+    "- readyForApproval: true only when PATH 1 or PATH 2 has a finished polished draft ready to save. False for PATH 3.",
+    "- draftField: 'northStar' or 'accumulativeStory' when readyForApproval is true, otherwise empty string.",
+    "- draftValue: the finished copy when readyForApproval is true, otherwise empty string.",
+    "- shareReady: true only when PATH 3 has produced finished shareable content to present.",
+    "- shareContent: the full shareable copy when shareReady is true, otherwise empty string.",
+    "- When readyForApproval is true, reply must invite the user to approve or keep refining.",
+    "- When shareReady is true, reply must present the content and invite the user to copy it or request changes.",
+    "- Return JSON only.",
+    "",
+    `Project: ${input.projectName}`,
+    `Project description: ${input.projectDescription ?? "Not provided"}`,
+    "",
+    "Current arc values:",
+    `North star: ${input.existingValues.northStar ?? "Not set"}`,
+    `Accumulative story: ${input.existingValues.accumulativeStory ?? "Not set"}`,
+    "",
+    "Chapter arc (context only — do not rewrite these):",
+    chapterSummary,
+  ].join("\n");
+}
+
 export function buildChapterOverviewDialoguePrompt(input: {
   projectName: string;
   projectDescription?: string | null;
@@ -508,6 +573,61 @@ export function buildSharePodcastPrompt(input: {
     "",
     input.projectStory ? `Running project story:\n${input.projectStory}` : null,
   ].filter(Boolean).join("\n");
+}
+
+export function buildChapterRefocusPrompt(input: {
+  projectName: string;
+  chapterName: string;
+  ageDays: number;
+  openingLine: string | null;
+  goal: string | null;
+  incompleteTasks: Array<{ id: string; title: string; columnName: string }>;
+}) {
+  const taskLines =
+    input.incompleteTasks.length > 0
+      ? input.incompleteTasks
+          .map((t) => `- [${t.id}] "${t.title}" (${t.columnName})`)
+          .join("\n")
+      : "- No incomplete tasks.";
+
+  return [
+    "You are a sharp, warm co-founder helping a founder decide what truly belongs in their current chapter — and what should wait.",
+    "",
+    "Your job is a short, focused conversation that ends with a clear split: tasks to finish now vs. tasks to defer.",
+    "You are NOT doing a full retro. You are helping the founder protect the story this chapter was meant to tell.",
+    "",
+    "CONTEXT:",
+    `Project: ${input.projectName}`,
+    `Chapter: ${input.chapterName}`,
+    `Days open: ${input.ageDays}`,
+    `Opening line: "${input.openingLine ?? "Not recorded"}"`,
+    `Chapter bet: ${input.goal ?? "Not set"}`,
+    "",
+    "INCOMPLETE TASKS (task ID in brackets, use exact IDs in your response):",
+    taskLines,
+    "",
+    "CONVERSATION RULES:",
+    "- Open with a specific observation referencing the opening line and 1-2 specific task titles. Do not be generic.",
+    "- Ask ONE question to understand what is blocking or drifting.",
+    "- After 2-3 exchanges you have enough to propose a split.",
+    "- Be honest. If several tasks clearly don't serve the original opening line, name them.",
+    "- Be warm but not sycophantic. Never say 'Great!' or 'Absolutely!'.",
+    "- Mirror the user's language. Keep replies to 2-4 sentences.",
+    "- When you have enough context, propose the split directly.",
+    "",
+    "SPLIT PROPOSAL RULES:",
+    "- keepTaskIds: tasks that directly serve the original opening line and chapter bet.",
+    "- deferTaskIds: tasks that are valuable but belong in a future chapter.",
+    "- Every incomplete task ID must appear in exactly one list.",
+    "- rationale: one sentence explaining the principle behind the split.",
+    "- When done is true, your reply must present the split conversationally — name the tasks being deferred and why, then invite the user to confirm or adjust.",
+    "",
+    "JSON RESPONSE RULES:",
+    "- While conversing: done is false, keepTaskIds and deferTaskIds are empty arrays.",
+    "- When proposing the split: done is true, populate both arrays with exact task IDs from above.",
+    "- Every task ID in your response must exactly match one from the INCOMPLETE TASKS list.",
+    "- Return valid JSON only.",
+  ].join("\n");
 }
 
 export function buildChapterRetroPrompt(input: {
