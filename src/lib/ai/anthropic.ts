@@ -1,5 +1,6 @@
 import {
   aiArcDialogueSchema,
+  aiChapterPlannerDialogueSchema,
   aiKickoffDialogueSchema,
   aiProjectKickoffDialogueSchema,
   aiRefocusDialogueSchema,
@@ -13,6 +14,7 @@ import {
 import {
   buildChapterKickoffPrompt,
   buildChapterOverviewDialoguePrompt,
+  buildChapterPlannerPrompt,
   buildChapterRefocusPrompt,
   buildChapterRetroPrompt,
   buildProjectArcDialoguePrompt,
@@ -597,5 +599,24 @@ export async function runProjectArcDialogue(input: {
     input.messages,
     (text) => aiArcDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
     3072,
+  );
+}
+
+export async function runChapterPlannerDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  northStar?: string | null;
+  accumulativeStory?: string | null;
+  existingChapters: Array<{
+    name: string;
+    goal?: string | null;
+    status: "completed" | "working_on_it" | "planned";
+  }>;
+}) {
+  return runJsonDialogue(
+    buildChapterPlannerPrompt(input),
+    input.messages,
+    (text) => aiChapterPlannerDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+    2048,
   );
 }

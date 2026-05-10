@@ -964,6 +964,53 @@ export async function deferTasksToNextChapterAction(input: {
   return { nextChapterId, nextChapterName };
 }
 
+export async function createPlannedChaptersAction(input: {
+  projectId: string;
+  chapters: Array<{ name: string; goal: string }>;
+}): Promise<{ chapterIds: string[] }> {
+  const { supabase } = await getAuthenticatedUser();
+  const chapterIds: string[] = [];
+
+  for (const chapter of input.chapters) {
+    const nextPosition = await getNextBoardPosition(input.projectId);
+
+    const { data: board, error: boardError } = await supabase
+      .from("boards")
+      .insert({
+        project_id: input.projectId,
+        name: chapter.name.trim(),
+        position: nextPosition,
+        goal: chapter.goal.trim() || null,
+        kickoff_prefilled_at: chapter.goal.trim() ? new Date().toISOString() : null,
+      })
+      .select("id")
+      .single();
+
+    if (boardError || !board) {
+      throw new Error(boardError?.message ?? "Failed to create chapter.");
+    }
+
+    const { error: columnsError } = await supabase
+      .from("board_columns")
+      .insert(
+        DEFAULT_COLUMNS.map((name, index) => ({
+          board_id: board.id,
+          name,
+          position: (index + 1) * 1000,
+        })),
+      );
+
+    if (columnsError) {
+      throw new Error(columnsError.message);
+    }
+
+    chapterIds.push(String(board.id));
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  return { chapterIds };
+}
+
 async function getNextBoardPosition(projectId: string) {
   const { supabase } = await getAuthenticatedUser();
   const { data, error } = await supabase

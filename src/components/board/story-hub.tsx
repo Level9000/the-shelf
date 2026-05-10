@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import {
   ArrowLeft,
+  ArrowRight,
   ArrowUp,
   BookOpen,
   Check,
@@ -14,6 +15,7 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import type { Board, Task } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,10 +64,12 @@ const FORMAT_META: Record<
 
 function HubView({
   board,
+  projectId,
   completedCount,
   onSelectFormat,
 }: {
   board: Board;
+  projectId: string;
   completedCount: number;
   onSelectFormat: (format: ShareFormat) => void;
 }) {
@@ -127,6 +131,30 @@ function HubView({
               </button>
             );
           })}
+        </div>
+      </section>
+
+      {/* Next chapter nudge */}
+      <section className="surface hairline rounded-[2rem] p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+              What&apos;s next?
+            </p>
+            <p className="mt-1 font-semibold text-[var(--ink)]">
+              Plan your next chapter
+            </p>
+            <p className="mt-0.5 text-sm text-[var(--muted)]">
+              Head to the Story tab to map out what comes next.
+            </p>
+          </div>
+          <Link
+            href={`/projects/${projectId}`}
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            Story
+            <ArrowRight className="size-4" />
+          </Link>
         </div>
       </section>
     </div>
@@ -433,14 +461,21 @@ export function StoryHub({
   completedTasks,
   remainingTasks,
   onEndChapter,
+  initialFormat,
 }: {
   board: Board;
   project: { id: string; name: string; accumulativeStory: string | null };
   completedTasks: Task[];
   remainingTasks: Task[];
   onEndChapter?: () => void;
+  initialFormat?: string;
 }) {
-  const [activeFormat, setActiveFormat] = useState<ShareFormat | null>(null);
+  const validFormats: ShareFormat[] = ["email", "blog", "linkedin", "podcast"];
+  const [activeFormat, setActiveFormat] = useState<ShareFormat | null>(
+    initialFormat && (validFormats as string[]).includes(initialFormat)
+      ? (initialFormat as ShareFormat)
+      : null,
+  );
 
   if (!board.retroCompletedAt) {
     return <LockedView board={board} onEndChapter={onEndChapter} />;
@@ -462,6 +497,7 @@ export function StoryHub({
   return (
     <HubView
       board={board}
+      projectId={project.id}
       completedCount={completedTasks.length}
       onSelectFormat={setActiveFormat}
     />

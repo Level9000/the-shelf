@@ -159,6 +159,22 @@ export const aiRefocusDialogueSchema = z.object({
 
 export type AIRefocusDialogue = z.infer<typeof aiRefocusDialogueSchema>;
 
+export const aiChapterPlannerDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  done: z.boolean(),
+  chapters: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(120),
+        goal: z.string().trim().max(500).default(""),
+      }),
+    )
+    .max(8)
+    .default([]),
+});
+
+export type AIChapterPlannerDialogue = z.infer<typeof aiChapterPlannerDialogueSchema>;
+
 export const retroDataSchema = z.object({
   chapter_story: z.string().trim().min(1),
   story_length: z.enum(["short", "long"]),

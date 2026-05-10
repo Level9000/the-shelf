@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ChevronDown, Layers, LayoutPanelTop, Plus, Settings, SquareKanban } from "lucide-react";
+import { BookOpen, ChevronDown, Plus, Settings, SquareKanban } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectAppHeader } from "@/components/projects/project-app-header";
-import { CreateChapterModal } from "@/components/projects/create-chapter-modal";
 import { SettingsDrawer } from "@/components/settings/settings-drawer";
 import { cn } from "@/lib/utils";
 
@@ -113,22 +112,21 @@ export function ProjectShellFrame({
   profile: UserProfile;
   currentProjectId: string;
   currentChapterId?: string | null;
-  /** The chapter to return to when navigating away from the Arc page */
+  /** The chapter to return to when navigating to the Story overview */
   lastChapterId?: string | null;
   mobileEyebrow: string;
   mobileTitle: string;
-  activeNav?: "arc" | "overview" | "board";
+  activeNav?: "story" | "board";
   retroAvailable?: boolean;
   onEndChapter?: () => void;
   children: React.ReactNode;
 }) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [chapterModalOpen, setChapterModalOpen] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   // The chapter used for Story/Board pill links — current chapter, or the last
-  // visited chapter persisted via ?chapter= when navigating to Arc.
+  // visited chapter when navigating to the Story overview.
   const navChapterId = currentChapterId ?? lastChapterId;
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -136,16 +134,16 @@ export function ProjectShellFrame({
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStart.current || !navChapterId || activeNav === "arc") return;
+    if (!touchStart.current || !navChapterId) return;
     const dx = e.changedTouches[0].clientX - touchStart.current.x;
     const dy = e.changedTouches[0].clientY - touchStart.current.y;
     touchStart.current = null;
     // Only trigger if horizontal swipe dominates and exceeds threshold
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    if (dx < 0 && activeNav === "overview") {
+    if (dx < 0 && activeNav === "story") {
       router.push(`/projects/${currentProjectId}/chapters/${navChapterId}/board`);
     } else if (dx > 0 && activeNav === "board") {
-      router.push(`/projects/${currentProjectId}/chapters/${navChapterId}`);
+      router.push(`/projects/${currentProjectId}`);
     }
   }, [activeNav, navChapterId, currentProjectId, router]);
 
@@ -206,8 +204,6 @@ export function ProjectShellFrame({
             onSelect={(val) => {
               router.push(`/projects/${currentProjectId}/chapters/${val}`);
             }}
-            actionLabel="New Chapter"
-            onAction={() => setChapterModalOpen(true)}
           />
 
           <div className="flex-1" />
@@ -223,33 +219,21 @@ export function ProjectShellFrame({
         </div>
 
         {/* Story / Board tab row — centered floating pills */}
-        {navChapterId && (
-          <div className="flex justify-center">
-            <div className="my-3 inline-flex gap-1 rounded-full bg-black/6 p-1 shadow-sm">
-              <Link
-                href={`/projects/${currentProjectId}${navChapterId ? `?chapter=${navChapterId}` : ""}`}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
-                  activeNav === "arc"
-                    ? "bg-white text-[var(--ink)] shadow-sm"
-                    : "text-[var(--muted)]",
-                )}
-              >
-                <Layers className="size-3.5" />
-                Arc
-              </Link>
-              <Link
-                href={`/projects/${currentProjectId}/chapters/${navChapterId}`}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
-                  activeNav === "overview"
-                    ? "bg-white text-[var(--ink)] shadow-sm"
-                    : "text-[var(--muted)]",
-                )}
-              >
-                <LayoutPanelTop className="size-3.5" />
-                Narrative
-              </Link>
+        <div className="flex justify-center">
+          <div className="my-3 inline-flex gap-1 rounded-full bg-black/6 p-1 shadow-sm">
+            <Link
+              href={`/projects/${currentProjectId}`}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                activeNav === "story"
+                  ? "bg-white text-[var(--ink)] shadow-sm"
+                  : "text-[var(--muted)]",
+              )}
+            >
+              <BookOpen className="size-3.5" />
+              Story
+            </Link>
+            {navChapterId && (
               <Link
                 href={`/projects/${currentProjectId}/chapters/${navChapterId}/board`}
                 className={cn(
@@ -262,9 +246,9 @@ export function ProjectShellFrame({
                 <SquareKanban className="size-3.5" />
                 Board
               </Link>
-            </div>
+            )}
           </div>
-        )}
+        </div>
         </div>{/* end sticky header */}
 
         {/* Page content — swipeable between Story and Board */}
@@ -293,16 +277,6 @@ export function ProjectShellFrame({
         }
       />
 
-      <CreateChapterModal
-        open={chapterModalOpen}
-        project={currentProject ?? null}
-        onClose={() => setChapterModalOpen(false)}
-        onCreated={(chapterId) => {
-          setChapterModalOpen(false);
-          router.push(`/projects/${currentProjectId}/chapters/${chapterId}`);
-          router.refresh();
-        }}
-      />
     </>
   );
 }

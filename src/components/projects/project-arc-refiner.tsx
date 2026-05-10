@@ -210,7 +210,7 @@ export function ProjectArcRefiner({
               </div>
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">
-                  Refine the Arc
+                  Refine the Story
                 </h1>
                 <p className="mt-1 text-sm text-[var(--muted)]">
                   Sharpen the north star and story for {project.name}.
@@ -223,7 +223,7 @@ export function ProjectArcRefiner({
               </div>
               <Button variant="secondary" onClick={onClose}>
                 <ArrowLeft className="mr-2 size-4" />
-                Back to Arc
+                Back to Story
               </Button>
             </div>
           </div>
@@ -233,7 +233,7 @@ export function ProjectArcRefiner({
           {/* Chat panel */}
           <section className="surface hairline flex min-h-0 flex-col overflow-hidden rounded-[2rem]">
             <div className="border-b border-black/6 px-5 py-4">
-              <p className="text-sm font-semibold text-[var(--ink)]">Arc narrative</p>
+              <p className="text-sm font-semibold text-[var(--ink)]">Story narrative</p>
               <p className="mt-1 text-sm text-[var(--muted)]">
                 Tell me what you'd like to work on and I'll follow your lead.
               </p>
@@ -324,7 +324,7 @@ export function ProjectArcRefiner({
             <div>
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                 <CheckCircle2 className="size-4 text-[var(--accent)]" />
-                Arc alignment
+                Story alignment
               </div>
               <div className="space-y-2">
                 {(

@@ -5,11 +5,10 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Layers, LayoutPanelTop, LogOut, Plus, Settings, SquareKanban } from "lucide-react";
+import { BookOpen, ChevronDown, LogOut, Plus, Settings, SquareKanban } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { cn } from "@/lib/utils";
-import { CreateChapterModal } from "@/components/projects/create-chapter-modal";
 
 // ── Reusable nav dropdown ────────────────────────────────────────────────────
 
@@ -120,12 +119,11 @@ export function ProjectAppHeader({
   /** The chapter to link Story/Board pills to (falls back to currentChapterId) */
   navChapterId?: string | null;
   onOpenSettings: () => void;
-  activeNav?: "arc" | "overview" | "board";
+  activeNav?: "story" | "board";
   retroAvailable?: boolean;
   onEndChapter?: () => void;
 }) {
   const router = useRouter();
-  const [chapterModalOpen, setChapterModalOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<"project" | "chapter" | null>(null);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
@@ -201,41 +199,27 @@ export function ProjectAppHeader({
             onSelect={(val) => {
               router.push(`/projects/${currentProjectId}/chapters/${val}`);
             }}
-            actionLabel="New Chapter"
-            onAction={() => setChapterModalOpen(true)}
             isOpen={openDropdown === "chapter"}
             onOpenChange={(open) => setOpenDropdown(open ? "chapter" : null)}
           />
 
-          {/* Arc / Story / Board nav — visible whenever we have a chapter context */}
-          {effectiveNavChapterId && (
-            <>
-              <div className="mx-1 h-5 w-px shrink-0 bg-white/20" />
-              <div className="flex gap-1">
-                <Link
-                  href={`/projects/${currentProjectId}${effectiveNavChapterId ? `?chapter=${effectiveNavChapterId}` : ""}`}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                    activeNav === "arc"
-                      ? "bg-white text-[var(--ink)]"
-                      : "bg-white/15 text-white hover:bg-white/25",
-                  )}
-                >
-                  <Layers className="size-3.5" />
-                  Arc
-                </Link>
-                <Link
-                  href={`/projects/${currentProjectId}/chapters/${effectiveNavChapterId}`}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                    activeNav === "overview"
-                      ? "bg-white text-[var(--ink)]"
-                      : "bg-white/15 text-white hover:bg-white/25",
-                  )}
-                >
-                  <LayoutPanelTop className="size-3.5" />
-                  Narrative
-                </Link>
+          {/* Story / Board nav */}
+          <>
+            <div className="mx-1 h-5 w-px shrink-0 bg-white/20" />
+            <div className="flex gap-1">
+              <Link
+                href={`/projects/${currentProjectId}`}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                  activeNav === "story"
+                    ? "bg-white text-[var(--ink)]"
+                    : "bg-white/15 text-white hover:bg-white/25",
+                )}
+              >
+                <BookOpen className="size-3.5" />
+                Story
+              </Link>
+              {effectiveNavChapterId && (
                 <Link
                   href={`/projects/${currentProjectId}/chapters/${effectiveNavChapterId}/board`}
                   className={cn(
@@ -248,9 +232,9 @@ export function ProjectAppHeader({
                   <SquareKanban className="size-3.5" />
                   Board
                 </Link>
-              </div>
-            </>
-          )}
+              )}
+            </div>
+          </>
 
           {/* Chapter actions — grouped together on the right of nav */}
           {retroAvailable && onEndChapter && (
@@ -291,16 +275,6 @@ export function ProjectAppHeader({
         </div>
       </div>
 
-      <CreateChapterModal
-        open={chapterModalOpen}
-        project={currentProject ?? null}
-        onClose={() => setChapterModalOpen(false)}
-        onCreated={(chapterId) => {
-          setChapterModalOpen(false);
-          router.push(`/projects/${currentProjectId}/chapters/${chapterId}`);
-          router.refresh();
-        }}
-      />
     </>
   );
 }

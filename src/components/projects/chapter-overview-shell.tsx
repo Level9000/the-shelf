@@ -48,12 +48,14 @@ export function ChapterOverviewShell({
   profile,
   currentProjectId,
   currentChapterId,
+  initialFormat,
 }: {
   snapshot: BoardSnapshot;
   projects: ProjectWithChapters[];
   profile: UserProfile;
   currentProjectId: string;
   currentChapterId: string;
+  initialFormat?: string;
 }) {
   const router = useRouter();
   const kickoffMode = chapterKickoffMode(snapshot);
@@ -88,7 +90,7 @@ export function ChapterOverviewShell({
         currentChapterId={currentChapterId}
         mobileEyebrow={snapshot.board.name}
         mobileTitle={snapshot.project.name}
-        activeNav="overview"
+        activeNav="story"
       >
         <div className="flex h-full min-h-0 flex-col">
           {showKickoff ? (
@@ -128,6 +130,7 @@ export function ChapterOverviewShell({
               completedTasks={completedTasks}
               remainingTasks={remainingTasks}
               onEndChapter={() => setEndChapterModalOpen(true)}
+              initialFormat={initialFormat}
             />
           ) : (
             <ChapterOverviewPanel
