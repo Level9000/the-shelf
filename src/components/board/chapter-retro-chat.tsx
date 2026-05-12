@@ -3,20 +3,23 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
+  ArrowRight,
   ArrowUp,
   Bot,
+  Check,
+  Copy,
+  ExternalLink,
   LoaderCircle,
   MessageSquareText,
   UserRound,
 } from "lucide-react";
-import { z } from "zod";
-import type { Board, Task, BoardColumn } from "@/types";
+import type { Board, Task } from "@/types";
 import { retroDataSchema, type RetroData } from "@/lib/ai/schema";
 import { completeChapterRetroAction } from "@/lib/actions/project-actions";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import { ChapterStoryDraft } from "@/components/board/chapter-story-draft";
-import { ChapterShareCard } from "@/components/board/chapter-share-card";
 import { cn } from "@/lib/utils";
 
 type DialogueMessage = {
@@ -24,7 +27,7 @@ type DialogueMessage = {
   content: string;
 };
 
-type Stage = "chatting" | "draft" | "share";
+type Stage = "chatting" | "draft";
 
 function buildRetroOpener(
   board: Board,
@@ -81,6 +84,142 @@ function parseRetroData(text: string): {
   }
 }
 
+// ─── Completion modal ─────────────────────────────────────────────────────────
+
+function RetroCompletionModal({
+  open,
+  board,
+  project,
+  retroData,
+  completedCount,
+  remainingCount,
+  shareSlug,
+  onDone,
+}: {
+  open: boolean;
+  board: Board;
+  project: { id: string; name: string };
+  retroData: RetroData;
+  completedCount: number;
+  remainingCount: number;
+  shareSlug: string | null;
+  onDone: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const appUrl =
+    typeof window !== "undefined"
+      ? `${window.location.protocol}//${window.location.host}`
+      : "";
+  const storyUrl = shareSlug ? `${appUrl}/story/${shareSlug}` : null;
+
+  const twitterText = encodeURIComponent(
+    `${retroData.pull_quote}\n\nRead the full story →`,
+  );
+  const twitterShareUrl = storyUrl
+    ? `https://twitter.com/intent/tweet?text=${twitterText}&url=${encodeURIComponent(storyUrl)}`
+    : null;
+  const linkedInShareUrl = storyUrl
+    ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(storyUrl)}`
+    : null;
+
+  async function copyLink() {
+    if (!storyUrl) return;
+    try {
+      await navigator.clipboard.writeText(storyUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: do nothing
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      title="Chapter complete."
+      description={`The story for ${board.name} has been written and saved.`}
+      onClose={onDone}
+    >
+      {/* Pull-quote card */}
+      <div className="overflow-hidden rounded-[1.75rem] bg-[var(--ink)] text-white">
+        <div className="px-5 pt-5 pb-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+            {board.name} · {project.name}
+          </p>
+          <blockquote className="mt-3 text-base font-semibold leading-snug tracking-tight">
+            &ldquo;{retroData.pull_quote}&rdquo;
+          </blockquote>
+        </div>
+        <div className="flex items-center gap-5 border-t border-white/10 px-5 py-3 text-sm text-white/60">
+          {completedCount > 0 && (
+            <span className="flex items-center gap-1.5">
+              <Check className="size-3.5 text-white/40" />
+              {completedCount} {completedCount === 1 ? "task" : "tasks"} done
+            </span>
+          )}
+          {remainingCount > 0 && (
+            <span className="flex items-center gap-1.5">
+              <ArrowRight className="size-3.5 text-white/40" />
+              {remainingCount} carried forward
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Share row */}
+      {storyUrl && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {twitterShareUrl && (
+            <a
+              href={twitterShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-black"
+            >
+              <ExternalLink className="size-3" />
+              Share on X
+            </a>
+          )}
+          {linkedInShareUrl && (
+            <a
+              href={linkedInShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-black"
+            >
+              <ExternalLink className="size-3" />
+              Share on LinkedIn
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={copyLink}
+            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-[var(--ink)] ring-1 ring-black/12 transition hover:bg-[var(--surface-muted)]"
+          >
+            {copied ? (
+              <Check className="size-3 text-green-600" />
+            ) : (
+              <Copy className="size-3" />
+            )}
+            {copied ? "Copied!" : "Copy link"}
+          </button>
+        </div>
+      )}
+
+      {/* Done CTA */}
+      <div className="mt-6 flex justify-end">
+        <Button onClick={onDone} className="gap-2">
+          <Check className="size-4" />
+          Done
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function ChapterRetroChat({
   project,
   board,
@@ -104,6 +243,7 @@ export function ChapterRetroChat({
   const [retroData, setRetroData] = useState<RetroData | null>(null);
   const [editedStory, setEditedStory] = useState("");
   const [shareSlug, setShareSlug] = useState<string | null>(null);
+  const [completionOpen, setCompletionOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isSaving, startSaveTransition] = useTransition();
 
@@ -186,40 +326,39 @@ export function ChapterRetroChat({
           accumulativeParagraph: retroData.accumulative_paragraph,
         });
         setShareSlug(slug);
-        setStage("share");
-        onComplete?.();
+        setCompletionOpen(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to publish story.");
       }
     });
   }
 
-  // ─── Stage: Share ─────────────────────────────────────────────────────────────
-  if (stage === "share" && retroData && shareSlug) {
-    return (
-      <ChapterShareCard
-        board={board}
-        project={project}
-        retroData={retroData}
-        chapterStory={editedStory}
-        completedCount={completedTasks.length}
-        remainingCount={remainingTasks.length}
-        shareSlug={shareSlug}
-      />
-    );
-  }
-
   // ─── Stage: Draft ─────────────────────────────────────────────────────────────
   if (stage === "draft" && retroData) {
     return (
-      <ChapterStoryDraft
-        retroData={retroData}
-        editedStory={editedStory}
-        onEditStory={setEditedStory}
-        onPublish={handlePublish}
-        isSaving={isSaving}
-        error={error}
-      />
+      <>
+        <ChapterStoryDraft
+          retroData={retroData}
+          editedStory={editedStory}
+          onEditStory={setEditedStory}
+          onPublish={handlePublish}
+          isSaving={isSaving}
+          error={error}
+        />
+        <RetroCompletionModal
+          open={completionOpen}
+          board={board}
+          project={project}
+          retroData={retroData}
+          completedCount={completedTasks.length}
+          remainingCount={remainingTasks.length}
+          shareSlug={shareSlug}
+          onDone={() => {
+            setCompletionOpen(false);
+            onComplete?.();
+          }}
+        />
+      </>
     );
   }
 

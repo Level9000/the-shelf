@@ -166,7 +166,7 @@ export function ProjectShellFrame({
   return (
     <>
       {/* ── Desktop layout (lg+) ── */}
-      <div className="hidden lg:flex lg:min-h-screen lg:flex-col">
+      <div className="hidden lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
         <ProjectAppHeader
           projects={projects}
           currentProjectId={currentProjectId}
@@ -177,13 +177,13 @@ export function ProjectShellFrame({
           retroAvailable={retroAvailable}
           onEndChapter={onEndChapter}
         />
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
       </div>
 
       {/* ── Mobile layout (<lg) ── */}
-      <div className="lg:hidden">
-        {/* Sticky header: top bar + tab pills */}
-        <div className="sticky top-0 z-30 bg-[var(--app-bg)]">
+      <div className="flex h-dvh flex-col lg:hidden">
+        {/* Header: top bar + tab pills — sits above scrollable content */}
+        <div className="z-30 shrink-0 bg-[var(--app-bg)]">
         {/* Top bar: project + chapter dropdowns + settings gear */}
         <div className="flex items-center gap-3 border-b border-black/6 bg-white px-4 py-3">
           <MobileDropdown
@@ -249,12 +249,12 @@ export function ProjectShellFrame({
             )}
           </div>
         </div>
-        </div>{/* end sticky header */}
+        </div>{/* end header */}
 
-        {/* Page content — swipeable between Story and Board */}
+        {/* Page content — scrollable area below the header */}
         <div
           className={cn(
-            "pb-4 pt-0",
+            "min-h-0 flex-1 overflow-y-auto pb-4",
             activeNav === "board" ? "px-0" : "px-4",
           )}
           onTouchStart={handleTouchStart}

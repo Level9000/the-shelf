@@ -101,12 +101,14 @@ export function ProjectBoardClient({
   chapterId,
   endChapterOpen = false,
   onEndChapterClose,
+  onEndChapterConfirmed,
 }: {
   snapshot: BoardSnapshot;
   chapterProjectId: string;
   chapterId: string;
   endChapterOpen?: boolean;
   onEndChapterClose?: () => void;
+  onEndChapterConfirmed?: (nextChapterId: string | null) => void;
 }) {
   const router = useRouter();
   const sensors = useSensors(
@@ -426,8 +428,9 @@ export function ProjectBoardClient({
       <EndChapterModal
         open={endChapterOpen}
         onClose={() => onEndChapterClose?.()}
-        onConfirm={() => {
+        onConfirm={(nextChapterId) => {
           onEndChapterClose?.();
+          onEndChapterConfirmed?.(nextChapterId);
           refreshData();
         }}
         projectId={snapshot.project.id}
