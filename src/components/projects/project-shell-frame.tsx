@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { BookOpen, ChevronDown, Plus, Settings, SquareKanban } from "lucide-react";
+import { BookOpen, ChevronDown, Plus, Settings, Sparkles, SquareKanban } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ProjectWithChapters, UserProfile } from "@/types";
@@ -18,6 +18,8 @@ function MobileDropdown({
   onSelect,
   actionLabel,
   onAction,
+  bottomActionLabel,
+  onBottomAction,
 }: {
   label: string;
   displayValue: string;
@@ -25,6 +27,8 @@ function MobileDropdown({
   onSelect: (value: string) => void;
   actionLabel?: string;
   onAction?: () => void;
+  bottomActionLabel?: string;
+  onBottomAction?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -87,6 +91,22 @@ function MobileDropdown({
               <span className="line-clamp-1">{opt.label}</span>
             </button>
           ))}
+          {bottomActionLabel && onBottomAction && (
+            <>
+              <div className="mx-3 border-t border-black/8" />
+              <button
+                type="button"
+                onMouseDown={() => {
+                  onBottomAction();
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold text-[var(--accent)] transition hover:bg-black/5"
+              >
+                <Sparkles className="size-3.5 shrink-0" />
+                {bottomActionLabel}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -106,6 +126,7 @@ export function ProjectShellFrame({
   activeNav,
   retroAvailable,
   onEndChapter,
+  onPlanChapters,
   children,
 }: {
   projects: ProjectWithChapters[];
@@ -116,9 +137,10 @@ export function ProjectShellFrame({
   lastChapterId?: string | null;
   mobileEyebrow: string;
   mobileTitle: string;
-  activeNav?: "story" | "board";
+  activeNav?: "overview" | "story" | "board";
   retroAvailable?: boolean;
   onEndChapter?: () => void;
+  onPlanChapters?: () => void;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -143,7 +165,7 @@ export function ProjectShellFrame({
     if (dx < 0 && activeNav === "story") {
       router.push(`/projects/${currentProjectId}/chapters/${navChapterId}/board`);
     } else if (dx > 0 && activeNav === "board") {
-      router.push(`/projects/${currentProjectId}`);
+      router.push(`/projects/${currentProjectId}/chapters/${navChapterId}`);
     }
   }, [activeNav, navChapterId, currentProjectId, router]);
 
@@ -176,6 +198,7 @@ export function ProjectShellFrame({
           activeNav={activeNav}
           retroAvailable={retroAvailable}
           onEndChapter={onEndChapter}
+          onPlanChapters={onPlanChapters}
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
       </div>
@@ -204,6 +227,8 @@ export function ProjectShellFrame({
             onSelect={(val) => {
               router.push(`/projects/${currentProjectId}/chapters/${val}`);
             }}
+            bottomActionLabel="Plan new chapters"
+            onBottomAction={() => onPlanChapters?.()}
           />
 
           <div className="flex-1" />
@@ -218,34 +243,48 @@ export function ProjectShellFrame({
           </button>
         </div>
 
-        {/* Story / Board tab row — centered floating pills */}
+        {/* Overview / Story / Board tab row — centered floating pills */}
         <div className="flex justify-center">
           <div className="my-3 inline-flex gap-1 rounded-full bg-black/6 p-1 shadow-sm">
             <Link
               href={`/projects/${currentProjectId}`}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
-                activeNav === "story"
+                activeNav === "overview"
                   ? "bg-white text-[var(--ink)] shadow-sm"
                   : "text-[var(--muted)]",
               )}
             >
               <BookOpen className="size-3.5" />
-              Story
+              Overview
             </Link>
             {navChapterId && (
-              <Link
-                href={`/projects/${currentProjectId}/chapters/${navChapterId}/board`}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
-                  activeNav === "board"
-                    ? "bg-white text-[var(--ink)] shadow-sm"
-                    : "text-[var(--muted)]",
-                )}
-              >
-                <SquareKanban className="size-3.5" />
-                Board
-              </Link>
+              <>
+                <Link
+                  href={`/projects/${currentProjectId}/chapters/${navChapterId}`}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                    activeNav === "story"
+                      ? "bg-white text-[var(--ink)] shadow-sm"
+                      : "text-[var(--muted)]",
+                  )}
+                >
+                  <BookOpen className="size-3.5" />
+                  Story
+                </Link>
+                <Link
+                  href={`/projects/${currentProjectId}/chapters/${navChapterId}/board`}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                    activeNav === "board"
+                      ? "bg-white text-[var(--ink)] shadow-sm"
+                      : "text-[var(--muted)]",
+                  )}
+                >
+                  <SquareKanban className="size-3.5" />
+                  Board
+                </Link>
+              </>
             )}
           </div>
         </div>

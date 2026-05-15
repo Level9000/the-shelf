@@ -19,11 +19,19 @@ import type { Board, Task, BoardColumn } from "@/types";
 import { updateBoardOverviewAction } from "@/lib/actions/project-actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ChapterProgressBanner } from "@/components/board/chapter-progress-banner";
 import { cn } from "@/lib/utils";
 
 function copyOrFallback(value: string | null, fallback: string) {
   return value?.trim() || fallback;
 }
+
+const SHARE_FORMATS = [
+  { key: "email", icon: Mail, label: "Email update", description: "A personal email to your board, investors, or team" },
+  { key: "blog", icon: FileText, label: "Blog post", description: "A 400–600 word post in your authentic founder voice" },
+  { key: "linkedin", icon: Link2, label: "LinkedIn post", description: "A punchy 150–200 word post for your network" },
+  { key: "podcast", icon: Mic, label: "Podcast script", description: "A 2–3 minute conversational solo-cast monologue" },
+] as const;
 
 export function ChapterOverviewPanel({
   board,
@@ -36,6 +44,8 @@ export function ChapterOverviewPanel({
   onRefine,
   onStartRetro,
   onEndChapter,
+  activeChapterUrl = null,
+  onSelectShareFormat,
 }: {
   board: Board;
   projectId: string;
@@ -47,6 +57,8 @@ export function ChapterOverviewPanel({
   onRefine: () => void;
   onStartRetro?: () => void;
   onEndChapter?: () => void;
+  activeChapterUrl?: string | null;
+  onSelectShareFormat?: (format: string) => void;
 }) {
   const router = useRouter();
 
@@ -113,62 +125,78 @@ const retroAvailable =
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6 overflow-y-auto">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div />
-
-        <div className="flex flex-wrap items-center gap-3">
-          {retroDone ? (
-            <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 ring-1 ring-green-200">
-              <BookOpen className="size-4" />
-              Story published
-            </div>
-          ) : retroAvailable && allTasksDone && onStartRetro ? (
-            <button
-              type="button"
-              onClick={onStartRetro}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--accent)]/20 transition duration-200 hover:-translate-y-0.5"
-            >
-              <BookOpen className="size-4" />
-              All done — write the story
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Mobile collapsible share teaser */}
-      {!retroDone && (
-        <div className="lg:hidden overflow-hidden rounded-[1.5rem] border border-black/6 bg-white">
+      <ChapterProgressBanner
+        board={board}
+        tasks={tasks ?? []}
+        columns={columns ?? []}
+        onRefocus={() => {}}
+        activeChapterUrl={activeChapterUrl}
+      />
+      {!retroDone && retroAvailable && allTasksDone && onStartRetro && (
+        <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => setShareOpen((v) => !v)}
-            className="flex w-full items-center justify-between gap-3 px-4 py-3.5"
+            onClick={onStartRetro}
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--accent)]/20 transition duration-200 hover:-translate-y-0.5"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-muted)] text-[var(--muted)]">
-                <Lock className="size-3.5" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-[var(--ink)]">Share your story</p>
-                <p className="text-xs text-[var(--muted)]">Unlocks when this chapter closes</p>
-              </div>
-            </div>
-            <ChevronDown
-              className={cn(
-                "size-4 shrink-0 text-[var(--muted)] transition-transform duration-200",
-                shareOpen && "rotate-180",
-              )}
-            />
+            <BookOpen className="size-4" />
+            All done — write the story
           </button>
+        </div>
+      )}
 
-          {shareOpen && (
-            <div className="flex flex-col gap-2.5 px-4 pb-4 opacity-50 pointer-events-none select-none">
-              {[
-                { icon: Mail, label: "Email update", description: "A personal email to your board, investors, or team" },
-                { icon: FileText, label: "Blog post", description: "A 400–600 word post in your authentic founder voice" },
-                { icon: Link2, label: "LinkedIn post", description: "A punchy 150–200 word post for your network" },
-                { icon: Mic, label: "Podcast script", description: "A 2–3 minute conversational solo-cast monologue" },
-              ].map(({ icon: Icon, label, description }) => (
-                <div key={label} className="surface-card hairline flex items-center gap-3 rounded-[1.25rem] p-3.5">
+      {/* Mobile collapsible share section */}
+      <div className="lg:hidden overflow-hidden rounded-[1.5rem] border border-black/6 bg-white">
+        <button
+          type="button"
+          onClick={() => setShareOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-3 px-4 py-3.5"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded-lg",
+              retroDone ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--surface-muted)] text-[var(--muted)]",
+            )}>
+              {retroDone ? <BookOpen className="size-3.5" /> : <Lock className="size-3.5" />}
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-[var(--ink)]">Share your story</p>
+              <p className="text-xs text-[var(--muted)]">
+                {retroDone ? "Generate polished updates for your network" : "Unlocks when this chapter closes"}
+              </p>
+            </div>
+          </div>
+          <ChevronDown
+            className={cn(
+              "size-4 shrink-0 text-[var(--muted)] transition-transform duration-200",
+              shareOpen && "rotate-180",
+            )}
+          />
+        </button>
+
+        {shareOpen && (
+          <div className={cn(
+            "flex flex-col gap-2.5 px-4 pb-4",
+            !retroDone && "opacity-50 pointer-events-none select-none",
+          )}>
+            {SHARE_FORMATS.map(({ key, icon: Icon, label, description }) => (
+              retroDone ? (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onSelectShareFormat?.(key)}
+                  className="surface-card hairline group flex items-center gap-3 rounded-[1.25rem] p-3.5 text-left transition hover:shadow-md"
+                >
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] transition group-hover:bg-[var(--ink)] group-hover:text-white">
+                    <Icon className="size-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
+                    <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
+                  </div>
+                </button>
+              ) : (
+                <div key={key} className="surface-card hairline flex items-center gap-3 rounded-[1.25rem] p-3.5">
                   <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
                     <Icon className="size-3.5" />
                   </div>
@@ -177,14 +205,34 @@ const retroAvailable =
                     <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+              )
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_30%]">
-        {/* Left: 4 overview cards */}
+        {/* Left: how it went + 4 overview cards */}
+        <div className="flex flex-col gap-4">
+        {retroDone && board.chapterStory && (
+          <article className="surface-card hairline rounded-[1.75rem] p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
+                <div className="h-3 shrink-0 bg-violet-200" />
+                <div className="flex flex-1 items-center justify-center bg-violet-100">
+                  <span className="text-[10px] font-bold tracking-wide text-violet-900/60">Story</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">How it went</h3>
+                <p className="text-sm text-[var(--muted)]">The story of this chapter.</p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm italic leading-7 text-[var(--ink)] sm:text-base">
+              {board.chapterStory}
+            </p>
+          </article>
+        )}
         <section className="grid auto-rows-fr gap-4 sm:grid-cols-2">
           <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
             <div className="flex items-center gap-3">
@@ -195,12 +243,14 @@ const retroAvailable =
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">What's the bet we're making?</h3>
+                <h3 className="text-lg font-semibold">
+                  {retroDone ? "What's the bet that we made?" : "What's the bet we're making?"}
+                </h3>
                 <p className="text-sm text-[var(--muted)]">
                   The core hypothesis we're acting on this chapter.
                 </p>
               </div>
-              {editingField !== "goal" && (
+              {!retroDone && editingField !== "goal" && (
                 <button
                   type="button"
                   onClick={() => setEditingField("goal")}
@@ -251,12 +301,14 @@ const retroAvailable =
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">Why does this matter right now?</h3>
+                <h3 className="text-lg font-semibold">
+                  {retroDone ? "Why did this matter at the time?" : "Why does this matter right now?"}
+                </h3>
                 <p className="text-sm text-[var(--muted)]">
                   The urgency and stakes behind this chapter.
                 </p>
               </div>
-              {editingField !== "whyItMatters" && (
+              {!retroDone && editingField !== "whyItMatters" && (
                 <button
                   type="button"
                   onClick={() => setEditingField("whyItMatters")}
@@ -307,12 +359,14 @@ const retroAvailable =
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">What has to be true?</h3>
+                <h3 className="text-lg font-semibold">
+                  {retroDone ? "What needed to be true?" : "What has to be true?"}
+                </h3>
                 <p className="text-sm text-[var(--muted)]">
                   The conditions that need to hold for this chapter to work.
                 </p>
               </div>
-              {editingField !== "successLooksLike" && (
+              {!retroDone && editingField !== "successLooksLike" && (
                 <button
                   type="button"
                   onClick={() => setEditingField("successLooksLike")}
@@ -363,12 +417,14 @@ const retroAvailable =
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">What will we have to show?</h3>
+                <h3 className="text-lg font-semibold">
+                  {retroDone ? "What did we have to show for it?" : "What will we have to show?"}
+                </h3>
                 <p className="text-sm text-[var(--muted)]">
                   The proof point at the end of this chapter.
                 </p>
               </div>
-              {editingField !== "doneDefinition" && (
+              {!retroDone && editingField !== "doneDefinition" && (
                 <button
                   type="button"
                   onClick={() => setEditingField("doneDefinition")}
@@ -410,54 +466,78 @@ const retroAvailable =
             )}
           </article>
         </section>
+        </div>
 
-        {/* Right: share teaser — desktop only, mobile uses collapsible above */}
-        {!retroDone && (
-          <section className="hidden surface hairline sticky top-6 rounded-[2rem] p-5 sm:p-6 lg:block">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                  Unlocks when you close this chapter
-                </p>
-                <h3 className="mt-1 text-lg font-semibold tracking-tight text-[var(--ink)]">
-                  Share your story
-                </h3>
-                <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                  End the chapter and complete the retro — AI will turn your work into polished updates ready to send.
-                </p>
+        {/* Right: share panel — desktop only, mobile uses collapsible above */}
+        <section className="hidden surface hairline sticky top-6 rounded-[2rem] p-5 sm:p-6 lg:block">
+          {retroDone ? (
+            <>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                Chapter complete
+              </p>
+              <h3 className="mt-1 text-lg font-semibold tracking-tight text-[var(--ink)]">
+                Share your story
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                Turn this chapter into a polished update for your network, board, or team.
+              </p>
+              <div className="mt-4 flex flex-col gap-3">
+                {SHARE_FORMATS.map(({ key, icon: Icon, label, description }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => onSelectShareFormat?.(key)}
+                    className="surface-card hairline group flex items-center gap-3 rounded-[1.25rem] p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] transition group-hover:bg-[var(--ink)] group-hover:text-white">
+                      <Icon className="size-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
+                      <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-muted)] text-[var(--muted)]">
-                <Lock className="size-4" />
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3 opacity-50 pointer-events-none select-none">
-              {[
-                { icon: Mail, label: "Email update", description: "A personal email to your board, investors, or team" },
-                { icon: FileText, label: "Blog post", description: "A 400–600 word post in your authentic founder voice" },
-                { icon: Link2, label: "LinkedIn post", description: "A punchy 150–200 word post for your network" },
-                { icon: Mic, label: "Podcast script", description: "A 2–3 minute conversational solo-cast monologue" },
-              ].map(({ icon: Icon, label, description }) => (
-                <div
-                  key={label}
-                  className="surface-card hairline flex items-center gap-3 rounded-[1.25rem] p-4"
-                >
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                    <Icon className="size-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
-                    <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
-                  </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                    Unlocks when you close this chapter
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold tracking-tight text-[var(--ink)]">
+                    Share your story
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                    End the chapter and complete the retro — AI will turn your work into polished updates ready to send.
+                  </p>
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-muted)] text-[var(--muted)]">
+                  <Lock className="size-4" />
+                </div>
+              </div>
+              <div className="mt-4 flex flex-col gap-3 pointer-events-none select-none opacity-50">
+                {SHARE_FORMATS.map(({ icon: Icon, label, description }) => (
+                  <div key={label} className="surface-card hairline flex items-center gap-3 rounded-[1.25rem] p-4">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                      <Icon className="size-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
+                      <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
       </div>
 
-      {/* Floating refine button — bottom-right FAB */}
-      <button
+      {/* Floating refine button — bottom-right FAB, hidden once chapter is done */}
+      {!retroDone && <button
         type="button"
         onClick={onRefine}
         className="group fixed bottom-6 right-6 z-40 flex h-14 items-center overflow-hidden rounded-full bg-[var(--ink)] shadow-xl shadow-black/20 transition-all duration-300 ease-out hover:shadow-2xl hover:shadow-black/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
@@ -472,7 +552,7 @@ const retroAvailable =
         <span className="whitespace-nowrap pr-5 text-sm font-semibold text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           Refine story with chat
         </span>
-      </button>
+      </button>}
     </div>
   );
 }

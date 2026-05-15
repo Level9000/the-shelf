@@ -984,3 +984,37 @@ export function buildChapterPlannerPrompt(input: {
     .filter((line) => line !== null)
     .join("\n");
 }
+
+export function buildTaskChunkingPrompt(input: {
+  taskTitle: string;
+  taskDescription: string | null;
+  columnName: string;
+  chapterName: string;
+}): string {
+  return [
+    "You are helping a founder break a complex task card into smaller, more actionable pieces.",
+    "Your job: have a short, focused conversation to understand how they want to chunk it, then propose specific subtasks.",
+    "",
+    "CONVERSATION STYLE:",
+    "- Be direct. 1–3 sentences per reply.",
+    "- Ask at most one clarifying question before proposing a breakdown.",
+    "- When you have a clear picture, immediately propose 2–5 specific subtasks.",
+    "- Each subtask should be completable in 1–3 days and have a clear outcome.",
+    "- Once the user confirms the breakdown, set isComplete=true with the final tasks array.",
+    "- Do not pad with filler. Fewer, sharper tasks beat more vague ones.",
+    "",
+    "TASK TO CHUNK:",
+    `Title: ${input.taskTitle}`,
+    input.taskDescription ? `Description: ${input.taskDescription}` : null,
+    `Column: ${input.columnName}`,
+    `Chapter: ${input.chapterName}`,
+    "",
+    "JSON RESPONSE RULES:",
+    "- reply: always a short conversational response.",
+    "- isComplete: false while chatting, true only when the user has confirmed the final breakdown.",
+    "- tasks: empty array while chatting; the confirmed subtask list when isComplete=true.",
+    "- Return JSON only — no prose outside the JSON structure.",
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+}

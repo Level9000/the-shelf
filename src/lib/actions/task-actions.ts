@@ -359,3 +359,55 @@ export async function createTasksFromTemplateAction(input: {
   revalidatePath(`/projects/${input.projectId}`);
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
+
+export async function createChunkedTasksAction(input: {
+  projectId: string;
+  boardId: string;
+  columnId: string;
+  originalTaskId: string;
+  tasks: Array<{
+    title: string;
+    description: string;
+    priority: "low" | "medium" | "high" | null;
+  }>;
+}) {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  const { data: existing } = await supabase
+    .from("tasks")
+    .select("position")
+    .eq("board_id", input.boardId)
+    .eq("column_id", input.columnId)
+    .order("position", { ascending: false })
+    .limit(1);
+
+  const basePosition = ((existing?.[0]?.position as number) ?? 0) + 1000;
+
+  const inserts = input.tasks.map((task, index) => ({
+    project_id: input.projectId,
+    board_id: input.boardId,
+    column_id: input.columnId,
+    title: task.title.trim(),
+    description: task.description?.trim() || null,
+    priority: task.priority ?? null,
+    position: basePosition + index * 1000,
+    created_by: user.id,
+    source_template_id: null,
+    source_voice_capture_id: null,
+    assignee_name: null,
+    due_date: null,
+  }));
+
+  const { error: insertError } = await supabase.from("tasks").insert(inserts);
+  if (insertError) throw new Error(insertError.message);
+
+  const { error: deleteError } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("id", input.originalTaskId)
+    .eq("project_id", input.projectId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
+}

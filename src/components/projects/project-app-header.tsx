@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, ChevronDown, LogOut, Plus, Settings, SquareKanban } from "lucide-react";
+import { BookOpen, ChevronDown, LogOut, Plus, Settings, Sparkles, SquareKanban } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ function NavDropdown({
   onSelect,
   actionLabel,
   onAction,
+  bottomActionLabel,
+  onBottomAction,
   isOpen,
   onOpenChange,
 }: {
@@ -28,6 +30,8 @@ function NavDropdown({
   onSelect: (value: string) => void;
   actionLabel?: string;
   onAction?: () => void;
+  bottomActionLabel?: string;
+  onBottomAction?: () => void;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -94,6 +98,22 @@ function NavDropdown({
               <span className="line-clamp-1">{opt.label}</span>
             </button>
           ))}
+          {bottomActionLabel && onBottomAction && (
+            <>
+              <div className="mx-3 border-t border-black/8" />
+              <button
+                type="button"
+                onMouseDown={() => {
+                  onBottomAction();
+                  onOpenChange(false);
+                }}
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-[var(--accent)] transition hover:bg-black/5"
+              >
+                <Sparkles className="size-3.5 shrink-0" />
+                {bottomActionLabel}
+              </button>
+            </>
+          )}
         </div>,
         document.body,
       )}
@@ -112,6 +132,7 @@ export function ProjectAppHeader({
   activeNav,
   retroAvailable,
   onEndChapter,
+  onPlanChapters,
 }: {
   projects: ProjectWithChapters[];
   currentProjectId: string;
@@ -119,9 +140,10 @@ export function ProjectAppHeader({
   /** The chapter to link Story/Board pills to (falls back to currentChapterId) */
   navChapterId?: string | null;
   onOpenSettings: () => void;
-  activeNav?: "story" | "board";
+  activeNav?: "overview" | "story" | "board";
   retroAvailable?: boolean;
   onEndChapter?: () => void;
+  onPlanChapters?: () => void;
 }) {
   const router = useRouter();
   const [openDropdown, setOpenDropdown] = useState<"project" | "chapter" | null>(null);
@@ -177,49 +199,62 @@ export function ProjectAppHeader({
 
           <div className="mx-2 h-5 w-px shrink-0 bg-white/20" />
 
-          {/* Project selector */}
-          <NavDropdown
-            label="Currently reading"
-            displayValue={currentProject?.name ?? "Select project"}
-            options={projectOptions}
-            onSelect={(id) => router.push(`/projects/${id}`)}
-            actionLabel="New Project"
-            onAction={() => router.push("/projects/new")}
-            isOpen={openDropdown === "project"}
-            onOpenChange={(open) => setOpenDropdown(open ? "project" : null)}
-          />
+          {/* Project group: selector + Overview pill */}
+          <div className="flex items-center gap-2">
+            <NavDropdown
+              label="Currently reading"
+              displayValue={currentProject?.name ?? "Select project"}
+              options={projectOptions}
+              onSelect={(id) => router.push(`/projects/${id}`)}
+              actionLabel="New Project"
+              onAction={() => router.push("/projects/new")}
+              isOpen={openDropdown === "project"}
+              onOpenChange={(open) => setOpenDropdown(open ? "project" : null)}
+            />
+            <Link
+              href={`/projects/${currentProjectId}`}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                activeNav === "overview"
+                  ? "bg-white text-[var(--ink)]"
+                  : "bg-white/15 text-white hover:bg-white/25",
+              )}
+            >
+              <BookOpen className="size-3.5" />
+              Overview
+            </Link>
+          </div>
 
           <div className="mx-2 h-5 w-px shrink-0 bg-white/20" />
 
-          {/* Chapter selector */}
-          <NavDropdown
-            label="Chapter"
-            displayValue={chapterDisplayValue}
-            options={chapterOptions}
-            onSelect={(val) => {
-              router.push(`/projects/${currentProjectId}/chapters/${val}`);
-            }}
-            isOpen={openDropdown === "chapter"}
-            onOpenChange={(open) => setOpenDropdown(open ? "chapter" : null)}
-          />
-
-          {/* Story / Board nav */}
-          <>
-            <div className="mx-1 h-5 w-px shrink-0 bg-white/20" />
-            <div className="flex gap-1">
-              <Link
-                href={`/projects/${currentProjectId}`}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                  activeNav === "story"
-                    ? "bg-white text-[var(--ink)]"
-                    : "bg-white/15 text-white hover:bg-white/25",
-                )}
-              >
-                <BookOpen className="size-3.5" />
-                Story
-              </Link>
-              {effectiveNavChapterId && (
+          {/* Chapter group: selector + Story + Board pills */}
+          <div className="flex items-center gap-2">
+            <NavDropdown
+              label="Chapter"
+              displayValue={chapterDisplayValue}
+              options={chapterOptions}
+              onSelect={(val) => {
+                router.push(`/projects/${currentProjectId}/chapters/${val}`);
+              }}
+              bottomActionLabel="Plan new chapters"
+              onBottomAction={() => onPlanChapters?.()}
+              isOpen={openDropdown === "chapter"}
+              onOpenChange={(open) => setOpenDropdown(open ? "chapter" : null)}
+            />
+            {effectiveNavChapterId && (
+              <div className="flex gap-1">
+                <Link
+                  href={`/projects/${currentProjectId}/chapters/${effectiveNavChapterId}`}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                    activeNav === "story"
+                      ? "bg-white text-[var(--ink)]"
+                      : "bg-white/15 text-white hover:bg-white/25",
+                  )}
+                >
+                  <BookOpen className="size-3.5" />
+                  Story
+                </Link>
                 <Link
                   href={`/projects/${currentProjectId}/chapters/${effectiveNavChapterId}/board`}
                   className={cn(
@@ -232,9 +267,9 @@ export function ProjectAppHeader({
                   <SquareKanban className="size-3.5" />
                   Board
                 </Link>
-              )}
-            </div>
-          </>
+              </div>
+            )}
+          </div>
 
           {/* Chapter actions — grouped together on the right of nav */}
           {retroAvailable && onEndChapter && (

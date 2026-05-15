@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import type { AIProjectKickoffDialogue } from "@/lib/ai/schema";
 import { completeProjectKickoffAction } from "@/lib/actions/project-actions";
 import { Button } from "@/components/ui/button";
+import { ChatProgressBar } from "@/components/ui/chat-progress-bar";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkplanProposal, type WorkplanChapter } from "@/components/projects/workplan-proposal";
 import { cn } from "@/lib/utils";
@@ -156,20 +157,29 @@ export function ProjectKickoffChat({
     );
 
     return (
-      <WorkplanProposal
-        projectName={projectName}
-        northStar={projectData.north_star}
-        initialChapters={initialChapters}
-        isSaving={isSaving}
-        onAccept={handleAcceptWorkplan}
-        error={error}
-      />
+      <div className="flex h-dvh flex-col gap-4 p-4 sm:p-6">
+        <ChatProgressBar step={2} total={2} />
+        <div className="min-h-0 flex-1">
+          <WorkplanProposal
+            projectName={projectName}
+            northStar={projectData.north_star}
+            initialChapters={initialChapters}
+            isSaving={isSaving}
+            onAccept={handleAcceptWorkplan}
+            error={error}
+          />
+        </div>
+      </div>
     );
   }
 
   // ─── Stage: Chatting ─────────────────────────────────────────────────────────
   return (
     <div className="flex h-dvh flex-col bg-[var(--ink)]">
+      {/* Progress */}
+      <div className="shrink-0 px-4 pt-3 sm:px-6">
+        <ChatProgressBar step={1} total={2} />
+      </div>
       {/* Header */}
       <div className="shrink-0 border-b border-white/8 px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-2xl items-center gap-4">

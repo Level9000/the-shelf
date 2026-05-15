@@ -183,3 +183,19 @@ export const retroDataSchema = z.object({
 });
 
 export type RetroData = z.infer<typeof retroDataSchema>;
+
+export const aiTaskChunkingSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  isComplete: z.boolean(),
+  tasks: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1).max(120),
+        description: z.string().trim().max(500).default(""),
+        priority: z.enum(["low", "medium", "high"]).nullable().default(null),
+      }),
+    )
+    .default([]),
+});
+
+export type AITaskChunking = z.infer<typeof aiTaskChunkingSchema>;

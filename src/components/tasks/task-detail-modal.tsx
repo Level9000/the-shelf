@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Sparkles, Trash2 } from "lucide-react";
 import type { BoardColumn, ProjectMember, Task } from "@/types";
 import { deleteTaskAction, updateTaskAction } from "@/lib/actions/task-actions";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { TaskFormFields } from "@/components/tasks/task-form-fields";
+import { TaskChunkingChat } from "@/components/tasks/task-chunking-chat";
 import { formatDate } from "@/lib/utils";
 
 type FormState = {
@@ -53,6 +54,24 @@ export function TaskDetailModal({
   const [form, setForm] = useState<FormState | null>(task ? toFormState(task) : null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [chunkingOpen, setChunkingOpen] = useState(false);
+  const fabRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const btn = fabRef.current;
+    if (!btn) return;
+    const expandTimer = setTimeout(() => {
+      btn.style.width = "220px";
+    }, 700);
+    const shrinkTimer = setTimeout(() => {
+      if (!btn.matches(":hover")) btn.style.width = "3rem";
+    }, 4700);
+    return () => {
+      clearTimeout(expandTimer);
+      clearTimeout(shrinkTimer);
+    };
+  }, [open]);
 
   if (!task || !form) {
     return null;
@@ -110,12 +129,30 @@ export function TaskDetailModal({
   }
 
   return (
+    <>
+    {open && chunkingOpen && (
+      <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/25 px-4 py-6 backdrop-blur-sm sm:items-center">
+        <div className="surface-card hairline relative flex h-[calc(100dvh-3rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] p-6">
+          <TaskChunkingChat
+            task={currentTask}
+            projectId={projectId}
+            boardId={boardId}
+            onComplete={() => {
+              setChunkingOpen(false);
+              onDeleted();
+            }}
+            onClose={() => setChunkingOpen(false)}
+          />
+        </div>
+      </div>
+    )}
+
     <Modal
       open={open}
       title="Task detail"
       description="Edit the card, move it between columns, or remove it."
       onClose={onClose}
-      className="max-w-3xl"
+      className="max-w-3xl h-[calc(100dvh-3rem)]"
     >
       <TaskFormFields
         title={currentForm.title}
@@ -149,18 +186,37 @@ export function TaskDetailModal({
           {error}
         </p>
       ) : null}
-      <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
-        <Button variant="ghost" onClick={handleDelete} disabled={isPending}>
-          <Trash2 className="mr-2 size-4" />
-          Delete task
-        </Button>
-        <Button variant="secondary" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button onClick={handleSave} disabled={isPending}>
-          {isPending ? "Saving..." : "Save changes"}
-        </Button>
+      <div className="sticky bottom-0 mt-6 flex items-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
+        <div className="flex flex-1 flex-wrap justify-center gap-3">
+          <Button variant="ghost" onClick={handleDelete} disabled={isPending}>
+            <Trash2 className="mr-2 size-4" />
+            Delete task
+          </Button>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={isPending}>
+            {isPending ? "Saving..." : "Save changes"}
+          </Button>
+        </div>
+        <button
+          ref={fabRef}
+          type="button"
+          onClick={() => setChunkingOpen(true)}
+          style={{ width: "3rem", transition: "width 300ms ease" }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "220px"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "3rem"; }}
+          className="group flex h-12 shrink-0 items-center overflow-hidden rounded-full bg-[var(--accent)] text-white shadow-md hover:shadow-lg"
+        >
+          <span className="flex size-12 shrink-0 items-center justify-center">
+            <Sparkles className="size-5" />
+          </span>
+          <span className="whitespace-nowrap pr-5 text-sm font-medium">
+            Need to break this up?
+          </span>
+        </button>
       </div>
     </Modal>
+    </>
   );
 }

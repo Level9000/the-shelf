@@ -13,6 +13,7 @@ export function Modal({
   className,
   fullScreenOnMobile = false,
   fullScreen = false,
+  progress,
 }: {
   open: boolean;
   title: string;
@@ -22,6 +23,8 @@ export function Modal({
   className?: string;
   fullScreenOnMobile?: boolean;
   fullScreen?: boolean;
+  /** 0–1 progress value. When set, shows a thin bar at the top of the modal panel. */
+  progress?: number;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -59,6 +62,14 @@ export function Modal({
           className,
         )}
       >
+        {progress !== undefined && (
+          <div className="absolute inset-x-0 top-0 h-1 overflow-hidden rounded-t-[2rem] bg-black/8">
+            <div
+              className="h-full bg-[var(--accent)] transition-all duration-700 ease-out"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </div>
+        )}
         <button
           onClick={onClose}
           className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-black/8 hover:text-[var(--ink)]"

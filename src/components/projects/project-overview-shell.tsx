@@ -313,6 +313,7 @@ export function ProjectOverviewShell({
   currentUser,
   projectMembers,
   lastChapterId,
+  initialPlanning = false,
 }: {
   project: ProjectWithChapters;
   projects: ProjectWithChapters[];
@@ -320,9 +321,10 @@ export function ProjectOverviewShell({
   currentUser: AppUser;
   projectMembers: ProjectMember[];
   lastChapterId?: string | null;
+  initialPlanning?: boolean;
 }) {
   const [refining, setRefining] = useState(false);
-  const [planning, setPlanning] = useState(false);
+  const [planning, setPlanning] = useState(initialPlanning);
   const [fabOpen, setFabOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [foundationsOpen, setFoundationsOpen] = useState(false);
@@ -340,8 +342,8 @@ export function ProjectOverviewShell({
         profile={profile}
         currentProjectId={project.id}
         lastChapterId={lastChapterId}
-        activeNav="story"
-        mobileEyebrow="Story"
+        activeNav="overview"
+        mobileEyebrow="Overview"
         mobileTitle={project.name}
       >
         {refining ? (

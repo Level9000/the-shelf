@@ -11,9 +11,9 @@ export default async function ProjectPage({
   searchParams,
 }: {
   params: Promise<{ projectId: string }>;
-  searchParams: Promise<{ chapter?: string }>;
+  searchParams: Promise<{ chapter?: string; plan?: string }>;
 }) {
-  const [{ projectId }, { chapter }] = await Promise.all([params, searchParams]);
+  const [{ projectId }, { chapter, plan }] = await Promise.all([params, searchParams]);
   const [projects, profile, access] = await Promise.all([
     getProjectsWithChapters(),
     getCurrentUserProfile(),
@@ -38,6 +38,7 @@ export default async function ProjectPage({
         currentUser={access.currentUser}
         projectMembers={access.projectMembers}
         lastChapterId={lastChapterId}
+        initialPlanning={plan === "true"}
       />
     </main>
   );

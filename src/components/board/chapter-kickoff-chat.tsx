@@ -20,6 +20,7 @@ import type { AIKickoffDialogue, KickoffProposedTask } from "@/lib/ai/schema";
 import type { Board, BoardColumn, Project } from "@/types";
 import { completeChapterKickoffAction } from "@/lib/actions/project-actions";
 import { Button } from "@/components/ui/button";
+import { ChatProgressBar } from "@/components/ui/chat-progress-bar";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -474,7 +475,9 @@ export function ChapterKickoffChat({
   // ─── Stage: Done ─────────────────────────────────────────────────────────────
   if (stage === "done" && chapterData) {
     return (
-      <div className="flex h-full min-h-0 flex-col items-center justify-center gap-8 px-4 py-12">
+      <div className="flex h-full min-h-0 flex-col gap-5">
+      <ChatProgressBar step={3} total={3} />
+      <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 py-12">
         <div className="overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-black/6">
           <Image
             src="/icons/authored_by_icon_512.png"
@@ -503,6 +506,7 @@ export function ChapterKickoffChat({
           Begin Chapter
         </Button>
       </div>
+      </div>
     );
   }
 
@@ -512,6 +516,7 @@ export function ChapterKickoffChat({
 
     return (
       <div className="flex h-full min-h-0 flex-col gap-5">
+        <ChatProgressBar step={2} total={3} />
         <section className="surface hairline shrink-0 rounded-[2rem] p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -651,6 +656,7 @@ export function ChapterKickoffChat({
   return (
     <React.Fragment>
     <div className="flex h-full min-h-0 flex-col gap-5">
+      <ChatProgressBar step={1} total={3} />
       <section className="surface hairline shrink-0 rounded-[2rem] p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">

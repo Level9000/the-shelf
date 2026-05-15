@@ -357,6 +357,7 @@ export function StrategicTextDialogueModal({
         description={`Work through the goal for ${project.name}, then move the aligned task set into review.`}
         fullScreen
         className="flex min-h-full flex-col bg-[linear-gradient(180deg,rgba(252,250,246,0.98),rgba(243,238,231,0.98))]"
+        progress={status === "discovery" ? 1/3 : status === "template_review" ? 2/3 : 1}
       >
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto lg:overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] bg-white/70 px-5 py-4 ring-1 ring-black/6">

@@ -2,10 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import type { BoardSnapshot, ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectBoardClient } from "@/components/board/project-board-client";
 import { ChapterRetroChat } from "@/components/board/chapter-retro-chat";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 
 function classifyTasks(snapshot: BoardSnapshot) {
   const doneColumnId = snapshot.columns.find(
@@ -36,6 +39,7 @@ export function ProjectWorkspaceShell({
   const router = useRouter();
   const [endChapterOpen, setEndChapterOpen] = useState(false);
   const [retroOpen, setRetroOpen] = useState(false);
+  const [allDoneDismissed, setAllDoneDismissed] = useState(false);
 
   const retroAvailable =
     Boolean(snapshot.board.kickoffCompletedAt) && !snapshot.board.retroCompletedAt;
@@ -45,8 +49,20 @@ export function ProjectWorkspaceShell({
     [snapshot],
   );
 
+  const allDone =
+    retroAvailable &&
+    completedTasks.length > 0 &&
+    remainingTasks.length === 0;
+
+  const showAllDoneModal = allDone && !allDoneDismissed && !retroOpen && !endChapterOpen;
+
   function handleEndChapterConfirmed(_nextChapterId: string | null) {
     setEndChapterOpen(false);
+    setRetroOpen(true);
+  }
+
+  function handleAllDoneStartRetro() {
+    setAllDoneDismissed(true);
     setRetroOpen(true);
   }
 
@@ -67,6 +83,27 @@ export function ProjectWorkspaceShell({
       retroAvailable={retroAvailable}
       onEndChapter={() => setEndChapterOpen(true)}
     >
+      <Modal
+        open={showAllDoneModal}
+        title="Chapter complete!"
+        description="Every task is in the done column."
+        onClose={() => setAllDoneDismissed(true)}
+      >
+        <p className="text-sm leading-6 text-[var(--muted)]">
+          You finished everything you set out to do. Time to reflect on the
+          work and write this chapter&apos;s story.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          <Button variant="secondary" onClick={() => setAllDoneDismissed(true)}>
+            Not yet
+          </Button>
+          <Button onClick={handleAllDoneStartRetro} className="gap-2">
+            <ArrowRight className="size-4" />
+            Start the retro
+          </Button>
+        </div>
+      </Modal>
+
       {retroOpen ? (
         <div className="flex h-full min-h-0 flex-col">
           <ChapterRetroChat
@@ -90,6 +127,13 @@ export function ProjectWorkspaceShell({
             endChapterOpen={endChapterOpen}
             onEndChapterClose={() => setEndChapterOpen(false)}
             onEndChapterConfirmed={handleEndChapterConfirmed}
+            activeChapterUrl={(() => {
+              const currentProject = projects.find((p) => p.id === currentProjectId);
+              const activeChapter = currentProject?.chapters.find((c) => !c.retroCompletedAt);
+              return activeChapter
+                ? `/projects/${currentProjectId}/chapters/${activeChapter.id}/board`
+                : null;
+            })()}
           />
         </div>
       )}

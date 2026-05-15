@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BoardSnapshot, ProjectWithChapters, Task, UserProfile } from "@/types";
+import { ArrowLeft } from "lucide-react";
 import { ChapterKickoffChat } from "@/components/board/chapter-kickoff-chat";
 import { ChapterOverviewPanel } from "@/components/board/chapter-overview-panel";
 import { ChapterOverviewRefiner } from "@/components/board/chapter-overview-refiner";
@@ -48,14 +49,12 @@ export function ChapterOverviewShell({
   profile,
   currentProjectId,
   currentChapterId,
-  initialFormat,
 }: {
   snapshot: BoardSnapshot;
   projects: ProjectWithChapters[];
   profile: UserProfile;
   currentProjectId: string;
   currentChapterId: string;
-  initialFormat?: string;
 }) {
   const router = useRouter();
   const kickoffMode = chapterKickoffMode(snapshot);
@@ -63,6 +62,7 @@ export function ChapterOverviewShell({
   const [refining, setRefining] = useState(false);
   const [retroOpen, setRetroOpen] = useState(false);
   const [endChapterModalOpen, setEndChapterModalOpen] = useState(false);
+  const [activeShareFormat, setActiveShareFormat] = useState<string | null>(null);
 
   const showKickoff = kickoffMode !== false && !kickoffDismissed;
 
@@ -119,19 +119,28 @@ export function ChapterOverviewShell({
               board={snapshot.board}
               onClose={() => setRefining(false)}
             />
-          ) : snapshot.board.retroCompletedAt ? (
-            <StoryHub
-              board={snapshot.board}
-              project={{
-                id: snapshot.project.id,
-                name: snapshot.project.name,
-                accumulativeStory: snapshot.project.accumulativeStory,
-              }}
-              completedTasks={completedTasks}
-              remainingTasks={remainingTasks}
-              onEndChapter={() => setEndChapterModalOpen(true)}
-              initialFormat={initialFormat}
-            />
+          ) : activeShareFormat ? (
+            <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => setActiveShareFormat(null)}
+                className="flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
+              >
+                <ArrowLeft className="size-4" />
+                Back to chapter
+              </button>
+              <StoryHub
+                board={snapshot.board}
+                project={{
+                  id: snapshot.project.id,
+                  name: snapshot.project.name,
+                  accumulativeStory: snapshot.project.accumulativeStory,
+                }}
+                completedTasks={completedTasks}
+                remainingTasks={remainingTasks}
+                initialFormat={activeShareFormat}
+              />
+            </div>
           ) : (
             <ChapterOverviewPanel
               board={snapshot.board}
@@ -144,6 +153,14 @@ export function ChapterOverviewShell({
               onRefine={() => setRefining(true)}
               onStartRetro={() => setRetroOpen(true)}
               onEndChapter={() => setEndChapterModalOpen(true)}
+              onSelectShareFormat={setActiveShareFormat}
+              activeChapterUrl={(() => {
+                const currentProject = projects.find((p) => p.id === currentProjectId);
+                const activeChapter = currentProject?.chapters.find((c) => !c.retroCompletedAt);
+                return activeChapter
+                  ? `/projects/${currentProjectId}/chapters/${activeChapter.id}/board`
+                  : null;
+              })()}
             />
           )}
         </div>

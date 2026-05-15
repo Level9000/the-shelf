@@ -5,9 +5,11 @@ import {
   aiProjectKickoffDialogueSchema,
   aiRefocusDialogueSchema,
   aiStrategicDialogueSchema,
+  aiTaskChunkingSchema,
   aiTaskExtractionSchema,
   aiProjectOverviewDialogueSchema,
   aiWeeklyPlanningDialogueSchema,
+  type AITaskChunking,
   type ProjectOverviewSection,
   type StrategicDialogueMessage,
 } from "@/lib/ai/schema";
@@ -25,6 +27,7 @@ import {
   buildShareLinkedInPrompt,
   buildSharePodcastPrompt,
   buildStrategicDialoguePrompt,
+  buildTaskChunkingPrompt,
   buildTaskExtractionPrompt,
   buildWeeklyPlanningPrompt,
 } from "@/lib/ai/prompts";
@@ -619,4 +622,94 @@ export async function runChapterPlannerDialogue(input: {
     (text) => aiChapterPlannerDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
     2048,
   );
+}
+
+const CHUNK_TOOL = {
+  name: "chunk_response",
+  description:
+    "Submit the task chunking dialogue response. Always call this tool — never respond in plain text.",
+  input_schema: {
+    type: "object",
+    properties: {
+      reply: { type: "string", description: "Conversational response to the user." },
+      isComplete: {
+        type: "boolean",
+        description: "True only when the user has confirmed the final task breakdown.",
+      },
+      tasks: {
+        type: "array",
+        description: "Empty array while chatting; the confirmed subtask list when isComplete=true.",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Short, specific task title." },
+            description: { type: "string", description: "Brief context or next step." },
+            priority: {
+              type: "string",
+              enum: ["low", "medium", "high", ""],
+              description: "Task priority, or empty string for none.",
+            },
+          },
+          required: ["title", "description", "priority"],
+        },
+      },
+    },
+    required: ["reply", "isComplete", "tasks"],
+  },
+} as const;
+
+export async function runTaskChunkingDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  taskTitle: string;
+  taskDescription: string | null;
+  columnName: string;
+  chapterName: string;
+}): Promise<AITaskChunking> {
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildTaskChunkingPrompt(input);
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      tools: [CHUNK_TOOL],
+      tool_choice: { type: "any" },
+      messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Task chunking dialogue failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; name?: string; input?: unknown }>;
+  };
+
+  const toolUse = payload.content?.find(
+    (block) => block.type === "tool_use" && block.name === "chunk_response",
+  );
+
+  if (!toolUse?.input) {
+    throw new Error("Task chunking dialogue returned no structured response.");
+  }
+
+  const raw = toolUse.input as {
+    reply: string;
+    isComplete: boolean;
+    tasks: Array<{ title: string; description: string; priority: string }>;
+  };
+
+  return aiTaskChunkingSchema.parse({
+    ...raw,
+    tasks: (raw.tasks ?? []).map((t) => ({ ...t, priority: t.priority || null })),
+  });
 }

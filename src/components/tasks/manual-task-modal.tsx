@@ -177,27 +177,27 @@ export function ManualTaskModal({
         title="Add to the board"
         description="Create a task manually, use a saved workflow, or let AI generate the work."
         onClose={onClose}
-        className="max-w-5xl"
+        className="max-w-2xl"
       >
         {mode === "chooser" ? (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <ChapterIntentCallout board={board} />
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="overflow-hidden rounded-[1.75rem] ring-1 ring-black/6 divide-y divide-black/6">
               <button
                 type="button"
                 onClick={() => {
                   setError(null);
                   setMode("manual");
                 }}
-                className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+                className="w-full bg-white/85 p-5 text-left transition hover:bg-white"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                    <PencilLine className="size-5" />
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <PencilLine className="size-4" />
                   </div>
                   <div>
-                    <p className="text-base font-semibold text-[var(--ink)]">Create a Task</p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
+                    <p className="text-sm font-semibold text-[var(--ink)]">Create a Task</p>
+                    <p className="text-sm text-[var(--muted)]">
                       Add one card manually with your own title, details, and due date.
                     </p>
                   </div>
@@ -210,78 +210,71 @@ export function ManualTaskModal({
                   setError(null);
                   setMode("template");
                 }}
-                className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
+                className="w-full bg-white/85 p-5 text-left transition hover:bg-white"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                    <Layers3 className="size-5" />
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <Layers3 className="size-4" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-base font-semibold text-[var(--ink)]">
-                        My Template Library
-                      </p>
+                      <p className="text-sm font-semibold text-[var(--ink)]">My Template Library</p>
                       <Badge>{templates.length}</Badge>
                     </div>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
+                    <p className="text-sm text-[var(--muted)]">
                       Choose a saved workflow and add its steps to this chapter instantly.
                     </p>
                   </div>
                 </div>
               </button>
-            </div>
 
-            <div>
-              <p className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                Level up with Pro
-              </p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null);
-                    aiLauncherRef.current?.openAudioToBacklog();
-                  }}
-                  className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                      <Mic className="size-5" />
-                    </div>
-                    <div>
-                      <p className="text-base font-semibold text-[var(--ink)]">
-                        Brain Dump
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
-                        Record a note and turn it into reviewable tasks.
-                      </p>
-                    </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  aiLauncherRef.current?.openAudioToBacklog();
+                }}
+                className="w-full bg-white/85 p-5 text-left transition hover:bg-white"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <Mic className="size-4" />
                   </div>
-                </button>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-[var(--ink)]">Brain Dump</p>
+                    <p className="text-sm text-[var(--muted)]">
+                      Record a note and turn it into reviewable tasks.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
+                    Pro
+                  </span>
+                </div>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null);
-                    aiLauncherRef.current?.openPlanWithAi();
-                  }}
-                  className="rounded-[1.75rem] bg-white/85 p-5 text-left ring-1 ring-black/6 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-black/5"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                      <MessageSquareText className="size-5" />
-                    </div>
-                    <div>
-                      <p className="text-base font-semibold text-[var(--ink)]">
-                        Talk it Out
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
-                        Talk through the work and extract backlog tasks fast.
-                      </p>
-                    </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  aiLauncherRef.current?.openPlanWithAi();
+                }}
+                className="w-full bg-white/85 p-5 text-left transition hover:bg-white"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <MessageSquareText className="size-4" />
                   </div>
-                </button>
-              </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-[var(--ink)]">Talk it Out</p>
+                    <p className="text-sm text-[var(--muted)]">
+                      Talk through the work and extract backlog tasks fast.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
+                    Pro
+                  </span>
+                </div>
+              </button>
             </div>
           </div>
         ) : null}

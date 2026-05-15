@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
+import Link from "next/link";
 import type { Board, BoardColumn, Task } from "@/types";
 import { getChapterAgeDays } from "@/lib/utils";
 
 const RUNNING_LONG_THRESHOLD = 14;
 
 type BannerState =
+  | { kind: "completed"; retroCompletedAt: string }
   | { kind: "on_pace"; ageDays: number; completedCount: number }
   | { kind: "closing_stretch"; ageDays: number; completedCount: number; totalCount: number }
   | { kind: "running_long"; ageDays: number; openingLine: string | null }
@@ -18,6 +20,10 @@ function resolveBannerState(
   tasks: Task[],
   columns: BoardColumn[],
 ): BannerState {
+  if (board.retroCompletedAt) {
+    return { kind: "completed", retroCompletedAt: board.retroCompletedAt };
+  }
+
   const ageDays = getChapterAgeDays(board);
   if (!ageDays) return { kind: "none" };
 
@@ -45,6 +51,38 @@ function resolveBannerState(
 }
 
 // ── Variant renderers ─────────────────────────────────────────────────────────
+
+function CompletedBanner({
+  retroCompletedAt,
+  activeChapterUrl,
+  onDismiss,
+}: {
+  retroCompletedAt: string;
+  activeChapterUrl: string | null;
+  onDismiss: () => void;
+}) {
+  const date = new Date(retroCompletedAt).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  return (
+    <div className="my-2 mx-auto flex w-fit items-center gap-4 rounded-[1.75rem] bg-green-50 px-5 py-3 ring-1 ring-green-200">
+      <p className="text-sm text-green-800">
+        Chapter completed on <span className="font-semibold">{date}</span>.
+      </p>
+      {activeChapterUrl ? (
+        <Link
+          href={activeChapterUrl}
+          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3.5 py-1.5 text-xs font-semibold text-green-800 ring-1 ring-green-300 transition hover:bg-green-100"
+        >
+          Go to current chapter
+          <ArrowRight className="size-3.5" />
+        </Link>
+      ) : null}
+    </div>
+  );
+}
 
 function OnPaceBanner({
   ageDays,
@@ -162,16 +200,28 @@ export function ChapterProgressBanner({
   tasks,
   columns,
   onRefocus,
+  activeChapterUrl = null,
 }: {
   board: Board;
   tasks: Task[];
   columns: BoardColumn[];
   onRefocus: () => void;
+  activeChapterUrl?: string | null;
 }) {
   const [dismissed, setDismissed] = useState(false);
   const state = resolveBannerState(board, tasks, columns);
 
   if (dismissed || state.kind === "none") return null;
+
+  if (state.kind === "completed") {
+    return (
+      <CompletedBanner
+        retroCompletedAt={state.retroCompletedAt}
+        activeChapterUrl={activeChapterUrl}
+        onDismiss={() => setDismissed(true)}
+      />
+    );
+  }
 
   if (state.kind === "on_pace") {
     return (

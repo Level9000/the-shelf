@@ -24,8 +24,10 @@ import {
   persistTaskArrangementAction,
 } from "@/lib/actions/task-actions";
 import { normalizeTaskOrder } from "@/lib/board-utils";
+import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { BoardColumnView } from "@/components/board/board-column";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
@@ -102,6 +104,7 @@ export function ProjectBoardClient({
   endChapterOpen = false,
   onEndChapterClose,
   onEndChapterConfirmed,
+  activeChapterUrl = null,
 }: {
   snapshot: BoardSnapshot;
   chapterProjectId: string;
@@ -109,6 +112,7 @@ export function ProjectBoardClient({
   endChapterOpen?: boolean;
   onEndChapterClose?: () => void;
   onEndChapterConfirmed?: (nextChapterId: string | null) => void;
+  activeChapterUrl?: string | null;
 }) {
   const router = useRouter();
   const sensors = useSensors(
@@ -145,6 +149,7 @@ export function ProjectBoardClient({
     proposals: [],
   });
   const [refocusOpen, setRefocusOpen] = useState(false);
+  const [completedAlertOpen, setCompletedAlertOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -158,6 +163,10 @@ export function ProjectBoardClient({
   }
 
   function openManualTask(columnId: string) {
+    if (snapshot.board.retroCompletedAt) {
+      setCompletedAlertOpen(true);
+      return;
+    }
     setManualColumnId(columnId);
     setManualOpen(true);
   }
@@ -317,6 +326,7 @@ export function ProjectBoardClient({
           tasks={tasks}
           columns={snapshot.columns}
           onRefocus={() => setRefocusOpen(true)}
+          activeChapterUrl={activeChapterUrl}
         />
         <section className="flex flex-col p-4 sm:p-5">
           {error ? (
@@ -424,6 +434,30 @@ export function ProjectBoardClient({
           );
         })()
       ) : null}
+
+      <Modal
+        open={completedAlertOpen}
+        title="Chapter complete"
+        onClose={() => setCompletedAlertOpen(false)}
+      >
+        <p className="text-sm leading-6 text-[var(--muted)]">
+          This chapter was completed on{" "}
+          <span className="font-medium text-[var(--ink)]">
+            {formatDate(snapshot.board.retroCompletedAt)}
+          </span>
+          . Head over to your current chapter if you need to add new tasks.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Button variant="secondary" onClick={() => setCompletedAlertOpen(false)}>
+            Dismiss
+          </Button>
+          {activeChapterUrl && (
+            <Button onClick={() => router.push(activeChapterUrl)}>
+              Go to current chapter
+            </Button>
+          )}
+        </div>
+      </Modal>
 
       <EndChapterModal
         open={endChapterOpen}

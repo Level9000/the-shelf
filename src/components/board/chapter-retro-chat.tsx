@@ -17,6 +17,7 @@ import type { Board, Task } from "@/types";
 import { retroDataSchema, type RetroData } from "@/lib/ai/schema";
 import { completeChapterRetroAction } from "@/lib/actions/project-actions";
 import { Button } from "@/components/ui/button";
+import { ChatProgressBar } from "@/components/ui/chat-progress-bar";
 import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import { ChapterStoryDraft } from "@/components/board/chapter-story-draft";
@@ -365,6 +366,7 @@ export function ChapterRetroChat({
   // ─── Stage: Chatting ─────────────────────────────────────────────────────────
   return (
     <div className="flex h-full min-h-0 flex-col gap-5">
+      <ChatProgressBar step={1} total={2} />
       <section className="surface hairline shrink-0 rounded-[2rem] p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
