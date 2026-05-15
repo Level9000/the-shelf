@@ -82,6 +82,7 @@ export function ProjectWorkspaceShell({
       activeNav="board"
       retroAvailable={retroAvailable}
       onEndChapter={() => setEndChapterOpen(true)}
+      onPlanChapters={() => router.push(`/projects/${currentProjectId}?plan=true`)}
     >
       <Modal
         open={showAllDoneModal}

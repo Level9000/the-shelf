@@ -91,6 +91,7 @@ export function ChapterOverviewShell({
         mobileEyebrow={snapshot.board.name}
         mobileTitle={snapshot.project.name}
         activeNav="story"
+        onPlanChapters={() => router.push(`/projects/${currentProjectId}?plan=true`)}
       >
         <div className="flex h-full min-h-0 flex-col">
           {showKickoff ? (

@@ -345,6 +345,7 @@ export function ProjectOverviewShell({
         activeNav="overview"
         mobileEyebrow="Overview"
         mobileTitle={project.name}
+        onPlanChapters={() => setPlanning(true)}
       >
         {refining ? (
           <ProjectArcRefiner project={project} onClose={() => setRefining(false)} />
