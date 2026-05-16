@@ -94,6 +94,7 @@ export function TaskCard({
   dragInProgress,
   allColumns,
   onMoveToColumn,
+  boardCompleted,
 }: {
   task: Task;
   columnName?: string;
@@ -101,6 +102,7 @@ export function TaskCard({
   dragInProgress?: boolean;
   allColumns?: BoardColumn[];
   onMoveToColumn?: (taskId: string, columnId: string) => void;
+  boardCompleted?: boolean;
 }) {
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const [moved, setMoved] = useState(false);
@@ -108,6 +110,11 @@ export function TaskCard({
 
   function handleMoveTo(taskId: string, columnId: string) {
     if (!onMoveToColumn) return;
+    if (boardCompleted) {
+      // Skip the success animation and call immediately — parent will show the completed modal
+      onMoveToColumn(taskId, columnId);
+      return;
+    }
     setMoved(true);
     setTimeout(() => onMoveToColumn(taskId, columnId), 500);
   }

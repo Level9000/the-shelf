@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import {
   type CollisionDetection,
@@ -24,7 +24,7 @@ import {
   persistTaskArrangementAction,
 } from "@/lib/actions/task-actions";
 import { normalizeTaskOrder } from "@/lib/board-utils";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -153,6 +153,46 @@ export function ProjectBoardClient({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Mobile swiper
+  const swiperRef = useRef<HTMLDivElement>(null);
+  const [activePage, setActivePage] = useState(() => {
+    if (snapshot.board.retroCompletedAt) {
+      const doneIndex = snapshot.columns.findIndex(
+        (c) => c.name.toLowerCase() === "done",
+      );
+      return doneIndex >= 0 ? doneIndex : 0;
+    }
+    return 0;
+  });
+
+  // On mount, jump the swiper to the initial page without animation
+  useEffect(() => {
+    if (activePage > 0 && swiperRef.current) {
+      const raf = requestAnimationFrame(() => {
+        if (swiperRef.current) {
+          swiperRef.current.scrollLeft =
+            activePage * swiperRef.current.offsetWidth;
+        }
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, []);
+
+  function scrollToPage(index: number) {
+    if (!swiperRef.current) return;
+    swiperRef.current.scrollTo({
+      left: index * swiperRef.current.offsetWidth,
+      behavior: "smooth",
+    });
+    setActivePage(index);
+  }
+
+  function handleSwiperScroll() {
+    if (!swiperRef.current) return;
+    const { scrollLeft, offsetWidth } = swiperRef.current;
+    setActivePage(Math.round(scrollLeft / offsetWidth));
+  }
+
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
@@ -266,6 +306,10 @@ export function ProjectBoardClient({
 
 
   function handleMoveToColumn(taskId: string, destinationColumnId: string) {
+    if (snapshot.board.retroCompletedAt) {
+      setCompletedAlertOpen(true);
+      return;
+    }
     const activeTask = tasks.find((t) => t.id === taskId);
     if (!activeTask || activeTask.columnId === destinationColumnId) return;
 
@@ -344,8 +388,51 @@ export function ProjectBoardClient({
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="overflow-x-auto pb-2">
-                <div className="grid grid-cols-1 gap-0 lg:gap-4 lg:grid-cols-4">
+              {/* Mobile: one column at a time with swipe pagination */}
+              <div className="lg:hidden">
+                {/* Pagination dots — above the column header */}
+                <div className="flex justify-center gap-2.5 pb-4">
+                  {snapshot.columns.map((column, i) => (
+                    <button
+                      key={column.id}
+                      onClick={() => scrollToPage(i)}
+                      aria-label={`Go to ${column.name}`}
+                      className={cn(
+                        "h-2 rounded-full transition-all duration-200",
+                        i === activePage
+                          ? "w-6 bg-[var(--accent)]"
+                          : "w-2 bg-black/20",
+                      )}
+                    />
+                  ))}
+                </div>
+                <div
+                  ref={swiperRef}
+                  className="flex snap-x snap-mandatory overflow-x-scroll [&::-webkit-scrollbar]:hidden"
+                  style={{ scrollbarWidth: "none" }}
+                  onScroll={handleSwiperScroll}
+                >
+                  {snapshot.columns.map((column) => (
+                    <div key={column.id} className="w-full shrink-0 snap-start">
+                      <BoardColumnView
+                        column={column}
+                        tasks={getColumnTasks(tasks, column.id)}
+                        onOpenTask={setSelectedTaskId}
+                        onCreateTask={openManualTask}
+                        showAddButton={["Do This Week", "Do Today"].includes(column.name)}
+                        dragInProgress={!!dragTaskId}
+                        allColumns={snapshot.columns}
+                        onMoveToColumn={handleMoveToColumn}
+                        boardCompleted={!!snapshot.board.retroCompletedAt}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Desktop: 4-column grid */}
+              <div className="hidden lg:block overflow-x-auto pb-2">
+                <div className="grid gap-4 lg:grid-cols-4">
                   {snapshot.columns.map((column) => (
                     <BoardColumnView
                       key={column.id}
@@ -364,6 +451,7 @@ export function ProjectBoardClient({
             </DndContext>
           </div>
         </section>
+
       </div>
 
       <TaskDetailModal

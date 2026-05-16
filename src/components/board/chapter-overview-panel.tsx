@@ -3,21 +3,24 @@
 import { useState, useTransition } from "react";
 import {
   BookOpen,
-  ChevronDown,
+  CheckCircle2,
   FileText,
   Link2,
-  Lock,
   Mail,
   MessageSquare,
   Mic,
   PencilLine,
   Save,
+  Share2,
+  Sparkles,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Board, Task, BoardColumn } from "@/types";
+import type { Board, Chapter, Task, BoardColumn } from "@/types";
 import { updateBoardOverviewAction } from "@/lib/actions/project-actions";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import { ChapterProgressBanner } from "@/components/board/chapter-progress-banner";
 import { cn } from "@/lib/utils";
@@ -41,11 +44,14 @@ export function ChapterOverviewPanel({
   columns,
   projectName,
   northStar,
+  accumulativeStory,
+  chapters,
   onRefine,
   onStartRetro,
   onEndChapter,
   activeChapterUrl = null,
   onSelectShareFormat,
+  onPlanChapters,
 }: {
   board: Board;
   projectId: string;
@@ -54,11 +60,14 @@ export function ChapterOverviewPanel({
   columns?: BoardColumn[];
   projectName?: string | null;
   northStar?: string | null;
+  accumulativeStory?: string | null;
+  chapters?: Chapter[];
   onRefine: () => void;
   onStartRetro?: () => void;
   onEndChapter?: () => void;
   activeChapterUrl?: string | null;
   onSelectShareFormat?: (format: string) => void;
+  onPlanChapters?: () => void;
 }) {
   const router = useRouter();
 
@@ -124,14 +133,24 @@ const retroAvailable =
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-6 overflow-y-auto">
-      <ChapterProgressBanner
-        board={board}
-        tasks={tasks ?? []}
-        columns={columns ?? []}
-        onRefocus={() => {}}
-        activeChapterUrl={activeChapterUrl}
-      />
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+      <div className="flex flex-col gap-6">
+
+      {/* Mobile: north star — project identity at a glance */}
+      {northStar && (
+        <div className="relative overflow-hidden rounded-[1.75rem] bg-[var(--ink)] px-5 py-4 lg:hidden">
+          <div className="absolute right-4 top-3 opacity-[0.07]">
+            <Sparkles className="size-14" />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
+            {projectName ? `${projectName} · ` : ""}North star
+          </p>
+          <p className="mt-1.5 text-sm font-semibold italic leading-6 text-white">
+            &ldquo;{northStar}&rdquo;
+          </p>
+        </div>
+      )}
+
       {!retroDone && retroAvailable && allTasksDone && onStartRetro && (
         <div className="flex justify-end">
           <button
@@ -145,71 +164,26 @@ const retroAvailable =
         </div>
       )}
 
-      {/* Mobile collapsible share section */}
-      <div className="lg:hidden overflow-hidden rounded-[1.5rem] border border-black/6 bg-white">
-        <button
-          type="button"
-          onClick={() => setShareOpen((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 px-4 py-3.5"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className={cn(
-              "flex size-7 shrink-0 items-center justify-center rounded-lg",
-              retroDone ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--surface-muted)] text-[var(--muted)]",
-            )}>
-              {retroDone ? <BookOpen className="size-3.5" /> : <Lock className="size-3.5" />}
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-semibold text-[var(--ink)]">Share your story</p>
-              <p className="text-xs text-[var(--muted)]">
-                {retroDone ? "Generate polished updates for your network" : "Unlocks when this chapter closes"}
-              </p>
-            </div>
-          </div>
-          <ChevronDown
-            className={cn(
-              "size-4 shrink-0 text-[var(--muted)] transition-transform duration-200",
-              shareOpen && "rotate-180",
-            )}
-          />
-        </button>
-
-        {shareOpen && (
-          <div className={cn(
-            "flex flex-col gap-2.5 px-4 pb-4",
-            !retroDone && "opacity-50 pointer-events-none select-none",
-          )}>
-            {SHARE_FORMATS.map(({ key, icon: Icon, label, description }) => (
-              retroDone ? (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => onSelectShareFormat?.(key)}
-                  className="surface-card hairline group flex items-center gap-3 rounded-[1.25rem] p-3.5 text-left transition hover:shadow-md"
-                >
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] transition group-hover:bg-[var(--ink)] group-hover:text-white">
-                    <Icon className="size-3.5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
-                    <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
-                  </div>
-                </button>
-              ) : (
-                <div key={key} className="surface-card hairline flex items-center gap-3 rounded-[1.25rem] p-3.5">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                    <Icon className="size-3.5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
-                    <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
-                  </div>
-                </div>
-              )
-            ))}
-          </div>
-        )}
-      </div>
+      <Modal
+        open={shareOpen && retroDone}
+        title="Share your story"
+        description="Generate polished updates for your network"
+        onClose={() => setShareOpen(false)}
+      >
+        <div className="flex flex-col gap-2.5">
+          {SHARE_FORMATS.map(({ key, label, description }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => { setShareOpen(false); onSelectShareFormat?.(key); }}
+              className="flex flex-col rounded-[1.25rem] px-4 py-3.5 text-left transition hover:bg-black/5"
+            >
+              <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
+              <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
+            </button>
+          ))}
+        </div>
+      </Modal>
 
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_30%]">
         {/* Left: how it went + 4 overview cards */}
@@ -227,6 +201,14 @@ const retroAvailable =
                 <h3 className="text-lg font-semibold">How it went</h3>
                 <p className="text-sm text-[var(--muted)]">The story of this chapter.</p>
               </div>
+              <button
+                type="button"
+                onClick={() => setShareOpen(true)}
+                className="lg:hidden flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
+                aria-label="Share your story"
+              >
+                <Share2 className="size-4" />
+              </button>
             </div>
             <p className="mt-4 text-sm italic leading-7 text-[var(--ink)] sm:text-base">
               {board.chapterStory}
@@ -535,6 +517,110 @@ const retroAvailable =
           )}
         </section>
       </div>
+
+      {/* Mobile: chapter arc — all chapters in the project */}
+      {chapters && chapters.length > 0 && (
+        <section className="lg:hidden">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-black/8" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+              All chapters
+            </p>
+            <div className="h-px flex-1 bg-black/8" />
+          </div>
+
+          <div>
+            {chapters.map((ch, i) => {
+              const status = ch.retroCompletedAt
+                ? "completed"
+                : ch.kickoffCompletedAt
+                ? "active"
+                : "planned";
+              const isCurrent = ch.id === chapterId;
+              const isLast = i === chapters.length - 1;
+
+              return (
+                <div key={ch.id} className="flex gap-3">
+                  {/* Timeline spine */}
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={cn(
+                        "flex size-7 shrink-0 items-center justify-center rounded-full",
+                        status === "completed" && "bg-green-100 text-green-700",
+                        status === "active" && "bg-[var(--accent-soft)] text-[var(--accent)]",
+                        status === "planned" && "bg-black/5 text-[var(--muted)]",
+                      )}
+                    >
+                      {status === "completed" ? (
+                        <CheckCircle2 className="size-3.5" />
+                      ) : status === "active" ? (
+                        <span className="relative flex size-2">
+                          <span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--accent)] opacity-50" />
+                          <span className="relative inline-flex size-2 rounded-full bg-[var(--accent)]" />
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold">{i + 1}</span>
+                      )}
+                    </div>
+                    {!isLast && <div className="mt-1 w-px flex-1 bg-black/8" />}
+                  </div>
+
+                  {/* Chapter card */}
+                  <div className={cn("mb-3 min-w-0 flex-1", isLast && "mb-0")}>
+                    <Link
+                      href={`/projects/${projectId}/chapters/${ch.id}`}
+                      className={cn(
+                        "block rounded-[1.5rem] p-4 transition",
+                        isCurrent
+                          ? "bg-[var(--accent-soft)] ring-1 ring-[var(--accent)]/20"
+                          : "surface-card hairline hover:shadow-sm",
+                        status === "planned" && !isCurrent && "opacity-60",
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
+                          Chapter {i + 1}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[10px] font-semibold text-[var(--accent)]">
+                            · current
+                          </span>
+                        )}
+                        {status === "completed" && !isCurrent && (
+                          <span className="text-[10px] font-semibold text-green-600">· done</span>
+                        )}
+                      </div>
+                      {ch.goal && (
+                        <p className="mt-1 line-clamp-2 text-sm leading-5 text-[var(--ink)]">
+                          {ch.goal}
+                        </p>
+                      )}
+                      {ch.openingLine && status === "completed" && (
+                        <p className="mt-1 line-clamp-1 text-xs italic text-[var(--muted)]">
+                          &ldquo;{ch.openingLine}&rdquo;
+                        </p>
+                      )}
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {onPlanChapters && (
+            <button
+              type="button"
+              onClick={onPlanChapters}
+              className="mt-3 flex w-full items-center gap-2 rounded-[1.5rem] px-4 py-3.5 text-sm font-medium text-[var(--accent)] transition hover:bg-black/5"
+            >
+              <Sparkles className="size-3.5 shrink-0" />
+              Plan new chapters
+            </button>
+          )}
+        </section>
+      )}
+
+      </div>{/* end gap-6 content */}
 
       {/* Floating refine button — bottom-right FAB, hidden once chapter is done */}
       {!retroDone && <button

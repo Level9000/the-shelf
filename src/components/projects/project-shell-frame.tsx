@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { BookOpen, ChevronDown, Plus, Settings, Sparkles, SquareKanban } from "lucide-react";
+import { BookOpen, ChevronDown, Menu, Plus, Sparkles, SquareKanban } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectAppHeader } from "@/components/projects/project-app-header";
-import { SettingsDrawer } from "@/components/settings/settings-drawer";
+import { SettingsContent, SettingsDrawer } from "@/components/settings/settings-drawer";
+import { SideDrawer } from "@/components/ui/side-drawer";
 import { cn } from "@/lib/utils";
 
-// ── Simple dropdown for mobile ───────────────────────────────────────────────
+// ── Simple dropdown for mobile (used inside the left panel) ──────────────────
 
 function MobileDropdown({
   label,
@@ -125,6 +126,7 @@ export function ProjectShellFrame({
   mobileTitle: _mobileTitle,
   activeNav,
   retroAvailable,
+  mobileBanner,
   onEndChapter,
   onPlanChapters,
   children,
@@ -139,12 +141,15 @@ export function ProjectShellFrame({
   mobileTitle: string;
   activeNav?: "overview" | "story" | "board";
   retroAvailable?: boolean;
+  /** Full-width banner rendered between the header and scrollable content on mobile */
+  mobileBanner?: React.ReactNode;
   onEndChapter?: () => void;
   onPlanChapters?: () => void;
   children: React.ReactNode;
 }) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   // The chapter used for Story/Board pill links — current chapter, or the last
@@ -185,6 +190,13 @@ export function ProjectShellFrame({
     })) ?? []),
   ];
 
+  const currentChapterName =
+    projects
+      .find((p) => p.id === currentProjectId)
+      ?.chapters.find((ch) => ch.id === currentChapterId)?.name ?? null;
+
+  const currentProjectName = currentProject?.name ?? null;
+
   return (
     <>
       {/* ── Desktop layout (lg+) ── */}
@@ -205,90 +217,80 @@ export function ProjectShellFrame({
 
       {/* ── Mobile layout (<lg) ── */}
       <div className="flex h-dvh flex-col lg:hidden">
-        {/* Header: top bar + tab pills — sits above scrollable content */}
-        <div className="z-30 shrink-0 bg-[var(--app-bg)]">
-        {/* Top bar: project + chapter dropdowns + settings gear */}
-        <div className="flex items-center gap-3 border-b border-black/6 bg-white px-4 py-3">
-          <MobileDropdown
-            label="Project"
-            displayValue={currentProject?.name ?? "Select"}
-            options={projectOptions}
-            onSelect={(id) => router.push(`/projects/${id}`)}
-            actionLabel="New Project"
-            onAction={() => router.push("/projects/new")}
-          />
-
-          <div className="h-5 w-px shrink-0 bg-black/10" />
-
-          <MobileDropdown
-            label="Chapter"
-            displayValue={chapterDisplayValue}
-            options={chapterOptions}
-            onSelect={(val) => {
-              router.push(`/projects/${currentProjectId}/chapters/${val}`);
-            }}
-            bottomActionLabel="Plan new chapters"
-            onBottomAction={() => onPlanChapters?.()}
-          />
-
-          <div className="flex-1" />
-
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
-          >
-            <Settings className="size-4" />
-          </button>
-        </div>
-
-        {/* Overview / Story / Board tab row — centered floating pills */}
-        <div className="flex justify-center">
-          <div className="my-3 inline-flex gap-1 rounded-full bg-black/6 p-1 shadow-sm">
-            <Link
-              href={`/projects/${currentProjectId}`}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
-                activeNav === "overview"
-                  ? "bg-white text-[var(--ink)] shadow-sm"
-                  : "text-[var(--muted)]",
-              )}
+        {/* Header: hamburger + tab pills in a single row */}
+        <div className="z-30 shrink-0 border-b border-black/6 bg-white">
+          <div className="flex items-center gap-3 px-4 py-3">
+            {/* Hamburger — opens left-side panel */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open menu"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
             >
-              <BookOpen className="size-3.5" />
-              Overview
-            </Link>
-            {navChapterId && (
-              <>
-                <Link
-                  href={`/projects/${currentProjectId}/chapters/${navChapterId}`}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
-                    activeNav === "story"
-                      ? "bg-white text-[var(--ink)] shadow-sm"
-                      : "text-[var(--muted)]",
-                  )}
-                >
-                  <BookOpen className="size-3.5" />
-                  Story
-                </Link>
-                <Link
-                  href={`/projects/${currentProjectId}/chapters/${navChapterId}/board`}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
-                    activeNav === "board"
-                      ? "bg-white text-[var(--ink)] shadow-sm"
-                      : "text-[var(--muted)]",
-                  )}
-                >
-                  <SquareKanban className="size-3.5" />
-                  Board
-                </Link>
-              </>
+              <Menu className="size-5" />
+            </button>
+
+            {/* Chapter label — shown on chapter pages only */}
+            {currentChapterId && chapterIndex >= 0 && (
+              <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">
+                Chapter {chapterIndex + 1}
+              </span>
             )}
+
+            {/* Tab pills — pushed to the right */}
+            <div className="flex flex-1 justify-end">
+              <div className="inline-flex gap-1 rounded-full bg-black/6 p-1 shadow-sm">
+                {navChapterId ? (
+                  /* Chapter pages: Story + Board only */
+                  <>
+                    <Link
+                      href={`/projects/${currentProjectId}/chapters/${navChapterId}`}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                        activeNav === "story"
+                          ? "bg-white text-[var(--ink)] shadow-sm"
+                          : "text-[var(--muted)]",
+                      )}
+                    >
+                      <BookOpen className="size-3.5" />
+                      Story
+                    </Link>
+                    <Link
+                      href={`/projects/${currentProjectId}/chapters/${navChapterId}/board`}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                        activeNav === "board"
+                          ? "bg-white text-[var(--ink)] shadow-sm"
+                          : "text-[var(--muted)]",
+                      )}
+                    >
+                      <SquareKanban className="size-3.5" />
+                      Board
+                    </Link>
+                  </>
+                ) : (
+                  /* Project overview: single Overview pill */
+                  <Link
+                    href={`/projects/${currentProjectId}`}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                      activeNav === "overview"
+                        ? "bg-white text-[var(--ink)] shadow-sm"
+                        : "text-[var(--muted)]",
+                    )}
+                  >
+                    <BookOpen className="size-3.5" />
+                    Overview
+                  </Link>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
-        </div>{/* end header */}
+
+        {/* Full-width banner slot (e.g. chapter completed) */}
+        {mobileBanner}
 
         {/* Page content — scrollable area below the header */}
         <div
@@ -303,19 +305,121 @@ export function ProjectShellFrame({
         </div>
       </div>
 
+      {/* ── Mobile left-side panel: project + chapter nav + settings ── */}
+      <SideDrawer
+        open={menuOpen}
+        title={currentProject?.name ?? "Navigation"}
+        onClose={() => setMenuOpen(false)}
+        side="left"
+      >
+        {/* Project selector */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+            Project
+          </p>
+          <div className="mt-2 flex flex-col gap-0.5">
+            {projects.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => { router.push(`/projects/${p.id}`); setMenuOpen(false); }}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition",
+                  p.id === currentProjectId
+                    ? "bg-black/5 font-semibold text-[var(--ink)]"
+                    : "text-[var(--muted)] hover:bg-black/5",
+                )}
+              >
+                <span>{p.name}</span>
+                {p.id === currentProjectId && (
+                  <span className="text-[10px] font-semibold text-[var(--accent)]">here</span>
+                )}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => { router.push("/projects/new"); setMenuOpen(false); }}
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--accent)] transition hover:bg-black/5"
+            >
+              <Plus className="size-3.5 shrink-0" />
+              New project
+            </button>
+          </div>
+        </div>
+
+        {/* Chapter selector */}
+        {currentProject && (
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+              Chapter
+            </p>
+            <div className="mt-2 flex flex-col gap-0.5">
+              {currentProject.chapters.map((ch, i) => {
+                const isComplete = Boolean(ch.retroCompletedAt);
+                const isCurrent = Boolean(ch.kickoffCompletedAt) && !isComplete;
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => {
+                      router.push(`/projects/${currentProjectId}/chapters/${ch.id}`);
+                      setMenuOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition",
+                      ch.id === currentChapterId
+                        ? "bg-black/5 font-semibold text-[var(--ink)]"
+                        : "text-[var(--muted)] hover:bg-black/5",
+                    )}
+                  >
+                    <span>Chapter {i + 1}</span>
+                    {isComplete ? (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">complete</span>
+                    ) : isCurrent ? (
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">current</span>
+                    ) : (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">planned</span>
+                    )}
+                  </button>
+                );
+              })}
+              {onPlanChapters && (
+                <button
+                  type="button"
+                  onClick={() => { onPlanChapters(); setMenuOpen(false); }}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--accent)] transition hover:bg-black/5"
+                >
+                  <Sparkles className="size-3.5 shrink-0" />
+                  Plan new chapters
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="border-t border-black/8" />
+
+        {/* Settings */}
+        <SettingsContent
+          profile={profile}
+          currentProjectId={currentProjectId}
+          currentProjectName={currentProjectName}
+          currentChapterId={currentChapterId}
+          currentChapterName={currentChapterName}
+          onClose={() => setMenuOpen(false)}
+        />
+      </SideDrawer>
+
+      {/* ── Desktop settings drawer (right side) ── */}
       <SettingsDrawer
         open={settingsOpen}
         profile={profile}
         onClose={() => setSettingsOpen(false)}
         currentProjectId={currentProjectId}
+        currentProjectName={currentProjectName}
         currentChapterId={currentChapterId}
-        currentChapterName={
-          projects
-            .find((p) => p.id === currentProjectId)
-            ?.chapters.find((ch) => ch.id === currentChapterId)?.name ?? null
-        }
+        currentChapterName={currentChapterName}
       />
-
     </>
   );
 }

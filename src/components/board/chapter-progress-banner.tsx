@@ -67,9 +67,9 @@ function CompletedBanner({
     year: "numeric",
   });
   return (
-    <div className="my-2 mx-auto flex w-fit items-center gap-4 rounded-[1.75rem] bg-green-50 px-5 py-3 ring-1 ring-green-200">
+    <div className="my-2 mx-auto hidden w-fit items-center gap-4 rounded-[1.75rem] bg-green-50 px-5 py-3 ring-1 ring-green-200 lg:flex">
       <p className="text-sm text-green-800">
-        Chapter completed on <span className="font-semibold">{date}</span>.
+        completed on <span className="font-semibold">{date}</span>.
       </p>
       {activeChapterUrl ? (
         <Link

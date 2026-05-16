@@ -42,7 +42,7 @@ export function Modal({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-end justify-center bg-black/25 px-4 py-6 backdrop-blur-sm sm:items-center",
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/25 px-4 py-6 backdrop-blur-sm",
         fullScreen && "items-stretch px-0 py-0 sm:px-0 sm:py-0",
         fullScreenOnMobile && "items-stretch px-0 py-0 sm:px-4 sm:py-6",
       )}
@@ -54,7 +54,7 @@ export function Modal({
       />
       <div
         className={cn(
-          "surface-card hairline relative z-10 flex max-h-[calc(100dvh-3rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] p-6",
+          "surface-card hairline relative z-10 mx-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] p-6",
           fullScreen &&
             "flex min-h-full max-w-none flex-col overflow-hidden rounded-none p-5 sm:p-6",
           fullScreenOnMobile &&
