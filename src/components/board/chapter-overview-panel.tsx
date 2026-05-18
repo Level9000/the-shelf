@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   BookOpen,
   CheckCircle2,
-  FileText,
-  Link2,
-  Mail,
   MessageSquare,
-  Mic,
   PencilLine,
   Save,
   Share2,
@@ -19,22 +15,85 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Board, Chapter, Task, BoardColumn } from "@/types";
 import { updateBoardOverviewAction } from "@/lib/actions/project-actions";
+import { CassRecorder } from "@/components/cass/CassRecorder";
+import { CassShareChat, type Phase as CassPhase } from "@/components/cass/CassShareChat";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
-import { ChapterProgressBanner } from "@/components/board/chapter-progress-banner";
 import { cn } from "@/lib/utils";
 
 function copyOrFallback(value: string | null, fallback: string) {
   return value?.trim() || fallback;
 }
 
-const SHARE_FORMATS = [
-  { key: "email", icon: Mail, label: "Email update", description: "A personal email to your board, investors, or team" },
-  { key: "blog", icon: FileText, label: "Blog post", description: "A 400–600 word post in your authentic founder voice" },
-  { key: "linkedin", icon: Link2, label: "LinkedIn post", description: "A punchy 150–200 word post for your network" },
-  { key: "podcast", icon: Mic, label: "Podcast script", description: "A 2–3 minute conversational solo-cast monologue" },
-] as const;
+function GeneratingOverlay() {
+  const text = "hang tight — I'll get this printed out for you";
+  const [displayed, setDisplayed] = useState("");
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const fadeTimer = setTimeout(() => setVisible(true), 50);
+    const startTimer = setTimeout(() => {
+      let i = 0;
+      intervalId = setInterval(() => {
+        i++;
+        setDisplayed(text.slice(0, i));
+        if (i >= text.length && intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }, 32);
+    }, 400);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(startTimer);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 60,
+        background: "#0a0a0a",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "36px",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.4s ease",
+      }}
+    >
+      <CassRecorder animState="playing" size="md" />
+      <p
+        style={{
+          fontFamily: "'Special Elite', cursive",
+          fontSize: "18px",
+          lineHeight: "1.7",
+          color: "#e8e0d0",
+          textAlign: "center",
+          maxWidth: "300px",
+          opacity: 0.9,
+          minHeight: "60px",
+        }}
+      >
+        {displayed}
+        {displayed.length < text.length && displayed.length > 0 && (
+          <span style={{ opacity: 0.4, animation: "cassCaretBlink 0.9s step-end infinite" }}>▌</span>
+        )}
+      </p>
+      <style>{`
+        @keyframes cassCaretBlink {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 export function ChapterOverviewPanel({
   board,
@@ -85,8 +144,17 @@ const retroAvailable =
   type EditableField = "goal" | "whyItMatters" | "successLooksLike" | "doneDefinition";
 
   const [editingField, setEditingField] = useState<EditableField | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
+  const [shareDrawerOpen, setShareDrawerOpen] = useState(false);
+  const [chatKey, setChatKey] = useState(0);
+  const [cassPhase, setCassPhase] = useState<CassPhase | null>(null);
+  const [bubbleVisible, setBubbleVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!retroDone) return;
+    const t = setTimeout(() => setBubbleVisible(true), 900);
+    return () => clearTimeout(t);
+  }, [retroDone]);
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState({
     goal: board.goal ?? "",
@@ -164,60 +232,46 @@ const retroAvailable =
         </div>
       )}
 
-      <Modal
-        open={shareOpen && retroDone}
-        title="Share your story"
-        description="Generate polished updates for your network"
-        onClose={() => setShareOpen(false)}
-      >
-        <div className="flex flex-col gap-2.5">
-          {SHARE_FORMATS.map(({ key, label, description }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => { setShareOpen(false); onSelectShareFormat?.(key); }}
-              className="flex flex-col rounded-[1.25rem] px-4 py-3.5 text-left transition hover:bg-black/5"
-            >
-              <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
-              <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
-            </button>
-          ))}
-        </div>
-      </Modal>
-
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_30%]">
-        {/* Left: how it went + 4 overview cards */}
+      <div className="grid items-start gap-4">
+        {/* Left: combined chapter overview card */}
         <div className="flex flex-col gap-4">
-        {retroDone && board.chapterStory && (
-          <article className="surface-card hairline rounded-[1.75rem] p-5 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
-                <div className="h-3 shrink-0 bg-violet-200" />
-                <div className="flex flex-1 items-center justify-center bg-violet-100">
-                  <span className="text-[10px] font-bold tracking-wide text-violet-900/60">Story</span>
+        <article className="surface-card hairline rounded-[1.75rem] overflow-hidden">
+
+          {/* Story section — shown only after retro is complete */}
+          {retroDone && board.chapterStory && (
+            <div className="p-5 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
+                  <div className="h-3 shrink-0 bg-violet-200" />
+                  <div className="flex flex-1 items-center justify-center bg-violet-100">
+                    <span className="text-[10px] font-bold tracking-wide text-violet-900/60">Story</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold">How it went</h3>
+                  <p className="text-sm text-[var(--muted)]">The story of this chapter.</p>
                 </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold">How it went</h3>
-                <p className="text-sm text-[var(--muted)]">The story of this chapter.</p>
+              <p className="mt-4 text-sm italic leading-7 text-[var(--ink)] sm:text-base">
+                {board.chapterStory}
+              </p>
+              {/* Share button — opens the share drawer */}
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShareDrawerOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-4 py-2 text-xs font-semibold text-white transition hover:opacity-85"
+                >
+                  <Share2 className="size-3.5" />
+                  Share this story
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setShareOpen(true)}
-                className="lg:hidden flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
-                aria-label="Share your story"
-              >
-                <Share2 className="size-4" />
-              </button>
             </div>
-            <p className="mt-4 text-sm italic leading-7 text-[var(--ink)] sm:text-base">
-              {board.chapterStory}
-            </p>
-          </article>
-        )}
-        <section className="grid auto-rows-fr gap-4 sm:grid-cols-2">
-          <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
-            <div className="flex items-center gap-3">
+          )}
+
+          {/* What — the bet */}
+          <div className={cn("border-t border-black/6", !(retroDone && board.chapterStory) && "border-t-0")}>
+            <div className="flex items-center gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
               <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
                 <div className="h-3 shrink-0 bg-yellow-200" />
                 <div className="flex flex-1 items-center justify-center bg-yellow-100">
@@ -244,7 +298,7 @@ const retroAvailable =
               )}
             </div>
             {editingField === "goal" ? (
-              <>
+              <div className="px-5 pb-5 sm:px-6 sm:pb-6">
                 <Textarea
                   value={form.goal}
                   onChange={(event) => handleChange("goal", event.target.value)}
@@ -260,22 +314,23 @@ const retroAvailable =
                     <Save className="mr-1.5 size-3.5" />{isPending ? "Saving..." : "Save"}
                   </Button>
                 </div>
-              </>
+                {error && editingField === "goal" && (
+                  <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+                )}
+              </div>
             ) : (
-              <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+              <p className="mt-3 px-5 pb-5 text-sm leading-7 text-[var(--muted)] sm:px-6 sm:pb-6 sm:text-base">
                 {copyOrFallback(
                   board.goal,
                   "What belief are you acting on? State the bet plainly — what you expect to be true if this chapter succeeds.",
                 )}
               </p>
             )}
-            {error && editingField === "goal" && (
-              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
-            )}
-          </article>
+          </div>
 
-          <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
-            <div className="flex items-center gap-3">
+          {/* Why — urgency and stakes */}
+          <div className="border-t border-black/6">
+            <div className="flex items-center gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
               <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
                 <div className="h-3 shrink-0 bg-blue-200" />
                 <div className="flex flex-1 items-center justify-center bg-blue-100">
@@ -302,7 +357,7 @@ const retroAvailable =
               )}
             </div>
             {editingField === "whyItMatters" ? (
-              <>
+              <div className="px-5 pb-5 sm:px-6 sm:pb-6">
                 <Textarea
                   value={form.whyItMatters}
                   onChange={(event) => handleChange("whyItMatters", event.target.value)}
@@ -318,22 +373,23 @@ const retroAvailable =
                     <Save className="mr-1.5 size-3.5" />{isPending ? "Saving..." : "Save"}
                   </Button>
                 </div>
-              </>
+                {error && editingField === "whyItMatters" && (
+                  <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+                )}
+              </div>
             ) : (
-              <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+              <p className="mt-3 px-5 pb-5 text-sm leading-7 text-[var(--muted)] sm:px-6 sm:pb-6 sm:text-base">
                 {copyOrFallback(
                   board.whyItMatters,
                   "What's the window? What's the pressure? Why is this the right chapter to run right now?",
                 )}
               </p>
             )}
-            {error && editingField === "whyItMatters" && (
-              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
-            )}
-          </article>
+          </div>
 
-          <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
-            <div className="flex items-center gap-3">
+          {/* How — conditions for success */}
+          <div className="border-t border-black/6">
+            <div className="flex items-center gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
               <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
                 <div className="h-3 shrink-0 bg-pink-200" />
                 <div className="flex flex-1 items-center justify-center bg-pink-100">
@@ -360,7 +416,7 @@ const retroAvailable =
               )}
             </div>
             {editingField === "successLooksLike" ? (
-              <>
+              <div className="px-5 pb-5 sm:px-6 sm:pb-6">
                 <Textarea
                   value={form.successLooksLike}
                   onChange={(event) => handleChange("successLooksLike", event.target.value)}
@@ -376,22 +432,23 @@ const retroAvailable =
                     <Save className="mr-1.5 size-3.5" />{isPending ? "Saving..." : "Save"}
                   </Button>
                 </div>
-              </>
+                {error && editingField === "successLooksLike" && (
+                  <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+                )}
+              </div>
             ) : (
-              <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+              <p className="mt-3 px-5 pb-5 text-sm leading-7 text-[var(--muted)] sm:px-6 sm:pb-6 sm:text-base">
                 {copyOrFallback(
                   board.successLooksLike,
                   "List the conditions that need to hold. Each one is something the board can work toward directly.",
                 )}
               </p>
             )}
-            {error && editingField === "successLooksLike" && (
-              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
-            )}
-          </article>
+          </div>
 
-          <article className="surface-card hairline h-full rounded-[1.75rem] p-5 sm:p-6">
-            <div className="flex items-center gap-3">
+          {/* When — the proof point */}
+          <div className="border-t border-black/6">
+            <div className="flex items-center gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
               <div className="flex size-11 shrink-0 flex-col overflow-hidden rounded-[3px] shadow-[2px_3px_0px_rgba(0,0,0,0.08),2px_4px_10px_rgba(0,0,0,0.12)]">
                 <div className="h-3 shrink-0 bg-green-200" />
                 <div className="flex flex-1 items-center justify-center bg-green-100">
@@ -418,7 +475,7 @@ const retroAvailable =
               )}
             </div>
             {editingField === "doneDefinition" ? (
-              <>
+              <div className="px-5 pb-5 sm:px-6 sm:pb-6">
                 <Textarea
                   value={form.doneDefinition}
                   onChange={(event) => handleChange("doneDefinition", event.target.value)}
@@ -434,88 +491,23 @@ const retroAvailable =
                     <Save className="mr-1.5 size-3.5" />{isPending ? "Saving..." : "Save"}
                   </Button>
                 </div>
-              </>
+                {error && editingField === "doneDefinition" && (
+                  <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+                )}
+              </div>
             ) : (
-              <p className="mt-4 text-sm leading-7 text-[var(--muted)] sm:text-base">
+              <p className="mt-3 px-5 pb-5 text-sm leading-7 text-[var(--muted)] sm:px-6 sm:pb-6 sm:text-base">
                 {copyOrFallback(
                   board.doneDefinition,
                   "What tangible thing will exist or be demonstrably true at the end? This is what the retro will hold you to.",
                 )}
               </p>
             )}
-            {error && editingField === "doneDefinition" && (
-              <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
-            )}
-          </article>
-        </section>
+          </div>
+
+        </article>
         </div>
 
-        {/* Right: share panel — desktop only, mobile uses collapsible above */}
-        <section className="hidden surface hairline sticky top-6 rounded-[2rem] p-5 sm:p-6 lg:block">
-          {retroDone ? (
-            <>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                Chapter complete
-              </p>
-              <h3 className="mt-1 text-lg font-semibold tracking-tight text-[var(--ink)]">
-                Share your story
-              </h3>
-              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                Turn this chapter into a polished update for your network, board, or team.
-              </p>
-              <div className="mt-4 flex flex-col gap-3">
-                {SHARE_FORMATS.map(({ key, icon: Icon, label, description }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => onSelectShareFormat?.(key)}
-                    className="surface-card hairline group flex items-center gap-3 rounded-[1.25rem] p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] transition group-hover:bg-[var(--ink)] group-hover:text-white">
-                      <Icon className="size-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
-                      <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                    Unlocks when you close this chapter
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold tracking-tight text-[var(--ink)]">
-                    Share your story
-                  </h3>
-                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                    End the chapter and complete the retro — AI will turn your work into polished updates ready to send.
-                  </p>
-                </div>
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-muted)] text-[var(--muted)]">
-                  <Lock className="size-4" />
-                </div>
-              </div>
-              <div className="mt-4 flex flex-col gap-3 pointer-events-none select-none opacity-50">
-                {SHARE_FORMATS.map(({ icon: Icon, label, description }) => (
-                  <div key={label} className="surface-card hairline flex items-center gap-3 rounded-[1.25rem] p-4">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                      <Icon className="size-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
-                      <p className="mt-0.5 text-[11px] leading-5 text-[var(--muted)]">{description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </section>
       </div>
 
       {/* Mobile: chapter arc — all chapters in the project */}
@@ -622,23 +614,200 @@ const retroAvailable =
 
       </div>{/* end gap-6 content */}
 
-      {/* Floating refine button — bottom-right FAB, hidden once chapter is done */}
-      {!retroDone && <button
-        type="button"
-        onClick={onRefine}
-        className="group fixed bottom-6 right-6 z-40 flex h-14 items-center overflow-hidden rounded-full bg-[var(--ink)] shadow-xl shadow-black/20 transition-all duration-300 ease-out hover:shadow-2xl hover:shadow-black/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-        style={{ width: "3.5rem" }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "220px"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "3.5rem"; }}
-        aria-label="Refine this page with chat"
+      {/* Floating refine button — shown only before chapter is complete */}
+      {!retroDone && (
+        <button
+          type="button"
+          onClick={onRefine}
+          className="group fixed bottom-6 right-6 z-40 flex h-14 items-center overflow-hidden rounded-full bg-[var(--ink)] shadow-xl shadow-black/20 transition-all duration-300 ease-out hover:shadow-2xl hover:shadow-black/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          style={{ width: "3.5rem" }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "220px"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "3.5rem"; }}
+          aria-label="Refine this page with chat"
+        >
+          <span className="flex size-14 shrink-0 items-center justify-center text-white">
+            <MessageSquare className="size-5" />
+          </span>
+          <span className="whitespace-nowrap pr-5 text-sm font-semibold text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            Refine story with chat
+          </span>
+        </button>
+      )}
+
+      {/* Cass share FAB — shown after retro is complete, replaces the refine button */}
+      {retroDone && !shareDrawerOpen && (
+        <button
+          type="button"
+          onClick={() => { setChatKey((k) => k + 1); setShareDrawerOpen(true); }}
+          aria-label="Share your story"
+          className="fixed bottom-6 right-6 z-40 flex items-end gap-3"
+        >
+          {/* Speech bubble — slides in from right after mount */}
+          <div
+            style={{
+              background: "#0a0a0a",
+              border: "1px solid rgba(200,168,107,0.35)",
+              borderRadius: "12px 12px 0 12px",
+              padding: "10px 14px",
+              maxWidth: "220px",
+              fontFamily: "'Special Elite', cursive",
+              fontSize: "13px",
+              lineHeight: "1.5",
+              color: "#e8e0d0",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+              opacity: bubbleVisible ? 1 : 0,
+              transform: bubbleVisible ? "translateX(0) scale(1)" : "translateX(12px) scale(0.96)",
+              transition: "opacity 0.35s ease, transform 0.35s ease",
+              pointerEvents: bubbleVisible ? "auto" : "none",
+              textAlign: "left",
+            }}
+          >
+            We&apos;ve captured a great story here. Want to share it?
+          </div>
+          {/* Cass recorder as the anchor icon */}
+          <div className="shrink-0 drop-shadow-xl">
+            <CassRecorder animState="idle" size="sm" />
+          </div>
+        </button>
+      )}
+
+      {/* Share drawer backdrop — mobile only */}
+      {shareDrawerOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setShareDrawerOpen(false)}
+        />
+      )}
+
+      {/* Generating overlay — fullscreen, rendered outside the transformed drawer to avoid stacking context */}
+      {cassPhase === "generating" && <GeneratingOverlay />}
+
+      {/* Share drawer — slides in from the right */}
+      <div
+        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col lg:w-[30%] lg:min-w-[340px]"
+        style={{
+          background: "#0a0a0a",
+          backgroundImage: "radial-gradient(ellipse at 20% 90%, rgba(200,168,107,0.06) 0%, transparent 60%)",
+          transform: shareDrawerOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          boxShadow: shareDrawerOpen ? "-8px 0 40px rgba(0,0,0,0.4)" : "none",
+          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+        }}
+        aria-hidden={!shareDrawerOpen}
       >
-        <span className="flex size-14 shrink-0 items-center justify-center text-white">
-          <MessageSquare className="size-5" />
-        </span>
-        <span className="whitespace-nowrap pr-5 text-sm font-semibold text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          Refine story with chat
-        </span>
-      </button>}
+        {/* Progress bar — top edge, above avatar */}
+        <div style={{ height: "3px", background: "rgba(200,168,107,0.1)", flexShrink: 0, width: "100%" }}>
+          <div
+            style={{
+              height: "100%",
+              background: "linear-gradient(90deg, rgba(200,168,107,0.6), #c8a86b)",
+              width:
+                cassPhase === "refine1" ? "33%" :
+                cassPhase === "refine2" ? "66%" :
+                cassPhase === "generating" ? "100%" :
+                "0%",
+              transition: "width 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          />
+        </div>
+
+        {/* Drawer header — Cass avatar centered, X absolute top-right */}
+        <div
+          style={{
+            flexShrink: 0,
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            padding: "20px 20px 14px",
+          }}
+        >
+          {/* X button */}
+          <button
+            type="button"
+            onClick={() => setShareDrawerOpen(false)}
+            aria-label="Close share panel"
+            style={{
+              position: "absolute",
+              top: "14px",
+              right: "16px",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.06)",
+              color: "#888",
+              border: "none",
+              cursor: "pointer",
+              transition: "background 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+              e.currentTarget.style.color = "#e8e0d0";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+              e.currentTarget.style.color = "#888";
+            }}
+          >
+            <X size={14} />
+          </button>
+
+          {/* Cass circle avatar */}
+          <div
+            style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "50%",
+              overflow: "hidden",
+              position: "relative",
+              background: "#1a1a1a",
+              boxShadow: "0 0 0 1.5px rgba(200,168,107,0.35), 0 4px 20px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                transformOrigin: "top left",
+                transform: "scale(0.5333) translateY(-6.5px)",
+              }}
+            >
+              <CassRecorder animState="idle" size="sm" />
+            </div>
+          </div>
+          <p
+            style={{
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: "9px",
+              letterSpacing: "2.5px",
+              color: "#c8a86b",
+              textTransform: "uppercase",
+              margin: "6px 0 0",
+              opacity: 0.7,
+            }}
+          >
+            Cass
+          </p>
+        </div>
+
+        {/* Thin gold divider */}
+        <div style={{ height: "1px", background: "rgba(200,168,107,0.08)", flexShrink: 0 }} />
+
+        {/* Chat — takes remaining height */}
+        <CassShareChat
+          key={chatKey}
+          onPhaseChange={setCassPhase}
+          onComplete={(format) => {
+            setCassPhase(null);
+            setShareDrawerOpen(false);
+            onSelectShareFormat?.(format);
+          }}
+        />
+      </div>
     </div>
   );
 }

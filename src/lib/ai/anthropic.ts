@@ -9,11 +9,17 @@ import {
   aiTaskExtractionSchema,
   aiProjectOverviewDialogueSchema,
   aiWeeklyPlanningDialogueSchema,
+  cassOnboardingDialogueSchema,
+  cassRetroDialogueSchema,
   type AITaskChunking,
   type ProjectOverviewSection,
   type StrategicDialogueMessage,
 } from "@/lib/ai/schema";
 import {
+  buildCassChapterKickoffPrompt,
+  buildCassOnboardingPrompt,
+  buildCassRetroPrompt,
+  buildCassStoryShareRefinementPrompt,
   buildChapterKickoffPrompt,
   buildChapterOverviewDialoguePrompt,
   buildChapterPlannerPrompt,
@@ -712,4 +718,192 @@ export async function runTaskChunkingDialogue(input: {
     ...raw,
     tasks: (raw.tasks ?? []).map((t) => ({ ...t, priority: t.priority || null })),
   });
+}
+
+// ── Cass AI functions ─────────────────────────────────────────────────────────
+
+export async function runCassOnboardingDialogue(input: {
+  messages: StrategicDialogueMessage[];
+}) {
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildCassOnboardingPrompt();
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Cass onboarding dialogue failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+
+  const rawText = payload.content?.find((block) => block.type === "text")?.text;
+  if (!rawText) throw new Error("Cass onboarding returned no content.");
+
+  return cassOnboardingDialogueSchema.parse(safeJsonParse(extractJsonObject(rawText)));
+}
+
+export async function runCassChapterKickoffDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  northStar?: string | null;
+  projectGoal?: string | null;
+  chapterNumber: number;
+  chapterName: string;
+  previousChapterGoal?: string | null;
+  prefill?: {
+    goal?: string | null;
+    value?: string | null;
+    measure?: string | null;
+    done?: string | null;
+  } | null;
+}) {
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildCassChapterKickoffPrompt(input);
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      tools: [KICKOFF_TOOL],
+      tool_choice: { type: "any" },
+      messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Cass chapter kickoff failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string; name?: string; input?: unknown }>;
+  };
+
+  const toolUse = payload.content?.find(
+    (block) => block.type === "tool_use" && block.name === "kickoff_response",
+  );
+
+  if (!toolUse?.input) {
+    throw new Error("Cass chapter kickoff did not return a tool call.");
+  }
+
+  return aiKickoffDialogueSchema.parse(toolUse.input);
+}
+
+export async function runCassRetroDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  northStar?: string | null;
+  accumulativeStory?: string | null;
+  chapter: {
+    number: number;
+    name: string;
+    goal?: string | null;
+    whyItMatters?: string | null;
+    successLooksLike?: string | null;
+    doneDefinition?: string | null;
+  };
+  completedTasks: Array<{ title: string; context?: string | null }>;
+  incompleteTasks: Array<{ title: string }>;
+  standoutCard?: string | null;
+}) {
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildCassRetroPrompt(input);
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Cass retro dialogue failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+
+  const rawText = payload.content?.find((block) => block.type === "text")?.text;
+  if (!rawText) throw new Error("Cass retro returned no content.");
+
+  return cassRetroDialogueSchema.parse(safeJsonParse(extractJsonObject(rawText)));
+}
+
+export async function runCassStoryShareRefinement(input: {
+  projectName: string;
+  chapterName: string;
+  chapterGoal?: string | null;
+  currentStory: string;
+  instruction: string;
+}): Promise<string> {
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildCassStoryShareRefinementPrompt(input);
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: input.instruction,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Story refinement failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+
+  const refined = payload.content?.find((b) => b.type === "text")?.text?.trim();
+  if (!refined) throw new Error("Story refinement returned no content.");
+
+  return refined;
 }

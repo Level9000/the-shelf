@@ -109,6 +109,9 @@ export type Task = {
   createdAt: string;
   updatedAt: string;
   sourceTranscript: string | null;
+  context: string | null;
+  rawQuote: string | null;
+  createdVia: "form" | "brain_dump" | "voice" | "ai_suggestion" | "template" | null;
 };
 
 export type VoiceCapture = {

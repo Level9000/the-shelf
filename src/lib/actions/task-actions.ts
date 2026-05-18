@@ -360,6 +360,105 @@ export async function createTasksFromTemplateAction(input: {
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
+export async function createBrainDumpCardsAction(input: {
+  projectId: string;
+  boardId: string;
+  conversationId: string | null;
+  columnMap: Array<{ id: string; name: string }>;
+  cards: Array<{
+    title: string;
+    column: string;
+    priority: "low" | "medium" | "high";
+    context: string;
+    rawQuote: string;
+    templateId?: string | null;
+  }>;
+}) {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  if (input.cards.length === 0) return;
+
+  const tasksByColumn = new Map<string, typeof input.cards>();
+
+  for (const card of input.cards) {
+    const targetColumn =
+      input.columnMap.find((c) => c.name.toLowerCase() === card.column.toLowerCase()) ??
+      input.columnMap.find((c) => c.name === "Do This Week") ??
+      input.columnMap[0];
+
+    if (!targetColumn) continue;
+
+    const existing = tasksByColumn.get(targetColumn.id) ?? [];
+    existing.push(card);
+    tasksByColumn.set(targetColumn.id, existing);
+  }
+
+  const inserts: Array<Record<string, unknown>> = [];
+
+  for (const [columnId, cards] of tasksByColumn.entries()) {
+    const startPosition = await getNextTaskPosition(input.boardId, columnId);
+    cards.forEach((card, index) => {
+      inserts.push({
+        project_id: input.projectId,
+        board_id: input.boardId,
+        column_id: columnId,
+        title: card.title.trim(),
+        description: null,
+        assignee_name: null,
+        priority: card.priority,
+        due_date: null,
+        position: startPosition + index * 1000,
+        created_by: user.id,
+        source_voice_capture_id: null,
+        source_template_id: card.templateId ?? null,
+        context: card.context.trim() || null,
+        raw_quote: card.rawQuote.trim() || null,
+        created_via: "brain_dump",
+      });
+    });
+  }
+
+  const { error: insertError } = await supabase.from("tasks").insert(inserts);
+  if (insertError) throw new Error(insertError.message);
+
+  // Update conversation's captured card count
+  if (input.conversationId) {
+    const { data: conv } = await supabase
+      .from("brain_dump_conversations")
+      .select("cards_captured")
+      .eq("id", input.conversationId)
+      .maybeSingle();
+    if (conv) {
+      await supabase
+        .from("brain_dump_conversations")
+        .update({
+          cards_captured: ((conv.cards_captured as number) ?? 0) + input.cards.length,
+          last_active_at: new Date().toISOString(),
+        })
+        .eq("id", input.conversationId);
+    }
+  }
+
+  // Increment usage_count for any template used
+  const usedTemplateIds = [...new Set(input.cards.map((c) => c.templateId).filter(Boolean))];
+  for (const templateId of usedTemplateIds) {
+    const { data: tmpl } = await supabase
+      .from("workflow_templates")
+      .select("usage_count")
+      .eq("id", templateId!)
+      .maybeSingle();
+    if (tmpl) {
+      await supabase
+        .from("workflow_templates")
+        .update({ usage_count: ((tmpl.usage_count as number) ?? 0) + 1 })
+        .eq("id", templateId!);
+    }
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
+}
+
 export async function createChunkedTasksAction(input: {
   projectId: string;
   boardId: string;

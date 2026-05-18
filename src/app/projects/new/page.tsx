@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getOptionalUser } from "@/lib/supabase/queries";
+import { getOptionalUser, getProjects } from "@/lib/supabase/queries";
+import { CassOnboardingChat } from "@/components/cass/CassOnboardingChat";
 import { ProjectKickoffChat } from "@/components/projects/project-kickoff-chat";
 
 export default async function NewProjectPage({
@@ -15,9 +16,13 @@ export default async function NewProjectPage({
   const { name } = await searchParams;
   const projectName = (name ?? "").trim();
 
+  // No name param → Cass onboarding experience (full screen, dark)
   if (!projectName) {
-    redirect("/projects");
+    const existingProjects = await getProjects();
+    const hasExistingProjects = existingProjects.length > 0;
+    return <CassOnboardingChat hasExistingProjects={hasExistingProjects} />;
   }
 
+  // Name param provided → returning user creating additional project
   return <ProjectKickoffChat projectName={projectName} />;
 }

@@ -1136,3 +1136,24 @@ export async function createChapterAction(input: {
     chapterId: String(newBoard.id),
   };
 }
+
+export async function updateChapterStoryAction(input: {
+  projectId: string;
+  boardId: string;
+  chapterStory: string;
+}): Promise<void> {
+  const story = input.chapterStory.trim();
+  if (!story) throw new Error("Chapter story cannot be empty.");
+
+  const { supabase } = await getAuthenticatedUser();
+  const { error } = await supabase
+    .from("boards")
+    .update({ chapter_story: story })
+    .eq("id", input.boardId)
+    .eq("project_id", input.projectId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+}

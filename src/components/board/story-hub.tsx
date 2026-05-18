@@ -20,6 +20,7 @@ import type { Board, Task } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { CassRecorder } from "@/components/cass/CassRecorder";
 
 type ShareFormat = "email" | "blog" | "linkedin" | "podcast";
 
@@ -75,36 +76,103 @@ function HubView({
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto">
-      {/* Story header */}
-      <section className="surface hairline shrink-0 rounded-[2rem] p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-              Chapter complete
+      {/* Cass share panel */}
+      <section
+        style={{
+          background: "#0a0a0a",
+          backgroundImage:
+            "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)",
+          borderRadius: "1.75rem",
+          padding: "28px 24px",
+          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+        }}
+      >
+        {/* Recorder + speech bubble — side by side, recorder flush to bubble bottom */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            gap: "12px",
+            marginBottom: board.chapterStory ? "20px" : "24px",
+          }}
+        >
+          <div style={{ flexShrink: 0 }}>
+            <CassRecorder animState="idle" size="sm" />
+          </div>
+
+          {/* Speech bubble — sharp bottom-left corner = chat bubble tail from Cass */}
+          <div
+            style={{
+              flex: 1,
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(200,168,107,0.25)",
+              borderRadius: "12px 12px 12px 0",
+              padding: "14px 18px",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "'Special Elite', cursive",
+                fontSize: "15px",
+                lineHeight: "1.6",
+                color: "#e8e0d0",
+                margin: 0,
+              }}
+            >
+              We&apos;ve captured a great story here. Want to share it with your audience?
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-[var(--ink)] sm:text-3xl">
-              Share your story
-            </h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
+            <p
+              style={{
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: "10px",
+                color: "#555",
+                letterSpacing: "1px",
+                marginTop: "8px",
+                marginBottom: 0,
+              }}
+            >
               {completedCount} task{completedCount !== 1 ? "s" : ""} shipped
               {board.name ? ` · ${board.name}` : ""}
             </p>
           </div>
         </div>
 
+        {/* Chapter story quote */}
         {board.chapterStory && (
-          <blockquote className="mt-5 rounded-2xl bg-[var(--surface-muted)] px-5 py-4 text-sm italic leading-7 text-[var(--ink)]">
+          <blockquote
+            style={{
+              background: "rgba(200,168,107,0.04)",
+              border: "1px solid rgba(200,168,107,0.15)",
+              borderRadius: "12px",
+              padding: "16px 20px",
+              fontFamily: "'Special Elite', cursive",
+              fontSize: "14px",
+              lineHeight: "1.75",
+              color: "#a8a29a",
+              fontStyle: "italic",
+              margin: "0 0 24px",
+            }}
+          >
             {board.chapterStory}
           </blockquote>
         )}
-      </section>
 
-      {/* Format cards */}
-      <section>
-        <p className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
-          Share as...
+        {/* Format label */}
+        <p
+          style={{
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: "10px",
+            letterSpacing: "2px",
+            color: "#444",
+            textTransform: "uppercase",
+            marginBottom: "10px",
+          }}
+        >
+          Share as
         </p>
-        <div className="grid gap-3 sm:grid-cols-2">
+
+        {/* Format cards */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {(
             Object.entries(FORMAT_META) as [
               ShareFormat,
@@ -117,14 +185,64 @@ function HubView({
                 key={format}
                 type="button"
                 onClick={() => onSelectFormat(format)}
-                className="surface-card hairline group flex items-center gap-4 rounded-[1.5rem] p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(200,168,107,0.12)",
+                  borderRadius: "12px",
+                  padding: "14px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "14px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  width: "100%",
+                  transition: "border-color 0.15s, background 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(200,168,107,0.4)";
+                  e.currentTarget.style.background = "rgba(200,168,107,0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(200,168,107,0.12)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                }}
               >
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)] transition group-hover:bg-[var(--ink)] group-hover:text-white">
-                  <Icon className="size-5" />
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    background: "rgba(200,168,107,0.12)",
+                    borderRadius: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#c8a86b",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon size={16} />
                 </div>
                 <div>
-                  <p className="font-semibold text-[var(--ink)]">{meta.label}</p>
-                  <p className="mt-0.5 text-[12px] text-[var(--muted)]">
+                  <p
+                    style={{
+                      fontFamily: "'Share Tech Mono', monospace",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: "#e8e0d0",
+                      margin: 0,
+                    }}
+                  >
+                    {meta.label}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: "'Share Tech Mono', monospace",
+                      fontSize: "11px",
+                      color: "#555",
+                      marginTop: "3px",
+                      marginBottom: 0,
+                    }}
+                  >
                     {meta.description}
                   </p>
                 </div>

@@ -10,9 +10,9 @@ export default async function ChapterPage({
   searchParams,
 }: {
   params: Promise<{ projectId: string; chapterId: string }>;
-  searchParams: Promise<Record<string, never>>;
+  searchParams: Promise<{ format?: string }>;
 }) {
-  const [{ projectId, chapterId }] = await Promise.all([params]);
+  const [{ projectId, chapterId }, { format }] = await Promise.all([params, searchParams]);
   const [snapshot, projects, profile] = await Promise.all([
     getProjectBoardSnapshot(projectId, chapterId),
     getProjectsWithChapters(),
@@ -27,6 +27,7 @@ export default async function ChapterPage({
         profile={profile}
         currentProjectId={projectId}
         currentChapterId={chapterId}
+        initialShareFormat={format ?? null}
       />
     </main>
   );

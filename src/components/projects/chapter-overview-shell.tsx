@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import type { BoardSnapshot, ProjectWithChapters, Task, UserProfile } from "@/types";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { ChapterKickoffChat } from "@/components/board/chapter-kickoff-chat";
 import { ChapterOverviewPanel } from "@/components/board/chapter-overview-panel";
 import { ChapterOverviewRefiner } from "@/components/board/chapter-overview-refiner";
-import { ChapterRetroChat } from "@/components/board/chapter-retro-chat";
 import { EndChapterModal } from "@/components/board/end-chapter-modal";
 import { StoryHub } from "@/components/board/story-hub";
+import { CassChapterKickoff } from "@/components/cass/CassChapterKickoff";
+import { CassRetroChat } from "@/components/cass/CassRetroChat";
+import { CassStoryPlayer } from "@/components/cass/CassStoryPlayer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 
 type KickoffMode = "full" | "confirmation" | false;
@@ -50,36 +51,63 @@ export function ChapterOverviewShell({
   profile,
   currentProjectId,
   currentChapterId,
+  initialShareFormat = null,
 }: {
   snapshot: BoardSnapshot;
   projects: ProjectWithChapters[];
   profile: UserProfile;
   currentProjectId: string;
   currentChapterId: string;
+  initialShareFormat?: string | null;
 }) {
   const router = useRouter();
   const kickoffMode = chapterKickoffMode(snapshot);
   const [kickoffDismissed, setKickoffDismissed] = useState(false);
   const [refining, setRefining] = useState(false);
   const [retroOpen, setRetroOpen] = useState(false);
+  const [storyPlayerData, setStoryPlayerData] = useState<{
+    chapterStory: string;
+    pullQuote: string;
+  } | null>(null);
+  const [showStoryHub, setShowStoryHub] = useState(false);
   const [endChapterModalOpen, setEndChapterModalOpen] = useState(false);
-  const [activeShareFormat, setActiveShareFormat] = useState<string | null>(null);
+  const validFormats = ["email", "blog", "linkedin", "podcast"];
+  const [activeShareFormat, setActiveShareFormat] = useState<string | null>(
+    initialShareFormat && validFormats.includes(initialShareFormat) ? initialShareFormat : null,
+  );
 
   const showKickoff = kickoffMode !== false && !kickoffDismissed;
+
+  // Determine chapter number and previous chapter goal for Cass
+  const currentProjectChapters = useMemo(
+    () => projects.find((p) => p.id === currentProjectId)?.chapters ?? [],
+    [projects, currentProjectId],
+  );
+  const chapterIndex = currentProjectChapters.findIndex(
+    (c) => c.id === currentChapterId,
+  );
+  const chapterNumber = chapterIndex >= 0 ? chapterIndex + 1 : 1;
+  const previousChapter =
+    chapterIndex > 0 ? currentProjectChapters[chapterIndex - 1] : null;
+  const previousChapterGoal = previousChapter?.goal ?? null;
 
   const { completedTasks, remainingTasks } = useMemo(
     () => classifyTasks(snapshot),
     [snapshot],
   );
 
+  // Show escape hatch (X button) on Cass screens when user has other content to return to
+  const hasEscapeRoute =
+    projects.length > 1 || currentProjectChapters.length > 1;
+
   function handleEndChapterConfirmed(_nextChapterId: string | null) {
     setEndChapterModalOpen(false);
     setRetroOpen(true);
   }
 
-  function handleRetroComplete() {
+  function handleRetroComplete(data: { chapterStory: string; pullQuote: string }) {
     setRetroOpen(false);
-    router.refresh();
+    setStoryPlayerData(data);
   }
 
   const activeChapterUrl = (() => {
@@ -129,15 +157,18 @@ export function ChapterOverviewShell({
       >
         <div className="flex h-full min-h-0 flex-col">
           {showKickoff ? (
-            <ChapterKickoffChat
+            <CassChapterKickoff
               project={snapshot.project}
               board={snapshot.board}
               columns={snapshot.columns}
+              chapterNumber={chapterNumber}
+              previousChapterGoal={previousChapterGoal}
               onComplete={() => setKickoffDismissed(true)}
+              onDismiss={hasEscapeRoute ? () => setKickoffDismissed(true) : undefined}
               isPrefilled={kickoffMode === "confirmation"}
             />
           ) : retroOpen ? (
-            <ChapterRetroChat
+            <CassRetroChat
               project={{
                 id: snapshot.project.id,
                 name: snapshot.project.name,
@@ -147,7 +178,46 @@ export function ChapterOverviewShell({
               completedTasks={completedTasks}
               remainingTasks={remainingTasks}
               onComplete={handleRetroComplete}
+              onDismiss={() => setRetroOpen(false)}
             />
+          ) : storyPlayerData ? (
+            <CassStoryPlayer
+              chapterName={snapshot.board.name}
+              chapterStory={storyPlayerData.chapterStory}
+              pullQuote={storyPlayerData.pullQuote}
+              projectId={currentProjectId}
+              boardId={currentChapterId}
+              onShareThis={() => {
+                setStoryPlayerData(null);
+                setShowStoryHub(true);
+                router.refresh();
+              }}
+              onClose={() => {
+                setStoryPlayerData(null);
+                router.refresh();
+              }}
+            />
+          ) : showStoryHub ? (
+            <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => setShowStoryHub(false)}
+                className="flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
+              >
+                <ArrowLeft className="size-4" />
+                Back to chapter
+              </button>
+              <StoryHub
+                board={snapshot.board}
+                project={{
+                  id: snapshot.project.id,
+                  name: snapshot.project.name,
+                  accumulativeStory: snapshot.project.accumulativeStory,
+                }}
+                completedTasks={completedTasks}
+                remainingTasks={remainingTasks}
+              />
+            </div>
           ) : refining ? (
             <ChapterOverviewRefiner
               project={snapshot.project}

@@ -114,6 +114,9 @@ function mapTask(row: Record<string, unknown>): Task {
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
     sourceTranscript: (row.source_transcript as string | null) ?? null,
+    context: (row.context as string | null) ?? null,
+    rawQuote: (row.raw_quote as string | null) ?? null,
+    createdVia: (row.created_via as Task["createdVia"]) ?? null,
   };
 }
 

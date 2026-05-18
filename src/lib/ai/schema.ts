@@ -199,3 +199,32 @@ export const aiTaskChunkingSchema = z.object({
 });
 
 export type AITaskChunking = z.infer<typeof aiTaskChunkingSchema>;
+
+// ── Cass schemas ──────────────────────────────────────────────────────────────
+
+// Moment 1 — Cass onboarding: extends kickoff with project_name derived from conversation
+export const cassOnboardingDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(8000),
+  done: z.boolean(),
+  project_name: z.string().trim().max(120).default(""),
+  north_star: z.string().trim().max(500).default(""),
+  project_goal: z.string().trim().max(2000).default(""),
+  project_audience: z.string().trim().max(2000).default(""),
+  project_success: z.string().trim().max(2000).default(""),
+  project_biggest_risk: z.string().trim().max(2000).default(""),
+  proposed_chapters: z.array(kickoffProposedChapterSchema).max(8).default([]),
+});
+
+export type CassOnboardingDialogue = z.infer<typeof cassOnboardingDialogueSchema>;
+
+// Moment 2 — Cass chapter kickoff: same schema as standard kickoff
+// (reuses aiKickoffDialogueSchema — Cass just uses a different voice in the prompt)
+
+// Moment 3 — Cass retro: same base reply shape, structured data in XML
+export const cassRetroDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(8000),
+  done: z.boolean().default(false),
+  chapter_story: z.string().trim().max(4000).default(""),
+  chapter_title: z.string().trim().max(120).default(""),
+  accumulative_paragraph: z.string().trim().max(2000).default(""),
+});

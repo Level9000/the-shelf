@@ -24,6 +24,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth" className="h-full">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="min-h-full bg-[var(--app-bg)] text-[var(--ink)] antialiased">
         {children}
       </body>

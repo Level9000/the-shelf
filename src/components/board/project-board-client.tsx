@@ -222,6 +222,10 @@ export function ProjectBoardClient({
   }
 
   function handleDragStart(event: DragStartEvent) {
+    if (snapshot.board.retroCompletedAt) {
+      setCompletedAlertOpen(true);
+      return;
+    }
     setDragTaskId(String(event.active.id));
   }
 
