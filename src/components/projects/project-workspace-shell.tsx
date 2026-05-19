@@ -38,7 +38,6 @@ export function ProjectWorkspaceShell({
   currentChapterId: string;
 }) {
   const router = useRouter();
-  const [endChapterOpen, setEndChapterOpen] = useState(false);
   const [retroOpen, setRetroOpen] = useState(false);
   const [allDoneDismissed, setAllDoneDismissed] = useState(false);
 
@@ -55,10 +54,9 @@ export function ProjectWorkspaceShell({
     completedTasks.length > 0 &&
     remainingTasks.length === 0;
 
-  const showAllDoneModal = allDone && !allDoneDismissed && !retroOpen && !endChapterOpen;
+  const showAllDoneModal = allDone && !allDoneDismissed && !retroOpen;
 
   function handleEndChapterConfirmed(_nextChapterId: string | null) {
-    setEndChapterOpen(false);
     setRetroOpen(true);
   }
 
@@ -109,9 +107,7 @@ export function ProjectWorkspaceShell({
       mobileEyebrow={snapshot.board.name}
       mobileTitle={snapshot.project.name}
       activeNav="board"
-      retroAvailable={retroAvailable}
       mobileBanner={boardMobileBanner}
-      onEndChapter={() => setEndChapterOpen(true)}
       onPlanChapters={() => router.push(`/projects/${currentProjectId}?plan=true`)}
     >
       <Modal
@@ -155,8 +151,6 @@ export function ProjectWorkspaceShell({
             snapshot={snapshot}
             chapterProjectId={currentProjectId}
             chapterId={currentChapterId}
-            endChapterOpen={endChapterOpen}
-            onEndChapterClose={() => setEndChapterOpen(false)}
             onEndChapterConfirmed={handleEndChapterConfirmed}
             onNavigateToStory={() => router.push(`/projects/${currentProjectId}/chapters/${currentChapterId}`)}
             activeChapterUrl={(() => {

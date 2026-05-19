@@ -113,8 +113,6 @@ export function ProjectAppHeader({
   navChapterId,
   onOpenSettings,
   activeNav,
-  retroAvailable,
-  onEndChapter,
   onPlanChapters,
 }: {
   projects: ProjectWithChapters[];
@@ -124,8 +122,6 @@ export function ProjectAppHeader({
   navChapterId?: string | null;
   onOpenSettings: () => void;
   activeNav?: "overview" | "story" | "board";
-  retroAvailable?: boolean;
-  onEndChapter?: () => void;
   onPlanChapters?: () => void;
 }) {
   const router = useRouter();
@@ -184,7 +180,19 @@ export function ProjectAppHeader({
           <BreadcrumbDropdown
             displayValue={currentProject?.name ?? "Select project"}
             options={projectOptions}
-            onSelect={(id) => router.push(`/projects/${id}`)}
+            onSelect={(id) => {
+              const project = projects.find((p) => p.id === id);
+              const activeChapter = project?.chapters.find((ch) => !ch.retroCompletedAt);
+              if (activeChapter) {
+                const dest =
+                  activeNav === "board" ? `/projects/${id}/chapters/${activeChapter.id}/board` :
+                  activeNav === "story" ? `/projects/${id}/chapters/${activeChapter.id}` :
+                  `/projects/${id}?chapter=${activeChapter.id}`;
+                router.push(dest);
+              } else {
+                router.push(`/projects/${id}`);
+              }
+            }}
             actionLabel="New Project"
             onAction={() => router.push("/projects/new")}
             isOpen={openDropdown === "project"}
@@ -207,7 +215,7 @@ export function ProjectAppHeader({
         </div>
 
         {/* ── Center: unified tab strip — always Chronicle › Story › Board ── */}
-        <div className="absolute left-1/2 -translate-x-1/2">
+        <div className="flex flex-1 justify-center px-4">
           <div className="inline-flex gap-0.5 rounded-full bg-white/10 p-1">
 
             <Link
@@ -261,17 +269,7 @@ export function ProjectAppHeader({
         </div>
 
         {/* ── Right: chapter action + settings + logout ── */}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-
-          {retroAvailable && onEndChapter && (
-            <button
-              type="button"
-              onClick={onEndChapter}
-              className="mr-1 flex shrink-0 items-center rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
-            >
-              End chapter early
-            </button>
-          )}
+        <div className="flex shrink-0 items-center gap-1">
 
           <button
             type="button"

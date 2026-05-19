@@ -34,12 +34,11 @@ import { Modal } from "@/components/ui/modal";
 import type { Chapter } from "@/types";
 import { BoardColumnView } from "@/components/board/board-column";
 import { CassBoardDrawer, CassBoardFab } from "@/components/board/cass-board-drawer";
+import { resolveBannerState } from "@/components/board/chapter-progress-banner";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
-import { EndChapterModal } from "@/components/board/end-chapter-modal";
-import { ChapterProgressBanner } from "@/components/board/chapter-progress-banner";
 import { ChapterRefocusChat } from "@/components/board/chapter-refocus-chat";
 
 type ReviewState = {
@@ -191,8 +190,6 @@ export function ProjectBoardClient({
   snapshot,
   chapterProjectId,
   chapterId,
-  endChapterOpen = false,
-  onEndChapterClose,
   onEndChapterConfirmed,
   activeChapterUrl = null,
   futureChapters = [],
@@ -202,8 +199,6 @@ export function ProjectBoardClient({
   snapshot: BoardSnapshot;
   chapterProjectId: string;
   chapterId: string;
-  endChapterOpen?: boolean;
-  onEndChapterClose?: () => void;
   onEndChapterConfirmed?: (nextChapterId: string | null) => void;
   activeChapterUrl?: string | null;
   futureChapters?: Chapter[];
@@ -237,6 +232,7 @@ export function ProjectBoardClient({
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [cassOpen, setCassOpen] = useState(false);
   const [cassBreakupTaskId, setCassBreakupTaskId] = useState<string | null>(null);
+  const [cassCompletedMode, setCassCompletedMode] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -491,17 +487,34 @@ export function ProjectBoardClient({
     });
   }
 
+  // ── Banner state → FAB teaser ────────────────────────────────────────────────
+  const bannerState = resolveBannerState(snapshot.board, tasks, snapshot.columns);
+
+  const fabRingColor: "gold" | "amber" | "green" =
+    bannerState.kind === "running_long" ? "amber" :
+    bannerState.kind === "none"         ? "gold"  : "green";
+
+  const fabTeaserText: string | undefined =
+    bannerState.kind === "running_long"
+      ? `${bannerState.ageDays} days in. Time to write the story.`
+    : bannerState.kind === "closing_stretch"
+      ? `${bannerState.completedCount} of ${bannerState.totalCount} done. Almost there.`
+    : bannerState.kind === "on_pace"
+      ? `${bannerState.completedCount} done in ${bannerState.ageDays} days — on pace.`
+    : bannerState.kind === "completed"
+      ? `Done ${new Date(bannerState.retroCompletedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.`
+    : undefined;
+
+  const fabTeaserWidth: string | undefined =
+    bannerState.kind === "running_long"    ? "320px" :
+    bannerState.kind === "closing_stretch" ? "290px" :
+    bannerState.kind === "on_pace"         ? "290px" :
+    bannerState.kind === "completed"       ? "260px" :
+    undefined;
+
   return (
     <>
-      <div className="space-y-6">
-        <ChapterProgressBanner
-          board={snapshot.board}
-          tasks={tasks}
-          columns={snapshot.columns}
-          onRefocus={() => setRefocusOpen(true)}
-          activeChapterUrl={activeChapterUrl}
-        />
-        <section className="flex flex-col p-4 sm:p-5">
+      <section className="flex flex-col p-4 sm:p-5">
           {error ? (
             <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {error}
@@ -600,8 +613,6 @@ export function ProjectBoardClient({
             </DndContext>
           </div>
         </section>
-
-      </div>
 
       <TaskDetailModal
         key={selectedTask?.id ?? "task-detail"}
@@ -702,33 +713,24 @@ export function ProjectBoardClient({
         </div>
       </Modal>
 
-      <EndChapterModal
-        open={endChapterOpen}
-        onClose={() => onEndChapterClose?.()}
-        onConfirm={(nextChapterId) => {
-          onEndChapterClose?.();
-          onEndChapterConfirmed?.(nextChapterId);
-          refreshData();
-        }}
-        projectId={snapshot.project.id}
-        boardId={snapshot.board.id}
-        incompleteTasks={{
-          count: tasks.filter((t) => {
-            const doneCol = snapshot.columns.find((c) => c.name.toLowerCase() === "done");
-            return !doneCol || t.columnId !== doneCol.id;
-          }).length,
-          titles: tasks
-            .filter((t) => {
-              const doneCol = snapshot.columns.find((c) => c.name.toLowerCase() === "done");
-              return !doneCol || t.columnId !== doneCol.id;
-            })
-            .map((t) => t.title),
-        }}
-      />
-
-      {/* Cass FAB — only when chapter is active */}
-      {!snapshot.board.retroCompletedAt && (
-        <CassBoardFab onClick={() => { setCassBreakupTaskId(null); setCassOpen(true); }} hoverText="What needs to get done?" />
+      {/* Cass FAB — active chapter vs. completed chapter */}
+      {snapshot.board.retroCompletedAt ? (
+        <CassBoardFab
+          onClick={() => { setCassCompletedMode(true); setCassBreakupTaskId(null); setCassOpen(true); }}
+          hoverText="This chapter is complete, need something new?"
+          expandedWidth="336px"
+          teaserText={fabTeaserText}
+          teaserExpandedWidth={fabTeaserWidth}
+          ringColor={fabRingColor}
+        />
+      ) : (
+        <CassBoardFab
+          onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }}
+          hoverText="What needs to get done?"
+          teaserText={fabTeaserText}
+          teaserExpandedWidth={fabTeaserWidth}
+          ringColor={fabRingColor}
+        />
       )}
 
       <CassBoardDrawer
@@ -741,7 +743,12 @@ export function ProjectBoardClient({
         futureChapters={futureChapters}
         allChaptersCount={allChaptersCount}
         breakupTask={cassBreakupTaskId ? (tasks.find((t) => t.id === cassBreakupTaskId) ?? null) : null}
-        onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); }}
+        completedChapterMode={cassCompletedMode}
+        onNavigateToLatest={activeChapterUrl ? () => router.push(activeChapterUrl) : undefined}
+        onPlanChapters={() => router.push(`/projects/${chapterProjectId}?plan=true`)}
+        onRefocus={bannerState.kind === "running_long" ? () => { setCassOpen(false); setRefocusOpen(true); } : undefined}
+        onEndChapterConfirmed={!snapshot.board.retroCompletedAt ? (nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); refreshData(); } : undefined}
+        onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); setCassCompletedMode(false); }}
         onTasksAdded={refreshData}
         onTaskDeleted={refreshData}
       />

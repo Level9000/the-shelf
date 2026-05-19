@@ -8,14 +8,14 @@ import { getChapterAgeDays } from "@/lib/utils";
 
 const RUNNING_LONG_THRESHOLD = 14;
 
-type BannerState =
+export type BannerState =
   | { kind: "completed"; retroCompletedAt: string }
   | { kind: "on_pace"; ageDays: number; completedCount: number }
   | { kind: "closing_stretch"; ageDays: number; completedCount: number; totalCount: number }
   | { kind: "running_long"; ageDays: number; openingLine: string | null }
   | { kind: "none" };
 
-function resolveBannerState(
+export function resolveBannerState(
   board: Board,
   tasks: Task[],
   columns: BoardColumn[],

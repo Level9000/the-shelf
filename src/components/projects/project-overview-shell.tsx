@@ -11,6 +11,7 @@ import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { CassFab } from "@/components/cass/CassFab";
 import { createPlannedChaptersAction } from "@/lib/actions/project-actions";
+import { renderParagraphs } from "@/lib/render-paragraphs";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -671,19 +672,13 @@ function ChapterEntry({
         )}
 
         {/* Completed: full chapter story */}
-        {status === "completed" && chapter.chapterStory && (
-          <p
-            style={{
-              fontFamily: "'Special Elite', cursive",
-              fontSize: "15px",
-              color: "rgba(232,224,208,0.8)",
-              lineHeight: 1.85,
-              margin: "16px 0 0",
-            }}
-          >
-            {chapter.chapterStory}
-          </p>
-        )}
+        {status === "completed" && chapter.chapterStory && renderParagraphs(chapter.chapterStory, {
+          fontFamily: "'Lora', Georgia, serif",
+          fontSize: "15px",
+          color: "rgba(232,224,208,0.8)",
+          lineHeight: 1.85,
+          margin: "16px 0 0",
+        })}
 
         {/* Completed: no story yet — show the bet */}
         {status === "completed" && !chapter.chapterStory && chapter.goal && (
@@ -718,7 +713,7 @@ function ChapterEntry({
             />
             <p
               style={{
-                fontFamily: "'Special Elite', cursive",
+                fontFamily: "'Lora', Georgia, serif",
                 fontSize: "14px",
                 color: "rgba(232,224,208,0.5)",
                 lineHeight: 1.7,

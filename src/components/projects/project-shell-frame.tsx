@@ -125,9 +125,7 @@ export function ProjectShellFrame({
   mobileEyebrow: _mobileEyebrow,
   mobileTitle: _mobileTitle,
   activeNav,
-  retroAvailable,
   mobileBanner,
-  onEndChapter,
   onPlanChapters,
   children,
 }: {
@@ -140,10 +138,8 @@ export function ProjectShellFrame({
   mobileEyebrow: string;
   mobileTitle: string;
   activeNav?: "overview" | "story" | "board";
-  retroAvailable?: boolean;
   /** Full-width banner rendered between the header and scrollable content on mobile */
   mobileBanner?: React.ReactNode;
-  onEndChapter?: () => void;
   onPlanChapters?: () => void;
   children: React.ReactNode;
 }) {
@@ -215,8 +211,6 @@ export function ProjectShellFrame({
           navChapterId={navChapterId}
           onOpenSettings={() => setSettingsOpen(true)}
           activeNav={activeNav}
-          retroAvailable={retroAvailable}
-          onEndChapter={onEndChapter}
           onPlanChapters={onPlanChapters}
         />
         <div

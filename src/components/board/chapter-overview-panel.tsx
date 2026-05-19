@@ -19,6 +19,7 @@ import { CassRecorder } from "@/components/cass/CassRecorder";
 import { CassFab } from "@/components/cass/CassFab";
 import { CassShareChat, type Phase as CassPhase } from "@/components/cass/CassShareChat";
 import { cn } from "@/lib/utils";
+import { renderParagraphs } from "@/lib/render-paragraphs";
 
 function copyOrFallback(value: string | null, fallback: string) {
   return value?.trim() || fallback;
@@ -321,10 +322,10 @@ export function ChapterOverviewPanel({
   };
 
   const bodyTextStyle: React.CSSProperties = {
-    fontFamily: "'Special Elite', cursive",
+    fontFamily: "'Lora', Georgia, serif",
     fontSize: "15px",
     lineHeight: 1.85,
-    color: "rgba(232,224,208,0.75)",
+    color: "rgba(232,224,208,0.78)",
     margin: "12px 0 0",
   };
 
@@ -337,7 +338,7 @@ export function ChapterOverviewPanel({
   };
 
   const placeholderStyle: React.CSSProperties = {
-    fontFamily: "'Special Elite', cursive",
+    fontFamily: "'Lora', Georgia, serif",
     fontSize: "14px",
     lineHeight: 1.75,
     color: "rgba(200,168,107,0.25)",
@@ -437,17 +438,13 @@ export function ChapterOverviewPanel({
           {retroDone && board.chapterStory && (
             <div style={{ marginBottom: "8px" }}>
               <SectionDivider label="How it went" />
-              <p
-                style={{
-                  fontFamily: "'Special Elite', cursive",
-                  fontSize: "16px",
-                  lineHeight: 1.85,
-                  color: "rgba(232,224,208,0.9)",
-                  margin: "16px 0 0",
-                }}
-              >
-                {board.chapterStory}
-              </p>
+              {renderParagraphs(board.chapterStory, {
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: "16px",
+                lineHeight: 1.85,
+                color: "rgba(232,224,208,0.9)",
+                margin: "16px 0 0",
+              })}
               <div style={{ marginTop: "20px" }}>
                 <button
                   type="button"
@@ -500,9 +497,10 @@ export function ChapterOverviewPanel({
               </>
             ) : (
               <div style={{ position: "relative" }}>
-                <p style={board.goal?.trim() ? bodyTextStyle : placeholderStyle}>
-                  {copyOrFallback(board.goal, "What belief are you acting on? State the bet plainly — what you expect to be true if this chapter succeeds.")}
-                </p>
+                {board.goal?.trim()
+                  ? renderParagraphs(board.goal, bodyTextStyle)
+                  : <p style={placeholderStyle}>What belief are you acting on? State the bet plainly — what you expect to be true if this chapter succeeds.</p>
+                }
                 {!retroDone && (
                   <button
                     type="button"
@@ -548,9 +546,10 @@ export function ChapterOverviewPanel({
               </>
             ) : (
               <div style={{ position: "relative" }}>
-                <p style={board.whyItMatters?.trim() ? bodyTextStyle : placeholderStyle}>
-                  {copyOrFallback(board.whyItMatters, "What's the window? What's the pressure? Why is this the right chapter to run right now?")}
-                </p>
+                {board.whyItMatters?.trim()
+                  ? renderParagraphs(board.whyItMatters, bodyTextStyle)
+                  : <p style={placeholderStyle}>What&apos;s the window? What&apos;s the pressure? Why is this the right chapter to run right now?</p>
+                }
                 {!retroDone && (
                   <button
                     type="button"
@@ -596,9 +595,10 @@ export function ChapterOverviewPanel({
               </>
             ) : (
               <div style={{ position: "relative" }}>
-                <p style={board.successLooksLike?.trim() ? bodyTextStyle : placeholderStyle}>
-                  {copyOrFallback(board.successLooksLike, "List the conditions that need to hold. Each one is something the board can work toward directly.")}
-                </p>
+                {board.successLooksLike?.trim()
+                  ? renderParagraphs(board.successLooksLike, bodyTextStyle)
+                  : <p style={placeholderStyle}>List the conditions that need to hold. Each one is something the board can work toward directly.</p>
+                }
                 {!retroDone && (
                   <button
                     type="button"
@@ -644,9 +644,10 @@ export function ChapterOverviewPanel({
               </>
             ) : (
               <div style={{ position: "relative" }}>
-                <p style={board.doneDefinition?.trim() ? bodyTextStyle : placeholderStyle}>
-                  {copyOrFallback(board.doneDefinition, "What tangible thing will exist or be demonstrably true at the end? This is what the retro will hold you to.")}
-                </p>
+                {board.doneDefinition?.trim()
+                  ? renderParagraphs(board.doneDefinition, bodyTextStyle)
+                  : <p style={placeholderStyle}>What tangible thing will exist or be demonstrably true at the end? This is what the retro will hold you to.</p>
+                }
                 {!retroDone && (
                   <button
                     type="button"
