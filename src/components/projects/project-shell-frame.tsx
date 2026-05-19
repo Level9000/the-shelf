@@ -161,15 +161,22 @@ export function ProjectShellFrame({
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStart.current || !navChapterId) return;
+    if (!touchStart.current) return;
     const dx = e.changedTouches[0].clientX - touchStart.current.x;
     const dy = e.changedTouches[0].clientY - touchStart.current.y;
     touchStart.current = null;
     // Only trigger if horizontal swipe dominates and exceeds threshold
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    if (dx < 0 && activeNav === "story") {
+    // Board handles its own swipe-off via the inner swiper
+    if (activeNav === "board") return;
+    if (dx < 0 && activeNav === "story" && navChapterId) {
+      // Story → Chronicle (swipe left = go further out)
+      router.push(`/projects/${currentProjectId}`);
+    } else if (dx > 0 && activeNav === "story" && navChapterId) {
+      // Story → Board (swipe right = go back to detail)
       router.push(`/projects/${currentProjectId}/chapters/${navChapterId}/board`);
-    } else if (dx > 0 && activeNav === "board") {
+    } else if (dx > 0 && activeNav === "overview" && navChapterId) {
+      // Chronicle → Story (swipe right = go back in)
       router.push(`/projects/${currentProjectId}/chapters/${navChapterId}`);
     }
   }, [activeNav, navChapterId, currentProjectId, router]);
@@ -212,7 +219,10 @@ export function ProjectShellFrame({
           onEndChapter={onEndChapter}
           onPlanChapters={onPlanChapters}
         />
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
+        <div
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+          style={(activeNav === "overview" || activeNav === "story") ? { background: "#0a0a0a" } : undefined}
+        >{children}</div>
       </div>
 
       {/* ── Mobile layout (<lg) ── */}
@@ -269,7 +279,7 @@ export function ProjectShellFrame({
                     </Link>
                   </>
                 ) : (
-                  /* Project overview: single Overview pill */
+                  /* Project overview: single Chronicle pill */
                   <Link
                     href={`/projects/${currentProjectId}`}
                     className={cn(
@@ -280,7 +290,7 @@ export function ProjectShellFrame({
                     )}
                   >
                     <BookOpen className="size-3.5" />
-                    Overview
+                    Chronicle
                   </Link>
                 )}
               </div>
@@ -298,6 +308,7 @@ export function ProjectShellFrame({
             "min-h-0 flex-1 overflow-y-auto pb-4",
             activeNav === "board" ? "px-0" : "px-4",
           )}
+          style={(activeNav === "overview" || activeNav === "story") ? { background: "#0a0a0a" } : undefined}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >

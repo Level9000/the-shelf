@@ -221,7 +221,7 @@ export function ProjectAppHeader({
               )}
             >
               <BookOpen className="size-3.5" />
-              Overview
+              Chronicle
             </Link>
           </div>
 

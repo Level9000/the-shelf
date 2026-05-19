@@ -13,13 +13,16 @@ import {
   MouseSensor,
   TouchSensor,
   pointerWithin,
+  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { BoardSnapshot, ProposedTask, Task } from "@/types";
+import type { BoardColumn, BoardSnapshot, ProposedTask, Task } from "@/types";
 import {
+  deleteTaskAction,
   moveTaskAction,
   persistTaskArrangementAction,
 } from "@/lib/actions/task-actions";
@@ -28,7 +31,9 @@ import { cn, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import type { Chapter } from "@/types";
 import { BoardColumnView } from "@/components/board/board-column";
+import { CassBoardDrawer, CassBoardFab } from "@/components/board/cass-board-drawer";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
@@ -58,6 +63,17 @@ const boardCollisionDetection: CollisionDetection = (args) => {
   const pointerCollisions = pointerWithin(args).filter(
     (collision) => collision.id !== args.active.id,
   );
+
+  // Canvas droppables (delete zone, dock column zones) always win when present —
+  // they only exist in the DOM while a drag is active.
+  const canvasCollision = pointerCollisions.find((collision) => {
+    const droppable = args.droppableContainers.find(
+      (container) => container.id === collision.id,
+    );
+    const type = droppable?.data.current?.type as string | undefined;
+    return type === "delete-zone" || type === "dock-column";
+  });
+  if (canvasCollision) return [canvasCollision];
 
   if (pointerCollisions.length > 0) {
     const columnCollision = pointerCollisions.find((collision) => {
@@ -97,6 +113,80 @@ const restrictSameColumnToVertical: Modifier = ({ active, over, transform }) => 
   return transform;
 };
 
+const DELETE_ZONE_ID = "delete-zone";
+const DOCK_PREFIX = "dock-";
+
+const DOCK_HOVER_TINTS: Record<string, string> = {
+  "Do This Week": "rgba(254,249,195,0.85)",
+  "Do Today":     "rgba(219,234,254,0.85)",
+  "Blocked":      "rgba(252,231,243,0.85)",
+  "Done":         "rgba(220,252,231,0.85)",
+};
+
+function DragDeleteZone() {
+  const { setNodeRef, isOver } = useDroppable({ id: DELETE_ZONE_ID, data: { type: "delete-zone" } });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex items-center justify-center gap-2.5 border-t-2 border-dashed transition-colors duration-150",
+        isOver ? "bg-red-50/90 border-red-400" : "bg-black/[0.015] border-black/10",
+      )}
+      style={{ height: "15%" }}
+    >
+      <Trash2
+        className={cn("size-4 transition-colors duration-150", isOver ? "text-red-500" : "text-black/25")}
+        strokeWidth={1.5}
+      />
+      <span className={cn("text-xs font-medium tracking-wide transition-colors duration-150", isOver ? "text-red-500" : "text-black/30")}>
+        {isOver ? "Release to delete" : "Drag here to delete"}
+      </span>
+    </div>
+  );
+}
+
+function DockColumnZone({ column, taskCount }: { column: BoardColumn; taskCount: number }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `${DOCK_PREFIX}${column.id}`,
+    data: { type: "dock-column", columnId: column.id },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      className="flex flex-1 flex-col items-center justify-center gap-1.5 border-r border-black/6 last:border-r-0 transition-colors duration-150"
+      style={{ background: isOver ? (DOCK_HOVER_TINTS[column.name] ?? "rgba(200,168,107,0.15)") : "transparent" }}
+    >
+      <p className="text-sm font-semibold text-[var(--ink)]" style={{ fontFamily: "'Special Elite', cursive" }}>
+        {column.name}
+      </p>
+      <p className="text-xs text-[var(--muted)]">
+        {taskCount} card{taskCount !== 1 ? "s" : ""}
+      </p>
+    </div>
+  );
+}
+
+function DragCanvas({ active, columns, tasks }: { active: boolean; columns: BoardColumn[]; tasks: Task[] }) {
+  if (!active) return null;
+  return (
+    <div
+      className="fixed inset-0 z-40 hidden lg:flex flex-col"
+      style={{ background: "rgba(248,245,240,0.92)", backdropFilter: "blur(6px)" }}
+    >
+      <div className="flex flex-1">
+        {columns.map((col) => (
+          <DockColumnZone
+            key={col.id}
+            column={col}
+            taskCount={tasks.filter((t) => t.columnId === col.id).length}
+          />
+        ))}
+      </div>
+      <DragDeleteZone />
+    </div>
+  );
+}
+
 export function ProjectBoardClient({
   snapshot,
   chapterProjectId,
@@ -105,6 +195,9 @@ export function ProjectBoardClient({
   onEndChapterClose,
   onEndChapterConfirmed,
   activeChapterUrl = null,
+  futureChapters = [],
+  allChaptersCount = 0,
+  onNavigateToStory,
 }: {
   snapshot: BoardSnapshot;
   chapterProjectId: string;
@@ -113,6 +206,9 @@ export function ProjectBoardClient({
   onEndChapterClose?: () => void;
   onEndChapterConfirmed?: (nextChapterId: string | null) => void;
   activeChapterUrl?: string | null;
+  futureChapters?: Chapter[];
+  allChaptersCount?: number;
+  onNavigateToStory?: () => void;
 }) {
   const router = useRouter();
   const sensors = useSensors(
@@ -139,6 +235,8 @@ export function ProjectBoardClient({
   }, [snapshot.tasks]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
+  const [cassOpen, setCassOpen] = useState(false);
+  const [cassBreakupTaskId, setCassBreakupTaskId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -155,6 +253,7 @@ export function ProjectBoardClient({
 
   // Mobile swiper
   const swiperRef = useRef<HTMLDivElement>(null);
+  const swiperTouchStart = useRef<{ x: number; y: number } | null>(null);
   const [activePage, setActivePage] = useState(() => {
     if (snapshot.board.retroCompletedAt) {
       const doneIndex = snapshot.columns.findIndex(
@@ -233,6 +332,32 @@ export function ProjectBoardClient({
     setDragTaskId(null);
     const activeId = String(event.active.id);
     const overId = event.over ? String(event.over.id) : null;
+
+    // Dock column drop — move to end of that column
+    if (overId?.startsWith(DOCK_PREFIX)) {
+      const targetColumnId = overId.slice(DOCK_PREFIX.length);
+      const activeTask = tasks.find((t) => t.id === activeId);
+      if (activeTask && targetColumnId !== activeTask.columnId) {
+        handleMoveToColumn(activeId, targetColumnId);
+      }
+      return;
+    }
+
+    // Delete zone drop
+    if (overId === DELETE_ZONE_ID) {
+      const taskToDelete = tasks.find((t) => t.id === activeId);
+      if (!taskToDelete) return;
+      setTasks((prev) => prev.filter((t) => t.id !== activeId));
+      startTransition(async () => {
+        try {
+          await deleteTaskAction({ taskId: activeId, projectId: snapshot.project.id, boardId: snapshot.board.id });
+          refreshData();
+        } catch {
+          setTasks((prev) => [...prev, taskToDelete]);
+        }
+      });
+      return;
+    }
 
     if (!overId || activeId === overId) return;
 
@@ -415,6 +540,21 @@ export function ProjectBoardClient({
                   className="flex snap-x snap-mandatory overflow-x-scroll [&::-webkit-scrollbar]:hidden"
                   style={{ scrollbarWidth: "none" }}
                   onScroll={handleSwiperScroll}
+                  onTouchStart={(e) => {
+                    swiperTouchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                  }}
+                  onTouchEnd={(e) => {
+                    if (!swiperTouchStart.current) return;
+                    const dx = e.changedTouches[0].clientX - swiperTouchStart.current.x;
+                    const dy = e.changedTouches[0].clientY - swiperTouchStart.current.y;
+                    swiperTouchStart.current = null;
+                    // Only act on clear horizontal swipes
+                    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+                    // Swipe left at the last column → Story tab
+                    if (dx < 0 && activePage === snapshot.columns.length - 1) {
+                      onNavigateToStory?.();
+                    }
+                  }}
                 >
                   {snapshot.columns.map((column) => (
                     <div key={column.id} className="w-full shrink-0 snap-start">
@@ -423,7 +563,6 @@ export function ProjectBoardClient({
                         tasks={getColumnTasks(tasks, column.id)}
                         onOpenTask={setSelectedTaskId}
                         onCreateTask={openManualTask}
-                        showAddButton={["Do This Week", "Do Today"].includes(column.name)}
                         dragInProgress={!!dragTaskId}
                         allColumns={snapshot.columns}
                         onMoveToColumn={handleMoveToColumn}
@@ -444,7 +583,6 @@ export function ProjectBoardClient({
                       tasks={getColumnTasks(tasks, column.id)}
                       onOpenTask={setSelectedTaskId}
                       onCreateTask={openManualTask}
-                      showAddButton={["Do This Week", "Do Today"].includes(column.name)}
                       dragInProgress={!!dragTaskId}
                       allColumns={snapshot.columns}
                       onMoveToColumn={handleMoveToColumn}
@@ -452,6 +590,13 @@ export function ProjectBoardClient({
                   ))}
                 </div>
               </div>
+
+              {/* Full-viewport drag canvas — column zones (top 85%) + delete strip (bottom 15%) */}
+              <DragCanvas
+                active={!!dragTaskId}
+                columns={snapshot.columns}
+                tasks={tasks}
+              />
             </DndContext>
           </div>
         </section>
@@ -469,6 +614,12 @@ export function ProjectBoardClient({
         onClose={() => setSelectedTaskId(null)}
         onSaved={refreshData}
         onDeleted={refreshData}
+        onOpenCass={() => {
+          const taskId = selectedTaskId;
+          setSelectedTaskId(null);
+          setCassBreakupTaskId(taskId);
+          setCassOpen(true);
+        }}
       />
 
       <ManualTaskModal
@@ -573,6 +724,26 @@ export function ProjectBoardClient({
             })
             .map((t) => t.title),
         }}
+      />
+
+      {/* Cass FAB — only when chapter is active */}
+      {!snapshot.board.retroCompletedAt && (
+        <CassBoardFab onClick={() => { setCassBreakupTaskId(null); setCassOpen(true); }} hoverText="What needs to get done?" />
+      )}
+
+      <CassBoardDrawer
+        open={cassOpen}
+        project={snapshot.project}
+        board={snapshot.board}
+        columns={snapshot.columns}
+        tasks={tasks}
+        templates={snapshot.workflowTemplates}
+        futureChapters={futureChapters}
+        allChaptersCount={allChaptersCount}
+        breakupTask={cassBreakupTaskId ? (tasks.find((t) => t.id === cassBreakupTaskId) ?? null) : null}
+        onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); }}
+        onTasksAdded={refreshData}
+        onTaskDeleted={refreshData}
       />
     </>
   );

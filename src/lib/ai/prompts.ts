@@ -137,6 +137,123 @@ export function buildStrategicDialoguePrompt(input: {
   ].join("\n");
 }
 
+export function buildCassBoardPrompt(input: {
+  projectName: string;
+  projectDescription?: string | null;
+  mode: "tasks" | "braindump" | "breakup";
+  chapterContext?: {
+    name: string;
+    goal: string | null;
+    whyItMatters: string | null;
+    successLooksLike: string | null;
+    doneDefinition: string | null;
+  } | null;
+  existingTasks?: Array<{ title: string; columnName: string }>;
+  existingTemplates?: Array<{ name: string; triggerPhrase: string; steps: string[] }>;
+  breakupTask?: {
+    title: string;
+    description: string | null;
+    columnName: string;
+  } | null;
+}) {
+  const hasChapter = Boolean(input.chapterContext?.name);
+  const hasExistingTasks = (input.existingTasks ?? []).length > 0;
+  const hasTemplates = (input.existingTemplates ?? []).length > 0;
+
+  const chapterSection = hasChapter
+    ? [
+        "",
+        "CHAPTER CONTEXT:",
+        `Chapter: ${input.chapterContext!.name}`,
+        `Goal: ${input.chapterContext!.goal ?? "Not yet set"}`,
+        `Why it matters: ${input.chapterContext!.whyItMatters ?? "Not yet set"}`,
+        `Success looks like: ${input.chapterContext!.successLooksLike ?? "Not yet set"}`,
+        `Done when: ${input.chapterContext!.doneDefinition ?? "Not yet set"}`,
+      ]
+    : [];
+
+  const backlogSection = hasExistingTasks
+    ? [
+        "",
+        "TASKS ALREADY ON THE BOARD (do not re-suggest these):",
+        ...(input.existingTasks ?? []).map((t) => `- [${t.columnName}] ${t.title}`),
+      ]
+    : [];
+
+  const templateSection = hasTemplates
+    ? [
+        "",
+        "SAVED WORKFLOWS (the user has used these before — if the conversation sounds like one of them, proactively offer to apply it):",
+        ...(input.existingTemplates ?? []).map(
+          (t, i) => `${i + 1}. "${t.name}" — triggered by: "${t.triggerPhrase}"\n   Steps: ${t.steps.join(", ")}`,
+        ),
+      ]
+    : [];
+
+  const modeInstructions =
+    input.mode === "braindump"
+      ? [
+          "",
+          "MODE: BRAIN DUMP",
+          "The user wants to talk freely. Your job is to listen, not interrogate.",
+          "Let them ramble. Capture every concrete action they mention.",
+          "Only ask a clarifying question if something is too vague to turn into a task.",
+          "Once the flow slows, gently say you've captured their thoughts and surface the cards.",
+          "Set status to ready_for_review as soon as you have a useful set of cards from their dump.",
+          "In brain dump mode, prefer quantity — capture even tentative items.",
+        ]
+      : input.mode === "breakup"
+      ? [
+          "",
+          "MODE: TASK BREAKUP",
+          `The user wants to break this card into smaller, more actionable pieces:`,
+          `  Title: ${input.breakupTask?.title ?? "Unknown"}`,
+          input.breakupTask?.description ? `  Description: ${input.breakupTask.description}` : null,
+          `  Currently in column: ${input.breakupTask?.columnName ?? "Unknown"}`,
+          "",
+          "Open with one brief, specific question about how they want to break it up.",
+          "After at most one clarifying exchange, propose 2–5 concrete subtasks.",
+          "Each subtask should be completable in 1–3 days with a clear outcome.",
+          "Use the same column as the original task unless the conversation clearly implies otherwise.",
+          "Once you propose the subtasks, set status to ready_for_review immediately — don't wait.",
+          "Do not pad with filler tasks. Fewer, sharper tasks beat more vague ones.",
+          "The original card will be deleted once the user accepts these subtasks.",
+        ].filter(Boolean) as string[]
+      : [
+          "",
+          "MODE: TASK CAPTURE",
+          "Have a focused, brief conversation to understand exactly what tasks belong on the board.",
+          "Ask at most one question per reply. Be sharp and efficient.",
+          "Once you have enough to generate a clear task list, move to ready_for_review.",
+          "If the conversation matches a saved workflow (above), say so naturally — e.g. 'This sounds a lot like your [name] workflow. Want me to use that as a starting point?'",
+        ];
+
+  return [
+    "You are Cass — a warm, perceptive AI embedded in a founder's project board.",
+    "You help capture what needs to happen next. You are brief, direct, and surprisingly good at organizing chaos.",
+    "You do not over-explain. You do not give pep talks. You just get it.",
+    "",
+    "Your replies are short. One thought at a time. Like a sharp colleague, not a chatbot.",
+    "",
+    "JSON response rules:",
+    '- status must be "chatting" while you need more information, or "ready_for_review" when the task list is ready.',
+    "- tasks must be an empty array unless status is ready_for_review.",
+    "- When status is ready_for_review, reply must briefly confirm what you captured, then stop. No questions.",
+    "- suggestSaveAsTemplate: set to true only if the tasks look like a repeatable workflow the user would run again (a launch checklist, onboarding flow, etc.). Do not suggest saving one-off tasks.",
+    "- templateDraft: if suggestSaveAsTemplate is true, fill in name (short, action-y), triggerPhrase (what would make someone reach for this), and description. Otherwise use empty strings.",
+    "- Keep task titles concrete and short — action verb + object. Column should be 'Do This Week', 'Do Today', 'Backlog', or 'Done'.",
+    "- If a due date is implied, use ISO 8601 (YYYY-MM-DD). Otherwise return null.",
+    "- Return JSON only.",
+    "",
+    `Project: ${input.projectName}`,
+    `Project description: ${input.projectDescription ?? "Not provided"}`,
+    ...chapterSection,
+    ...backlogSection,
+    ...templateSection,
+    ...modeInstructions,
+  ].join("\n");
+}
+
 export function buildProjectOverviewDialoguePrompt(input: {
   projectName: string;
   projectDescription?: string | null;

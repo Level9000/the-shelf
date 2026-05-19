@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Sparkles, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { BoardColumn, ProjectMember, Task } from "@/types";
 import { deleteTaskAction, updateTaskAction } from "@/lib/actions/task-actions";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { TaskFormFields } from "@/components/tasks/task-form-fields";
-import { TaskChunkingChat } from "@/components/tasks/task-chunking-chat";
+import { CassRecorder } from "@/components/cass/CassRecorder";
 import { formatDate } from "@/lib/utils";
 
 type FormState = {
@@ -40,6 +40,7 @@ export function TaskDetailModal({
   onClose,
   onSaved,
   onDeleted,
+  onOpenCass,
 }: {
   task: Task | null;
   projectId: string;
@@ -50,11 +51,11 @@ export function TaskDetailModal({
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
+  onOpenCass?: () => void;
 }) {
   const [form, setForm] = useState<FormState | null>(task ? toFormState(task) : null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [chunkingOpen, setChunkingOpen] = useState(false);
   const fabRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -130,23 +131,6 @@ export function TaskDetailModal({
 
   return (
     <>
-    {open && chunkingOpen && (
-      <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/25 px-4 py-6 backdrop-blur-sm sm:items-center">
-        <div className="surface-card hairline relative flex h-[calc(100dvh-3rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] p-6">
-          <TaskChunkingChat
-            task={currentTask}
-            projectId={projectId}
-            boardId={boardId}
-            onComplete={() => {
-              setChunkingOpen(false);
-              onDeleted();
-            }}
-            onClose={() => setChunkingOpen(false)}
-          />
-        </div>
-      </div>
-    )}
-
     <Modal
       open={open}
       title="Task detail"
@@ -199,22 +183,47 @@ export function TaskDetailModal({
             {isPending ? "Saving..." : "Save changes"}
           </Button>
         </div>
-        <button
-          ref={fabRef}
-          type="button"
-          onClick={() => setChunkingOpen(true)}
-          style={{ width: "3rem", transition: "width 300ms ease" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "220px"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.width = "3rem"; }}
-          className="group flex h-12 shrink-0 items-center overflow-hidden rounded-full bg-[var(--accent)] text-white shadow-md hover:shadow-lg"
-        >
-          <span className="flex size-12 shrink-0 items-center justify-center">
-            <Sparkles className="size-5" />
-          </span>
-          <span className="whitespace-nowrap pr-5 text-sm font-medium">
-            Need to break this up?
-          </span>
-        </button>
+        {onOpenCass && (
+          <button
+            ref={fabRef}
+            type="button"
+            onClick={onOpenCass}
+            style={{
+              width: "3rem",
+              height: "3rem",
+              transition: "width 300ms ease, box-shadow 200ms ease",
+              background: "#1f1a10",
+              boxShadow: "0 0 0 2px rgba(200,168,107,0.75), 0 0 14px rgba(200,168,107,0.2), 0 4px 16px rgba(0,0,0,0.4)",
+              borderRadius: "999px",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              flexShrink: 0,
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.width = "220px";
+              e.currentTarget.style.boxShadow = "0 0 0 2.5px rgba(200,168,107,0.95), 0 0 20px rgba(200,168,107,0.3), 0 6px 20px rgba(0,0,0,0.5)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.width = "3rem";
+              e.currentTarget.style.boxShadow = "0 0 0 2px rgba(200,168,107,0.75), 0 0 14px rgba(200,168,107,0.2), 0 4px 16px rgba(0,0,0,0.4)";
+            }}
+          >
+            {/* Cass recorder circle */}
+            <span style={{ width: "3rem", height: "3rem", flexShrink: 0, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, transformOrigin: "top left", transform: "scale(0.4) translateY(-6.5px)", filter: "brightness(1.8) contrast(1.1)" }}>
+                <CassRecorder animState="idle" size="sm" />
+              </div>
+            </span>
+            {/* Hover label */}
+            <span style={{ whiteSpace: "nowrap", paddingRight: "18px", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", color: "#c8a86b" }}>
+              Need to break this up?
+            </span>
+          </button>
+        )}
       </div>
     </Modal>
     </>

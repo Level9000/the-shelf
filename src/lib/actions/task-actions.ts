@@ -459,6 +459,156 @@ export async function createBrainDumpCardsAction(input: {
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
+export async function saveWorkflowTemplateAction(input: {
+  name: string;
+  triggerPhrase: string;
+  description: string;
+  steps: Array<{
+    title: string;
+    description: string;
+    suggestedColumn: string;
+    priority: Priority;
+    position: number;
+  }>;
+}) {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  const name = input.name.trim();
+  const triggerPhrase = input.triggerPhrase.trim();
+  if (!name || !triggerPhrase) throw new Error("Template name and trigger phrase are required.");
+
+  // Upsert template (update if same name already exists for this user)
+  const { data: template, error: templateError } = await supabase
+    .from("workflow_templates")
+    .upsert(
+      { user_id: user.id, name, trigger_phrase: triggerPhrase, description: input.description.trim() || null },
+      { onConflict: "user_id,name", ignoreDuplicates: false },
+    )
+    .select("id")
+    .maybeSingle();
+
+  if (templateError || !template) {
+    throw new Error(templateError?.message ?? "Failed to save template.");
+  }
+
+  // Delete old steps then re-insert fresh ones
+  await supabase.from("workflow_template_steps").delete().eq("template_id", template.id);
+
+  const stepInserts = input.steps
+    .filter((s) => s.title.trim())
+    .map((s, i) => ({
+      template_id: template.id,
+      position: s.position ?? i,
+      title: s.title.trim(),
+      description: s.description.trim() || null,
+      suggested_column: s.suggestedColumn || "Do This Week",
+      priority: s.priority ?? null,
+      due_date: null,
+    }));
+
+  if (stepInserts.length > 0) {
+    const { error: stepsError } = await supabase.from("workflow_template_steps").insert(stepInserts);
+    if (stepsError) throw new Error(stepsError.message);
+  }
+
+  return { id: template.id, name };
+}
+
+export async function moveTasksToChapterAction(input: {
+  projectId: string;
+  taskIds: string[];
+  targetBoardId: string;
+  deleteInstead?: boolean;
+}) {
+  const { supabase } = await getAuthenticatedUser();
+
+  if (input.deleteInstead) {
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .in("id", input.taskIds)
+      .eq("project_id", input.projectId);
+    if (error) throw new Error(error.message);
+  } else {
+    // Find the best landing column in the target board (Backlog > Do This Week > first column)
+    const { data: cols } = await supabase
+      .from("board_columns")
+      .select("id, name, position")
+      .eq("board_id", input.targetBoardId)
+      .order("position", { ascending: true });
+
+    const targetColumnId =
+      cols?.find((c) => c.name === "Backlog")?.id ??
+      cols?.find((c) => c.name === "Do This Week")?.id ??
+      cols?.[0]?.id;
+
+    if (!targetColumnId) throw new Error("Target chapter has no columns.");
+
+    // Get the highest position in that column so moved tasks land at the end
+    const { data: lastTask } = await supabase
+      .from("tasks")
+      .select("position")
+      .eq("board_id", input.targetBoardId)
+      .eq("column_id", targetColumnId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const basePosition = ((lastTask?.position as number) ?? 0) + 1000;
+
+    for (let i = 0; i < input.taskIds.length; i++) {
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          board_id: input.targetBoardId,
+          column_id: targetColumnId,
+          position: basePosition + i * 1000,
+        })
+        .eq("id", input.taskIds[i])
+        .eq("project_id", input.projectId);
+      if (error) throw new Error(error.message);
+    }
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+}
+
+export async function createNextChapterForDeferAction(input: {
+  projectId: string;
+  currentChapterCount: number;
+}) {
+  const { supabase } = await getAuthenticatedUser();
+  const chapterName = `Chapter ${input.currentChapterCount + 1}`;
+
+  // Get next position
+  const { data: posData } = await supabase
+    .from("boards")
+    .select("position")
+    .eq("project_id", input.projectId)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextPosition = ((posData?.position as number) ?? 0) + 1000;
+
+  const { data: board, error: boardError } = await supabase
+    .from("boards")
+    .insert({ project_id: input.projectId, name: chapterName, position: nextPosition })
+    .select("id, name")
+    .single();
+
+  if (boardError || !board) throw new Error(boardError?.message ?? "Failed to create chapter.");
+
+  const DEFAULT_COLUMNS = ["Do This Week", "Do Today", "Blocked", "Done"];
+  const { error: colsError } = await supabase.from("board_columns").insert(
+    DEFAULT_COLUMNS.map((name, i) => ({ board_id: board.id, name, position: (i + 1) * 1000 })),
+  );
+  if (colsError) throw new Error(colsError.message);
+
+  revalidatePath(`/projects/${input.projectId}`);
+  return { id: String(board.id), name: String(board.name) };
+}
+
 export async function createChunkedTasksAction(input: {
   projectId: string;
   boardId: string;

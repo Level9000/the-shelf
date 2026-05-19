@@ -1,5 +1,6 @@
 import {
   aiArcDialogueSchema,
+  aiCassBoardDialogueSchema,
   aiChapterPlannerDialogueSchema,
   aiKickoffDialogueSchema,
   aiProjectKickoffDialogueSchema,
@@ -16,6 +17,7 @@ import {
   type StrategicDialogueMessage,
 } from "@/lib/ai/schema";
 import {
+  buildCassBoardPrompt,
   buildCassChapterKickoffPrompt,
   buildCassOnboardingPrompt,
   buildCassRetroPrompt,
@@ -437,6 +439,33 @@ export async function runStrategicTextDialogue(input: {
     buildStrategicDialoguePrompt(input),
     input.messages,
     (text) => aiStrategicDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
+export async function runCassBoardDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  projectDescription?: string | null;
+  mode: "tasks" | "braindump" | "breakup";
+  chapterContext?: {
+    name: string;
+    goal: string | null;
+    whyItMatters: string | null;
+    successLooksLike: string | null;
+    doneDefinition: string | null;
+  } | null;
+  existingTasks?: Array<{ title: string; columnName: string }>;
+  existingTemplates?: Array<{ name: string; triggerPhrase: string; steps: string[] }>;
+  breakupTask?: {
+    title: string;
+    description: string | null;
+    columnName: string;
+  } | null;
+}) {
+  return runJsonDialogue(
+    buildCassBoardPrompt(input),
+    input.messages,
+    (text) => aiCassBoardDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
   );
 }
 

@@ -158,6 +158,7 @@ export function ProjectWorkspaceShell({
             endChapterOpen={endChapterOpen}
             onEndChapterClose={() => setEndChapterOpen(false)}
             onEndChapterConfirmed={handleEndChapterConfirmed}
+            onNavigateToStory={() => router.push(`/projects/${currentProjectId}/chapters/${currentChapterId}`)}
             activeChapterUrl={(() => {
               const currentProject = projects.find((p) => p.id === currentProjectId);
               const activeChapter = currentProject?.chapters.find((c) => !c.retroCompletedAt);
@@ -165,6 +166,15 @@ export function ProjectWorkspaceShell({
                 ? `/projects/${currentProjectId}/chapters/${activeChapter.id}/board`
                 : null;
             })()}
+            futureChapters={(() => {
+              const currentProject = projects.find((p) => p.id === currentProjectId);
+              if (!currentProject) return [];
+              const idx = currentProject.chapters.findIndex((c) => c.id === currentChapterId);
+              return currentProject.chapters
+                .slice(idx + 1)
+                .filter((c) => !c.retroCompletedAt);
+            })()}
+            allChaptersCount={projects.find((p) => p.id === currentProjectId)?.chapters.length ?? 0}
           />
         </div>
       )}

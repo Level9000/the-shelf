@@ -184,6 +184,21 @@ export const retroDataSchema = z.object({
 
 export type RetroData = z.infer<typeof retroDataSchema>;
 
+// ── Cass board drawer ─────────────────────────────────────────────────────────
+
+export const aiCassBoardDialogueSchema = z.object({
+  /** chatting: still in conversation. ready_for_review: tasks are ready to add. */
+  status: z.enum(["chatting", "ready_for_review"]),
+  reply: z.string().trim().min(1).max(4000),
+  tasks: z.array(proposedTaskSchema).max(15).default([]),
+  /** True when the task set looks like a repeatable workflow worth saving. */
+  suggestSaveAsTemplate: z.boolean().default(false),
+  /** Draft template to save — only populated when suggestSaveAsTemplate is true. */
+  templateDraft: strategicTemplateSchema,
+});
+
+export type AICassBoardDialogue = z.infer<typeof aiCassBoardDialogueSchema>;
+
 export const aiTaskChunkingSchema = z.object({
   reply: z.string().trim().min(1).max(4000),
   isComplete: z.boolean(),

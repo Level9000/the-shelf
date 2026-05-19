@@ -42,10 +42,12 @@ export function BoardColumnView({
   return (
     <>
       {/* Mobile: column title above the card */}
-      <div className="mb-3 flex items-baseline gap-2 px-1 lg:hidden">
-        <p className="text-base font-semibold">{column.name}</p>
-        <p className="text-xs text-[var(--muted)]">
-          {tasks.length} card{tasks.length === 1 ? "" : "s"}
+      <div className="mb-3 px-1 lg:hidden">
+        <p className="text-base font-semibold" style={{ fontFamily: "'Special Elite', cursive" }}>
+          {column.name}
+          <span className="ml-2 text-sm font-normal text-[var(--muted)]" style={{ fontFamily: "inherit" }}>
+            {tasks.length} card{tasks.length === 1 ? "" : "s"}
+          </span>
         </p>
       </div>
 
@@ -56,25 +58,14 @@ export function BoardColumnView({
           showDropHere && "ring-2 ring-[var(--accent)]/40 ring-offset-2 ring-offset-transparent",
         )}
       >
-        {/* Desktop: tinted header with title + add button */}
+        {/* Desktop: tinted header with title */}
         <div className={cn("hidden rounded-[1.5rem] bg-gradient-to-b p-4 lg:block", COLUMN_TINTS[column.name])}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold">{column.name}</p>
-              <p className="mt-1 text-xs text-[var(--muted)]">
-                {tasks.length} card{tasks.length === 1 ? "" : "s"}
-              </p>
-            </div>
-            {showAddButton && (
-              <Button
-                className="h-9 px-3 py-0 text-xs"
-                onClick={() => onCreateTask(column.id)}
-              >
-                <Plus className="mr-1.5 size-3.5" />
-                Add
-              </Button>
-            )}
-          </div>
+          <p className="text-sm font-semibold" style={{ fontFamily: "'Special Elite', cursive" }}>
+            {column.name}
+            <span className="ml-2 text-xs font-normal text-[var(--muted)]" style={{ fontFamily: "inherit" }}>
+              {tasks.length} card{tasks.length === 1 ? "" : "s"}
+            </span>
+          </p>
         </div>
 
         {/* Mobile: full-width add button */}
