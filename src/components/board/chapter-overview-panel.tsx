@@ -217,6 +217,7 @@ function CassShareFab({ onOpen }: { onOpen: () => void }) {
     <CassFab
       onClick={onOpen}
       hoverText="Ready to share this story?"
+      teaserText="Your chapter is written. Let's share it."
       expandedWidth="272px"
     />
   );
@@ -776,7 +777,12 @@ export function ChapterOverviewPanel({
 
       {/* ── Refine FAB — before retro ── */}
       {!retroDone && (
-        <CassFab onClick={onRefine} hoverText="Refine this chapter" expandedWidth="252px" />
+        <CassFab
+          onClick={onRefine}
+          hoverText="Refine this chapter"
+          teaserText="I can help you sharpen this chapter's story."
+          expandedWidth="272px"
+        />
       )}
 
       {/* ── Cass share FAB — after retro ── */}

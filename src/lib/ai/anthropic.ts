@@ -442,6 +442,55 @@ export async function runStrategicTextDialogue(input: {
   );
 }
 
+// Tool definition for Cass board dialogue — forces structured output so the model
+// can never return plain prose that fails Zod parsing at the `reply` field.
+const BOARD_TOOL = {
+  name: "board_response",
+  description: "Submit the Cass board dialogue response. Always call this tool — never respond in plain text.",
+  input_schema: {
+    type: "object",
+    properties: {
+      status: {
+        type: "string",
+        enum: ["chatting", "ready_for_review"],
+        description: "chatting while conversing; ready_for_review when tasks are ready to add.",
+      },
+      reply: { type: "string", description: "Your conversational response to the user." },
+      tasks: {
+        type: "array",
+        description: "Proposed tasks. Empty array while chatting.",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            description: { type: "string" },
+            suggestedColumn: { type: "string" },
+            priority: { type: "string", enum: ["low", "medium", "high"] },
+            dueDate: { type: "string" },
+            confidence: { type: "number" },
+          },
+          required: ["title", "suggestedColumn"],
+        },
+      },
+      suggestSaveAsTemplate: {
+        type: "boolean",
+        description: "True when the task set looks like a repeatable workflow worth saving.",
+      },
+      templateDraft: {
+        type: "object",
+        description: "Draft template — only populated when suggestSaveAsTemplate is true.",
+        properties: {
+          name: { type: "string" },
+          triggerPhrase: { type: "string" },
+          description: { type: "string" },
+        },
+        required: ["name", "triggerPhrase"],
+      },
+    },
+    required: ["status", "reply", "tasks", "suggestSaveAsTemplate", "templateDraft"],
+  },
+} as const;
+
 export async function runCassBoardDialogue(input: {
   messages: StrategicDialogueMessage[];
   projectName: string;
@@ -462,11 +511,56 @@ export async function runCassBoardDialogue(input: {
     columnName: string;
   } | null;
 }) {
-  return runJsonDialogue(
-    buildCassBoardPrompt(input),
-    input.messages,
-    (text) => aiCassBoardDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildCassBoardPrompt(input);
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      tools: [BOARD_TOOL],
+      tool_choice: { type: "any" },
+      messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Cass board dialogue failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string; name?: string; input?: unknown }>;
+  };
+
+  const toolUse = payload.content?.find(
+    (block) => block.type === "tool_use" && block.name === "board_response",
   );
+
+  if (!toolUse?.input) {
+    throw new Error("Cass board dialogue did not return a tool call.");
+  }
+
+  // Normalise nullable fields that the tool schema can't enforce
+  const raw = toolUse.input as Record<string, unknown>;
+  const tasks = Array.isArray(raw.tasks)
+    ? (raw.tasks as Array<Record<string, unknown>>).map((t) => ({
+        ...t,
+        description: t.description ?? "",
+        priority: t.priority ?? null,
+        dueDate: t.dueDate ?? null,
+        confidence: t.confidence ?? 0.72,
+      }))
+    : [];
+
+  return aiCassBoardDialogueSchema.parse({ ...raw, tasks });
 }
 
 export async function runProjectOverviewDialogue(input: {

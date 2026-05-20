@@ -906,7 +906,12 @@ export function ProjectOverviewShell({
 
         {/* ── FAB — Cass circle avatar ── */}
         {!refining && (
-          <CassFab onClick={() => setCassDrawerOpen(true)} hoverText="Plan your next chapter" expandedWidth="268px" />
+          <CassFab
+            onClick={() => setCassDrawerOpen(true)}
+            hoverText="Plan your next chapter"
+            teaserText="I can help you map out what comes next."
+            expandedWidth="268px"
+          />
         )}
 
       </ProjectShellFrame>
