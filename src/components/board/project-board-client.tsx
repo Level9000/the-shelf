@@ -514,13 +514,17 @@ export function ProjectBoardClient({
 
   return (
     <>
-      <section className="flex flex-col p-4 sm:p-5">
+      <section className="flex flex-col">
           {error ? (
-            <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <p className="mx-4 mt-4 mb-0 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 sm:mx-5 sm:mt-5">
               {error}
             </p>
           ) : null}
-          {isPending ? <Badge className="mb-4">Saving changes...</Badge> : null}
+          {isPending ? (
+            <div className="px-4 pt-4 sm:px-5 sm:pt-5">
+              <Badge className="mb-4">Saving changes...</Badge>
+            </div>
+          ) : null}
           <div>
             <DndContext
               id="board-dnd-context"
@@ -531,7 +535,7 @@ export function ProjectBoardClient({
               onDragEnd={handleDragEnd}
             >
               {/* Mobile: one column at a time with swipe pagination */}
-              <div className="lg:hidden">
+              <div className="p-4 sm:p-5 lg:hidden">
                 {/* Pagination dots — above the column header */}
                 <div className="flex justify-center gap-2.5 pb-4">
                   {snapshot.columns.map((column, i) => (
@@ -586,22 +590,20 @@ export function ProjectBoardClient({
                 </div>
               </div>
 
-              {/* Desktop: 4-column grid */}
-              <div className="hidden lg:block overflow-x-auto pb-2">
-                <div className="grid gap-4 lg:grid-cols-4">
-                  {snapshot.columns.map((column) => (
-                    <BoardColumnView
-                      key={column.id}
-                      column={column}
-                      tasks={getColumnTasks(tasks, column.id)}
-                      onOpenTask={setSelectedTaskId}
-                      onCreateTask={openManualTask}
-                      dragInProgress={!!dragTaskId}
-                      allColumns={snapshot.columns}
-                      onMoveToColumn={handleMoveToColumn}
-                    />
-                  ))}
-                </div>
+              {/* Desktop: 4-column grid — flush top, no gaps, separator borders */}
+              <div className="hidden border-b border-t border-black/6 lg:grid lg:grid-cols-4">
+                {snapshot.columns.map((column) => (
+                  <BoardColumnView
+                    key={column.id}
+                    column={column}
+                    tasks={getColumnTasks(tasks, column.id)}
+                    onOpenTask={setSelectedTaskId}
+                    onCreateTask={openManualTask}
+                    dragInProgress={!!dragTaskId}
+                    allColumns={snapshot.columns}
+                    onMoveToColumn={handleMoveToColumn}
+                  />
+                ))}
               </div>
 
               {/* Full-viewport drag canvas — column zones (top 85%) + delete strip (bottom 15%) */}

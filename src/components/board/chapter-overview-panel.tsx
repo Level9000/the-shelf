@@ -97,31 +97,59 @@ function GeneratingOverlay() {
   );
 }
 
-// ── Section divider ───────────────────────────────────────────────────────────
+// ── Section label — sticky note badge ────────────────────────────────────────
 
-function SectionDivider({ label }: { label: string }) {
+const STICKY_COLORS = {
+  yellow: { body: "#fef9c3", tab: "#fde047", text: "#713f12" },
+  blue:   { body: "#dbeafe", tab: "#93c5fd", text: "#1e3a8a" },
+  pink:   { body: "#fce7f3", tab: "#f9a8d4", text: "#831843" },
+  green:  { body: "#bbf7d0", tab: "#4ade80", text: "#14532d" },
+  purple: { body: "#ede9fe", tab: "#c4b5fd", text: "#3b0764" },
+} as const;
+
+type StickyColor = keyof typeof STICKY_COLORS;
+
+function SectionDivider({ label, color }: { label: string; color: StickyColor }) {
+  const c = STICKY_COLORS[color];
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "14px", margin: "0" }}>
-      <p
-        style={{
-          fontFamily: "'Share Tech Mono', monospace",
-          fontSize: "9px",
-          letterSpacing: "3px",
-          color: "rgba(200,168,107,0.45)",
-          textTransform: "uppercase",
-          margin: 0,
-          flexShrink: 0,
-        }}
-      >
-        {label}
-      </p>
+    <div
+      style={{
+        display: "inline-flex",
+        flexDirection: "column",
+        width: "56px",
+        borderRadius: "2px",
+        overflow: "hidden",
+        boxShadow: "2px 3px 0px rgba(0,0,0,0.18), 2px 5px 12px rgba(0,0,0,0.28)",
+        flexShrink: 0,
+        userSelect: "none",
+      }}
+    >
+      {/* Adhesive tab strip */}
+      <div style={{ height: "8px", background: c.tab }} />
+      {/* Note body */}
       <div
         style={{
-          flex: 1,
-          height: "1px",
-          background: "linear-gradient(90deg, rgba(200,168,107,0.2), transparent)",
+          background: c.body,
+          padding: "6px 4px 7px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <span
+          style={{
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: "8.5px",
+            letterSpacing: "1.5px",
+            textTransform: "uppercase",
+            color: c.text,
+            textAlign: "center",
+            lineHeight: 1.2,
+          }}
+        >
+          {label}
+        </span>
+      </div>
     </div>
   );
 }
@@ -320,6 +348,15 @@ export function ChapterOverviewPanel({
   const sectionStyle = {
     paddingTop: "32px",
     paddingBottom: "8px",
+    paddingLeft: "70px", // room for sticky note (56px) + gap (14px) to hang left of heading
+  };
+
+  // Pulls the sticky+heading row left so heading aligns with body text
+  const stickyRowStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+    marginLeft: "-70px",
   };
 
   const bodyTextStyle: React.CSSProperties = {
@@ -332,11 +369,23 @@ export function ChapterOverviewPanel({
 
   const headingStyle: React.CSSProperties = {
     fontFamily: "'Special Elite', cursive",
-    fontSize: "18px",
-    color: "#e8e0d0",
-    margin: "8px 0 0",
-    lineHeight: 1.3,
+    fontSize: "44px",
+    margin: 0,
+    lineHeight: 1.2,
+    // colour is applied on the inner highlight span, not the element itself
   };
+
+  // Wraps heading text in the login-style white-slab highlight
+  function hl(text: string) {
+    return (
+      <span
+        className="box-decoration-clone"
+        style={{ background: "#f5ede0", color: "#0a0a0a", padding: "3px 10px" }}
+      >
+        {text}
+      </span>
+    );
+  }
 
   const placeholderStyle: React.CSSProperties = {
     fontFamily: "'Lora', Georgia, serif",
@@ -437,8 +486,13 @@ export function ChapterOverviewPanel({
 
           {/* ── Story section ── */}
           {retroDone && board.chapterStory && (
-            <div style={{ marginBottom: "8px" }}>
-              <SectionDivider label="How it went" />
+            <div style={{ marginBottom: "8px", paddingLeft: "70px" }}>
+              <div style={stickyRowStyle}>
+                <SectionDivider label="Recap" color="green" />
+                <h3 style={headingStyle}>
+                  {hl("How everything went this chapter")}
+                </h3>
+              </div>
               {renderParagraphs(board.chapterStory, {
                 fontFamily: "'Lora', Georgia, serif",
                 fontSize: "16px",
@@ -478,10 +532,12 @@ export function ChapterOverviewPanel({
 
           {/* ── What ── */}
           <div style={sectionStyle}>
-            <SectionDivider label="What" />
-            <h3 style={headingStyle}>
-              {retroDone ? "What was the bet?" : "What's the bet we're making?"}
-            </h3>
+            <div style={stickyRowStyle}>
+              <SectionDivider label="What" color="yellow" />
+              <h3 style={headingStyle}>
+                {hl(retroDone ? "What was the bet?" : "What's the bet we're making?")}
+              </h3>
+            </div>
 
             {editingField === "goal" ? (
               <>
@@ -527,10 +583,12 @@ export function ChapterOverviewPanel({
 
           {/* ── Why ── */}
           <div style={sectionStyle}>
-            <SectionDivider label="Why" />
-            <h3 style={headingStyle}>
-              {retroDone ? "Why did this matter at the time?" : "Why does this matter right now?"}
-            </h3>
+            <div style={stickyRowStyle}>
+              <SectionDivider label="Why" color="blue" />
+              <h3 style={headingStyle}>
+                {hl(retroDone ? "Why did this matter at the time?" : "Why does this matter right now?")}
+              </h3>
+            </div>
 
             {editingField === "whyItMatters" ? (
               <>
@@ -576,10 +634,12 @@ export function ChapterOverviewPanel({
 
           {/* ── How ── */}
           <div style={sectionStyle}>
-            <SectionDivider label="How" />
-            <h3 style={headingStyle}>
-              {retroDone ? "What needed to be true?" : "What has to be true?"}
-            </h3>
+            <div style={stickyRowStyle}>
+              <SectionDivider label="How" color="pink" />
+              <h3 style={headingStyle}>
+                {hl(retroDone ? "What needed to be true?" : "What has to be true?")}
+              </h3>
+            </div>
 
             {editingField === "successLooksLike" ? (
               <>
@@ -625,10 +685,12 @@ export function ChapterOverviewPanel({
 
           {/* ── When ── */}
           <div style={sectionStyle}>
-            <SectionDivider label="When" />
-            <h3 style={headingStyle}>
-              {retroDone ? "What did we have to show for it?" : "What will we have to show?"}
-            </h3>
+            <div style={stickyRowStyle}>
+              <SectionDivider label="When" color="purple" />
+              <h3 style={headingStyle}>
+                {hl(retroDone ? "When did we know we were done?" : "What will we have to show?")}
+              </h3>
+            </div>
 
             {editingField === "doneDefinition" ? (
               <>

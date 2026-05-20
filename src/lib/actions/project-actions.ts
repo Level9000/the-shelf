@@ -967,6 +967,8 @@ export async function deferTasksToNextChapterAction(input: {
 export async function createPlannedChaptersAction(input: {
   projectId: string;
   chapters: Array<{ name: string; goal: string }>;
+  /** The full planning dialogue to archive alongside the created chapters. */
+  conversation?: Array<{ role: string; content: string }>;
 }): Promise<{ chapterIds: string[] }> {
   const { supabase } = await getAuthenticatedUser();
   const chapterIds: string[] = [];
@@ -1005,6 +1007,31 @@ export async function createPlannedChaptersAction(input: {
     }
 
     chapterIds.push(String(board.id));
+  }
+
+  // Persist the planning dialogue so it appears in the chronicle chat history.
+  if (input.conversation && input.conversation.length > 0) {
+    const { data: projectRow } = await supabase
+      .from("projects")
+      .select("planning_conversations")
+      .eq("id", input.projectId)
+      .single();
+
+    const existing =
+      (projectRow?.planning_conversations as Array<{
+        completedAt: string;
+        messages: Array<{ role: string; content: string }>;
+      }>) ?? [];
+
+    const newEntry = {
+      completedAt: new Date().toISOString(),
+      messages: input.conversation,
+    };
+
+    await supabase
+      .from("projects")
+      .update({ planning_conversations: [...existing, newEntry] })
+      .eq("id", input.projectId);
   }
 
   revalidatePath(`/projects/${input.projectId}`);

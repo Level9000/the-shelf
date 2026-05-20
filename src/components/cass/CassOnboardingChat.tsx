@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { CassAnimState } from "./cassVoice";
 import type { CassOnboardingDialogue } from "@/lib/ai/schema";
 import type { WorkplanChapter } from "@/components/projects/workplan-proposal";
+import { CassProgressBar } from "./CassProgressBar";
 import { CassRecorder } from "./CassRecorder";
 import { CassSpeechBubble } from "./CassSpeechBubble";
 import { CassInput } from "./CassInput";
@@ -401,11 +402,13 @@ export function CassOnboardingChat({
             "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(42,107,58,0.05) 0%, transparent 50%)",
           display: "flex",
           flexDirection: "column",
-          padding: "32px 16px",
+          padding: "0",
           fontFamily: "'Share Tech Mono', 'Courier New', monospace",
           color: "#c8c8c8",
         }}
       >
+        <CassProgressBar percent={isSaving ? 100 : 80} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "32px 16px" }}>
         <div
           style={{
             display: "flex",
@@ -463,6 +466,7 @@ export function CassOnboardingChat({
           onAccept={handleAcceptWorkplan}
           error={null}
         />
+        </div>
       </div>
     );
   }
@@ -502,6 +506,17 @@ export function CassOnboardingChat({
           position: "relative",
         }}
       >
+        {/* Progress bar — absolute at top of screen */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+          <CassProgressBar percent={
+            phase === "start" ? 5 :
+            phase === "scripted" ? 25 :
+            phase === "chatting" ? 55 :
+            phase === "workplan" ? 80 :
+            100
+          } />
+        </div>
+
         {hasExistingProjects && (
           <button
             type="button"

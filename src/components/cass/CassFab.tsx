@@ -184,7 +184,7 @@ export function CassFab({
         paddingLeft:  typedChars > 0 ? "20px" : "0",
         paddingRight: typedChars > 0 ? "8px"  : "0",
         fontFamily: "'Share Tech Mono', monospace",
-        fontSize: "11px",
+        fontSize: "12.5px",
         lineHeight: "1.45",
         letterSpacing: "0.5px",
         color: "#c8a86b",

@@ -6,6 +6,7 @@ import type { AICassBoardDialogue } from "@/lib/ai/schema";
 import type { Board, BoardColumn, Chapter, Priority, Project, ProposedTask, Task, WorkflowTemplate } from "@/types";
 import { createBrainDumpCardsAction, createNextChapterForDeferAction, deleteTaskAction, moveTasksToChapterAction, saveWorkflowTemplateAction } from "@/lib/actions/task-actions";
 import { endChapterEarlyAction } from "@/lib/actions/project-actions";
+import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import type { CassAnimState } from "@/components/cass/cassVoice";
 
@@ -1108,6 +1109,14 @@ export function CassBoardDrawer({
   // Cass anim in the header: playing while text AI is thinking
   const headerCassAnim: CassAnimState = isPending ? "playing" : "idle";
 
+  // Progress bar percentage
+  const progressPercent =
+    mode === "menu" ? 15 :
+    mode === "completed" ? 100 :
+    savedOk ? 90 :
+    aiStatus === "ready_for_review" ? 72 :
+    55;
+
   return (
     <>
       <style>{`
@@ -1136,6 +1145,8 @@ export function CassBoardDrawer({
         }}
         aria-hidden={!open}
       >
+        <CassProgressBar percent={progressPercent} />
+
         {/* ── Header ── */}
         <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px", position: "relative" }}>
           {mode === "chat" && !savedOk && (

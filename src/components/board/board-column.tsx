@@ -54,12 +54,12 @@ export function BoardColumnView({
       <section
         ref={setNodeRef}
         className={cn(
-          "surface flex min-h-[420px] min-w-0 flex-col rounded-[1.5rem] border-b border-black/6 p-4 transition last:border-b-0 lg:rounded-[2rem] lg:border lg:border-black/6",
-          showDropHere && "ring-2 ring-[var(--accent)]/40 ring-offset-2 ring-offset-transparent",
+          "surface flex min-h-[420px] min-w-0 flex-col rounded-[1.5rem] border-b border-black/6 p-4 transition last:border-b-0 lg:rounded-none lg:border-b-0 lg:border-l-0 lg:border-t-0 lg:border-r lg:last:border-r-0",
+          showDropHere && "ring-2 ring-[var(--accent)]/40",
         )}
       >
         {/* Desktop: tinted header with title */}
-        <div className={cn("hidden rounded-[1.5rem] bg-gradient-to-b p-4 lg:block", COLUMN_TINTS[column.name])}>
+        <div className={cn("hidden bg-gradient-to-b p-4 lg:block", COLUMN_TINTS[column.name])}>
           <p className="text-sm font-semibold" style={{ fontFamily: "'Special Elite', cursive" }}>
             {column.name}
             <span className="ml-2 text-xs font-normal text-[var(--muted)]" style={{ fontFamily: "inherit" }}>

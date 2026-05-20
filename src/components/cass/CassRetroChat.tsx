@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { CassAnimState } from "./cassVoice";
 import type { Board, Task } from "@/types";
+import { CassProgressBar } from "./CassProgressBar";
 import { CassRecorder } from "./CassRecorder";
 import { CassSpeechBubble } from "./CassSpeechBubble";
 import { CassInput } from "./CassInput";
@@ -221,6 +222,11 @@ export function CassRetroChat({
           position: "relative",
         }}
       >
+        {/* Progress bar — absolute at top */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+          <CassProgressBar percent={saved ? 100 : approvedStory ? 82 : 45} />
+        </div>
+
         {onDismiss && (
           <button
             type="button"

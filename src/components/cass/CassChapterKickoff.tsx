@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { CassAnimState } from "./cassVoice";
 import type { AIKickoffDialogue } from "@/lib/ai/schema";
 import type { Board, BoardColumn, Project } from "@/types";
+import { CassProgressBar } from "./CassProgressBar";
 import { CassRecorder } from "./CassRecorder";
 import { CassSpeechBubble } from "./CassSpeechBubble";
 import { CassInput } from "./CassInput";
@@ -195,6 +196,11 @@ export function CassChapterKickoff({
           position: "relative",
         }}
       >
+        {/* Progress bar — absolute at top */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+          <CassProgressBar percent={kickoffData || isSaving ? 85 : 45} />
+        </div>
+
         {onDismiss && (
           <button
             type="button"

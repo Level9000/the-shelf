@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowUp, Check, LoaderCircle, X } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, LoaderCircle, MessageCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { AppUser, Chapter, ProjectMember, ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectArcRefiner } from "@/components/projects/project-arc-refiner";
 import { ProjectOverviewSettingsDrawer } from "@/components/projects/project-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
+import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { CassFab } from "@/components/cass/CassFab";
 import { createPlannedChaptersAction } from "@/lib/actions/project-actions";
@@ -19,6 +20,180 @@ function chapterStatus(chapter: Chapter): "completed" | "working_on_it" | "plann
   if (chapter.retroCompletedAt) return "completed";
   if (chapter.kickoffCompletedAt) return "working_on_it";
   return "planned";
+}
+
+// ── Chat history types ───────────────────────────────────────────────────────
+
+type ChatThread = {
+  id: string;
+  label: string;
+  completedAt: string;
+  messages: Array<{ role: string; content: string }>;
+};
+
+/** Pull the human-readable reply out of a message.
+ *  Older kickoff/retro flows may have stored raw JSON; newer tool-use flows
+ *  store the extracted `reply` string directly. */
+function extractContent(msg: { role: string; content: string }): string {
+  if (msg.role === "assistant") {
+    const trimmed = msg.content.trimStart();
+    if (trimmed.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+        if (typeof parsed.reply === "string") return parsed.reply;
+      } catch { /* fall through */ }
+    }
+  }
+  return msg.content;
+}
+
+// ── Chat history drawer (read-only) ─────────────────────────────────────────
+
+function ChatHistoryDrawer({
+  thread,
+  onClose,
+}: {
+  thread: ChatThread | null;
+  onClose: () => void;
+}) {
+  const open = Boolean(thread);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom whenever a thread opens
+  useEffect(() => {
+    if (open && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [open, thread?.id]);
+
+  const completedDate = thread
+    ? new Date(thread.completedAt).toLocaleDateString("en-US", {
+        month: "long", day: "numeric", year: "numeric",
+      })
+    : null;
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 50, pointerEvents: open ? "auto" : "none" }}
+      aria-hidden={!open}
+    >
+      {/* Backdrop */}
+      <div
+        style={{
+          position: "absolute", inset: 0, background: "rgba(0,0,0,0.65)",
+          transition: "opacity 0.3s", opacity: open ? 1 : 0,
+        }}
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <div
+        style={{
+          position: "absolute", right: 0, top: 0, bottom: 0,
+          width: "min(480px, 100vw)",
+          display: "flex", flexDirection: "column",
+          background: "#0d0c09",
+          borderLeft: "1px solid rgba(200,168,107,0.12)",
+          transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)",
+          transform: open ? "translateX(0)" : "translateX(100%)",
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding: "20px 20px 16px",
+          borderBottom: "1px solid rgba(200,168,107,0.08)",
+          display: "flex", alignItems: "flex-start",
+          justifyContent: "space-between", gap: "12px",
+        }}>
+          <div>
+            <p style={{
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: "9px", letterSpacing: "3px",
+              color: "rgba(200,168,107,0.45)", textTransform: "uppercase", marginBottom: "5px",
+            }}>
+              Cass · Archived
+            </p>
+            <p style={{
+              fontFamily: "'Special Elite', cursive",
+              fontSize: "21px", color: "#e8e0d0", lineHeight: 1.2,
+            }}>
+              {thread?.label ?? ""}
+            </p>
+          </div>
+          <button
+            type="button" onClick={onClose}
+            style={{
+              padding: "4px", background: "none", border: "none",
+              cursor: "pointer", color: "rgba(200,168,107,0.5)", flexShrink: 0, marginTop: "2px",
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Completed banner */}
+        <div style={{
+          padding: "10px 20px",
+          background: "rgba(74,222,128,0.05)",
+          borderBottom: "1px solid rgba(74,222,128,0.1)",
+        }}>
+          <p style={{
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: "10px", letterSpacing: "0.8px",
+            color: "rgba(74,222,128,0.75)", margin: 0,
+          }}>
+            ✓&nbsp; this conversation completed on {completedDate}
+          </p>
+        </div>
+
+        {/* Messages */}
+        <div
+          ref={scrollRef}
+          style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}
+        >
+          {thread?.messages.map((msg, i) => {
+            const content = extractContent(msg);
+            if (!content.trim()) return null;
+            const isUser = msg.role === "user";
+            return (
+              <div key={i} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start" }}>
+                <div style={{
+                  maxWidth: "85%",
+                  background: isUser ? "rgba(200,168,107,0.09)" : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${isUser ? "rgba(200,168,107,0.14)" : "rgba(255,255,255,0.06)"}`,
+                  borderRadius: isUser ? "16px 16px 4px 16px" : "4px 16px 16px 16px",
+                  padding: "10px 14px",
+                  fontFamily: "'Share Tech Mono', monospace",
+                  fontSize: "12.5px", lineHeight: 1.65,
+                  color: isUser ? "#c8a86b" : "rgba(232,224,208,0.88)",
+                  whiteSpace: "pre-wrap",
+                }}>
+                  {content}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Disabled input area */}
+        <div style={{ padding: "14px 20px 28px", borderTop: "1px solid rgba(200,168,107,0.08)" }}>
+          <div style={{
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(200,168,107,0.07)",
+            borderRadius: "12px", padding: "14px 16px", textAlign: "center",
+          }}>
+            <p style={{
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: "10px", letterSpacing: "1px",
+              color: "rgba(200,168,107,0.28)", margin: 0,
+            }}>
+              this conversation has ended
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Shared drawer styles ──────────────────────────────────────────────────────
@@ -193,7 +368,11 @@ function CassChronicleDrawer({
     if (!toCreate.length) return;
     startSaveTransition(async () => {
       try {
-        await createPlannedChaptersAction({ projectId: project.id, chapters: toCreate });
+        await createPlannedChaptersAction({
+          projectId: project.id,
+          chapters: toCreate,
+          conversation: planMessages,
+        });
         setSavedCount(toCreate.length);
         setMode("done");
         router.refresh();
@@ -238,6 +417,12 @@ function CassChronicleDrawer({
     },
   ];
 
+  const chronicleProgressPercent =
+    mode === "done" ? 100 :
+    mode === "proposal" ? 80 :
+    mode === "planning" ? 50 :
+    15;
+
   return (
     <>
       <style>{`
@@ -263,6 +448,8 @@ function CassChronicleDrawer({
         }}
         aria-hidden={!open}
       >
+        <CassProgressBar percent={chronicleProgressPercent} />
+
         {/* Header — consistent across all modes */}
         <div style={{ flexShrink: 0, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px" }}>
           {/* Back button — only in planning/proposal */}
@@ -590,13 +777,34 @@ function ChapterEntry({
   index,
   projectId,
   isLast,
+  onOpenThread,
 }: {
   chapter: Chapter;
   index: number;
   projectId: string;
   isLast: boolean;
+  onOpenThread: (t: ChatThread) => void;
 }) {
   const status = chapterStatus(chapter);
+
+  // Build the list of completed chat threads for this chapter
+  const threads: ChatThread[] = [];
+  if (chapter.kickoffConversation && chapter.kickoffCompletedAt) {
+    threads.push({
+      id: `kickoff-${chapter.id}`,
+      label: "Chapter Kickoff",
+      completedAt: chapter.kickoffCompletedAt,
+      messages: chapter.kickoffConversation,
+    });
+  }
+  if (chapter.retroConversation && chapter.retroCompletedAt) {
+    threads.push({
+      id: `retro-${chapter.id}`,
+      label: "Chapter Retro",
+      completedAt: chapter.retroCompletedAt,
+      messages: chapter.retroConversation,
+    });
+  }
 
   return (
     <div>
@@ -641,15 +849,18 @@ function ChapterEntry({
             style={{
               fontFamily: "'Special Elite', cursive",
               fontSize: "22px",
-              color: status === "completed" ? "#e8e0d0" : "rgba(232,224,208,0.6)",
               margin: 0,
-              lineHeight: 1.3,
-              transition: "color 0.15s",
+              lineHeight: 1.45,
+              opacity: status === "planned" ? 0.45 : 1,
+              transition: "opacity 0.15s",
             }}
-            onMouseEnter={(e) => { if (status !== "planned") (e.target as HTMLElement).style.color = "#c8a86b"; }}
-            onMouseLeave={(e) => { (e.target as HTMLElement).style.color = status === "completed" ? "#e8e0d0" : "rgba(232,224,208,0.6)"; }}
           >
-            {chapter.name}
+            <span
+              className="box-decoration-clone"
+              style={{ background: "#f5ede0", color: "#0a0a0a", padding: "2px 8px" }}
+            >
+              {chapter.name}
+            </span>
           </h2>
         </Link>
 
@@ -740,6 +951,68 @@ function ChapterEntry({
             {chapter.goal}
           </p>
         )}
+
+        {/* ── Chat history threads ── */}
+        {threads.length > 0 && (
+          <div style={{ marginTop: "36px" }}>
+            <p style={{
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: "9px", letterSpacing: "3px",
+              color: "rgba(200,168,107,0.3)",
+              textTransform: "uppercase", margin: "0 0 10px",
+            }}>
+              Conversations
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {threads.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => onOpenThread(t)}
+                  style={{
+                    display: "flex", alignItems: "center",
+                    justifyContent: "space-between",
+                    background: "rgba(200,168,107,0.04)",
+                    border: "1px solid rgba(200,168,107,0.1)",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    cursor: "pointer", width: "100%", textAlign: "left",
+                    transition: "background 0.15s, border-color 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(200,168,107,0.08)";
+                    e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(200,168,107,0.04)";
+                    e.currentTarget.style.borderColor = "rgba(200,168,107,0.1)";
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <MessageCircle size={13} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />
+                    <span style={{
+                      fontFamily: "'Share Tech Mono', monospace",
+                      fontSize: "12px", color: "rgba(232,224,208,0.7)",
+                    }}>
+                      {t.label}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                    <span style={{
+                      fontFamily: "'Share Tech Mono', monospace",
+                      fontSize: "10px", color: "rgba(200,168,107,0.45)",
+                    }}>
+                      {new Date(t.completedAt).toLocaleDateString("en-US", {
+                        month: "short", day: "numeric", year: "numeric",
+                      })}
+                    </span>
+                    <ChevronRight size={12} style={{ color: "rgba(200,168,107,0.35)" }} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -768,6 +1041,7 @@ export function ProjectOverviewShell({
   const [cassDrawerOpen, setCassDrawerOpen] = useState(initialPlanning);
   const [startInPlanMode, setStartInPlanMode] = useState(initialPlanning);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyThread, setHistoryThread] = useState<ChatThread | null>(null);
 
   function openDrawerForPlanning() {
     setStartInPlanMode(true);
@@ -833,13 +1107,17 @@ export function ProjectOverviewShell({
                   style={{
                     fontFamily: "'Special Elite', cursive",
                     fontSize: "clamp(28px, 5vw, 40px)",
-                    color: "#e8e0d0",
                     margin: 0,
-                    lineHeight: 1.2,
+                    lineHeight: 1.45,
                     letterSpacing: "-0.01em",
                   }}
                 >
-                  {project.name}
+                  <span
+                    className="box-decoration-clone"
+                    style={{ background: "#f5ede0", color: "#0a0a0a", padding: "3px 10px" }}
+                  >
+                    {project.name}
+                  </span>
                 </h1>
 
                 {project.northStar && (
@@ -868,6 +1146,88 @@ export function ProjectOverviewShell({
                 />
               </header>
 
+              {/* ── Project-level conversations ── */}
+              {(() => {
+                const projectThreads: ChatThread[] = [];
+                if (project.projectKickoffConversation && project.projectKickoffCompletedAt) {
+                  projectThreads.push({
+                    id: "project-kickoff",
+                    label: "Project Setup",
+                    completedAt: project.projectKickoffCompletedAt,
+                    messages: project.projectKickoffConversation,
+                  });
+                }
+                project.planningConversations.forEach((session, i) => {
+                  projectThreads.push({
+                    id: `planning-${i}`,
+                    label: "Chapter Planning",
+                    completedAt: session.completedAt,
+                    messages: session.messages,
+                  });
+                });
+                if (projectThreads.length === 0) return null;
+                return (
+                  <div style={{ marginBottom: "52px" }}>
+                    <p style={{
+                      fontFamily: "'Share Tech Mono', monospace",
+                      fontSize: "9px", letterSpacing: "3px",
+                      color: "rgba(200,168,107,0.3)",
+                      textTransform: "uppercase", margin: "0 0 10px",
+                    }}>
+                      Project Conversations
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {projectThreads.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setHistoryThread(t)}
+                          style={{
+                            display: "flex", alignItems: "center",
+                            justifyContent: "space-between",
+                            background: "rgba(200,168,107,0.04)",
+                            border: "1px solid rgba(200,168,107,0.1)",
+                            borderRadius: "10px",
+                            padding: "10px 14px",
+                            cursor: "pointer", width: "100%", textAlign: "left",
+                            transition: "background 0.15s, border-color 0.15s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(200,168,107,0.08)";
+                            e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "rgba(200,168,107,0.04)";
+                            e.currentTarget.style.borderColor = "rgba(200,168,107,0.1)";
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <MessageCircle size={13} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />
+                            <span style={{
+                              fontFamily: "'Share Tech Mono', monospace",
+                              fontSize: "12px", color: "rgba(232,224,208,0.7)",
+                            }}>
+                              {t.label}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                            <span style={{
+                              fontFamily: "'Share Tech Mono', monospace",
+                              fontSize: "10px", color: "rgba(200,168,107,0.45)",
+                            }}>
+                              {new Date(t.completedAt).toLocaleDateString("en-US", {
+                                month: "short", day: "numeric", year: "numeric",
+                              })}
+                            </span>
+                            <ChevronRight size={12} style={{ color: "rgba(200,168,107,0.35)" }} />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* ── Chapter list ── */}
               {project.chapters.length > 0 ? (
                 <div>
@@ -878,6 +1238,7 @@ export function ProjectOverviewShell({
                       index={i}
                       projectId={project.id}
                       isLast={i === project.chapters.length - 1}
+                      onOpenThread={setHistoryThread}
                     />
                   ))}
                 </div>
@@ -915,6 +1276,12 @@ export function ProjectOverviewShell({
         )}
 
       </ProjectShellFrame>
+
+      {/* ── Chat history drawer ── */}
+      <ChatHistoryDrawer
+        thread={historyThread}
+        onClose={() => setHistoryThread(null)}
+      />
 
       {/* ── Cass Chronicle drawer ── */}
       <CassChronicleDrawer
