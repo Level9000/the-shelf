@@ -584,6 +584,12 @@ export function ProjectBoardClient({
                         allColumns={snapshot.columns}
                         onMoveToColumn={handleMoveToColumn}
                         boardCompleted={!!snapshot.board.retroCompletedAt}
+                        onOpenCass={
+                          !snapshot.board.retroCompletedAt &&
+                          (column.name === "Do This Week" || column.name === "Do Today")
+                            ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }
+                            : undefined
+                        }
                       />
                     </div>
                   ))}
@@ -602,6 +608,12 @@ export function ProjectBoardClient({
                     dragInProgress={!!dragTaskId}
                     allColumns={snapshot.columns}
                     onMoveToColumn={handleMoveToColumn}
+                    onOpenCass={
+                      !snapshot.board.retroCompletedAt &&
+                      (column.name === "Do This Week" || column.name === "Do Today")
+                        ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }
+                        : undefined
+                    }
                   />
                 ))}
               </div>

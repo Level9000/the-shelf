@@ -81,6 +81,8 @@ function mapBoard(row: Record<string, unknown>): Board {
       (row.kickoff_conversation as Array<{ role: string; content: string }> | null) ?? null,
     retroConversation:
       (row.retro_conversation as Array<{ role: string; content: string }> | null) ?? null,
+    boardConversations:
+      (row.board_conversations as import("@/types").BoardConversationEntry[]) ?? [],
     chapterStory: (row.chapter_story as string | null) ?? null,
     storyLength: (row.story_length as "short" | "long" | null) ?? null,
     retroCompletedAt: (row.retro_completed_at as string | null) ?? null,

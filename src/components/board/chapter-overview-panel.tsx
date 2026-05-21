@@ -345,18 +345,27 @@ export function ChapterOverviewPanel({
     });
   }
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const sectionStyle = {
     paddingTop: "32px",
     paddingBottom: "8px",
-    paddingLeft: "70px", // room for sticky note (56px) + gap (14px) to hang left of heading
+    paddingLeft: isMobile ? "0" : "70px",
   };
 
   // Pulls the sticky+heading row left so heading aligns with body text
   const stickyRowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
-    gap: "14px",
-    marginLeft: "-70px",
+    gap: isMobile ? "0" : "14px",
+    marginLeft: isMobile ? "0" : "-70px",
   };
 
   const bodyTextStyle: React.CSSProperties = {
@@ -486,9 +495,9 @@ export function ChapterOverviewPanel({
 
           {/* ── Story section ── */}
           {retroDone && board.chapterStory && (
-            <div style={{ marginBottom: "8px", paddingLeft: "70px" }}>
+            <div style={{ marginBottom: "8px", paddingLeft: isMobile ? "0" : "70px" }}>
               <div style={stickyRowStyle}>
-                <SectionDivider label="Recap" color="green" />
+                {!isMobile && <SectionDivider label="Recap" color="green" />}
                 <h3 style={headingStyle}>
                   {hl("How everything went this chapter")}
                 </h3>
@@ -533,7 +542,7 @@ export function ChapterOverviewPanel({
           {/* ── What ── */}
           <div style={sectionStyle}>
             <div style={stickyRowStyle}>
-              <SectionDivider label="What" color="yellow" />
+              {!isMobile && <SectionDivider label="What" color="yellow" />}
               <h3 style={headingStyle}>
                 {hl(retroDone ? "What was the bet?" : "What's the bet we're making?")}
               </h3>
@@ -584,7 +593,7 @@ export function ChapterOverviewPanel({
           {/* ── Why ── */}
           <div style={sectionStyle}>
             <div style={stickyRowStyle}>
-              <SectionDivider label="Why" color="blue" />
+              {!isMobile && <SectionDivider label="Why" color="blue" />}
               <h3 style={headingStyle}>
                 {hl(retroDone ? "Why did this matter at the time?" : "Why does this matter right now?")}
               </h3>
@@ -635,7 +644,7 @@ export function ChapterOverviewPanel({
           {/* ── How ── */}
           <div style={sectionStyle}>
             <div style={stickyRowStyle}>
-              <SectionDivider label="How" color="pink" />
+              {!isMobile && <SectionDivider label="How" color="pink" />}
               <h3 style={headingStyle}>
                 {hl(retroDone ? "What needed to be true?" : "What has to be true?")}
               </h3>
@@ -686,7 +695,7 @@ export function ChapterOverviewPanel({
           {/* ── When ── */}
           <div style={sectionStyle}>
             <div style={stickyRowStyle}>
-              <SectionDivider label="When" color="purple" />
+              {!isMobile && <SectionDivider label="When" color="purple" />}
               <h3 style={headingStyle}>
                 {hl(retroDone ? "When did we know we were done?" : "What will we have to show?")}
               </h3>

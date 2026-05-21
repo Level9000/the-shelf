@@ -122,7 +122,7 @@ export function ProjectShellFrame({
   currentProjectId,
   currentChapterId = null,
   lastChapterId = null,
-  mobileEyebrow: _mobileEyebrow,
+  mobileEyebrow,
   mobileTitle: _mobileTitle,
   activeNav,
   mobileBanner,
@@ -234,23 +234,16 @@ export function ProjectShellFrame({
               <Menu className="size-5" />
             </button>
 
-            {/* Chapter label — shown on chapter pages only */}
-            {currentChapterId && chapterIndex >= 0 && (
-              <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">
-                Chapter {chapterIndex + 1}
-              </span>
-            )}
-
             {/* Tab pills — pushed to the right */}
             <div className="flex flex-1 justify-end">
               <div className="inline-flex gap-1 rounded-full bg-black/6 p-1 shadow-sm">
                 {navChapterId ? (
-                  /* Chapter pages: Story + Board only */
+                  /* Chapter pages: Story + Board + Chronicle */
                   <>
                     <Link
                       href={`/projects/${currentProjectId}/chapters/${navChapterId}`}
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
                         activeNav === "story"
                           ? "bg-white text-[var(--ink)] shadow-sm"
                           : "text-[var(--muted)]",
@@ -262,7 +255,7 @@ export function ProjectShellFrame({
                     <Link
                       href={`/projects/${currentProjectId}/chapters/${navChapterId}/board`}
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition",
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
                         activeNav === "board"
                           ? "bg-white text-[var(--ink)] shadow-sm"
                           : "text-[var(--muted)]",
@@ -270,6 +263,18 @@ export function ProjectShellFrame({
                     >
                       <SquareKanban className="size-3.5" />
                       Board
+                    </Link>
+                    <Link
+                      href={`/projects/${currentProjectId}`}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                        activeNav === "overview"
+                          ? "bg-white text-[var(--ink)] shadow-sm"
+                          : "text-[var(--muted)]",
+                      )}
+                    >
+                      <Sparkles className="size-3.5" />
+                      Chronicle
                     </Link>
                   </>
                 ) : (
@@ -295,6 +300,28 @@ export function ProjectShellFrame({
 
         {/* Full-width banner slot (e.g. chapter completed) */}
         {mobileBanner}
+
+        {/* Mobile chapter title strip — story + board tabs only */}
+        {(activeNav === "story" || activeNav === "board") && chapterIndex >= 0 && mobileEyebrow && (
+          <div
+            className="lg:hidden shrink-0 border-b px-4 py-3"
+            style={
+              activeNav === "story"
+                ? { background: "#0a0a0a", borderColor: "rgba(255,255,255,0.07)" }
+                : { borderColor: "rgba(0,0,0,0.06)" }
+            }
+          >
+            <p
+              className={cn(
+                "mt-0.5 text-xl font-bold leading-tight",
+                activeNav === "story" ? "text-white" : "text-[var(--ink)]",
+              )}
+              style={{ fontFamily: "'Special Elite', cursive" }}
+            >
+              {mobileEyebrow}
+            </p>
+          </div>
+        )}
 
         {/* Page content — scrollable area below the header */}
         <div

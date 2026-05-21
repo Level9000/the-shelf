@@ -66,6 +66,15 @@ export type ProjectMember = {
   createdAt: string;
 };
 
+export type BoardConversationEntry = {
+  id: string;
+  mode: "tasks" | "braindump" | "breakup";
+  label: string;
+  completedAt: string;
+  messages: Array<{ role: string; content: string }>;
+  taskCount: number;
+};
+
 export type Board = {
   id: string;
   projectId: string;
@@ -86,6 +95,7 @@ export type Board = {
   shareSlug: string | null;
   position: number;
   createdAt: string;
+  boardConversations: BoardConversationEntry[];
 };
 
 export type Chapter = Board;

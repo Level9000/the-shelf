@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
-import type { Priority, ProposedTask } from "@/types";
+import type { BoardConversationEntry, Priority, ProposedTask } from "@/types";
 
 type TaskMutationInput = {
   projectId: string;
@@ -659,4 +659,41 @@ export async function createChunkedTasksAction(input: {
 
   revalidatePath(`/projects/${input.projectId}`);
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
+}
+
+// ── Board conversation history ────────────────────────────────────────────────
+
+export async function saveBoardConversationAction(input: {
+  boardId: string;
+  projectId: string;
+  entry: BoardConversationEntry;
+}) {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  // Verify the user has access to this board via project ownership or membership
+  const { data: board, error: fetchError } = await supabase
+    .from("boards")
+    .select("id, board_conversations, project_id")
+    .eq("id", input.boardId)
+    .maybeSingle();
+
+  if (fetchError || !board) return; // Non-critical — silently skip
+
+  const [{ data: project }, { data: membership }] = await Promise.all([
+    supabase.from("projects").select("id").eq("id", board.project_id).eq("user_id", user.id).maybeSingle(),
+    supabase.from("project_members").select("id").eq("project_id", board.project_id).eq("user_id", user.id).maybeSingle(),
+  ]);
+
+  if (!project && !membership) return; // Not authorized
+
+  const existing = (board.board_conversations as BoardConversationEntry[]) ?? [];
+
+  const { error: updateError } = await supabase
+    .from("boards")
+    .update({ board_conversations: [...existing, input.entry] })
+    .eq("id", input.boardId);
+
+  if (updateError) {
+    console.error("saveBoardConversationAction: failed to persist", updateError.message);
+  }
 }

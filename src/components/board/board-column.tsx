@@ -16,6 +16,7 @@ export function BoardColumnView({
   onCreateTask,
   showAddButton,
   onPlanWeek,
+  onOpenCass,
   dragInProgress,
   allColumns,
   onMoveToColumn,
@@ -27,6 +28,7 @@ export function BoardColumnView({
   onCreateTask: (columnId: string) => void;
   showAddButton?: boolean;
   onPlanWeek?: () => void;
+  onOpenCass?: () => void;
   dragInProgress?: boolean;
   allColumns?: BoardColumn[];
   onMoveToColumn?: (taskId: string, columnId: string) => void;
@@ -42,30 +44,50 @@ export function BoardColumnView({
   return (
     <>
       {/* Mobile: column title above the card */}
-      <div className="mb-3 px-1 lg:hidden">
+      <div className="mb-3 flex items-center justify-between px-1 lg:hidden">
         <p className="text-base font-semibold" style={{ fontFamily: "'Special Elite', cursive" }}>
           {column.name}
           <span className="ml-2 text-sm font-normal text-[var(--muted)]" style={{ fontFamily: "inherit" }}>
             {tasks.length} card{tasks.length === 1 ? "" : "s"}
           </span>
         </p>
+        {onOpenCass && (
+          <button
+            type="button"
+            onClick={onOpenCass}
+            aria-label={`Add task to ${column.name}`}
+            className="flex size-7 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-sm transition hover:opacity-80 active:scale-95"
+          >
+            <Plus className="size-4" />
+          </button>
+        )}
       </div>
 
       <section
         ref={setNodeRef}
         className={cn(
-          "surface flex min-h-[420px] min-w-0 flex-col rounded-[1.5rem] border-b border-black/6 p-4 transition last:border-b-0 lg:rounded-none lg:border-b-0 lg:border-l-0 lg:border-t-0 lg:border-r lg:last:border-r-0",
+          "surface flex min-h-[420px] min-w-0 flex-col border-b border-black/6 p-4 transition last:border-b-0 lg:border-b-0 lg:border-l-0 lg:border-t-0 lg:border-r lg:last:border-r-0",
           showDropHere && "ring-2 ring-[var(--accent)]/40",
         )}
       >
         {/* Desktop: tinted header with title */}
-        <div className={cn("hidden bg-gradient-to-b p-4 lg:block", COLUMN_TINTS[column.name])}>
+        <div className={cn("hidden items-center justify-between bg-gradient-to-b p-4 lg:flex", COLUMN_TINTS[column.name])}>
           <p className="text-sm font-semibold" style={{ fontFamily: "'Special Elite', cursive" }}>
             {column.name}
             <span className="ml-2 text-xs font-normal text-[var(--muted)]" style={{ fontFamily: "inherit" }}>
               {tasks.length} card{tasks.length === 1 ? "" : "s"}
             </span>
           </p>
+          {onOpenCass && (
+            <button
+              type="button"
+              onClick={onOpenCass}
+              aria-label={`Add task to ${column.name}`}
+              className="flex size-6 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-sm transition hover:opacity-80 active:scale-95"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Mobile: full-width add button */}

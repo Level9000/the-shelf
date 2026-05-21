@@ -797,6 +797,14 @@ function ChapterEntry({
       messages: chapter.kickoffConversation,
     });
   }
+  chapter.boardConversations.forEach((conv, i) => {
+    threads.push({
+      id: `board-conv-${chapter.id}-${i}`,
+      label: conv.label,
+      completedAt: conv.completedAt,
+      messages: conv.messages,
+    });
+  });
   if (chapter.retroConversation && chapter.retroCompletedAt) {
     threads.push({
       id: `retro-${chapter.id}`,

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { ArrowRight, ArrowUp, Check, LoaderCircle, Trash2, X } from "lucide-react";
 import type { AICassBoardDialogue } from "@/lib/ai/schema";
-import type { Board, BoardColumn, Chapter, Priority, Project, ProposedTask, Task, WorkflowTemplate } from "@/types";
-import { createBrainDumpCardsAction, createNextChapterForDeferAction, deleteTaskAction, moveTasksToChapterAction, saveWorkflowTemplateAction } from "@/lib/actions/task-actions";
+import type { Board, BoardColumn, BoardConversationEntry, Chapter, Priority, Project, ProposedTask, Task, WorkflowTemplate } from "@/types";
+import { createBrainDumpCardsAction, createNextChapterForDeferAction, deleteTaskAction, moveTasksToChapterAction, saveBoardConversationAction, saveWorkflowTemplateAction } from "@/lib/actions/task-actions";
 import { endChapterEarlyAction } from "@/lib/actions/project-actions";
 import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
@@ -139,7 +139,7 @@ function BrainDumpRecorderView({
   onCardsReady,
 }: {
   projectId: string;
-  onCardsReady: (tasks: ProposedTask[]) => void;
+  onCardsReady: (tasks: ProposedTask[], transcript: string) => void;
 }) {
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const transcriptRef = useRef<string>("");
@@ -167,7 +167,7 @@ function BrainDumpRecorderView({
         const payload = await res.json() as { id?: string; transcript?: string; tasks?: ProposedTask[]; error?: string };
         if (!res.ok) throw new Error(payload.error ?? "Processing failed.");
         const tasks = (payload.tasks ?? []).map((t) => ({ ...t, id: t.id ?? crypto.randomUUID() }));
-        onCardsReady(tasks);
+        onCardsReady(tasks, transcript);
       } catch (err) {
         setDumpState("error");
         setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -848,6 +848,9 @@ export function CassBoardDrawer({
   const [chatError, setChatError] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<AICassBoardDialogue["status"]>("chatting");
 
+  // ── Braindump transcript (for Chronicle history) ──────────────────────────────
+  const [braindumpTranscript, setBraindumpTranscript] = useState<string | null>(null);
+
   // ── Review / confirm state ────────────────────────────────────────────────────
   const [proposedTasks, setProposedTasks] = useState<ProposedTask[]>([]);
   const [reviewTasks, setReviewTasks] = useState<ProposedTask[]>([]);
@@ -875,6 +878,7 @@ export function CassBoardDrawer({
     setSavedOk(false);
     setTemplateSaved(false);
     setTemplateError(null);
+    setBraindumpTranscript(null);
 
     // If this is a completed chapter, show the "what's next?" screen
     if (completedChapterMode) {
@@ -1027,10 +1031,11 @@ export function CassBoardDrawer({
   }
 
   // ── Voice (braindump) cards ready callback ────────────────────────────────────
-  const handleVoiceCardsReady = useCallback((tasks: ProposedTask[]) => {
+  const handleVoiceCardsReady = useCallback((tasks: ProposedTask[], transcript: string) => {
     const stamped = tasks.map((t, i) => ({ ...t, id: t.id ?? `voice-${i}` }));
     setProposedTasks(stamped);
     setReviewTasks(stamped);
+    setBraindumpTranscript(transcript);
     // Voice dumps don't suggest template saves automatically (often too varied)
     setSuggestSaveAsTemplate(false);
   }, []);
@@ -1063,6 +1068,32 @@ export function CassBoardDrawer({
           });
           onTaskDeleted?.();
         }
+
+        // Persist conversation to board history (fire-and-forget, non-blocking)
+        const conversationMessages: Array<{ role: string; content: string }> =
+          chatSubMode === "braindump" && braindumpTranscript
+            ? [
+                { role: "user", content: braindumpTranscript },
+                { role: "assistant", content: `Pulled ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} from your brain dump.` },
+              ]
+            : messages;
+
+        if (conversationMessages.length > 0) {
+          const entry: BoardConversationEntry = {
+            id: crypto.randomUUID(),
+            mode: chatSubMode as BoardConversationEntry["mode"],
+            label: chatSubMode === "braindump"
+              ? "Voice Brain Dump"
+              : chatSubMode === "breakup" && breakupTask
+              ? `Broke up: "${breakupTask.title}"`
+              : "Task Planning",
+            completedAt: new Date().toISOString(),
+            messages: conversationMessages,
+            taskCount: reviewTasks.length,
+          };
+          saveBoardConversationAction({ boardId: board.id, projectId: project.id, entry }).catch(() => {/* non-critical */});
+        }
+
         setSavedOk(true);
         onTasksAdded();
       } catch (err) {

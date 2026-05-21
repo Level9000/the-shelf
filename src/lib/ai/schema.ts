@@ -19,7 +19,7 @@ export const proposedTaskSchema = z.object({
 });
 
 export const aiTaskExtractionSchema = z.object({
-  tasks: z.array(proposedTaskSchema).max(12),
+  tasks: z.array(proposedTaskSchema).max(12).default([]),
 });
 
 export const strategicDialogueMessageSchema = z.object({

@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 import type { BoardSnapshot, ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectBoardClient } from "@/components/board/project-board-client";
 import { ChapterRetroChat } from "@/components/board/chapter-retro-chat";
@@ -70,33 +69,6 @@ export function ProjectWorkspaceShell({
     router.refresh();
   }
 
-  const boardMobileBanner = snapshot.board.retroCompletedAt ? (() => {
-    const date = new Date(snapshot.board.retroCompletedAt).toLocaleDateString("en-US", {
-      month: "long", day: "numeric", year: "numeric",
-    });
-    const activeChapter = projects
-      .find((p) => p.id === currentProjectId)
-      ?.chapters.find((c) => !c.retroCompletedAt);
-    const activeChapterUrl = activeChapter
-      ? `/projects/${currentProjectId}/chapters/${activeChapter.id}`
-      : null;
-    return (
-      <div className="flex w-full shrink-0 items-center justify-between gap-3 border-b border-green-200 bg-green-50 px-4 py-3">
-        <p className="text-sm text-green-800">
-          completed on <span className="font-semibold">{date}</span>.
-        </p>
-        {activeChapterUrl && (
-          <Link
-            href={activeChapterUrl}
-            className="flex shrink-0 items-center gap-1 text-xs font-semibold text-green-700 transition hover:text-green-900"
-          >
-            Current chapter
-            <ArrowRight className="size-3" />
-          </Link>
-        )}
-      </div>
-    );
-  })() : null;
 
   return (
     <ProjectShellFrame
@@ -107,7 +79,6 @@ export function ProjectWorkspaceShell({
       mobileEyebrow={snapshot.board.name}
       mobileTitle={snapshot.project.name}
       activeNav="board"
-      mobileBanner={boardMobileBanner}
       onPlanChapters={() => router.push(`/projects/${currentProjectId}?plan=true`)}
     >
       <Modal

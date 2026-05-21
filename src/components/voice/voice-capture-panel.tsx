@@ -69,6 +69,7 @@ interface ISpeechRecognition {
   stop(): void;
   addEventListener(type: "result", listener: (event: SpeechRecognitionEvent) => void): void;
   addEventListener(type: "error", listener: (event: SpeechRecognitionErrorEvent) => void): void;
+  addEventListener(type: "end", listener: () => void): void;
 }
 
 declare global {
@@ -101,6 +102,8 @@ function VoiceCapturePanel({
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const transcriptRef = useRef<string>("");
   const sectionRef = useRef<HTMLElement | null>(null);
+  const silenceTimerRef = useRef<number | null>(null);
+  const manualStopRef = useRef(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [state, setState] = useState<RecorderState>("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -189,10 +192,20 @@ function VoiceCapturePanel({
       setElapsedSeconds(0);
       transcriptRef.current = "";
 
-      const recognition: ISpeechRecognition = new SpeechRecognitionClass();
+      const recognition = new SpeechRecognitionClass() as unknown as ISpeechRecognition;
       recognition.continuous = true;
       recognition.interimResults = false;
       recognition.lang = "en-US";
+
+      const SILENCE_TIMEOUT_MS = 2500;
+
+      const resetSilenceTimer = () => {
+        if (silenceTimerRef.current) window.clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = window.setTimeout(() => {
+          silenceTimerRef.current = null;
+          stopRecording();
+        }, SILENCE_TIMEOUT_MS);
+      };
 
       recognition.addEventListener("result", (event) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -200,6 +213,7 @@ function VoiceCapturePanel({
             transcriptRef.current +=
               (transcriptRef.current ? " " : "") +
               event.results[i][0].transcript;
+            resetSilenceTimer();
           }
         }
       });
@@ -214,6 +228,26 @@ function VoiceCapturePanel({
         }
       });
 
+      recognition.addEventListener("end", () => {
+        if (silenceTimerRef.current) {
+          window.clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+        }
+        // If recognition ended without a manual stop (browser timeout, mic disconnect, etc.),
+        // process whatever was captured.
+        if (!manualStopRef.current) {
+          recognitionRef.current = null;
+          const transcript = transcriptRef.current.trim();
+          if (transcript) {
+            processTranscript(transcript);
+          } else {
+            setState("error");
+            setMessage("No speech detected. Please try again.");
+          }
+        }
+        manualStopRef.current = false;
+      });
+
       recognitionRef.current = recognition;
       recognition.start();
       setState("recording");
@@ -224,7 +258,12 @@ function VoiceCapturePanel({
   }, []);
 
   function stopRecording() {
+    if (silenceTimerRef.current) {
+      window.clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     if (!recognitionRef.current) return;
+    manualStopRef.current = true;
     recognitionRef.current.stop();
     recognitionRef.current = null;
 
@@ -485,7 +524,7 @@ function VoiceCapturePanel({
                   ? `${elapsedSeconds}s recorded`
                   : state === "processing"
                     ? "Transcribing and extracting tasks..."
-                    : "Start when you are ready, then stop to process immediately."}
+                    : "Start when you're ready. Recording stops automatically after a pause."}
               </p>
             </div>
           </div>

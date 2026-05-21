@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Board, BoardSnapshot, Project, ProjectWithChapters, UserProfile } from "@/types";
-import { ArrowLeft, ArrowRight, ArrowUp, Check, LoaderCircle, X } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, ArrowUp, Check, LoaderCircle, X } from "lucide-react";
 import { ChapterOverviewPanel } from "@/components/board/chapter-overview-panel";
 import { EndChapterModal } from "@/components/board/end-chapter-modal";
 import { StoryHub } from "@/components/board/story-hub";
@@ -508,29 +507,6 @@ export function ChapterOverviewShell({
       : null;
   })();
 
-  const mobileBanner = snapshot.board.retroCompletedAt ? (
-    <div className="flex w-full shrink-0 items-center justify-between gap-3 border-b border-green-200 bg-green-50 px-4 py-3">
-      <p className="text-sm text-green-800">
-        completed on{" "}
-        <span className="font-semibold">
-          {new Date(snapshot.board.retroCompletedAt).toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </span>.
-      </p>
-      {activeChapterUrl ? (
-        <Link
-          href={activeChapterUrl}
-          className="flex shrink-0 items-center gap-1 text-xs font-semibold text-green-700 transition hover:text-green-900"
-        >
-          Current chapter
-          <ArrowRight className="size-3" />
-        </Link>
-      ) : null}
-    </div>
-  ) : null;
 
   return (
     <>
@@ -542,7 +518,6 @@ export function ChapterOverviewShell({
         mobileEyebrow={snapshot.board.name}
         mobileTitle={snapshot.project.name}
         activeNav="story"
-        mobileBanner={mobileBanner}
         onPlanChapters={() => router.push(`/projects/${currentProjectId}?plan=true`)}
       >
         <div className="flex h-full min-h-0 flex-col">
