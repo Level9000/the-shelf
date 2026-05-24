@@ -78,7 +78,7 @@ export function ChapterShareCard({
               Shelf
             </div>
 
-            <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+            <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
               {board.name} · {project.name}
             </p>
 
@@ -115,7 +115,7 @@ export function ChapterShareCard({
           </div>
 
           <div className="border-t border-white/10 px-6 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/30">
               never lose the story
             </p>
           </div>

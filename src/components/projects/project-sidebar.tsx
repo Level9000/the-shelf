@@ -138,7 +138,7 @@ function OpenBook({
           borderBottom: "1px solid rgba(0,0,0,0.10)",
         }}
       >
-        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#9C7A4A] mb-0.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9C7A4A] mb-0.5">
           Currently reading
         </p>
         <Link

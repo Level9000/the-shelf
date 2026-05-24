@@ -35,7 +35,7 @@ function CassShareCard({ pullQuote }: { pullQuote: string }) {
       <p
         style={{
           fontFamily: "'Share Tech Mono', monospace",
-          fontSize: "10px",
+          fontSize: "11px",
           color: "#c8a86b",
           letterSpacing: "3px",
           marginTop: "14px",

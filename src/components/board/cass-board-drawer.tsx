@@ -64,13 +64,13 @@ const MENU_OPTIONS: Array<{ key: ChatSubMode; label: string; sub: string }> = [
 const CASS_B: React.CSSProperties = {
   background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
   borderRadius: "12px 12px 12px 2px", padding: "12px 16px",
-  fontFamily: "'Special Elite', cursive", fontSize: "14px",
+  fontFamily: "'Special Elite', cursive", fontSize: "16px",
   lineHeight: "1.7", color: "#e8e0d0", maxWidth: "92%",
 };
 const USER_B: React.CSSProperties = {
   background: "rgba(200,168,107,0.1)", border: "1px solid rgba(200,168,107,0.22)",
   borderRadius: "12px 12px 2px 12px", padding: "10px 16px",
-  fontFamily: "'Share Tech Mono', monospace", fontSize: "13px",
+  fontFamily: "'Share Tech Mono', monospace", fontSize: "14px",
   lineHeight: "1.5", color: "#c8a86b", maxWidth: "80%",
 };
 const PRIORITY_COLORS: Record<NonNullable<Priority>, string> = {
@@ -111,19 +111,19 @@ function ProposalCard({
         <select
           value={task.suggestedColumn}
           onChange={(e) => onColumnChange(e.target.value)}
-          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "999px", padding: "2px 10px", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "#c8a86b", cursor: "pointer", outline: "none" }}
+          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "999px", padding: "2px 10px", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#c8a86b", cursor: "pointer", outline: "none" }}
         >
           {availableCols.map((c) => (
             <option key={c} value={c} style={{ background: "#1a1a1a" }}>{COLUMN_LABELS[c] ?? c}</option>
           ))}
         </select>
         {task.priority && (
-          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "1.5px", color: PRIORITY_COLORS[task.priority], textTransform: "uppercase", opacity: 0.8 }}>
+          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "1.5px", color: PRIORITY_COLORS[task.priority], textTransform: "uppercase", opacity: 0.8 }}>
             {task.priority}
           </span>
         )}
         {task.dueDate && (
-          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", color: "rgba(200,168,107,0.4)", letterSpacing: "0.5px" }}>
+          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)", letterSpacing: "0.5px" }}>
             due {task.dueDate}
           </span>
         )}
@@ -351,7 +351,7 @@ function BrainDumpRecorderView({
         </div>
       )}
 
-      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", color: "rgba(200,168,107,0.25)", textTransform: "uppercase", letterSpacing: "2px", margin: "20px 0 0" }}>
+      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.25)", textTransform: "uppercase", letterSpacing: "2px", margin: "20px 0 0" }}>
         {dumpState === "recording" ? "Tap to stop" : dumpState === "idle" || dumpState === "error" ? "Tap to record" : ""}
       </p>
     </div>
@@ -557,13 +557,13 @@ function MoveToChapterView({
         {movableTasks.length > 0 && (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2px" }}>
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
+              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
                 {selectedCount} selected
               </p>
               <button
                 type="button"
                 onClick={selectedCount === movableTasks.length ? () => setSelectedIds(new Set()) : selectAll}
-                style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", color: "rgba(200,168,107,0.5)", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.5px", padding: "2px 4px" }}
+                style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.5)", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.5px", padding: "2px 4px" }}
               >
                 {selectedCount === movableTasks.length ? "Deselect all" : "Select all"}
               </button>
@@ -695,7 +695,7 @@ function EndChapterView({
           <>
             {/* Task list */}
             <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(200,168,107,0.1)", borderRadius: "12px", padding: "12px 14px" }}>
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 10px" }}>
+              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 10px" }}>
                 Open tasks
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -705,7 +705,7 @@ function EndChapterView({
                   </p>
                 ))}
                 {incompleteTasks.length > 5 && (
-                  <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.35)", margin: 0 }}>
+                  <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.35)", margin: 0 }}>
                     +{incompleteTasks.length - 5} more
                   </p>
                 )}
@@ -732,7 +732,7 @@ function EndChapterView({
               </div>
               <div>
                 <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>Carry over to the next chapter</p>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.45)", margin: "4px 0 0", lineHeight: "1.5" }}>Open tasks move into the next chapter&apos;s backlog</p>
+                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "4px 0 0", lineHeight: "1.5" }}>Open tasks move into the next chapter&apos;s backlog</p>
               </div>
             </button>
 
@@ -756,7 +756,7 @@ function EndChapterView({
               </div>
               <div>
                 <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: choice === "delete" ? "#fca5a5" : "#e8e0d0", margin: 0, lineHeight: "1.3" }}>Remove them — this chapter is done</p>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.45)", margin: "4px 0 0", lineHeight: "1.5" }}>Incomplete tasks are deleted. The chapter closes clean.</p>
+                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "4px 0 0", lineHeight: "1.5" }}>Incomplete tasks are deleted. The chapter closes clean.</p>
               </div>
             </button>
           </>
@@ -1184,7 +1184,7 @@ export function CassBoardDrawer({
             <button
               type="button"
               onClick={isBreakupMode ? onClose : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); }}
-              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
+              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#e8e0d0"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
             >{isBreakupMode ? "✕ cancel" : "← back"}</button>
@@ -1204,7 +1204,7 @@ export function CassBoardDrawer({
                   <CassRecorder animState={headerCassAnim} size="sm" />
                 </div>
               </div>
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>Cass</p>
+              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>Cass</p>
             </>
           )}
         </div>
@@ -1237,7 +1237,7 @@ export function CassBoardDrawer({
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                     <div>
                       <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>
+                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>
                     </div>
                   </button>
                 ))}
@@ -1256,7 +1256,7 @@ export function CassBoardDrawer({
                       <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.2)", background: "transparent" }} />
                       <div>
                         <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "rgba(232,224,208,0.7)", margin: 0, lineHeight: "1.3" }}>End this chapter early</p>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the chapter and write the story</p>
+                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the chapter and write the story</p>
                       </div>
                     </button>
                   </>
@@ -1276,7 +1276,7 @@ export function CassBoardDrawer({
                       <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(251,146,60,0.6)", background: "transparent" }} />
                       <div>
                         <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "rgba(251,180,80,0.9)", margin: 0, lineHeight: "1.3" }}>Refocus this chapter</p>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(251,146,60,0.45)", margin: "3px 0 0" }}>Cut what&apos;s not happening — write what is</p>
+                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(251,146,60,0.45)", margin: "3px 0 0" }}>Cut what&apos;s not happening — write what is</p>
                       </div>
                     </button>
                   </>
@@ -1312,7 +1312,7 @@ export function CassBoardDrawer({
                   <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                   <div>
                     <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>Take me to the latest chapter</p>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Jump to where the work is happening</p>
+                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Jump to where the work is happening</p>
                   </div>
                 </button>
               )}
@@ -1327,7 +1327,7 @@ export function CassBoardDrawer({
                   <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                   <div>
                     <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>Plan new chapters</p>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Write the next act of the story</p>
+                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Write the next act of the story</p>
                   </div>
                 </button>
               )}
@@ -1376,7 +1376,7 @@ export function CassBoardDrawer({
                     flexDirection: "column",
                     gap: "3px",
                   }}>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>Breaking up</p>
+                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>Breaking up</p>
                     <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#e8e0d0", margin: 0, lineHeight: "1.4" }}>{breakupTask.title}</p>
                   </div>
                 )}
@@ -1403,7 +1403,7 @@ export function CassBoardDrawer({
                 {/* Proposal cards */}
                 {hasProposals && !savedOk && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 4px" }}>
+                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 4px" }}>
                       {reviewTasks.length} card{reviewTasks.length !== 1 ? "s" : ""} captured — review &amp; adjust
                     </p>
                     {reviewTasks.map((task, i) => (
@@ -1439,7 +1439,7 @@ export function CassBoardDrawer({
                             <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#e8e0d0", margin: "0 0 4px", lineHeight: "1.6" }}>
                               This looks like something you'd run again. Want me to save it as a workflow?
                             </p>
-                            <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.5)", margin: 0 }}>
+                            <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: 0 }}>
                               "{templateDraft.name}"
                             </p>
                           </div>

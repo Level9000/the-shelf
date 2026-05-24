@@ -227,7 +227,7 @@ function FormatPicker({
             <p
               style={{
                 fontFamily: "'Share Tech Mono', monospace",
-                fontSize: "10px",
+                fontSize: "11px",
                 color: "#555",
                 margin: "3px 0 0",
                 lineHeight: "1.4",

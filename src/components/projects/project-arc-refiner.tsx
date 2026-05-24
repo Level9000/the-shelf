@@ -424,7 +424,7 @@ export function ProjectArcRefiner({
                         <div className="flex items-center gap-2">
                           <span
                             className={cn(
-                              "inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                              "inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
                               status === "complete" && "bg-green-100 text-green-700",
                               status === "active" && "bg-[var(--accent-soft)] text-[var(--accent)]",
                               status === "upcoming" && "bg-black/5 text-[var(--muted)]",
@@ -441,7 +441,7 @@ export function ProjectArcRefiner({
                           <p className="text-xs font-semibold text-[var(--ink)]">Chapter {i + 1}</p>
                           <span
                             className={cn(
-                              "ml-auto text-[10px] font-semibold",
+                              "ml-auto text-[11px] font-semibold",
                               status === "complete" && "text-green-600",
                               status === "active" && "text-[var(--accent)]",
                               status === "upcoming" && "text-[var(--muted)]",

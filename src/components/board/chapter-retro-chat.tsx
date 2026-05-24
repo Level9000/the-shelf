@@ -145,7 +145,7 @@ function RetroCompletionModal({
       {/* Pull-quote card */}
       <div className="overflow-hidden rounded-[1.75rem] bg-[var(--ink)] text-white">
         <div className="px-5 pt-5 pb-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
             {board.name} · {project.name}
           </p>
           <blockquote className="mt-3 text-base font-semibold leading-snug tracking-tight">

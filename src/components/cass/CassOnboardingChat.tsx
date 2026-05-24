@@ -423,7 +423,7 @@ export function CassOnboardingChat({
             <div
               style={{
                 fontFamily: "'Share Tech Mono', monospace",
-                fontSize: "10px",
+                fontSize: "11px",
                 letterSpacing: "3px",
                 color: "#c8a86b",
                 textTransform: "uppercase",

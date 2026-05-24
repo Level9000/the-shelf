@@ -55,7 +55,7 @@ function NoteBody({ task, columnName }: { task: Task; columnName?: string }) {
         </div>
 
         {task.description ? (
-          <p className="mt-2 line-clamp-3 text-[12px] leading-5 text-black/50">
+          <p className="mt-2 line-clamp-3 text-[13px] leading-5 text-black/50">
             {task.description}
           </p>
         ) : null}
@@ -160,7 +160,7 @@ export function TaskCard({
       {/* Mobile-only: quick-tap column move buttons */}
       {allColumns && onMoveToColumn && (
         <div className="lg:hidden">
-          <p className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-black/30">
+          <p className="px-3 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-black/30">
             Move to
           </p>
           <div className="flex divide-x divide-black/8 border-t border-black/8">

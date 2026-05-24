@@ -72,12 +72,11 @@ interface ISpeechRecognition {
   addEventListener(type: "end", listener: () => void): void;
 }
 
-declare global {
-  interface Window {
-    SpeechRecognition: new () => ISpeechRecognition;
-    webkitSpeechRecognition: new () => ISpeechRecognition;
-  }
-}
+type SpeechRecognitionCtor = new () => ISpeechRecognition;
+type WindowWithSpeech = Window & {
+  SpeechRecognition?: SpeechRecognitionCtor;
+  webkitSpeechRecognition?: SpeechRecognitionCtor;
+};
 
 export const VoiceCapturePanel = forwardRef<VoiceCapturePanelHandle, {
   project: Project;
@@ -177,8 +176,8 @@ function VoiceCapturePanel({
   }, [onProcessed, project.id, startTransition]);
 
   const startRecording = useCallback(() => {
-    const SpeechRecognitionClass =
-      window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    const win = window as unknown as WindowWithSpeech;
+    const SpeechRecognitionClass = win.SpeechRecognition ?? win.webkitSpeechRecognition;
 
     if (!SpeechRecognitionClass) {
       setState("error");
@@ -397,7 +396,7 @@ function VoiceCapturePanel({
                     <MessageSquareText className="size-4 text-[var(--accent)]" />
                     Plan with AI
                   </div>
-                <div className="rounded-full bg-black px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                <div className="rounded-full bg-black px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white">
                   Live
                 </div>
               </div>
@@ -460,7 +459,7 @@ function VoiceCapturePanel({
                   <MessageSquareText className="size-4 text-[var(--accent)]" />
                   Plan with AI
                 </div>
-                <div className="rounded-full bg-black px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                <div className="rounded-full bg-black px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white">
                   Live
                 </div>
               </div>

@@ -544,7 +544,7 @@ export function StrategicTextDialogueModal({
                         Trigger: {template.triggerPhrase}
                       </p>
                     </div>
-                    <div className="rounded-full bg-black px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                    <div className="rounded-full bg-black px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white">
                       {status === "ready_for_review" ? "Ready" : "Draft"}
                     </div>
                   </div>

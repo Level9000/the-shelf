@@ -2,16 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import localFont from "next/font/local";
 import { useActionState } from "react";
 import { ArrowRight } from "lucide-react";
 import type { FormState } from "@/lib/actions/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const literata = localFont({
-  src: "../../../public/fonts/Literata.ttf",
-});
 
 const initialState: FormState = {};
 
@@ -38,22 +33,8 @@ export function AuthForm({
 
   const loginWidget = (
     <div className="w-full max-w-md">
-      {/* Mobile header — hero text with highlights replaces title/subtitle */}
-      <div className="mb-6 lg:hidden" style={{ fontFamily: literata.style.fontFamily }}>
-        <h1 className="text-3xl font-bold leading-[1.35]">
-          <span className="box-decoration-clone bg-[#fef9c3] px-2 py-0.5">
-            Welcome to Authored By.
-          </span>
-        </h1>
-        <p className="mt-3 text-base font-medium leading-[1.4]">
-          <span className="box-decoration-clone bg-black px-2 py-0.5 text-white">
-            Helping you tell your founders story, while you build.
-          </span>
-        </p>
-      </div>
-      {/* Desktop header */}
-      <h1 className="hidden text-3xl font-semibold tracking-tight lg:block">{title}</h1>
-      <p className="mt-2 hidden text-sm leading-6 text-[var(--muted)] lg:block">{subtitle}</p>
+      <h1 className="text-3xl font-semibold tracking-tight text-[var(--ink)]">{title}</h1>
+      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{subtitle}</p>
       <form action={formAction} className="mt-8 space-y-4">
         <input type="hidden" name="next" value={nextPath ?? "/projects"} />
         <div>
@@ -88,52 +69,37 @@ export function AuthForm({
   );
 
   return (
-    <div className="flex min-h-screen bg-neutral-100 lg:items-center lg:justify-center lg:p-8">
+    <div className="flex min-h-screen bg-white lg:items-center lg:justify-center lg:p-8">
 
       {/* Card */}
       <div className="relative w-full overflow-hidden lg:max-w-6xl lg:rounded-[3rem] lg:border lg:border-black/10 lg:shadow-2xl lg:shadow-black/20 lg:grid lg:grid-cols-2 lg:min-h-[680px]">
 
-        {/* Hero panel — full screen on mobile (with login widget inside), left half on desktop */}
-        <div className="relative flex min-h-screen flex-col px-8 py-10 sm:px-12 sm:py-12 lg:min-h-0">
+        {/* Left panel — cassette hero */}
+        <div className="flex flex-col items-center justify-center bg-white px-8 py-12 sm:px-12">
+
+          {/* Cassette image */}
           <Image
-            src="/images/paper.png"
-            alt=""
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover object-top"
+            src="/icons/authored_by_transparent.png"
+            alt="Authored By"
+            width={440}
+            height={330}
+            className="w-full max-w-[340px] lg:max-w-[400px] h-auto"
             priority
           />
 
-          {/* Login form floats in the middle on mobile only */}
-          <div className="relative flex flex-1 items-center justify-center lg:hidden">
-            <div className="w-full rounded-[1.5rem] bg-white/92 p-7 shadow-xl backdrop-blur-md">
-              {loginWidget}
-            </div>
-          </div>
+          {/* Tagline — desktop only */}
+          <p className="mt-6 hidden text-center text-sm leading-relaxed text-[var(--muted)] lg:block">
+            Helping you tell your founders story, while you build.
+          </p>
 
-          {/* Hero text — desktop only, pinned to bottom */}
-          <div className="relative hidden lg:block">
-            <h1
-              className="text-3xl font-bold leading-[1.35] sm:text-4xl lg:text-5xl"
-              style={{ fontFamily: literata.style.fontFamily }}
-            >
-              <span className="box-decoration-clone bg-white px-2 py-0.5">
-                Welcome to Authored By.
-              </span>
-            </h1>
-            <p
-              className="mt-3 text-base font-medium leading-[1.4] sm:text-xl"
-              style={{ fontFamily: literata.style.fontFamily }}
-            >
-              <span className="box-decoration-clone bg-black px-2 py-0.5 text-white">
-                Helping you tell your founders story, while you build.
-              </span>
-            </p>
+          {/* Login form — mobile only */}
+          <div className="mt-10 w-full lg:hidden">
+            {loginWidget}
           </div>
         </div>
 
-        {/* Login panel — desktop only */}
-        <div className="relative hidden items-center justify-center bg-white px-12 py-16 lg:flex">
+        {/* Right panel — login form, desktop only */}
+        <div className="hidden items-center justify-center border-l border-black/6 bg-white px-12 py-16 lg:flex">
           {loginWidget}
         </div>
 

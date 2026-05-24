@@ -124,7 +124,7 @@ function HubView({
             <p
               style={{
                 fontFamily: "'Share Tech Mono', monospace",
-                fontSize: "10px",
+                fontSize: "11px",
                 color: "#555",
                 letterSpacing: "1px",
                 marginTop: "8px",
@@ -161,7 +161,7 @@ function HubView({
         <p
           style={{
             fontFamily: "'Share Tech Mono', monospace",
-            fontSize: "10px",
+            fontSize: "11px",
             letterSpacing: "2px",
             color: "#444",
             textTransform: "uppercase",

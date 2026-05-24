@@ -96,7 +96,7 @@ function ProposedTaskList({
               {task.title}
             </span>
             {task.source === "component_library" ? (
-              <span className="ml-auto shrink-0 rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+              <span className="ml-auto shrink-0 rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
                 from library
               </span>
             ) : null}
@@ -599,7 +599,7 @@ export function ChapterKickoffChat({
           <aside className="surface-card hairline min-h-0 rounded-[2rem] p-5 lg:flex lg:flex-col">
             {chapterData.openingLine ? (
               <div className="mb-4 rounded-[1.25rem] bg-[var(--ink)] px-4 py-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
                   This chapter opens with
                 </p>
                 <blockquote className="mt-2 text-sm font-medium leading-6 text-white">
@@ -866,7 +866,7 @@ export function ChapterKickoffChat({
                   Backlog Suggestions
                 </p>
                 {visibleSuggestions.length > 0 ? (
-                  <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
+                  <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
                     {visibleSuggestions.length} task{visibleSuggestions.length === 1 ? "" : "s"}
                   </span>
                 ) : null}

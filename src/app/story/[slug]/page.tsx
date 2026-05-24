@@ -71,10 +71,10 @@ export default async function PublicStoryPage({
             <div className="grid gap-4 sm:grid-cols-2">
               {overviewItems.map(({ label, value }) => (
                 <div key={label}>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted,#888)]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted,#888)]">
                     {label}
                   </p>
-                  <p className="mt-1 text-sm leading-6 text-[var(--ink,#111)]">
+                  <p className="mt-1 text-sm leading-6 text-[var(--ink,#111)]" style={{ fontFamily: "Verdana, Geneva, sans-serif" }}>
                     {value}
                   </p>
                 </div>
@@ -96,6 +96,7 @@ export default async function PublicStoryPage({
               <p
                 key={i}
                 className="text-base leading-8 text-[var(--ink,#111)]"
+                style={{ fontFamily: "Verdana, Geneva, sans-serif" }}
               >
                 {paragraph}
               </p>

@@ -163,13 +163,13 @@ function CassRefineDrawer({
   const CASSB: React.CSSProperties = {
     background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
     borderRadius: "12px 12px 12px 2px", padding: "12px 16px",
-    fontFamily: "'Special Elite', cursive", fontSize: "14px",
+    fontFamily: "'Special Elite', cursive", fontSize: "16px",
     lineHeight: "1.7", color: "#e8e0d0", maxWidth: "92%",
   };
   const USER_B: React.CSSProperties = {
     background: "rgba(200,168,107,0.1)", border: "1px solid rgba(200,168,107,0.22)",
     borderRadius: "12px 12px 2px 12px", padding: "10px 16px",
-    fontFamily: "'Share Tech Mono', monospace", fontSize: "13px",
+    fontFamily: "'Share Tech Mono', monospace", fontSize: "14px",
     lineHeight: "1.5", color: "#c8a86b", maxWidth: "80%",
   };
 
@@ -206,7 +206,7 @@ function CassRefineDrawer({
             <button
               type="button"
               onClick={() => setMode("menu")}
-              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
+              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#e8e0d0"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
             >
@@ -228,7 +228,7 @@ function CassRefineDrawer({
               <CassRecorder animState={isPending ? "playing" : "idle"} size="sm" />
             </div>
           </div>
-          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 4px", opacity: 0.7 }}>Cass</p>
+          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 4px", opacity: 0.7 }}>Cass</p>
 
           {/* Progress dots — only in chat mode */}
           {mode === "chat" && (
@@ -240,7 +240,7 @@ function CassRefineDrawer({
                   <div key={s.key} title={s.title} style={{ width: current ? "20px" : "7px", height: "7px", borderRadius: "999px", background: done ? "#c8a86b" : current ? "rgba(200,168,107,0.5)" : "rgba(255,255,255,0.12)", transition: "all 0.3s ease" }} />
                 );
               })}
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", color: "rgba(200,168,107,0.4)", margin: "0 0 0 4px", letterSpacing: "1px" }}>{completedCount}/4</p>
+              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "0 0 0 4px", letterSpacing: "1px" }}>{completedCount}/4</p>
             </div>
           )}
         </div>
@@ -292,7 +292,7 @@ function CassRefineDrawer({
                             {s.nav} — {s.title}
                           </p>
                         </div>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>
+                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>
                           {filled ? "Already filled in — refine the language" : "Not set yet"}
                         </p>
                       </div>
@@ -341,7 +341,7 @@ function CassRefineDrawer({
               {approvalOpen && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
                   <div style={{ background: "rgba(200,168,107,0.06)", border: "1px solid rgba(200,168,107,0.25)", borderRadius: "14px", padding: "14px 16px" }}>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 8px" }}>
+                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 8px" }}>
                       Draft — {currentSection.shortTitle}
                     </p>
                     <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.75, color: "#e8e0d0", margin: 0 }}>{approvalDraft}</p>
@@ -370,7 +370,7 @@ function CassRefineDrawer({
 
             {/* Input bar */}
             <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px" }}>
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.35)", textTransform: "uppercase", margin: "0 0 10px" }}>
+              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.35)", textTransform: "uppercase", margin: "0 0 10px" }}>
                 {currentSection.nav} — {currentSection.title}
               </p>
               <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>

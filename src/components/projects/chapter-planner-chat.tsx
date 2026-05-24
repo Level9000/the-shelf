@@ -64,13 +64,13 @@ function ProposedChapterCard({
     <div className="group relative rounded-[1.5rem] bg-white px-4 py-4 ring-1 ring-black/6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Chapter {index + 1}
           </span>
           <p className="mt-0.5 font-semibold text-[var(--ink)]">{chapter.name}</p>
           {chapter.goal && (
             <p className="mt-1.5 text-sm leading-5 text-[var(--muted)]">
-              <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink)]/40">Bet</span>
+              <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--ink)]/40">Bet</span>
               {chapter.goal}
             </p>
           )}
@@ -443,7 +443,7 @@ export function ChapterPlannerChat({
                   Chapters taking shape
                 </p>
                 {liveChapters.length > 0 && (
-                  <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
+                  <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
                     {liveChapters.length}
                   </span>
                 )}

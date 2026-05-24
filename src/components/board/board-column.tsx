@@ -7,7 +7,16 @@ import type { BoardColumn, Task } from "@/types";
 import { TaskCard } from "@/components/tasks/task-card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { COLUMN_TINTS } from "@/lib/constants";
+
+const TAPE_CLIP = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
+
+// Tape colour matches the post-it body colour for each column
+const TAPE_COLORS: Record<string, string> = {
+  "Do This Week": "#fde68a",
+  "Do Today":     "#bfdbfe",
+  "Blocked":      "#fbcfe8",
+  "Done":         "#bbf7d0",
+};
 
 export function BoardColumnView({
   column,
@@ -45,12 +54,24 @@ export function BoardColumnView({
     <>
       {/* Mobile: column title above the card */}
       <div className="mb-3 flex items-center justify-between px-1 lg:hidden">
-        <p className="text-base font-semibold" style={{ fontFamily: "'Special Elite', cursive" }}>
-          {column.name}
-          <span className="ml-2 text-sm font-normal text-[var(--muted)]" style={{ fontFamily: "inherit" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{
+            fontFamily: "'Caveat', cursive",
+            fontSize: "18px",
+            fontWeight: 700,
+            padding: "4px 14px 5px",
+            background: TAPE_COLORS[column.name] ?? "#e8dfc0",
+            clipPath: TAPE_CLIP,
+            boxShadow: "2px 1px 4px rgba(0,0,0,0.12)",
+            color: "#1a0e00",
+            display: "inline-block",
+          }}>
+            {column.name}
+          </span>
+          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(0,0,0,0.35)" }}>
             {tasks.length} card{tasks.length === 1 ? "" : "s"}
           </span>
-        </p>
+        </div>
         {onOpenCass && (
           <button
             type="button"
@@ -70,14 +91,27 @@ export function BoardColumnView({
           showDropHere && "ring-2 ring-[var(--accent)]/40",
         )}
       >
-        {/* Desktop: tinted header with title */}
-        <div className={cn("hidden items-center justify-between bg-gradient-to-b p-4 lg:flex", COLUMN_TINTS[column.name])}>
-          <p className="text-sm font-semibold" style={{ fontFamily: "'Special Elite', cursive" }}>
-            {column.name}
-            <span className="ml-2 text-xs font-normal text-[var(--muted)]" style={{ fontFamily: "inherit" }}>
+        {/* Desktop: tape header with title */}
+        <div className="hidden items-center justify-between px-4 pb-2 pt-4 lg:flex">
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{
+              fontFamily: "'Caveat', cursive",
+              fontSize: "18px",
+              fontWeight: 700,
+              padding: "4px 14px 5px",
+              background: TAPE_COLORS[column.name] ?? "#e8dfc0",
+              clipPath: TAPE_CLIP,
+              boxShadow: "2px 1px 4px rgba(0,0,0,0.12)",
+              color: "#1a0e00",
+              display: "inline-block",
+              textTransform: "uppercase",
+            }}>
+              {column.name}
+            </span>
+            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(0,0,0,0.35)" }}>
               {tasks.length} card{tasks.length === 1 ? "" : "s"}
             </span>
-          </p>
+          </div>
           {onOpenCass && (
             <button
               type="button"

@@ -108,7 +108,7 @@ function ChatHistoryDrawer({
           <div>
             <p style={{
               fontFamily: "'Share Tech Mono', monospace",
-              fontSize: "9px", letterSpacing: "3px",
+              fontSize: "11px", letterSpacing: "3px",
               color: "rgba(200,168,107,0.45)", textTransform: "uppercase", marginBottom: "5px",
             }}>
               Cass · Archived
@@ -139,7 +139,7 @@ function ChatHistoryDrawer({
         }}>
           <p style={{
             fontFamily: "'Share Tech Mono', monospace",
-            fontSize: "10px", letterSpacing: "0.8px",
+            fontSize: "11px", letterSpacing: "0.8px",
             color: "rgba(74,222,128,0.75)", margin: 0,
           }}>
             ✓&nbsp; this conversation completed on {completedDate}
@@ -184,7 +184,7 @@ function ChatHistoryDrawer({
           }}>
             <p style={{
               fontFamily: "'Share Tech Mono', monospace",
-              fontSize: "10px", letterSpacing: "1px",
+              fontSize: "11px", letterSpacing: "1px",
               color: "rgba(200,168,107,0.28)", margin: 0,
             }}>
               this conversation has ended
@@ -204,7 +204,7 @@ const CASSB_STYLE = {
   borderRadius: "12px 12px 12px 2px",
   padding: "12px 16px",
   fontFamily: "'Special Elite', cursive",
-  fontSize: "15px",
+  fontSize: "16px",
   lineHeight: "1.65",
   color: "#e8e0d0",
 } as const;
@@ -215,7 +215,7 @@ const USER_BUBBLE_STYLE = {
   borderRadius: "12px 12px 2px 12px",
   padding: "10px 16px",
   fontFamily: "'Share Tech Mono', monospace",
-  fontSize: "13px",
+  fontSize: "14px",
   lineHeight: "1.5",
   color: "#c8a86b",
   maxWidth: "80%",
@@ -464,7 +464,7 @@ function CassChronicleDrawer({
                 display: "flex", alignItems: "center", gap: "6px",
                 borderRadius: "999px", background: "rgba(255,255,255,0.06)",
                 color: "#888", border: "none", cursor: "pointer",
-                fontFamily: "'Share Tech Mono', monospace", fontSize: "10px",
+                fontFamily: "'Share Tech Mono', monospace", fontSize: "11px",
                 letterSpacing: "0.5px",
                 transition: "background 0.15s, color 0.15s",
               }}
@@ -498,7 +498,7 @@ function CassChronicleDrawer({
               <CassRecorder animState={isPending ? "playing" : "idle"} size="sm" />
             </div>
           </div>
-          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>
+          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>
             Cass
           </p>
         </div>
@@ -544,7 +544,7 @@ function CassChronicleDrawer({
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                     <div>
                       <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>{label}</p>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>{sub}</p>
+                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>{sub}</p>
                     </div>
                   </button>
                 ))}
@@ -590,7 +590,7 @@ function CassChronicleDrawer({
             {/* Live chapter tally — subtle, shown when chapters are forming */}
             {liveChapters.length > 0 && (
               <div style={{ flexShrink: 0, padding: "6px 20px", borderTop: "1px solid rgba(200,168,107,0.08)" }}>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
+                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
                   {liveChapters.length} chapter{liveChapters.length !== 1 ? "s" : ""} taking shape…
                 </p>
               </div>
@@ -660,7 +660,7 @@ function CassChronicleDrawer({
                       position: "relative",
                     }}
                   >
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 4px" }}>
+                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 4px" }}>
                       Chapter {project.chapters.length + i - [...removedIndices].filter((r) => r < i).length + 1}
                     </p>
                     <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#e8e0d0", margin: 0 }}>{ch.name}</p>
@@ -734,7 +734,7 @@ function CassChronicleDrawer({
               </div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", letterSpacing: "3px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 10px" }}>
+              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "3px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 10px" }}>
                 Chapters planned
               </p>
               <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "22px", color: "#e8e0d0", margin: 0, lineHeight: 1.3 }}>
@@ -815,7 +815,7 @@ function ChapterEntry({
   }
 
   return (
-    <div>
+    <div id={`chapter-${chapter.id}`}>
       {/* Gold rule divider between chapters */}
       {index > 0 && (
         <div
@@ -828,45 +828,20 @@ function ChapterEntry({
       )}
 
       <div style={{ opacity: status === "planned" ? 0.4 : 1, transition: "opacity 0.2s" }}>
-        {/* Chapter label */}
-        <p
-          style={{
-            fontFamily: "'Share Tech Mono', monospace",
-            fontSize: "9px",
-            letterSpacing: "3.5px",
-            color: status === "completed" ? "rgba(200,168,107,0.55)" : "rgba(200,168,107,0.3)",
-            textTransform: "uppercase",
-            marginBottom: "6px",
-          }}
-        >
-          Chapter {index + 1}
-          {status === "working_on_it" && (
-            <span style={{ marginLeft: "10px", color: "rgba(200,168,107,0.5)" }}>· in progress</span>
-          )}
-          {status === "planned" && (
-            <span style={{ marginLeft: "10px", color: "rgba(200,168,107,0.3)" }}>· coming up</span>
-          )}
-        </p>
-
         {/* Chapter name — links to the chapter page */}
         <Link
           href={`/projects/${projectId}/chapters/${chapter.id}`}
           style={{ textDecoration: "none" }}
         >
-          <h2
-            style={{
-              fontFamily: "'Special Elite', cursive",
-              fontSize: "22px",
-              margin: 0,
-              lineHeight: 1.45,
-              opacity: status === "planned" ? 0.45 : 1,
-              transition: "opacity 0.15s",
-            }}
-          >
-            <span
-              className="box-decoration-clone"
-              style={{ background: "#f5ede0", color: "#0a0a0a", padding: "2px 8px" }}
-            >
+          <h2 style={{ fontFamily: "'Caveat', cursive", fontSize: "26px", margin: 0, lineHeight: 1.3 }}>
+            <span style={{
+              display: "inline-block",
+              background: "#e8dfc0",
+              color: "#1a0e00",
+              padding: "3px 14px 5px",
+              clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
+              boxShadow: "2px 2px 5px rgba(0,0,0,0.3)",
+            }}>
               {chapter.name}
             </span>
           </h2>
@@ -874,25 +849,23 @@ function ChapterEntry({
 
         {/* Completed: pull quote */}
         {status === "completed" && chapter.openingLine && (
-          <p
-            style={{
-              fontFamily: "'Special Elite', cursive",
-              fontSize: "17px",
-              fontStyle: "italic",
-              color: "#c8a86b",
-              lineHeight: 1.75,
-              margin: "14px 0 0",
-              paddingLeft: "16px",
-              borderLeft: "2px solid rgba(200,168,107,0.3)",
-            }}
-          >
-            &ldquo;{chapter.openingLine}&rdquo;
+          <p style={{ fontFamily: "'Caveat', cursive", fontSize: "20px", lineHeight: 1.3, margin: "14px 0 0" }}>
+            <span style={{
+              display: "inline-block",
+              background: "#f5c84a",
+              color: "#1a0e00",
+              padding: "3px 14px 5px",
+              clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
+              boxShadow: "2px 2px 5px rgba(0,0,0,0.3)",
+            }}>
+              &ldquo;{chapter.openingLine}&rdquo;
+            </span>
           </p>
         )}
 
         {/* Completed: full chapter story */}
         {status === "completed" && chapter.chapterStory && renderParagraphs(chapter.chapterStory, {
-          fontFamily: "'Lora', Georgia, serif",
+          fontFamily: "Verdana, Geneva, sans-serif",
           fontSize: "15px",
           color: "rgba(232,224,208,0.8)",
           lineHeight: 1.85,
@@ -932,7 +905,7 @@ function ChapterEntry({
             />
             <p
               style={{
-                fontFamily: "'Lora', Georgia, serif",
+                fontFamily: "Verdana, Geneva, sans-serif",
                 fontSize: "14px",
                 color: "rgba(232,224,208,0.5)",
                 lineHeight: 1.7,
@@ -965,7 +938,7 @@ function ChapterEntry({
           <div style={{ marginTop: "36px" }}>
             <p style={{
               fontFamily: "'Share Tech Mono', monospace",
-              fontSize: "9px", letterSpacing: "3px",
+              fontSize: "11px", letterSpacing: "3px",
               color: "rgba(200,168,107,0.3)",
               textTransform: "uppercase", margin: "0 0 10px",
             }}>
@@ -1008,7 +981,7 @@ function ChapterEntry({
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                     <span style={{
                       fontFamily: "'Share Tech Mono', monospace",
-                      fontSize: "10px", color: "rgba(200,168,107,0.45)",
+                      fontSize: "11px", color: "rgba(200,168,107,0.45)",
                     }}>
                       {new Date(t.completedAt).toLocaleDateString("en-US", {
                         month: "short", day: "numeric", year: "numeric",
@@ -1051,6 +1024,17 @@ export function ProjectOverviewShell({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyThread, setHistoryThread] = useState<ChatThread | null>(null);
 
+  // Scroll to the selected chapter whenever lastChapterId changes
+  useEffect(() => {
+    if (!lastChapterId) return;
+    // Small delay ensures the DOM is fully painted before scrolling
+    const t = setTimeout(() => {
+      const el = document.getElementById(`chapter-${lastChapterId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [lastChapterId]);
+
   function openDrawerForPlanning() {
     setStartInPlanMode(true);
     setCassDrawerOpen(true);
@@ -1063,7 +1047,7 @@ export function ProjectOverviewShell({
         profile={profile}
         currentProjectId={project.id}
         lastChapterId={lastChapterId}
-        activeNav="overview"
+        activeNav="story"
         mobileEyebrow="Overview"
         mobileTitle={project.name}
         onPlanChapters={openDrawerForPlanning}
@@ -1102,7 +1086,7 @@ export function ProjectOverviewShell({
                 <p
                   style={{
                     fontFamily: "'Share Tech Mono', monospace",
-                    fontSize: "9px",
+                    fontSize: "11px",
                     letterSpacing: "3.5px",
                     color: "rgba(200,168,107,0.45)",
                     textTransform: "uppercase",
@@ -1111,19 +1095,15 @@ export function ProjectOverviewShell({
                 >
                   The Story So Far
                 </p>
-                <h1
-                  style={{
-                    fontFamily: "'Special Elite', cursive",
-                    fontSize: "clamp(28px, 5vw, 40px)",
-                    margin: 0,
-                    lineHeight: 1.45,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  <span
-                    className="box-decoration-clone"
-                    style={{ background: "#f5ede0", color: "#0a0a0a", padding: "3px 10px" }}
-                  >
+                <h1 style={{ fontFamily: "'Caveat', cursive", fontSize: "clamp(32px, 5vw, 46px)", margin: 0, lineHeight: 1.2 }}>
+                  <span style={{
+                    display: "inline-block",
+                    background: "#f5c84a",
+                    color: "#1a0e00",
+                    padding: "4px 16px 6px",
+                    clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
+                    boxShadow: "2px 3px 8px rgba(0,0,0,0.4)",
+                  }}>
                     {project.name}
                   </span>
                 </h1>
@@ -1178,7 +1158,7 @@ export function ProjectOverviewShell({
                   <div style={{ marginBottom: "52px" }}>
                     <p style={{
                       fontFamily: "'Share Tech Mono', monospace",
-                      fontSize: "9px", letterSpacing: "3px",
+                      fontSize: "11px", letterSpacing: "3px",
                       color: "rgba(200,168,107,0.3)",
                       textTransform: "uppercase", margin: "0 0 10px",
                     }}>
@@ -1221,7 +1201,7 @@ export function ProjectOverviewShell({
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                             <span style={{
                               fontFamily: "'Share Tech Mono', monospace",
-                              fontSize: "10px", color: "rgba(200,168,107,0.45)",
+                              fontSize: "11px", color: "rgba(200,168,107,0.45)",
                             }}>
                               {new Date(t.completedAt).toLocaleDateString("en-US", {
                                 month: "short", day: "numeric", year: "numeric",
