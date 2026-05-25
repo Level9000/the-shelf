@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Board } from "@/types";
 import { deleteChapterAction } from "@/lib/actions/project-actions";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { SideDrawer } from "@/components/ui/side-drawer";
 
 export function ChapterOverviewSettingsDrawer({
@@ -52,44 +51,40 @@ export function ChapterOverviewSettingsDrawer({
       title={`${board.name} settings`}
       description="Manage this chapter and remove it when the work is no longer needed."
     >
-      <section className="rounded-[1.75rem] bg-white/90 p-5 ring-1 ring-black/6">
-        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--danger)]">
-          <TriangleAlert className="size-4" />
-          Danger zone
-        </div>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+      <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "14px" }}>
+        <p className="text-sm leading-6 text-[var(--muted)]">
           Deleting a chapter removes its board, columns, and tasks.
         </p>
 
         {confirmingDelete ? (
-          <div className="mt-4 rounded-[1.4rem] bg-rose-50 px-4 py-4 text-sm text-rose-700">
-            <p className="font-semibold">Delete this chapter?</p>
-            <p className="mt-1 leading-6">
+          <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
+            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: "#f87171", fontWeight: 600 }}>Delete this chapter?</p>
+            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: "rgba(248,113,113,0.65)", marginTop: "4px" }}>
               This action cannot be undone.
             </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-3">
-              <Button
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginTop: "12px" }}>
+              <TapeButton
                 variant="secondary"
+                size="sm"
                 onClick={() => setConfirmingDelete(false)}
                 disabled={isPending}
               >
                 Keep chapter
-              </Button>
-              <Button
+              </TapeButton>
+              <TapeButton
                 variant="danger"
+                size="sm"
                 onClick={handleDelete}
                 disabled={isPending}
               >
-                {isPending ? "Deleting..." : "Delete chapter"}
-              </Button>
+                {isPending ? "Deleting…" : "Delete chapter"}
+              </TapeButton>
             </div>
           </div>
         ) : (
-          <div className="sticky bottom-0 mt-5 flex justify-center border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
-            <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
-              Delete chapter
-            </Button>
-          </div>
+          <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDelete(true)}>
+            Delete chapter
+          </TapeButton>
         )}
 
         {error ? (
@@ -97,7 +92,7 @@ export function ChapterOverviewSettingsDrawer({
             {error}
           </p>
         ) : null}
-      </section>
+      </div>
     </SideDrawer>
   );
 }

@@ -23,6 +23,25 @@
   --shadow-card: 0 18px 46px rgba(24, 21, 18, 0.08);
 }
 
+[data-theme="dark"] {
+  --app-bg: #0d0d0d;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --surface-muted: rgba(255, 255, 255, 0.03);
+  --stroke: rgba(255, 255, 255, 0.08);
+  --ink: #e8e0d0;
+  --muted: rgba(232, 224, 208, 0.45);
+  --accent: #e8e0d0;
+  --accent-soft: rgba(232, 224, 208, 0.08);
+  --danger: #f87171;
+  --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 18px 46px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] body {
+  background: #0d0d0d;
+}
+
 @theme inline {
   --color-background: var(--app-bg);
   --color-foreground: var(--ink);

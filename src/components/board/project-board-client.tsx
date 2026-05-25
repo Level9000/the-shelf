@@ -525,7 +525,7 @@ export function ProjectBoardClient({
               <Badge className="mb-4">Saving changes...</Badge>
             </div>
           ) : null}
-          <div>
+          <div style={{ position: "relative" }}>
             <DndContext
               id="board-dnd-context"
               sensors={sensors}
@@ -597,7 +597,7 @@ export function ProjectBoardClient({
               </div>
 
               {/* Desktop: 4-column grid — flush top, no gaps, separator borders */}
-              <div className="hidden border-b border-t border-black/6 lg:grid lg:grid-cols-4">
+              <div className="hidden border-b border-black/6 lg:grid lg:grid-cols-4">
                 {snapshot.columns.map((column) => (
                   <BoardColumnView
                     key={column.id}
@@ -625,6 +625,35 @@ export function ProjectBoardClient({
                 tasks={tasks}
               />
             </DndContext>
+
+            {/* Completed overlay — diagonal tape strip across the whole board */}
+            {snapshot.board.retroCompletedAt && (
+              <div style={{
+                position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10,
+                overflow: "hidden", display: "flex", alignItems: "flex-start", justifyContent: "center",
+                paddingTop: "250px",
+              }}>
+                <div style={{
+                  background: "#bbf7d0",
+                  clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
+                  transform: "rotate(-18deg)",
+                  width: "110%",
+                  padding: "18px 60px 22px",
+                  textAlign: "center",
+                  fontFamily: "'Caveat', cursive",
+                  fontSize: "42px",
+                  fontWeight: 700,
+                  color: "#1a0e00",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                  lineHeight: 1.2,
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.2), 0 8px 40px rgba(0,0,0,0.15)",
+                  whiteSpace: "nowrap",
+                }}>
+                  Completed on: {new Date(snapshot.board.retroCompletedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 

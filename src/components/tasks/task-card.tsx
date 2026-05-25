@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { BoardColumn, Task } from "@/types";
 import { cn, formatDate } from "@/lib/utils";
+import { useTheme } from "@/lib/theme-context";
 
 const POSTIT_PALETTE: Record<string, { body: string; tab: string }> = {
   "Do This Week": { body: "bg-yellow-100", tab: "bg-yellow-200" },
@@ -32,6 +33,14 @@ function priorityDot(priority: Task["priority"]) {
 function NoteBody({ task, columnName }: { task: Task; columnName?: string }) {
   const colors = POSTIT_PALETTE[columnName ?? ""] ?? DEFAULT_POSTIT;
   const dot = priorityDot(task.priority);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  // Sticky notes always have light pastel backgrounds — keep text dark.
+  // In dark mode soften from pure black to slate so it feels less harsh.
+  const titleColor  = isDark ? "#334155" : "rgba(0,0,0,0.80)"; // slate-700 / black-80
+  const descColor   = isDark ? "#475569" : "rgba(0,0,0,0.50)"; // slate-600 / black-50
+  const metaColor   = isDark ? "#64748b" : "rgba(0,0,0,0.45)"; // slate-500 / black-45
 
   return (
     <>
@@ -49,19 +58,19 @@ function NoteBody({ task, columnName }: { task: Task; columnName?: string }) {
               title={task.priority ?? undefined}
             />
           )}
-          <h4 className="text-[13px] font-semibold leading-5 text-[var(--ink)]">
+          <h4 className="text-[13px] font-semibold leading-5" style={{ color: titleColor }}>
             {task.title}
           </h4>
         </div>
 
         {task.description ? (
-          <p className="mt-2 line-clamp-3 text-[13px] leading-5 text-black/50">
+          <p className="mt-2 line-clamp-3 text-[13px] leading-5" style={{ color: descColor }}>
             {task.description}
           </p>
         ) : null}
 
         {(task.dueDate || task.assigneeName || task.sourceVoiceCaptureId) ? (
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-black/45">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: metaColor }}>
             {task.dueDate && (
               <span className="inline-flex items-center gap-1">
                 <CalendarDays className="size-3" />

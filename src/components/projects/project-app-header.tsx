@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Menu, Settings, X } from "lucide-react";
+import { Menu, Settings, X } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
-import { logoutAction } from "@/lib/actions/auth-actions";
+import { useTheme } from "@/lib/theme-context";
 
 // ── LED menu item ─────────────────────────────────────────────────────────────
+
+const BOTH_TORN_CLIP = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
 
 function LedItem({
   active,
@@ -20,53 +22,73 @@ function LedItem({
   children: React.ReactNode;
 }) {
   const [hover, setHover] = useState(false);
+
+  const bg = (active || hover)
+    ? "#f5c84a"
+    : muted
+    ? "rgba(232,212,176,0.45)"
+    : "#e8dfc0";
+
+  const textColor = (active || hover) ? "#1a0e00" : muted ? "rgba(26,14,0,0.45)" : "#3a2a0a";
+  const shadow = (active || hover) && !muted
+    ? "0 0 20px rgba(245,200,74,0.5), 0 2px 8px rgba(0,0,0,0.22)"
+    : "0 1px 4px rgba(0,0,0,0.10)";
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        width: "100%",
-        fontFamily: "'Share Tech Mono', monospace",
-        fontSize: "12px",
-        fontStyle: muted ? "italic" : "normal",
-        color: active ? "#e8a020" : hover ? "#e8a020" : muted ? "#5a4a18" : "#9a7820",
-        textShadow: active ? "0 0 6px rgba(232,160,32,0.4)" : "none",
-        padding: "9px 14px",
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        background: hover ? "rgba(232,160,32,0.07)" : "transparent",
-        border: "none",
-        borderBottom: "1px solid #131008",
-        cursor: "pointer",
-        textAlign: "left",
-        transition: "background 0.1s, color 0.1s",
-      }}
-    >
-      <span style={{ fontSize: "10px", color: "#e8a020", minWidth: "10px", flexShrink: 0 }}>
-        {active ? "▸" : ""}
-      </span>
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+    <div style={{ padding: "3px 0" }}>
+      <button
+        type="button"
+        onClick={onClick}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          width: "100%",
+          background: bg,
+          border: "none",
+          clipPath: BOTH_TORN_CLIP,
+          cursor: "pointer",
+          padding: "8px 28px 10px",
+          textAlign: "left",
+          display: "block",
+          fontFamily: "'Caveat', cursive",
+          fontSize: "20px",
+          fontWeight: 700,
+          color: textColor,
+          textTransform: "uppercase",
+          fontStyle: muted ? "italic" : "normal",
+          letterSpacing: "0.01em",
+          lineHeight: 1.3,
+          boxShadow: shadow,
+          transform: (active || hover) && !muted ? "translateY(-1px)" : "translateY(0)",
+          transition: "background 0.15s, box-shadow 0.15s, color 0.15s, transform 0.12s",
+        }}
+      >
         {children}
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
 
+// Flat left edge, torn right edge — left side sits flush against the drawer wall
+const DRAWER_TAPE_CLIP = "polygon(0% 0%, calc(100% - 2px) 0%, 100% 20%, calc(100% - 4px) 48%, 100% 72%, calc(100% - 2px) 100%, 0% 100%)";
+
 function LedMenuHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{
-      fontFamily: "'Share Tech Mono', monospace",
-      fontSize: "8px",
-      letterSpacing: "0.28em",
-      color: "#4a3a12",
-      textTransform: "uppercase",
-      padding: "8px 14px 6px",
-      borderBottom: "1px solid #1a1608",
-    }}>
-      {children}
+    <div style={{ padding: "14px 0 6px" }}>
+      <span style={{
+        display: "inline-block",
+        fontFamily: "'Share Tech Mono', monospace",
+        fontSize: "11px",
+        letterSpacing: "0.15em",
+        color: "#1a0e00",
+        background: "#e8dfc0",
+        padding: "4px 22px 5px 14px",
+        clipPath: DRAWER_TAPE_CLIP,
+        boxShadow: "3px 1px 5px rgba(0,0,0,0.35)",
+        textTransform: "uppercase",
+      }}>
+        {children}
+      </span>
     </div>
   );
 }
@@ -115,18 +137,27 @@ function TapeLabel({
 // ── Pill toggle ───────────────────────────────────────────────────────────────
 
 function PillToggle({ on, disabled, onClick }: { on: boolean; disabled?: boolean; onClick: () => void }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <div
       onClick={disabled ? undefined : onClick}
       style={{
         position: "relative",
         width: "48px", height: "26px",
-        background: on ? "#1e1608" : "#151209",
+        background: on
+          ? (isDark ? "#1e1608" : "#e0dbd2")
+          : (isDark ? "#151209" : "#e8e4dc"),
         borderRadius: "13px",
-        border: `1.5px solid ${on ? "#c8880a" : "#3a2e10"}`,
+        border: `1.5px solid ${on ? "#c8880a" : (isDark ? "#3a2e10" : "rgba(26,14,0,0.18)")}`,
         boxShadow: on
-          ? "inset 0 2px 6px rgba(0,0,0,0.6), 0 0 10px rgba(200,136,10,0.25), 0 0 20px rgba(200,120,0,0.12)"
-          : "inset 0 2px 6px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05)",
+          ? (isDark
+              ? "inset 0 2px 6px rgba(0,0,0,0.6), 0 0 10px rgba(200,136,10,0.25), 0 0 20px rgba(200,120,0,0.12)"
+              : "inset 0 2px 4px rgba(0,0,0,0.08), 0 0 10px rgba(200,136,10,0.18), 0 0 18px rgba(200,120,0,0.09)")
+          : (isDark
+              ? "inset 0 2px 6px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05)"
+              : "inset 0 2px 4px rgba(0,0,0,0.07)"),
         cursor: disabled ? "default" : "pointer",
         flexShrink: 0,
         transition: "background 0.3s, border-color 0.3s",
@@ -172,14 +203,27 @@ export function ProjectAppHeader({
   onPlanChapters?: () => void;
 }) {
   const router = useRouter();
+  const { theme } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
   const effectiveNavChapterId = navChapterId ?? currentChapterId;
   const hasChapter = Boolean(effectiveNavChapterId);
+  const currentChapterIndex = currentProject?.chapters.findIndex((ch) => ch.id === effectiveNavChapterId) ?? -1;
+  const chapterNumber = currentChapterIndex >= 0 ? currentChapterIndex + 1 : null;
 
   const isBoard = activeNav === "board";
   const isStory = activeNav === "story" || activeNav === "overview";
+  const isDark = theme === "dark";
+
+  // Nav drawer theme-aware colors
+  const drawerBg = isDark ? "#0d1109" : "#faf9f4";
+  const drawerBorder = isDark ? "#3a3010" : "rgba(26,14,0,0.10)";
+  const drawerShadow = isDark
+    ? "8px 0 40px rgba(0,0,0,0.95), inset -1px 0 0 rgba(255,180,30,0.04)"
+    : "8px 0 40px rgba(0,0,0,0.12)";
+  const drawerHeaderBorder = isDark ? "#1a1608" : "rgba(26,14,0,0.10)";
+  const drawerCloseColor = isDark ? "#7a6a2e" : "rgba(26,14,0,0.4)";
 
   function handleSelectProject(p: ProjectWithChapters) {
     const activeChapter =
@@ -231,9 +275,9 @@ export function ProjectAppHeader({
           padding: "10px 20px",
           gap: "16px",
           height: "84px",
-          background: isStory ? "#0d0d0d" : "#ffffff",
-          borderBottom: `1px solid ${isStory ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)"}`,
-          boxShadow: isStory ? "0 2px 12px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.06)",
+          background: isDark ? "#0d0d0d" : "#ffffff",
+          borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)"}`,
+          boxShadow: isDark ? "0 2px 12px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.06)",
           flexShrink: 0,
           transition: "background 0.25s, border-color 0.25s, box-shadow 0.25s",
         }}
@@ -246,11 +290,11 @@ export function ProjectAppHeader({
           style={{
             width: "34px", height: "34px",
             borderRadius: "6px",
-            background: isStory ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-            border: `1px solid ${isStory ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.09)"}`,
+            background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+            border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.09)"}`,
             cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: isStory ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)",
+            color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)",
             flexShrink: 0,
             zIndex: 1,
             transition: "background 0.25s, border-color 0.25s, color 0.25s",
@@ -259,6 +303,24 @@ export function ProjectAppHeader({
           <Menu size={16} />
         </button>
 
+        {/* ── Project / Chapter breadcrumb ── */}
+        {currentProject && (
+          <div style={{ zIndex: 1, minWidth: 0 }}>
+            <span style={{
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: "14px",
+              letterSpacing: "0.06em",
+              color: isDark ? "rgba(232,223,192,0.45)" : "rgba(26,14,0,0.38)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "block",
+            }}>
+              {currentProject.name}{chapterNumber ? `: Chapter ${chapterNumber}` : ""}
+            </span>
+          </div>
+        )}
+
         {/* ── STORY / BOARD toggle — always absolutely centred ── */}
         <div
           style={{
@@ -266,35 +328,22 @@ export function ProjectAppHeader({
             left: "50%",
             transform: "translateX(-50%)",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
+            gap: "8px",
             zIndex: 2,
-            gap: "5px",
           }}
         >
-          <span style={{
-            fontFamily: "'Share Tech Mono', monospace",
-            fontSize: "7.5px",
-            letterSpacing: "0.18em",
-            color: isStory ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.3)",
-            textTransform: "uppercase",
-            userSelect: "none",
-          }}>
-            view
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <TapeLabel active={isStory} side="left" onClick={goStory}>
-              STORY
-            </TapeLabel>
-            <PillToggle on={isBoard} disabled={!hasChapter} onClick={handlePillToggle} />
-            <TapeLabel active={isBoard} disabled={!hasChapter} side="right" onClick={goBoard}>
-              BOARD
-            </TapeLabel>
-          </div>
+          <TapeLabel active={isStory} side="left" onClick={goStory}>
+            STORY
+          </TapeLabel>
+          <PillToggle on={isBoard} disabled={!hasChapter} onClick={handlePillToggle} />
+          <TapeLabel active={isBoard} disabled={!hasChapter} side="right" onClick={goBoard}>
+            BOARD
+          </TapeLabel>
         </div>
 
-        {/* ── Settings + Logout ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: "2px", zIndex: 1, flexShrink: 0, marginLeft: "auto" }}>
+        {/* ── Settings ── */}
+        <div style={{ display: "flex", alignItems: "center", zIndex: 1, flexShrink: 0, marginLeft: "auto" }}>
           <button
             type="button"
             onClick={onOpenSettings}
@@ -306,32 +355,13 @@ export function ProjectAppHeader({
               border: "none",
               cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: isStory ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)",
+              color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = isStory ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.75)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = isStory ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.75)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)"; }}
           >
             <Settings size={14} />
           </button>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              title="Sign out"
-              style={{
-                width: "30px", height: "30px",
-                borderRadius: "50%",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: isStory ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = isStory ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.75)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = isStory ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)"; }}
-            >
-              <LogOut size={14} />
-            </button>
-          </form>
         </div>
       </div>
 
@@ -357,34 +387,27 @@ export function ProjectAppHeader({
         <div style={{
           position: "absolute", left: 0, top: 0, bottom: 0,
           width: "280px",
-          background: "#0d1109",
-          borderRight: "1.5px solid #3a3010",
-          boxShadow: "8px 0 40px rgba(0,0,0,0.95), inset -1px 0 0 rgba(255,180,30,0.04)",
+          background: drawerBg,
+          borderRight: `1.5px solid ${drawerBorder}`,
+          boxShadow: drawerShadow,
           transform: drawerOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+          transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), background 0.25s, border-color 0.25s",
           display: "flex", flexDirection: "column",
           overflowY: "auto",
         }}>
-          {/* Drawer header */}
+          {/* Drawer close button */}
           <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "16px 16px 12px",
-            borderBottom: "1px solid #1a1608",
+            display: "flex", justifyContent: "flex-end",
+            padding: "10px 12px 8px",
+            borderBottom: `1px solid ${drawerHeaderBorder}`,
             flexShrink: 0,
           }}>
-            <span style={{
-              fontFamily: "'Share Tech Mono', monospace",
-              fontSize: "9px", letterSpacing: "0.3em",
-              color: "#4a3a12", textTransform: "uppercase",
-            }}>
-              Navigation
-            </span>
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                color: "#7a6a2e", padding: "4px",
+                color: drawerCloseColor, padding: "4px",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >
@@ -407,8 +430,6 @@ export function ProjectAppHeader({
             + New Project
           </LedItem>
 
-          {/* Divider */}
-          <div style={{ height: "1px", background: "#1a1608", margin: "6px 0" }} />
 
           {/* Chapter section */}
           <LedMenuHeader>Select Chapter</LedMenuHeader>
@@ -418,7 +439,7 @@ export function ProjectAppHeader({
               active={ch.id === (currentChapterId ?? navChapterId)}
               onClick={() => { setDrawerOpen(false); handleSelectChapter(ch); }}
             >
-              Ch {i + 1} — {ch.name}
+              Chapter {i + 1}
             </LedItem>
           ))}
           {onPlanChapters && (

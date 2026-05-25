@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/lib/theme-context";
 import type { ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectAppHeader } from "@/components/projects/project-app-header";
 import { SettingsDrawer } from "@/components/settings/settings-drawer";
@@ -37,6 +38,7 @@ export function ProjectShellFrame({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const { theme } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
@@ -95,7 +97,7 @@ export function ProjectShellFrame({
           <div
             className="shrink-0 border-b px-4 py-3 lg:hidden"
             style={
-              activeNav === "story"
+              theme === "dark"
                 ? { background: "#161616", borderColor: "rgba(255,255,255,0.07)" }
                 : { borderColor: "rgba(0,0,0,0.06)" }
             }
@@ -115,7 +117,7 @@ export function ProjectShellFrame({
         {/* Scrollable content */}
         <div
           className="min-h-0 flex-1 overflow-y-auto"
-          style={(activeNav === "overview" || activeNav === "story") ? { background: "#161616" } : undefined}
+          style={theme === "dark" ? { background: "#161616" } : undefined}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >

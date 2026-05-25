@@ -9,6 +9,7 @@ import { endChapterEarlyAction } from "@/lib/actions/project-actions";
 import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import type { CassAnimState } from "@/components/cass/cassVoice";
+import { useTheme } from "@/lib/theme-context";
 
 // ── Speech Recognition types (not fully typed in all TS DOM libs) ─────────────
 
@@ -97,7 +98,7 @@ function ProposalCard({
       borderRadius: "12px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px",
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
-        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#e8e0d0", margin: 0, lineHeight: "1.5", flex: 1 }}>
+        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: textPrimary, margin: 0, lineHeight: "1.5", flex: 1 }}>
           {task.title}
         </p>
         <button
@@ -834,6 +835,54 @@ export function CassBoardDrawer({
 }) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // ── Theme ────────────────────────────────────────────────────────────────────
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const drawerBg    = isDark
+    ? "radial-gradient(ellipse at 20% 90%, rgba(200,168,107,0.06) 0%, transparent 60%), #0a0a0a"
+    : "radial-gradient(ellipse at 20% 90%, rgba(200,168,107,0.07) 0%, transparent 60%), #faf9f4";
+  const textPrimary   = isDark ? "#e8e0d0"               : "rgba(26,14,0,0.88)";
+  const textSecondary = isDark ? "rgba(232,224,208,0.6)"  : "rgba(26,14,0,0.6)";
+  const textMuted     = isDark ? "rgba(232,224,208,0.45)" : "rgba(26,14,0,0.38)";
+  const surface       = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)";
+  const surfaceGold   = isDark ? "rgba(200,168,107,0.07)" : "rgba(200,168,107,0.10)";
+  const borderGoldDim = "rgba(200,168,107,0.22)";
+  const borderSubtle  = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.08)";
+  const btnBg         = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.06)";
+  const btnBgHover    = isDark ? "rgba(255,255,255,0.1)"  : "rgba(26,14,0,0.1)";
+  const btnColor      = isDark ? "#888"                   : "rgba(26,14,0,0.4)";
+  const btnColorHover = isDark ? "#e8e0d0"                : "rgba(26,14,0,0.8)";
+  const inputBg       = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.04)";
+  const dividerColor  = isDark ? "rgba(200,168,107,0.08)" : "rgba(200,168,107,0.12)";
+  const shadowColor   = isDark ? "rgba(0,0,0,0.4)"        : "rgba(0,0,0,0.18)";
+
+  // Shadow module-level constants with theme-aware versions
+  // eslint-disable-next-line @typescript-eslint/no-shadow
+  const CASS_B: React.CSSProperties = {
+    background: surface,
+    border: `1px solid ${borderGoldDim}`,
+    borderRadius: "12px 12px 12px 2px",
+    padding: "12px 16px",
+    fontFamily: "'Special Elite', cursive",
+    fontSize: "16px",
+    lineHeight: "1.7",
+    color: textPrimary,
+    maxWidth: "92%",
+  };
+  // eslint-disable-next-line @typescript-eslint/no-shadow
+  const USER_B: React.CSSProperties = {
+    background: isDark ? "rgba(200,168,107,0.1)" : "rgba(200,168,107,0.14)",
+    border: `1px solid ${borderGoldDim}`,
+    borderRadius: "12px 12px 2px 12px",
+    padding: "10px 16px",
+    fontFamily: "'Share Tech Mono', monospace",
+    fontSize: "14px",
+    lineHeight: "1.5",
+    color: isDark ? "#c8a86b" : "#8a6a20",
+    maxWidth: "80%",
+  };
+
   // ── Menu state ───────────────────────────────────────────────────────────────
   const [mode, setMode] = useState<BoardMode>("menu");
   const [menuDisplayed, setMenuDisplayed] = useState("");
@@ -1137,8 +1186,9 @@ export function CassBoardDrawer({
   const doneColumnId = columns.find((c) => c.name.toLowerCase() === "done")?.id;
   const movableTasks = tasks.filter((t) => t.columnId !== doneColumnId);
 
-  // Cass anim in the header: playing while text AI is thinking
-  const headerCassAnim: CassAnimState = isPending ? "playing" : "idle";
+  // Cass anim in the header: playing while AI is thinking, talking while typewriting text
+  const isTypewriting = menuDisplayed.length > 0 && menuDisplayed.length < MENU_QUESTION.length;
+  const headerCassAnim: CassAnimState = isPending ? "playing" : isTypewriting ? "talking" : "idle";
 
   // Progress bar percentage
   const progressPercent =
@@ -1169,10 +1219,10 @@ export function CassBoardDrawer({
       <div
         className="fixed inset-y-0 right-0 z-50 flex w-full flex-col lg:w-[38%] lg:min-w-[420px]"
         style={{
-          background: "radial-gradient(ellipse at 20% 90%, rgba(200,168,107,0.06) 0%, transparent 60%), #0a0a0a",
+          background: drawerBg,
           transform: open ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          boxShadow: open ? "-8px 0 40px rgba(0,0,0,0.4)" : "none",
+          boxShadow: open ? `-8px 0 40px ${shadowColor}` : "none",
         }}
         aria-hidden={!open}
       >
@@ -1184,33 +1234,29 @@ export function CassBoardDrawer({
             <button
               type="button"
               onClick={isBreakupMode ? onClose : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); }}
-              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#e8e0d0"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
+              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: btnBg, color: btnColor, border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
             >{isBreakupMode ? "✕ cancel" : "← back"}</button>
           )}
           <button
             type="button" onClick={onClose} aria-label="Close"
-            style={{ position: "absolute", top: "14px", right: "16px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#e8e0d0"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
+            style={{ position: "absolute", top: "14px", right: "16px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: btnBg, color: btnColor, border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
           ><X size={14} /></button>
 
-          {/* Cass circle — smaller in header, hidden during brain dump recording to let the large recorder own the stage */}
+          {/* Full Cass recorder — hidden during brain dump recording so the large recorder owns the stage */}
           {!(mode === "chat" && isBrainDump && !hasProposals && !savedOk) && (
             <>
-              <div style={{ width: "64px", height: "64px", borderRadius: "50%", overflow: "hidden", position: "relative", background: "#1a1a1a", boxShadow: "0 0 0 1.5px rgba(200,168,107,0.35), 0 4px 20px rgba(0,0,0,0.5)" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, transformOrigin: "top left", transform: "scale(0.5333) translateY(-6.5px)" }}>
-                  <CassRecorder animState={headerCassAnim} size="sm" />
-                </div>
-              </div>
+              <CassRecorder animState={headerCassAnim} size="sm" />
               <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>Cass</p>
             </>
           )}
         </div>
 
         {!(mode === "chat" && isBrainDump && !hasProposals && !savedOk) && (
-          <div style={{ height: "1px", background: "rgba(200,168,107,0.08)", flexShrink: 0 }} />
+          <div style={{ height: "1px", background: dividerColor, flexShrink: 0 }} />
         )}
 
         {/* ── Menu mode ── */}
@@ -1230,13 +1276,13 @@ export function CassBoardDrawer({
                 {MENU_OPTIONS.map((opt, i) => (
                   <button
                     key={opt.key} type="button" onClick={() => selectMode(opt.key)}
-                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${i * 100}ms`, opacity: 0 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                    style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${i * 100}ms`, opacity: 0 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                     <div>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
+                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
                       <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>
                     </div>
                   </button>
@@ -1249,13 +1295,13 @@ export function CassBoardDrawer({
                     <button
                       type="button"
                       onClick={() => selectMode("end_chapter")}
-                      style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${MENU_OPTIONS.length * 100 + 40}ms`, opacity: 0 }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.16)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                      style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${MENU_OPTIONS.length * 100 + 40}ms`, opacity: 0 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
                     >
-                      <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.2)", background: "transparent" }} />
+                      <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
                       <div>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "rgba(232,224,208,0.7)", margin: 0, lineHeight: "1.3" }}>End this chapter early</p>
+                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>End this chapter early</p>
                         <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the chapter and write the story</p>
                       </div>
                     </button>
@@ -1305,13 +1351,13 @@ export function CassBoardDrawer({
                 <button
                   type="button"
                   onClick={() => { onNavigateToLatest(); onClose(); }}
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                  style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
                 >
                   <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                   <div>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>Take me to the latest chapter</p>
+                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Take me to the latest chapter</p>
                     <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Jump to where the work is happening</p>
                   </div>
                 </button>
@@ -1320,13 +1366,13 @@ export function CassBoardDrawer({
                 <button
                   type="button"
                   onClick={() => { onPlanChapters(); onClose(); }}
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "100ms", opacity: 0 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                  style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "100ms", opacity: 0 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
                 >
                   <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                   <div>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>Plan new chapters</p>
+                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Plan new chapters</p>
                     <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Write the next act of the story</p>
                   </div>
                 </button>
@@ -1377,7 +1423,7 @@ export function CassBoardDrawer({
                     gap: "3px",
                   }}>
                     <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>Breaking up</p>
-                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#e8e0d0", margin: 0, lineHeight: "1.4" }}>{breakupTask.title}</p>
+                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: textPrimary, margin: 0, lineHeight: "1.4" }}>{breakupTask.title}</p>
                   </div>
                 )}
                 {messages.map((msg, i) => (
@@ -1466,7 +1512,7 @@ export function CassBoardDrawer({
 
             {/* Input bar — only for text tasks / breakup mode, and not when saved */}
             {!isBrainDump && !isMoveMode && !isEndChapterMode && !savedOk && (
-              <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
                 {hasProposals && reviewTasks.length > 0 && (
                   <button
                     type="button" onClick={handleAddTasks} disabled={isSaving}
@@ -1489,7 +1535,7 @@ export function CassBoardDrawer({
                       placeholder="What needs to get done…"
                       rows={2}
                       disabled={isPending || isSaving}
-                      style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.6, color: "#e8e0d0", outline: "none", boxSizing: "border-box" }}
+                      style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
                     />
                     <button
                       type="button" onClick={sendMessage} disabled={!draft.trim() || isPending || isSaving}
@@ -1506,7 +1552,7 @@ export function CassBoardDrawer({
 
             {/* Brain dump: Add tasks bar appears after cards come back from voice */}
             {isBrainDump && hasProposals && !savedOk && (
-              <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px" }}>
+              <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px" }}>
                 <button
                   type="button" onClick={handleAddTasks} disabled={isSaving || reviewTasks.length === 0}
                   style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", width: "100%", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: (isSaving || reviewTasks.length === 0) ? "not-allowed" : "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 700, color: "#0a0a0a", opacity: (isSaving || reviewTasks.length === 0) ? 0.7 : 1, letterSpacing: "0.5px" }}

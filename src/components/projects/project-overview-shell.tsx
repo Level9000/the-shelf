@@ -13,6 +13,8 @@ import { CassRecorder } from "@/components/cass/CassRecorder";
 import { CassFab } from "@/components/cass/CassFab";
 import { createPlannedChaptersAction } from "@/lib/actions/project-actions";
 import { renderParagraphs } from "@/lib/render-paragraphs";
+import { useTheme } from "@/lib/theme-context";
+import { TapeButton } from "@/components/ui/tape-button";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -454,25 +456,9 @@ function CassChronicleDrawer({
         <div style={{ flexShrink: 0, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px" }}>
           {/* Back button — only in planning/proposal */}
           {(mode === "planning" || mode === "proposal") && (
-            <button
-              type="button"
-              onClick={() => setMode("menu")}
-              aria-label="Back"
-              style={{
-                position: "absolute", top: "14px", left: "16px",
-                height: "32px", padding: "0 12px",
-                display: "flex", alignItems: "center", gap: "6px",
-                borderRadius: "999px", background: "rgba(255,255,255,0.06)",
-                color: "#888", border: "none", cursor: "pointer",
-                fontFamily: "'Share Tech Mono', monospace", fontSize: "11px",
-                letterSpacing: "0.5px",
-                transition: "background 0.15s, color 0.15s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#e8e0d0"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
-            >
-              ← back
-            </button>
+            <div style={{ position: "absolute", top: "14px", left: "16px" }}>
+              <TapeButton variant="ghost" size="sm" onClick={() => setMode("menu")}>← back</TapeButton>
+            </div>
           )}
           <button
             type="button"
@@ -693,34 +679,15 @@ function CassChronicleDrawer({
 
             {/* Confirm bar */}
             <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-              <button
-                type="button"
-                onClick={() => setMode("planning")}
-                style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", background: "none", border: "none", cursor: "pointer", transition: "color 0.15s" }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "#c8a86b"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(200,168,107,0.45)"; }}
-              >
-                ← back to chat
-              </button>
-              <button
-                type="button"
+              <TapeButton variant="ghost" size="sm" onClick={() => setMode("planning")}>← back to chat</TapeButton>
+              <TapeButton
+                variant="primary"
+                size="md"
                 onClick={handleConfirm}
                 disabled={isSaving || proposedChapters.filter((_, i) => !removedIndices.has(i)).length === 0}
-                style={{
-                  display: "flex", alignItems: "center", gap: "8px",
-                  padding: "10px 20px", borderRadius: "999px",
-                  background: "linear-gradient(135deg, #c8a86b, #a8864e)",
-                  border: "none", cursor: isSaving ? "not-allowed" : "pointer",
-                  fontFamily: "'Share Tech Mono', monospace", fontSize: "11px",
-                  fontWeight: 600, color: "#0a0a0a",
-                  opacity: isSaving ? 0.7 : 1,
-                }}
               >
-                {isSaving
-                  ? <><LoaderCircle size={12} style={{ animation: "spin 1s linear infinite" }} /> Saving…</>
-                  : <><Check size={12} /> Add {proposedChapters.filter((_, i) => !removedIndices.has(i)).length} chapter{proposedChapters.filter((_, i) => !removedIndices.has(i)).length !== 1 ? "s" : ""} to story</>
-                }
-              </button>
+                {isSaving ? "Saving…" : `Add ${proposedChapters.filter((_, i) => !removedIndices.has(i)).length} chapter${proposedChapters.filter((_, i) => !removedIndices.has(i)).length !== 1 ? "s" : ""} to story`}
+              </TapeButton>
             </div>
           </>
         )}
@@ -744,19 +711,7 @@ function CassChronicleDrawer({
                 Each one is ready to kick off whenever you are.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: "11px 28px", borderRadius: "999px",
-                background: "linear-gradient(135deg, #c8a86b, #a8864e)",
-                border: "none", cursor: "pointer",
-                fontFamily: "'Share Tech Mono', monospace", fontSize: "12px",
-                fontWeight: 600, color: "#0a0a0a",
-              }}
-            >
-              Done
-            </button>
+            <TapeButton variant="primary" size="md" onClick={onClose}>Done</TapeButton>
           </div>
         )}
 
@@ -786,6 +741,26 @@ function ChapterEntry({
   onOpenThread: (t: ChatThread) => void;
 }) {
   const status = chapterStatus(chapter);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  // Theme-aware colors
+  const bodyColor       = isDark ? "rgba(232,224,208,0.8)"   : "rgba(22,19,15,0.78)";
+  const mutedColor      = isDark ? "rgba(200,168,107,0.4)"   : "rgba(0,0,0,0.38)";
+  const faintColor      = isDark ? "rgba(200,168,107,0.3)"   : "rgba(0,0,0,0.25)";
+  const inProgressColor = isDark ? "rgba(232,224,208,0.5)"   : "rgba(22,19,15,0.6)";
+  const threadLabelColor= isDark ? "rgba(232,224,208,0.7)"   : "rgba(22,19,15,0.7)";
+  const pulseColor      = isDark ? "#c8a86b"                 : "rgba(22,19,15,0.5)";
+  const dividerGrad     = isDark
+    ? "linear-gradient(90deg, transparent, rgba(200,168,107,0.18) 20%, rgba(200,168,107,0.18) 80%, transparent)"
+    : "linear-gradient(90deg, transparent, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.1) 80%, transparent)";
+  const threadBg        = isDark ? "rgba(200,168,107,0.04)"  : "rgba(0,0,0,0.02)";
+  const threadBorder    = isDark ? "rgba(200,168,107,0.1)"   : "rgba(0,0,0,0.07)";
+  const threadHoverBg   = isDark ? "rgba(200,168,107,0.08)"  : "rgba(0,0,0,0.05)";
+  const threadHoverBdr  = isDark ? "rgba(200,168,107,0.18)"  : "rgba(0,0,0,0.12)";
+  const iconColor       = isDark ? "rgba(200,168,107,0.5)"   : "rgba(0,0,0,0.35)";
+  const chevronColor    = isDark ? "rgba(200,168,107,0.35)"  : "rgba(0,0,0,0.25)";
+  const dateColor       = isDark ? "rgba(200,168,107,0.45)"  : "rgba(0,0,0,0.35)";
 
   // Build the list of completed chat threads for this chapter
   const threads: ChatThread[] = [];
@@ -821,7 +796,7 @@ function ChapterEntry({
         <div
           style={{
             height: "1px",
-            background: "linear-gradient(90deg, transparent, rgba(200,168,107,0.18) 20%, rgba(200,168,107,0.18) 80%, transparent)",
+            background: dividerGrad,
             margin: "48px 0",
           }}
         />
@@ -867,7 +842,7 @@ function ChapterEntry({
         {status === "completed" && chapter.chapterStory && renderParagraphs(chapter.chapterStory, {
           fontFamily: "Verdana, Geneva, sans-serif",
           fontSize: "15px",
-          color: "rgba(232,224,208,0.8)",
+          color: bodyColor,
           lineHeight: 1.85,
           margin: "16px 0 0",
         })}
@@ -878,7 +853,7 @@ function ChapterEntry({
             style={{
               fontFamily: "'Share Tech Mono', monospace",
               fontSize: "12px",
-              color: "rgba(200,168,107,0.4)",
+              color: mutedColor,
               lineHeight: 1.7,
               margin: "12px 0 0",
               fontStyle: "italic",
@@ -897,7 +872,7 @@ function ChapterEntry({
                 width: "7px",
                 height: "7px",
                 borderRadius: "50%",
-                background: "#c8a86b",
+                background: pulseColor,
                 flexShrink: 0,
                 marginTop: "5px",
                 animation: "overviewPulse 2s ease-in-out infinite",
@@ -907,7 +882,7 @@ function ChapterEntry({
               style={{
                 fontFamily: "Verdana, Geneva, sans-serif",
                 fontSize: "14px",
-                color: "rgba(232,224,208,0.5)",
+                color: inProgressColor,
                 lineHeight: 1.7,
                 margin: 0,
                 fontStyle: "italic",
@@ -924,7 +899,7 @@ function ChapterEntry({
             style={{
               fontFamily: "'Share Tech Mono', monospace",
               fontSize: "12px",
-              color: "rgba(200,168,107,0.3)",
+              color: faintColor,
               lineHeight: 1.65,
               margin: "10px 0 0",
             }}
@@ -939,7 +914,7 @@ function ChapterEntry({
             <p style={{
               fontFamily: "'Share Tech Mono', monospace",
               fontSize: "11px", letterSpacing: "3px",
-              color: "rgba(200,168,107,0.3)",
+              color: faintColor,
               textTransform: "uppercase", margin: "0 0 10px",
             }}>
               Conversations
@@ -953,27 +928,27 @@ function ChapterEntry({
                   style={{
                     display: "flex", alignItems: "center",
                     justifyContent: "space-between",
-                    background: "rgba(200,168,107,0.04)",
-                    border: "1px solid rgba(200,168,107,0.1)",
+                    background: threadBg,
+                    border: `1px solid ${threadBorder}`,
                     borderRadius: "10px",
                     padding: "10px 14px",
                     cursor: "pointer", width: "100%", textAlign: "left",
                     transition: "background 0.15s, border-color 0.15s",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(200,168,107,0.08)";
-                    e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)";
+                    e.currentTarget.style.background = threadHoverBg;
+                    e.currentTarget.style.borderColor = threadHoverBdr;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(200,168,107,0.04)";
-                    e.currentTarget.style.borderColor = "rgba(200,168,107,0.1)";
+                    e.currentTarget.style.background = threadBg;
+                    e.currentTarget.style.borderColor = threadBorder;
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <MessageCircle size={13} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />
+                    <MessageCircle size={13} style={{ color: iconColor, flexShrink: 0 }} />
                     <span style={{
                       fontFamily: "'Share Tech Mono', monospace",
-                      fontSize: "12px", color: "rgba(232,224,208,0.7)",
+                      fontSize: "12px", color: threadLabelColor,
                     }}>
                       {t.label}
                     </span>
@@ -981,13 +956,13 @@ function ChapterEntry({
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                     <span style={{
                       fontFamily: "'Share Tech Mono', monospace",
-                      fontSize: "11px", color: "rgba(200,168,107,0.45)",
+                      fontSize: "11px", color: dateColor,
                     }}>
                       {new Date(t.completedAt).toLocaleDateString("en-US", {
                         month: "short", day: "numeric", year: "numeric",
                       })}
                     </span>
-                    <ChevronRight size={12} style={{ color: "rgba(200,168,107,0.35)" }} />
+                    <ChevronRight size={12} style={{ color: chevronColor }} />
                   </div>
                 </button>
               ))}
@@ -1023,6 +998,26 @@ export function ProjectOverviewShell({
   const [startInPlanMode, setStartInPlanMode] = useState(initialPlanning);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyThread, setHistoryThread] = useState<ChatThread | null>(null);
+
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  // Theme-aware colors for the overview page
+  const mastheadLabelColor  = isDark ? "rgba(200,168,107,0.45)"  : "rgba(0,0,0,0.38)";
+  const northStarColor      = isDark ? "#c8a86b"                 : "rgba(22,19,15,0.55)";
+  const mastheadDivider     = isDark
+    ? "linear-gradient(90deg, rgba(200,168,107,0.25), rgba(200,168,107,0.06) 70%, transparent)"
+    : "linear-gradient(90deg, rgba(0,0,0,0.15), rgba(0,0,0,0.04) 70%, transparent)";
+  const projThreadFaintColor= isDark ? "rgba(200,168,107,0.3)"   : "rgba(0,0,0,0.25)";
+  const projThreadBg        = isDark ? "rgba(200,168,107,0.04)"  : "rgba(0,0,0,0.02)";
+  const projThreadBorder    = isDark ? "rgba(200,168,107,0.1)"   : "rgba(0,0,0,0.07)";
+  const projThreadHoverBg   = isDark ? "rgba(200,168,107,0.08)"  : "rgba(0,0,0,0.05)";
+  const projThreadHoverBdr  = isDark ? "rgba(200,168,107,0.18)"  : "rgba(0,0,0,0.12)";
+  const projIconColor       = isDark ? "rgba(200,168,107,0.5)"   : "rgba(0,0,0,0.35)";
+  const projLabelColor      = isDark ? "rgba(232,224,208,0.7)"   : "rgba(22,19,15,0.7)";
+  const projDateColor       = isDark ? "rgba(200,168,107,0.45)"  : "rgba(0,0,0,0.35)";
+  const projChevronColor    = isDark ? "rgba(200,168,107,0.35)"  : "rgba(0,0,0,0.25)";
+  const emptyStateColor     = isDark ? "rgba(232,224,208,0.3)"   : "rgba(22,19,15,0.28)";
 
   // Scroll to the selected chapter whenever lastChapterId changes
   useEffect(() => {
@@ -1083,18 +1078,6 @@ export function ProjectOverviewShell({
 
               {/* ── Masthead ── */}
               <header style={{ marginBottom: "52px" }}>
-                <p
-                  style={{
-                    fontFamily: "'Share Tech Mono', monospace",
-                    fontSize: "11px",
-                    letterSpacing: "3.5px",
-                    color: "rgba(200,168,107,0.45)",
-                    textTransform: "uppercase",
-                    margin: "0 0 10px",
-                  }}
-                >
-                  The Story So Far
-                </p>
                 <h1 style={{ fontFamily: "'Caveat', cursive", fontSize: "clamp(32px, 5vw, 46px)", margin: 0, lineHeight: 1.2 }}>
                   <span style={{
                     display: "inline-block",
@@ -1114,7 +1097,7 @@ export function ProjectOverviewShell({
                       fontFamily: "'Special Elite', cursive",
                       fontSize: "16px",
                       fontStyle: "italic",
-                      color: "#c8a86b",
+                      color: northStarColor,
                       margin: "14px 0 0",
                       lineHeight: 1.65,
                       opacity: 0.85,
@@ -1128,7 +1111,7 @@ export function ProjectOverviewShell({
                 <div
                   style={{
                     height: "1px",
-                    background: "linear-gradient(90deg, rgba(200,168,107,0.25), rgba(200,168,107,0.06) 70%, transparent)",
+                    background: mastheadDivider,
                     marginTop: "28px",
                   }}
                 />
@@ -1159,7 +1142,7 @@ export function ProjectOverviewShell({
                     <p style={{
                       fontFamily: "'Share Tech Mono', monospace",
                       fontSize: "11px", letterSpacing: "3px",
-                      color: "rgba(200,168,107,0.3)",
+                      color: projThreadFaintColor,
                       textTransform: "uppercase", margin: "0 0 10px",
                     }}>
                       Project Conversations
@@ -1173,27 +1156,27 @@ export function ProjectOverviewShell({
                           style={{
                             display: "flex", alignItems: "center",
                             justifyContent: "space-between",
-                            background: "rgba(200,168,107,0.04)",
-                            border: "1px solid rgba(200,168,107,0.1)",
+                            background: projThreadBg,
+                            border: `1px solid ${projThreadBorder}`,
                             borderRadius: "10px",
                             padding: "10px 14px",
                             cursor: "pointer", width: "100%", textAlign: "left",
                             transition: "background 0.15s, border-color 0.15s",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "rgba(200,168,107,0.08)";
-                            e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)";
+                            e.currentTarget.style.background = projThreadHoverBg;
+                            e.currentTarget.style.borderColor = projThreadHoverBdr;
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "rgba(200,168,107,0.04)";
-                            e.currentTarget.style.borderColor = "rgba(200,168,107,0.1)";
+                            e.currentTarget.style.background = projThreadBg;
+                            e.currentTarget.style.borderColor = projThreadBorder;
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <MessageCircle size={13} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />
+                            <MessageCircle size={13} style={{ color: projIconColor, flexShrink: 0 }} />
                             <span style={{
                               fontFamily: "'Share Tech Mono', monospace",
-                              fontSize: "12px", color: "rgba(232,224,208,0.7)",
+                              fontSize: "12px", color: projLabelColor,
                             }}>
                               {t.label}
                             </span>
@@ -1201,13 +1184,13 @@ export function ProjectOverviewShell({
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                             <span style={{
                               fontFamily: "'Share Tech Mono', monospace",
-                              fontSize: "11px", color: "rgba(200,168,107,0.45)",
+                              fontSize: "11px", color: projDateColor,
                             }}>
                               {new Date(t.completedAt).toLocaleDateString("en-US", {
                                 month: "short", day: "numeric", year: "numeric",
                               })}
                             </span>
-                            <ChevronRight size={12} style={{ color: "rgba(200,168,107,0.35)" }} />
+                            <ChevronRight size={12} style={{ color: projChevronColor }} />
                           </div>
                         </button>
                       ))}
@@ -1238,7 +1221,7 @@ export function ProjectOverviewShell({
                       fontFamily: "'Special Elite', cursive",
                       fontSize: "16px",
                       fontStyle: "italic",
-                      color: "rgba(232,224,208,0.3)",
+                      color: emptyStateColor,
                       lineHeight: 1.7,
                     }}
                   >

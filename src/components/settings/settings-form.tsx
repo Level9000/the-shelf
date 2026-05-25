@@ -1,120 +1,154 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Crown, Save, UserRound } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import type { UserProfile } from "@/types";
 import { updateUserProfileAction } from "@/lib/actions/profile-actions";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useTheme } from "@/lib/theme-context";
+
+// Flat left edge, torn right edge — flush against the left wall of the drawer
+const TAPE_CLIP = "polygon(0% 0%, calc(100% - 2px) 0%, 100% 20%, calc(100% - 4px) 48%, 100% 72%, calc(100% - 2px) 100%, 0% 100%)";
 
 export function SettingsForm({ profile }: { profile: UserProfile }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [displayName, setDisplayName] = useState(profile.displayName ?? "");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const savedName = profile.displayName ?? "";
+  const isDirty = displayName.trim() !== savedName && displayName.trim().length > 0;
+
+  // Theme-aware styles
+  const labelColor = isDark ? "rgba(232,223,192,0.45)" : "rgba(26,14,0,0.45)";
+  const inputBg = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.03)";
+  const inputColor = isDark ? "rgba(232,223,192,0.85)" : "rgba(26,14,0,0.85)";
+  const inputBorderNormal = isDark ? "rgba(232,223,192,0.15)" : "rgba(26,14,0,0.15)";
+  const inputBorderDirty = isDark ? "rgba(245,200,74,0.45)" : "rgba(200,120,0,0.45)";
+  const inputBorderFocus = isDark ? "rgba(232,223,192,0.3)" : "rgba(26,14,0,0.3)";
+  const successColor = isDark ? "rgba(74,222,128,0.8)" : "rgba(22,163,74,0.9)";
+
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontFamily: "Verdana, Geneva, sans-serif",
+    fontSize: "11px",
+    color: labelColor,
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    marginBottom: "6px",
+  };
+
   function handleSave() {
+    if (!isDirty || isPending) return;
     setError(null);
     setSuccess(null);
-
     startTransition(async () => {
       try {
         await updateUserProfileAction({ displayName });
-        setSuccess("Profile updated.");
+        setSuccess("Saved.");
       } catch (saveError) {
-        setError(
-          saveError instanceof Error
-            ? saveError.message
-            : "Failed to update profile.",
-        );
+        setError(saveError instanceof Error ? saveError.message : "Failed to update profile.");
       }
     });
   }
 
   return (
-    <div className="space-y-6">
-      <section className="surface hairline rounded-[2rem] p-6 sm:p-7">
-        <div className="flex items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-            <UserRound className="size-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold">Profile</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              This name appears across task assignment and collaboration.
-            </p>
-          </div>
-        </div>
+    <div>
+      {/* Profile tape label */}
+      <div style={{ padding: "10px 0 8px" }}>
+        <span style={{
+          display: "inline-block",
+          fontFamily: "'Share Tech Mono', monospace",
+          fontSize: "11px",
+          letterSpacing: "0.15em",
+          color: "#1a0e00",
+          background: "#e8dfc0",
+          padding: "4px 22px 5px 14px",
+          clipPath: TAPE_CLIP,
+          boxShadow: "3px 1px 5px rgba(0,0,0,0.35)",
+          textTransform: "uppercase",
+        }}>
+          Profile Settings
+        </span>
+      </div>
 
-        <div className="mt-6 space-y-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
-              Display name
-            </label>
-            <Input
+      <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+        {/* Display name with inline save button */}
+        <div>
+          <label style={labelStyle}>Display name</label>
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
               value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
+              onChange={(e) => { setDisplayName(e.target.value); setSuccess(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
               placeholder="Alex Morgan"
               maxLength={80}
+              style={{
+                width: "100%",
+                background: inputBg,
+                border: `1px solid ${isDirty ? inputBorderDirty : inputBorderNormal}`,
+                borderRadius: "8px",
+                padding: "9px 58px 9px 12px",
+                fontFamily: "Verdana, Geneva, sans-serif",
+                fontSize: "13px",
+                color: inputColor,
+                outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.15s",
+              }}
+              onFocus={(e) => {
+                if (!isDirty) e.currentTarget.style.borderColor = inputBorderFocus;
+              }}
+              onBlur={(e) => {
+                if (!isDirty) e.currentTarget.style.borderColor = inputBorderNormal;
+              }}
             />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--ink)]">
-              Email
-            </label>
-            <Input value={profile.email} disabled />
-          </div>
-        </div>
-
-        {error ? (
-          <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {error}
-          </p>
-        ) : null}
-
-        {success ? (
-          <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            {success}
-          </p>
-        ) : null}
-
-        <div className="sticky bottom-0 mt-6 flex justify-center border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
-          <Button onClick={handleSave} disabled={isPending || !displayName.trim()}>
-            <Save className="mr-2 size-4" />
-            {isPending ? "Saving..." : "Save profile"}
-          </Button>
-        </div>
-      </section>
-
-      <section className="surface hairline rounded-[2rem] p-6 sm:p-7">
-        <div className="flex items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-black text-white">
-            <Crown className="size-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold">Pro membership</h2>
-              <Badge>Placeholder</Badge>
-            </div>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Billing and access logic can plug in here later.
-            </p>
+            {(isDirty || isPending) && (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isPending}
+                aria-label="Save display name"
+                style={{
+                  position: "absolute",
+                  right: "6px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  background: "linear-gradient(135deg, #f5c84a, #d4a820)",
+                  border: "none",
+                  cursor: isPending ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  fontFamily: "Verdana, Geneva, sans-serif",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: "#1a0e00",
+                  whiteSpace: "nowrap",
+                  transition: "opacity 0.15s",
+                  opacity: isPending ? 0.6 : 1,
+                }}
+              >
+                {isPending ? <LoaderCircle size={11} style={{ animation: "spin 1s linear infinite" }} /> : null}
+                {isPending ? "Saving…" : "Save"}
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="mt-6 rounded-[1.6rem] bg-[var(--surface-muted)] p-5">
-          <p className="text-sm font-semibold text-[var(--ink)]">Free plan</p>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            You are currently on the default plan. Pro upgrades will appear here
-            once membership logic is implemented.
-          </p>
-          <Button className="mt-4" disabled>
-            Become Pro
-          </Button>
-        </div>
-      </section>
+        {error && (
+          <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{error}</p>
+        )}
+        {success && (
+          <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: successColor, margin: 0 }}>{success}</p>
+        )}
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

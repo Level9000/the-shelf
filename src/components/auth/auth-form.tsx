@@ -3,10 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useActionState } from "react";
-import { ArrowRight } from "lucide-react";
 import type { FormState } from "@/lib/actions/auth-actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TapeButton } from "@/components/ui/tape-button";
 
 const initialState: FormState = {};
 
@@ -54,10 +53,9 @@ export function AuthForm({
             {state.error}
           </p>
         ) : null}
-        <Button className="w-full" type="submit" disabled={pending}>
+        <TapeButton variant="primary" size="md" type="submit" disabled={pending} className="w-full">
           {pending ? "Working..." : submitLabel}
-          <ArrowRight className="ml-2 size-4" />
-        </Button>
+        </TapeButton>
       </form>
       <p className="mt-6 text-sm text-[var(--muted)]">
         {secondaryPrompt}{" "}
