@@ -102,15 +102,31 @@ export function ProjectShellFrame({
                 : { borderColor: "rgba(0,0,0,0.06)" }
             }
           >
-            <p
-              className={cn(
-                "mt-0.5 text-xl font-bold leading-tight",
-                activeNav === "story" ? "text-white" : "text-[var(--ink)]",
-              )}
-              style={{ fontFamily: "'Special Elite', cursive" }}
-            >
-              {mobileEyebrow}
-            </p>
+            {activeNav === "board" && currentProject ? (
+              /* Board tab — show "Project name: Chapter N" to match desktop header */
+              <p
+                className="mt-0.5 leading-tight"
+                style={{
+                  fontFamily: "'Share Tech Mono', monospace",
+                  fontSize: "14px",
+                  letterSpacing: "0.06em",
+                  color: theme === "dark" ? "rgba(232,223,192,0.5)" : "rgba(26,14,0,0.42)",
+                }}
+              >
+                {currentProject.name}: Chapter {chapterIndex + 1}
+              </p>
+            ) : (
+              /* Story tab — keep the chapter name as before */
+              <p
+                className={cn(
+                  "mt-0.5 text-xl font-bold leading-tight",
+                  "text-white",
+                )}
+                style={{ fontFamily: "'Special Elite', cursive" }}
+              >
+                {mobileEyebrow}
+              </p>
+            )}
           </div>
         )}
 
