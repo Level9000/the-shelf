@@ -9,6 +9,7 @@ import { EndChapterModal } from "@/components/board/end-chapter-modal";
 import { StoryHub } from "@/components/board/story-hub";
 import { CassChapterKickoff } from "@/components/cass/CassChapterKickoff";
 import { CassRecorder } from "@/components/cass/CassRecorder";
+import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRetroChat } from "@/components/cass/CassRetroChat";
 import { CassStoryPlayer } from "@/components/cass/CassStoryPlayer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
@@ -67,6 +68,7 @@ function CassRefineDrawer({
 
   const currentSection = REFINE_SECTIONS[currentIndex] ?? REFINE_SECTIONS[0];
   const completedCount = REFINE_SECTIONS.filter((s) => approvedSections[s.key]?.trim()).length;
+  const progressPercent = completedCount === 4 ? 100 : mode === "chat" ? Math.round(25 + completedCount * 20) : Math.round(15 + completedCount * 18);
 
   // Reset to menu + typewrite on each open
   useEffect(() => {
@@ -164,7 +166,7 @@ function CassRefineDrawer({
     background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
     borderRadius: "12px 12px 12px 2px", padding: "12px 16px",
     fontFamily: "'Special Elite', cursive", fontSize: "16px",
-    lineHeight: "1.7", color: "#e8e0d0", maxWidth: "92%",
+    lineHeight: "1.7", color: "#d4cec4", maxWidth: "92%",
   };
   const USER_B: React.CSSProperties = {
     background: "rgba(200,168,107,0.1)", border: "1px solid rgba(200,168,107,0.22)",
@@ -199,6 +201,8 @@ function CassRefineDrawer({
         }}
         aria-hidden={!open}
       >
+        <CassProgressBar percent={progressPercent} />
+
         {/* Header */}
         <div style={{ flexShrink: 0, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px" }}>
           {/* Back to menu — only in chat mode */}
@@ -207,7 +211,7 @@ function CassRefineDrawer({
               type="button"
               onClick={() => setMode("menu")}
               style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#e8e0d0"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
             >
               ← back
@@ -216,19 +220,14 @@ function CassRefineDrawer({
           <button
             type="button" onClick={onClose} aria-label="Close"
             style={{ position: "absolute", top: "14px", right: "16px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#e8e0d0"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
           >
             <X size={14} />
           </button>
 
-          {/* Cass circle */}
-          <div style={{ width: "64px", height: "64px", borderRadius: "50%", overflow: "hidden", position: "relative", background: "#1a1a1a", boxShadow: "0 0 0 1.5px rgba(200,168,107,0.35), 0 4px 20px rgba(0,0,0,0.5)" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, transformOrigin: "top left", transform: "scale(0.5333) translateY(-6.5px)" }}>
-              <CassRecorder animState={isPending ? "playing" : "idle"} size="sm" />
-            </div>
-          </div>
-          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 4px", opacity: 0.7 }}>Cass</p>
+          {/* Full Cass recorder */}
+          <CassRecorder animState={isPending ? "playing" : "idle"} size="sm" />
 
           {/* Progress dots — only in chat mode */}
           {mode === "chat" && (
@@ -288,11 +287,11 @@ function CassRefineDrawer({
                       <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>
+                          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>
                             {s.nav} — {s.title}
                           </p>
                         </div>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>
+                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>
                           {filled ? "Already filled in — refine the language" : "Not set yet"}
                         </p>
                       </div>
@@ -344,13 +343,13 @@ function CassRefineDrawer({
                     <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 8px" }}>
                       Draft — {currentSection.shortTitle}
                     </p>
-                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.75, color: "#e8e0d0", margin: 0 }}>{approvalDraft}</p>
+                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.75, color: "#d4cec4", margin: 0 }}>{approvalDraft}</p>
                   </div>
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button
                       type="button" onClick={() => setApprovalOpen(false)} disabled={isApproving}
                       style={{ flex: 1, padding: "10px 14px", borderRadius: "999px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#e8e0d0"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#888"; }}
                     >Keep refining</button>
                     <button
@@ -381,7 +380,7 @@ function CassRefineDrawer({
                   placeholder={`Reply about ${currentSection.shortTitle.toLowerCase()}…`}
                   rows={2}
                   disabled={isPending || isApproving}
-                  style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.6, color: "#e8e0d0", outline: "none", boxSizing: "border-box" }}
+                  style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.6, color: "#d4cec4", outline: "none", boxSizing: "border-box" }}
                 />
                 <button
                   type="button" onClick={sendMessage} disabled={!draft.trim() || isPending || isApproving}

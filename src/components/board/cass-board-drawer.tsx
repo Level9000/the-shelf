@@ -55,9 +55,9 @@ type Msg = { role: "user" | "assistant"; content: string };
 const MENU_QUESTION = "What would you like to do?";
 
 const MENU_OPTIONS: Array<{ key: ChatSubMode; label: string; sub: string }> = [
-  { key: "tasks",     label: "Add specific tasks",        sub: "I know what I need to do"              },
-  { key: "braindump", label: "Brain dump",                sub: "Speak freely — I'll capture the cards"  },
-  { key: "move",      label: "Move to a future chapter",  sub: "Defer tasks you won't get to this chapter" },
+  { key: "tasks",     label: "Add new tasks to the board thru chat",                sub: "Type what needs to get done"                   },
+  { key: "braindump", label: "Brain Dump. Record me talking and convert into tasks.", sub: "Speak freely — I'll capture the cards"         },
+  { key: "move",      label: "Move some tasks to a future chapter",                 sub: "Defer tasks you won't get to this chapter"      },
 ];
 
 // ── Styles ───────────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ const CASS_B: React.CSSProperties = {
   background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
   borderRadius: "12px 12px 12px 2px", padding: "12px 16px",
   fontFamily: "'Special Elite', cursive", fontSize: "16px",
-  lineHeight: "1.7", color: "#e8e0d0", maxWidth: "92%",
+  lineHeight: "1.7", color: "#d4cec4", maxWidth: "92%",
 };
 const USER_B: React.CSSProperties = {
   background: "rgba(200,168,107,0.1)", border: "1px solid rgba(200,168,107,0.22)",
@@ -98,7 +98,7 @@ function ProposalCard({
       borderRadius: "12px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px",
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
-        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: textPrimary, margin: 0, lineHeight: "1.5", flex: 1 }}>
+        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#d4cec4", margin: 0, lineHeight: "1.5", flex: 1 }}>
           {task.title}
         </p>
         <button
@@ -445,7 +445,7 @@ function MoveToChapterView({
         <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "rgba(110,231,183,0.12)", border: "1px solid rgba(110,231,183,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Check size={20} style={{ color: "#6ee7b7" }} />
         </div>
-        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#e8e0d0", margin: 0, textAlign: "center" }}>Done. Those tasks are out of your way.</p>
+        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#d4cec4", margin: 0, textAlign: "center" }}>Done. Those tasks are out of your way.</p>
         <button type="button" onClick={onClose} style={{ marginTop: "8px", padding: "10px 24px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", cursor: "pointer" }}>Close</button>
       </div>
     );
@@ -481,7 +481,7 @@ function MoveToChapterView({
                 onMouseEnter={(e) => { if (!isPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; } }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
               >
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0 }}>{chapter.name}</p>
+                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#d4cec4", margin: 0 }}>{chapter.name}</p>
                 {isPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.4)", flexShrink: 0 }} />}
               </button>
             ))}
@@ -597,7 +597,7 @@ function MoveToChapterView({
                     }}>
                       {checked && <Check size={10} style={{ color: "#c8a86b" }} />}
                     </div>
-                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: checked ? "#e8e0d0" : "rgba(232,224,208,0.65)", margin: 0, lineHeight: "1.5", flex: 1 }}>
+                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: checked ? "#d4cec4" : "rgba(232,224,208,0.65)", margin: 0, lineHeight: "1.5", flex: 1 }}>
                       {task.title}
                     </p>
                   </button>
@@ -732,8 +732,8 @@ function EndChapterView({
                 {choice === "carry_over" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b" }} />}
               </div>
               <div>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>Carry over to the next chapter</p>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "4px 0 0", lineHeight: "1.5" }}>Open tasks move into the next chapter&apos;s backlog</p>
+                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Carry over to the next chapter</p>
+                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Open tasks move into the next chapter&apos;s backlog</p>
               </div>
             </button>
 
@@ -756,8 +756,8 @@ function EndChapterView({
                 {choice === "delete" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#f87171" }} />}
               </div>
               <div>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: choice === "delete" ? "#fca5a5" : "#e8e0d0", margin: 0, lineHeight: "1.3" }}>Remove them — this chapter is done</p>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "4px 0 0", lineHeight: "1.5" }}>Incomplete tasks are deleted. The chapter closes clean.</p>
+                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: choice === "delete" ? "#fca5a5" : "#d4cec4", margin: 0, lineHeight: "1.3" }}>Remove them — this chapter is done</p>
+                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Incomplete tasks are deleted. The chapter closes clean.</p>
               </div>
             </button>
           </>
@@ -842,9 +842,9 @@ export function CassBoardDrawer({
   const drawerBg    = isDark
     ? "radial-gradient(ellipse at 20% 90%, rgba(200,168,107,0.06) 0%, transparent 60%), #0a0a0a"
     : "radial-gradient(ellipse at 20% 90%, rgba(200,168,107,0.07) 0%, transparent 60%), #faf9f4";
-  const textPrimary   = isDark ? "#e8e0d0"               : "rgba(26,14,0,0.88)";
-  const textSecondary = isDark ? "rgba(232,224,208,0.6)"  : "rgba(26,14,0,0.6)";
-  const textMuted     = isDark ? "rgba(232,224,208,0.45)" : "rgba(26,14,0,0.38)";
+  const textPrimary   = isDark ? "#d4cec4"               : "rgba(26,14,0,0.88)";
+  const textSecondary = isDark ? "rgba(212,206,196,0.6)"  : "rgba(26,14,0,0.6)";
+  const textMuted     = isDark ? "rgba(212,206,196,0.45)" : "rgba(26,14,0,0.38)";
   const surface       = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)";
   const surfaceGold   = isDark ? "rgba(200,168,107,0.07)" : "rgba(200,168,107,0.10)";
   const borderGoldDim = "rgba(200,168,107,0.22)";
@@ -852,7 +852,7 @@ export function CassBoardDrawer({
   const btnBg         = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.06)";
   const btnBgHover    = isDark ? "rgba(255,255,255,0.1)"  : "rgba(26,14,0,0.1)";
   const btnColor      = isDark ? "#888"                   : "rgba(26,14,0,0.4)";
-  const btnColorHover = isDark ? "#e8e0d0"                : "rgba(26,14,0,0.8)";
+  const btnColorHover = isDark ? "#d4cec4"                : "rgba(26,14,0,0.8)";
   const inputBg       = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.04)";
   const dividerColor  = isDark ? "rgba(200,168,107,0.08)" : "rgba(200,168,107,0.12)";
   const shadowColor   = isDark ? "rgba(0,0,0,0.4)"        : "rgba(0,0,0,0.18)";
@@ -1248,10 +1248,7 @@ export function CassBoardDrawer({
 
           {/* Full Cass recorder — hidden during brain dump recording so the large recorder owns the stage */}
           {!(mode === "chat" && isBrainDump && !hasProposals && !savedOk) && (
-            <>
-              <CassRecorder animState={headerCassAnim} size="sm" />
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>Cass</p>
-            </>
+            <CassRecorder animState={headerCassAnim} size="sm" />
           )}
         </div>
 
@@ -1273,58 +1270,57 @@ export function CassBoardDrawer({
             </div>
             {optionsReady && !menuSelected && (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {MENU_OPTIONS.map((opt, i) => (
+                {/* Running-long state: only show the refocus prompt, nothing else */}
+                {onRefocus ? (
                   <button
-                    key={opt.key} type="button" onClick={() => selectMode(opt.key)}
-                    style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${i * 100}ms`, opacity: 0 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
+                    type="button"
+                    onClick={() => { onRefocus(); onClose(); }}
+                    style={{ background: "rgba(251,146,60,0.04)", border: "1px solid rgba(251,146,60,0.22)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(251,146,60,0.5)"; e.currentTarget.style.background = "rgba(251,146,60,0.09)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(251,146,60,0.22)"; e.currentTarget.style.background = "rgba(251,146,60,0.04)"; }}
                   >
-                    <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                    <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(251,146,60,0.6)", background: "transparent" }} />
                     <div>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>
+                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: "rgba(251,180,80,0.9)", margin: 0, lineHeight: "1.3" }}>We need to refocus this chapter.</p>
+                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(251,146,60,0.5)", margin: "3px 0 0" }}>Let&apos;s see how we can wrap things up together</p>
                     </div>
                   </button>
-                ))}
-
-                {/* End chapter early — lifecycle action, shown when wired up */}
-                {onEndChapterConfirmed && (
+                ) : (
                   <>
-                    <div style={{ margin: "4px 0", height: "1px", background: "rgba(255,255,255,0.06)" }} />
-                    <button
-                      type="button"
-                      onClick={() => selectMode("end_chapter")}
-                      style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${MENU_OPTIONS.length * 100 + 40}ms`, opacity: 0 }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
-                    >
-                      <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
-                      <div>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>End this chapter early</p>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the chapter and write the story</p>
-                      </div>
-                    </button>
-                  </>
-                )}
+                    {MENU_OPTIONS.map((opt, i) => (
+                      <button
+                        key={opt.key} type="button" onClick={() => selectMode(opt.key)}
+                        style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${i * 100}ms`, opacity: 0 }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
+                      >
+                        <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                        <div>
+                          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
+                          {opt.sub && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>}
+                        </div>
+                      </button>
+                    ))}
 
-                {/* Refocus option — amber-tinted, only when chapter is running long */}
-                {onRefocus && (
-                  <>
-                    <div style={{ margin: "4px 0", height: "1px", background: "rgba(251,146,60,0.12)" }} />
-                    <button
-                      type="button"
-                      onClick={() => { onRefocus(); onClose(); }}
-                      style={{ background: "rgba(251,146,60,0.04)", border: "1px solid rgba(251,146,60,0.22)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${MENU_OPTIONS.length * 100 + 60}ms`, opacity: 0 }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(251,146,60,0.5)"; e.currentTarget.style.background = "rgba(251,146,60,0.09)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(251,146,60,0.22)"; e.currentTarget.style.background = "rgba(251,146,60,0.04)"; }}
-                    >
-                      <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(251,146,60,0.6)", background: "transparent" }} />
-                      <div>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "rgba(251,180,80,0.9)", margin: 0, lineHeight: "1.3" }}>Refocus this chapter</p>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(251,146,60,0.45)", margin: "3px 0 0" }}>Cut what&apos;s not happening — write what is</p>
-                      </div>
-                    </button>
+                    {/* End chapter early — lifecycle action, shown when wired up */}
+                    {onEndChapterConfirmed && (
+                      <>
+                        <div style={{ margin: "4px 0", height: "1px", background: "rgba(255,255,255,0.06)" }} />
+                        <button
+                          type="button"
+                          onClick={() => selectMode("end_chapter")}
+                          style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${MENU_OPTIONS.length * 100 + 40}ms`, opacity: 0 }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
+                        >
+                          <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
+                          <div>
+                            <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>End this chapter early</p>
+                            <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the chapter and write the story</p>
+                          </div>
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -1338,48 +1334,121 @@ export function CassBoardDrawer({
         )}
 
         {/* ── Completed chapter mode ── */}
-        {mode === "completed" && (
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-              <div style={CASS_B}>
-                This chapter&apos;s story has been written. Ready for what&apos;s next?
+        {mode === "completed" && (() => {
+          // Is there a newer/active chapter to navigate to?
+          const hasNewerChapter = !!onNavigateToLatest;
+          const hasRetro        = !!board.retroCompletedAt;
+
+          // ── Case A: newer chapter exists → show navigation options ──────────
+          if (hasNewerChapter) {
+            return (
+              <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
+                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
+                  <div style={CASS_B}>You have completed this chapter. What should we do next?</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => { onNavigateToLatest(); onClose(); }}
+                    style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
+                  >
+                    <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                    <div>
+                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Take me to the latest chapter</p>
+                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Jump to where the work is happening</p>
+                    </div>
+                  </button>
+                  {onPlanChapters && (
+                    <button
+                      type="button"
+                      onClick={() => { onPlanChapters(); onClose(); }}
+                      style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "100ms", opacity: 0 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
+                    >
+                      <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                      <div>
+                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Plan new chapters</p>
+                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Write the next act of the story</p>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          // ── Case B: this IS the latest chapter, no retro yet ─────────────────
+          if (!hasRetro) {
+            return (
+              <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
+                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
+                  <div style={CASS_B}>Now that you&apos;ve completed this chapter, I&apos;d love to record how things went. Got a second?</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => selectMode("end_chapter")}
+                    style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
+                  >
+                    <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                    <div><p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "100ms", opacity: 0 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
+                  >
+                    <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
+                    <div><p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          // ── Case C: latest chapter, retro done, prompt to plan next ──────────
+          return (
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
+                <div style={CASS_B}>It&apos;s time we planned for what comes next. Got a second to talk this out with me?</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {onPlanChapters && (
+                  <button
+                    type="button"
+                    onClick={() => { onPlanChapters(); onClose(); }}
+                    style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
+                  >
+                    <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                    <div><p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: onPlanChapters ? "100ms" : "0ms", opacity: 0 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
+                >
+                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
+                  <div><p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
+                </button>
               </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {onNavigateToLatest && (
-                <button
-                  type="button"
-                  onClick={() => { onNavigateToLatest(); onClose(); }}
-                  style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
-                >
-                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
-                  <div>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Take me to the latest chapter</p>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Jump to where the work is happening</p>
-                  </div>
-                </button>
-              )}
-              {onPlanChapters && (
-                <button
-                  type="button"
-                  onClick={() => { onPlanChapters(); onClose(); }}
-                  style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "100ms", opacity: 0 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
-                >
-                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
-                  <div>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Plan new chapters</p>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Write the next act of the story</p>
-                  </div>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── Chat mode ── */}
         {mode === "chat" && (
@@ -1471,7 +1540,7 @@ export function CassBoardDrawer({
                       <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(110,231,183,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Check size={14} style={{ color: "#6ee7b7" }} />
                       </div>
-                      <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", color: "#e8e0d0", margin: 0 }}>
+                      <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", color: "#d4cec4", margin: 0 }}>
                         {isBreakupMode
                           ? `Broken into ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""}. Original card removed.`
                           : `${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} added to the board.`}
@@ -1482,7 +1551,7 @@ export function CassBoardDrawer({
                         <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                           <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginTop: "6px" }} />
                           <div>
-                            <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#e8e0d0", margin: "0 0 4px", lineHeight: "1.6" }}>
+                            <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#d4cec4", margin: "0 0 4px", lineHeight: "1.6" }}>
                               This looks like something you'd run again. Want me to save it as a workflow?
                             </p>
                             <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: 0 }}>

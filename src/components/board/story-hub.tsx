@@ -115,7 +115,7 @@ function HubView({
                 fontFamily: "'Special Elite', cursive",
                 fontSize: "15px",
                 lineHeight: "1.6",
-                color: "#e8e0d0",
+                color: "#d4cec4",
                 margin: 0,
               }}
             >
@@ -228,7 +228,7 @@ function HubView({
                       fontFamily: "'Share Tech Mono', monospace",
                       fontSize: "13px",
                       fontWeight: 600,
-                      color: "#e8e0d0",
+                      color: "#d4cec4",
                       margin: 0,
                     }}
                   >

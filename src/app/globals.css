@@ -29,13 +29,18 @@
   --surface-strong: rgba(255, 255, 255, 0.08);
   --surface-muted: rgba(255, 255, 255, 0.03);
   --stroke: rgba(255, 255, 255, 0.08);
-  --ink: #e8e0d0;
-  --muted: rgba(232, 224, 208, 0.45);
-  --accent: #e8e0d0;
-  --accent-soft: rgba(232, 224, 208, 0.08);
+  --ink: #d4cec4;
+  --muted: rgba(212, 206, 196, 0.45);
+  --accent: #d4cec4;
+  --accent-soft: rgba(212, 206, 196, 0.08);
   --danger: #f87171;
   --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.5);
   --shadow-card: 0 18px 46px rgba(0, 0, 0, 0.4);
+}
+
+/* Soften pure-white text in dark mode — text-white class → warm ivory */
+[data-theme="dark"] .text-white {
+  color: #d4cec4;
 }
 
 [data-theme="dark"] body {

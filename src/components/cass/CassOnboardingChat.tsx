@@ -134,7 +134,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           style={{
             fontFamily: "'Special Elite', cursive",
             fontSize: "28px",
-            color: "#e8e0d0",
+            color: "#d4cec4",
             lineHeight: "1.3",
           }}
         >
@@ -436,7 +436,7 @@ export function CassOnboardingChat({
               style={{
                 fontFamily: "'Special Elite', cursive",
                 fontSize: "18px",
-                color: "#e8e0d0",
+                color: "#d4cec4",
               }}
             >
               {projectData.project_name || "Your project"}

@@ -24,7 +24,7 @@ function CassShareCard({ pullQuote }: { pullQuote: string }) {
         style={{
           fontFamily: "'Special Elite', cursive",
           fontSize: "17px",
-          color: "#e8e0d0",
+          color: "#d4cec4",
           lineHeight: "1.6",
           fontStyle: "italic",
           margin: 0,
@@ -236,7 +236,7 @@ export function CassStoryPlayer({
                 marginTop: "10px",
                 fontFamily: "'Special Elite', cursive",
                 fontSize: "22px",
-                color: "#e8e0d0",
+                color: "#d4cec4",
                 letterSpacing: "0.5px",
               }}
             >

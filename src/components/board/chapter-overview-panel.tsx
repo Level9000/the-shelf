@@ -14,6 +14,7 @@ import { CassRecorder } from "@/components/cass/CassRecorder";
 import { CassFab } from "@/components/cass/CassFab";
 import { CassShareChat, type Phase as CassPhase } from "@/components/cass/CassShareChat";
 import { renderParagraphs } from "@/lib/render-paragraphs";
+import { resolveBannerState } from "@/components/board/chapter-progress-banner";
 
 // ── Generating overlay ────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ function GeneratingOverlay() {
           fontFamily: "'Special Elite', cursive",
           fontSize: "18px",
           lineHeight: 1.7,
-          color: "#e8e0d0",
+          color: "#d4cec4",
           textAlign: "center",
           maxWidth: "300px",
           opacity: 0.9,
@@ -123,6 +124,15 @@ export function ChapterOverviewPanel({
     tasks !== undefined && tasks.length > 0 && tasks.every((t) => t.columnId === doneColumnId);
   const retroAvailable = Boolean(board.kickoffCompletedAt) && !board.retroCompletedAt;
   const retroDone = Boolean(board.retroCompletedAt);
+
+  // Chapter number + running-long detection for teaser text
+  const chapterIndex = chapters?.findIndex((c) => c.id === chapterId) ?? -1;
+  const chapterNumber = chapterIndex >= 0 ? chapterIndex + 1 : null;
+  const bannerState = resolveBannerState(board, tasks ?? [], columns ?? []);
+  const isRunningLong = bannerState.kind === "running_long";
+  const storyFabTeaser = isRunningLong && chapterNumber
+    ? `We should try to wrap up chapter ${chapterNumber}`
+    : "I can help you sharpen this chapter's story.";
 
   const [shareDrawerOpen, setShareDrawerOpen] = useState(false);
   const [chatKey, setChatKey] = useState(0);
@@ -420,7 +430,8 @@ export function ChapterOverviewPanel({
         <CassFab
           onClick={onRefine}
           hoverText="Refine this chapter"
-          teaserText="I can help you sharpen this chapter's story."
+          teaserText={storyFabTeaser}
+          ringColor={isRunningLong ? "amber" : "gold"}
           expandedWidth="272px"
         />
       )}

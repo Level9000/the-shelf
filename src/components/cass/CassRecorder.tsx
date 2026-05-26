@@ -159,8 +159,8 @@ export function CassRecorder({
         <rect x="18" y="44" width="164" height="14" fill={c.ridge} />
 
         {/* Brand label */}
-        <rect x="30" y="38" width="90" height="14" rx="3" fill={c.labelBg} />
-        <text x="38" y="49" fontFamily="'Share Tech Mono', 'Courier New', monospace" fontSize="7" fill="#c8a86b" letterSpacing="2">
+        <rect x="30" y="34" width="102" height="19" rx="3" fill={c.labelBg} />
+        <text x="38" y="49" fontFamily="'Share Tech Mono', 'Courier New', monospace" fontSize="12" fill="#c8a86b" letterSpacing="2">
           CASS
         </text>
 

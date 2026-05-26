@@ -111,7 +111,7 @@ function CassBubble({
           fontFamily: "'Special Elite', cursive",
           fontSize: "15px",
           lineHeight: "1.65",
-          color: "#e8e0d0",
+          color: "#d4cec4",
         }}
       >
         {displayed}
@@ -217,7 +217,7 @@ function FormatPicker({
                 fontFamily: "'Share Tech Mono', monospace",
                 fontSize: "12px",
                 fontWeight: 600,
-                color: "#e8e0d0",
+                color: "#d4cec4",
                 margin: 0,
                 lineHeight: "1.3",
               }}
@@ -291,7 +291,7 @@ const LABEL_STYLE = {
   fontFamily: "'Share Tech Mono', monospace",
   fontSize: "12px",
   fontWeight: 600,
-  color: "#e8e0d0",
+  color: "#d4cec4",
   margin: 0,
   lineHeight: "1.3",
 };
@@ -397,7 +397,7 @@ function ChipRow({
               outline: "none",
               fontFamily: "'Share Tech Mono', monospace",
               fontSize: "12px",
-              color: "#e8e0d0",
+              color: "#d4cec4",
               lineHeight: "1.3",
             }}
           />

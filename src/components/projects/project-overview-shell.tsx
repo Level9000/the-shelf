@@ -117,7 +117,7 @@ function ChatHistoryDrawer({
             </p>
             <p style={{
               fontFamily: "'Special Elite', cursive",
-              fontSize: "21px", color: "#e8e0d0", lineHeight: 1.2,
+              fontSize: "21px", color: "#d4cec4", lineHeight: 1.2,
             }}>
               {thread?.label ?? ""}
             </p>
@@ -208,7 +208,7 @@ const CASSB_STYLE = {
   fontFamily: "'Special Elite', cursive",
   fontSize: "16px",
   lineHeight: "1.65",
-  color: "#e8e0d0",
+  color: "#d4cec4",
 } as const;
 
 const USER_BUBBLE_STYLE = {
@@ -258,8 +258,6 @@ function CassChronicleDrawer({
   onRefine: () => void;
 }) {
   const router = useRouter();
-  const lastCompletedChapter = [...project.chapters].reverse().find((c) => c.retroCompletedAt);
-
   // ── Menu state ──
   const [menuDisplayed, setMenuDisplayed] = useState("");
   const [optionsReady, setOptionsReady] = useState(false);
@@ -396,18 +394,6 @@ function CassChronicleDrawer({
       },
     },
     {
-      key: "craft",
-      label: "Craft your story",
-      sub: lastCompletedChapter ? "Turn a completed chapter into content to share" : "Complete a chapter first",
-      disabled: !lastCompletedChapter,
-      onSelect: lastCompletedChapter
-        ? () => {
-            setMenuSelected("craft");
-            setTimeout(() => { onClose(); router.push(`/projects/${project.id}/chapters/${lastCompletedChapter.id}`); }, 380);
-          }
-        : null,
-    },
-    {
       key: "refine",
       label: "Refine the vision",
       sub: "Sharpen your north star and narrative arc",
@@ -472,18 +458,14 @@ function CassChronicleDrawer({
               color: "#888", border: "none", cursor: "pointer",
               transition: "background 0.15s, color 0.15s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#e8e0d0"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
           >
             <X size={14} />
           </button>
 
-          {/* Cass circle */}
-          <div style={{ width: "64px", height: "64px", borderRadius: "50%", overflow: "hidden", position: "relative", background: "#1a1a1a", boxShadow: "0 0 0 1.5px rgba(200,168,107,0.35), 0 4px 20px rgba(0,0,0,0.5)" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, transformOrigin: "top left", transform: "scale(0.5333) translateY(-6.5px)" }}>
-              <CassRecorder animState={isPending ? "playing" : "idle"} size="sm" />
-            </div>
-          </div>
+          {/* Cass recorder */}
+          <CassRecorder animState={isPending ? "playing" : "idle"} size="sm" />
           <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>
             Cass
           </p>
@@ -529,7 +511,7 @@ function CassChronicleDrawer({
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                     <div>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#e8e0d0", margin: 0, lineHeight: "1.3" }}>{label}</p>
+                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>{label}</p>
                       <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>{sub}</p>
                     </div>
                   </button>
@@ -597,7 +579,7 @@ function CassChronicleDrawer({
                     border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px",
                     padding: "10px 14px", resize: "none",
                     fontFamily: "'Special Elite', cursive", fontSize: "14px",
-                    lineHeight: 1.6, color: "#e8e0d0", outline: "none",
+                    lineHeight: 1.6, color: "#d4cec4", outline: "none",
                     boxSizing: "border-box",
                   }}
                 />
@@ -649,7 +631,7 @@ function CassChronicleDrawer({
                     <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 4px" }}>
                       Chapter {project.chapters.length + i - [...removedIndices].filter((r) => r < i).length + 1}
                     </p>
-                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#e8e0d0", margin: 0 }}>{ch.name}</p>
+                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#d4cec4", margin: 0 }}>{ch.name}</p>
                     {ch.goal && (
                       <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: "6px 0 0", lineHeight: 1.5 }}>{ch.goal}</p>
                     )}
@@ -695,16 +677,12 @@ function CassChronicleDrawer({
         {/* ── Done mode ── */}
         {mode === "done" && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 28px", gap: "24px" }}>
-            <div style={{ width: "64px", height: "64px", borderRadius: "50%", overflow: "hidden", position: "relative", background: "#1a1a1a", boxShadow: "0 0 0 1.5px rgba(200,168,107,0.45)" }}>
-              <div style={{ position: "absolute", top: 0, left: 0, transformOrigin: "top left", transform: "scale(0.5333) translateY(-6.5px)" }}>
-                <CassRecorder animState="idle" size="sm" />
-              </div>
-            </div>
+            <CassRecorder animState="idle" size="sm" />
             <div style={{ textAlign: "center" }}>
               <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "3px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 10px" }}>
                 Chapters planned
               </p>
-              <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "22px", color: "#e8e0d0", margin: 0, lineHeight: 1.3 }}>
+              <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "22px", color: "#d4cec4", margin: 0, lineHeight: 1.3 }}>
                 {savedCount} {savedCount === 1 ? "chapter" : "chapters"} added to your story
               </p>
               <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "10px 0 0", lineHeight: 1.6 }}>

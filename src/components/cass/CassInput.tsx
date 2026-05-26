@@ -44,7 +44,7 @@ export function CassInput({
           padding: "14px 16px",
           fontFamily: "'Share Tech Mono', 'Courier New', monospace",
           fontSize: "14px",
-          color: "#e8e0d0",
+          color: "#d4cec4",
           outline: "none",
           resize: "none",
           minHeight: "70px",

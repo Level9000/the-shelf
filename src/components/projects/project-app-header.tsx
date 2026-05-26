@@ -303,9 +303,9 @@ export function ProjectAppHeader({
           <Menu size={16} />
         </button>
 
-        {/* ── Project / Chapter breadcrumb ── */}
+        {/* ── Project / Chapter breadcrumb — desktop only ── */}
         {currentProject && (
-          <div style={{ zIndex: 1, minWidth: 0 }}>
+          <div className="hidden lg:block" style={{ zIndex: 1, minWidth: 0 }}>
             <span style={{
               fontFamily: "'Share Tech Mono', monospace",
               fontSize: "14px",

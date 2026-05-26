@@ -496,7 +496,7 @@ export function ProjectBoardClient({
 
   const fabTeaserText: string | undefined =
     bannerState.kind === "running_long"
-      ? `${bannerState.ageDays} days in. Time to write the story.`
+      ? `${bannerState.ageDays} days in. Time to wrap up this chapter.`
     : bannerState.kind === "closing_stretch"
       ? `${bannerState.completedCount} of ${bannerState.totalCount} done. Almost there.`
     : bannerState.kind === "on_pace"
