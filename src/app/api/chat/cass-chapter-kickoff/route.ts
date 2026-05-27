@@ -36,12 +36,11 @@ export async function POST(request: Request) {
     );
   }
 
-  if (messages.length === 0) {
-    return NextResponse.json(
-      { error: "At least one message is required." },
-      { status: 400 },
-    );
-  }
+  // Empty messages = opener request (component fetches the opening line on mount)
+  const effectiveMessages =
+    messages.length === 0
+      ? [{ role: "user" as const, content: "__kickoff_open__" }]
+      : messages;
 
   // Load project + board context
   const [
@@ -68,10 +67,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Find previous chapter for narrative continuity
+  // Find previous chapter for narrative continuity (goal + story)
   const { data: previousBoards } = await supabase
     .from("boards")
-    .select("name,goal,position")
+    .select("name,goal,chapter_story,position")
     .eq("project_id", projectId)
     .neq("id", chapterId)
     .not("kickoff_completed_at", "is", null)
@@ -80,6 +79,8 @@ export async function POST(request: Request) {
 
   const previousChapterGoal =
     (previousBoards?.[0]?.goal as string | null) ?? null;
+  const previousChapterStory =
+    (previousBoards?.[0]?.chapter_story as string | null) ?? null;
 
   // Determine chapter number from position
   const { data: allBoards } = await supabase
@@ -95,13 +96,14 @@ export async function POST(request: Request) {
 
   try {
     const result = await runCassChapterKickoffDialogue({
-      messages,
+      messages: effectiveMessages,
       projectName: String(project.name),
       northStar: (project.north_star as string | null) ?? null,
       projectGoal: (project.project_goal as string | null) ?? null,
       chapterNumber,
       chapterName: String(board.name),
       previousChapterGoal,
+      previousChapterStory,
       prefill: isPrefilled
         ? {
             goal: (board.goal as string | null) ?? null,

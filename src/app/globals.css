@@ -13,6 +13,7 @@
   --surface: rgba(255, 255, 255, 0.9);
   --surface-strong: rgba(255, 255, 255, 0.98);
   --surface-muted: rgba(247, 244, 239, 0.86);
+  --field-bg: rgba(255, 255, 255, 0.9);
   --stroke: rgba(32, 28, 24, 0.08);
   --ink: #16130f;
   --muted: #6f675f;
@@ -28,6 +29,7 @@
   --surface: rgba(255, 255, 255, 0.05);
   --surface-strong: rgba(255, 255, 255, 0.08);
   --surface-muted: rgba(255, 255, 255, 0.03);
+  --field-bg: rgba(255, 255, 255, 0.10);
   --stroke: rgba(255, 255, 255, 0.08);
   --ink: #d4cec4;
   --muted: rgba(212, 206, 196, 0.45);
@@ -114,6 +116,10 @@ pre,
 .surface-card {
   background: var(--surface-strong);
   box-shadow: var(--shadow-card);
+}
+
+[data-theme="dark"] .surface-card {
+  background: #1c1c1c;
 }
 
 .hairline {

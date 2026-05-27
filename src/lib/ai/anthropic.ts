@@ -889,6 +889,7 @@ export async function runCassChapterKickoffDialogue(input: {
   chapterNumber: number;
   chapterName: string;
   previousChapterGoal?: string | null;
+  previousChapterStory?: string | null;
   prefill?: {
     goal?: string | null;
     value?: string | null;

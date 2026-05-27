@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import type { BoardSnapshot, ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectBoardClient } from "@/components/board/project-board-client";
 import { ChapterRetroChat } from "@/components/board/chapter-retro-chat";
+import { CassChapterKickoff } from "@/components/cass/CassChapterKickoff";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,15 @@ export function ProjectWorkspaceShell({
   const router = useRouter();
   const [retroOpen, setRetroOpen] = useState(false);
   const [allDoneDismissed, setAllDoneDismissed] = useState(false);
+
+  // ── Kickoff gate ─────────────────────────────────────────────────────────────
+  const kickoffNeeded = !snapshot.board.kickoffCompletedAt;
+  const currentProjectChapters = useMemo(
+    () => projects.find((p) => p.id === currentProjectId)?.chapters ?? [],
+    [projects, currentProjectId],
+  );
+  const chapterIndex = currentProjectChapters.findIndex((c) => c.id === currentChapterId);
+  const chapterNumber = chapterIndex >= 0 ? chapterIndex + 1 : 1;
 
   const retroAvailable =
     Boolean(snapshot.board.kickoffCompletedAt) && !snapshot.board.retroCompletedAt;
@@ -102,7 +112,19 @@ export function ProjectWorkspaceShell({
         </div>
       </Modal>
 
-      {retroOpen ? (
+      {kickoffNeeded ? (
+        <div className="flex h-full min-h-0 flex-col">
+          <CassChapterKickoff
+            project={snapshot.project}
+            board={snapshot.board}
+            columns={snapshot.columns}
+            chapterNumber={chapterNumber}
+            onComplete={() => router.refresh()}
+            onDismiss={undefined}
+            isPrefilled={!!snapshot.board.kickoffPrefilledAt}
+          />
+        </div>
+      ) : retroOpen ? (
         <div className="flex h-full min-h-0 flex-col">
           <ChapterRetroChat
             project={{

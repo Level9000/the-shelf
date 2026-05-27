@@ -28,6 +28,7 @@ import {
 } from "@/lib/actions/task-actions";
 import { normalizeTaskOrder } from "@/lib/board-utils";
 import { cn, formatDate } from "@/lib/utils";
+import { useTheme } from "@/lib/theme-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -39,7 +40,6 @@ import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
-import { ChapterRefocusChat } from "@/components/board/chapter-refocus-chat";
 
 type ReviewState = {
   captureId: string | null;
@@ -121,23 +121,33 @@ const DOCK_HOVER_TINTS: Record<string, string> = {
   "Blocked":      "rgba(252,231,243,0.85)",
   "Done":         "rgba(220,252,231,0.85)",
 };
+const DOCK_HOVER_TINTS_DARK: Record<string, string> = {
+  "Do This Week": "rgba(234,179,8,0.18)",
+  "Do Today":     "rgba(59,130,246,0.18)",
+  "Blocked":      "rgba(236,72,153,0.18)",
+  "Done":         "rgba(34,197,94,0.18)",
+};
 
 function DragDeleteZone() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const { setNodeRef, isOver } = useDroppable({ id: DELETE_ZONE_ID, data: { type: "delete-zone" } });
   return (
     <div
       ref={setNodeRef}
       className={cn(
         "flex items-center justify-center gap-2.5 border-t-2 border-dashed transition-colors duration-150",
-        isOver ? "bg-red-50/90 border-red-400" : "bg-black/[0.015] border-black/10",
+        isOver
+          ? "border-red-400 bg-red-500/20"
+          : isDark ? "border-white/10 bg-white/[0.03]" : "border-black/10 bg-black/[0.015]",
       )}
       style={{ height: "15%" }}
     >
       <Trash2
-        className={cn("size-4 transition-colors duration-150", isOver ? "text-red-500" : "text-black/25")}
+        className={cn("size-4 transition-colors duration-150", isOver ? "text-red-400" : isDark ? "text-white/20" : "text-black/25")}
         strokeWidth={1.5}
       />
-      <span className={cn("text-xs font-medium tracking-wide transition-colors duration-150", isOver ? "text-red-500" : "text-black/30")}>
+      <span className={cn("text-xs font-medium tracking-wide transition-colors duration-150", isOver ? "text-red-400" : isDark ? "text-white/25" : "text-black/30")}>
         {isOver ? "Release to delete" : "Drag here to delete"}
       </span>
     </div>
@@ -145,6 +155,9 @@ function DragDeleteZone() {
 }
 
 function DockColumnZone({ column, taskCount }: { column: BoardColumn; taskCount: number }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const tints = isDark ? DOCK_HOVER_TINTS_DARK : DOCK_HOVER_TINTS;
   const { setNodeRef, isOver } = useDroppable({
     id: `${DOCK_PREFIX}${column.id}`,
     data: { type: "dock-column", columnId: column.id },
@@ -153,7 +166,7 @@ function DockColumnZone({ column, taskCount }: { column: BoardColumn; taskCount:
     <div
       ref={setNodeRef}
       className="flex flex-1 flex-col items-center justify-center gap-1.5 border-r border-black/6 last:border-r-0 transition-colors duration-150"
-      style={{ background: isOver ? (DOCK_HOVER_TINTS[column.name] ?? "rgba(200,168,107,0.15)") : "transparent" }}
+      style={{ background: isOver ? (tints[column.name] ?? (isDark ? "rgba(200,168,107,0.12)" : "rgba(200,168,107,0.15)")) : "transparent" }}
     >
       <p className="text-sm font-semibold text-[var(--ink)]" style={{ fontFamily: "'Special Elite', cursive" }}>
         {column.name}
@@ -166,11 +179,13 @@ function DockColumnZone({ column, taskCount }: { column: BoardColumn; taskCount:
 }
 
 function DragCanvas({ active, columns, tasks }: { active: boolean; columns: BoardColumn[]; tasks: Task[] }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   if (!active) return null;
   return (
     <div
       className="fixed inset-0 z-40 hidden lg:flex flex-col"
-      style={{ background: "rgba(248,245,240,0.92)", backdropFilter: "blur(6px)" }}
+      style={{ background: isDark ? "rgba(10,10,10,0.95)" : "rgba(248,245,240,0.92)", backdropFilter: "blur(6px)" }}
     >
       <div className="flex flex-1">
         {columns.map((col) => (
@@ -242,7 +257,7 @@ export function ProjectBoardClient({
     transcript: "",
     proposals: [],
   });
-  const [refocusOpen, setRefocusOpen] = useState(false);
+
   const [completedAlertOpen, setCompletedAlertOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -708,29 +723,6 @@ export function ProjectBoardClient({
         onAccepted={refreshData}
       />
 
-      {refocusOpen ? (
-        (() => {
-          const doneCol = snapshot.columns.find((c) => c.name.toLowerCase() === "done");
-          const incompleteTasks = tasks.filter(
-            (t) => !doneCol || t.columnId !== doneCol.id,
-          );
-          return (
-            <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[var(--surface)] p-4 sm:p-6">
-              <ChapterRefocusChat
-                project={snapshot.project}
-                board={snapshot.board}
-                incompleteTasks={incompleteTasks}
-                columns={snapshot.columns}
-                onComplete={() => {
-                  setRefocusOpen(false);
-                  refreshData();
-                }}
-                onClose={() => setRefocusOpen(false)}
-              />
-            </div>
-          );
-        })()
-      ) : null}
 
       <Modal
         open={completedAlertOpen}
@@ -789,7 +781,7 @@ export function ProjectBoardClient({
         completedChapterMode={cassCompletedMode}
         onNavigateToLatest={activeChapterUrl ? () => router.push(activeChapterUrl) : undefined}
         onPlanChapters={() => router.push(`/projects/${chapterProjectId}?plan=true`)}
-        onRefocus={bannerState.kind === "running_long" ? () => { setCassOpen(false); setRefocusOpen(true); } : undefined}
+        onRefocus={bannerState.kind === "running_long" ? () => {} : undefined}
         onEndChapterConfirmed={!snapshot.board.retroCompletedAt ? (nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); refreshData(); } : undefined}
         onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); setCassCompletedMode(false); }}
         onTasksAdded={refreshData}

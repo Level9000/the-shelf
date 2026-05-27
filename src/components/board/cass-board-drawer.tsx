@@ -5,9 +5,11 @@ import { ArrowRight, ArrowUp, Check, LoaderCircle, Trash2, X } from "lucide-reac
 import type { AICassBoardDialogue } from "@/lib/ai/schema";
 import type { Board, BoardColumn, BoardConversationEntry, Chapter, Priority, Project, ProposedTask, Task, WorkflowTemplate } from "@/types";
 import { createBrainDumpCardsAction, createNextChapterForDeferAction, deleteTaskAction, moveTasksToChapterAction, saveBoardConversationAction, saveWorkflowTemplateAction } from "@/lib/actions/task-actions";
-import { endChapterEarlyAction } from "@/lib/actions/project-actions";
+import { deferTasksToNextChapterAction, endChapterEarlyAction } from "@/lib/actions/project-actions";
+import { getChapterAgeDays } from "@/lib/utils";
 import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
+import { CassRetroChat } from "@/components/cass/CassRetroChat";
 import type { CassAnimState } from "@/components/cass/cassVoice";
 import { useTheme } from "@/lib/theme-context";
 
@@ -46,8 +48,10 @@ declare global {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type BoardMode = "menu" | "chat" | "completed";
+type BoardMode = "menu" | "chat" | "completed" | "refocus";
 type ChatSubMode = "tasks" | "braindump" | "move" | "breakup" | "end_chapter";
+type RefocusPhase = "chat" | "triage" | "retro";
+type TriageDecision = "keep" | "move" | "delete";
 type BrainDumpState = "idle" | "recording" | "processing" | "error";
 type MovePhase = "select" | "destination" | "done";
 type Msg = { role: "user" | "assistant"; content: string };
@@ -80,6 +84,18 @@ const PRIORITY_COLORS: Record<NonNullable<Priority>, string> = {
 const COLUMN_LABELS: Record<string, string> = {
   "Do Today": "Today", "Do This Week": "This Week", "Backlog": "Backlog", "Done": "Done",
 };
+
+// ── Refocus opener ────────────────────────────────────────────────────────────
+
+function buildRfOpener(board: Board, incompleteTasks: Task[], ageDays: number): string {
+  if (incompleteTasks.length === 0) {
+    return `Your backlog for ${board.name} is clear. If you're ready to close this chapter, let's write the retro.`;
+  }
+  const openingLine = board.openingLine ? `You started this chapter with: "${board.openingLine}." ` : "";
+  const named = incompleteTasks.slice(0, 2).map((t) => `"${t.title}"`).join(" and ");
+  const more = incompleteTasks.length > 2 ? ` and ${incompleteTasks.length - 2} more` : "";
+  return `${openingLine}It's been ${ageDays} days. You still have ${named}${more} in the backlog. What's actually been getting in the way?`;
+}
 
 // ── Proposal card ─────────────────────────────────────────────────────────────
 
@@ -913,6 +929,16 @@ export function CassBoardDrawer({
   const [templateSaved, setTemplateSaved] = useState(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
 
+  // ── Refocus state ─────────────────────────────────────────────────────────────
+  const [rfPhase, setRfPhase] = useState<RefocusPhase>("chat");
+  const [rfMessages, setRfMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [rfDraft, setRfDraft] = useState("");
+  const [rfTriageMap, setRfTriageMap] = useState<Record<string, TriageDecision>>({});
+  const [rfError, setRfError] = useState<string | null>(null);
+  const [rfDoneCount, setRfDoneCount] = useState<{ deleted: number; moved: number } | null>(null);
+  const [rfIsPending, startRfTransition] = useTransition();
+  const [rfIsSaving, startRfSaveTransition] = useTransition();
+
   // Reset on open
   useEffect(() => {
     if (!open) return;
@@ -928,6 +954,12 @@ export function CassBoardDrawer({
     setTemplateSaved(false);
     setTemplateError(null);
     setBraindumpTranscript(null);
+    setRfPhase("chat");
+    setRfMessages([]);
+    setRfDraft("");
+    setRfTriageMap({});
+    setRfError(null);
+    setRfDoneCount(null);
 
     // If this is a completed chapter, show the "what's next?" screen
     if (completedChapterMode) {
@@ -1176,6 +1208,80 @@ export function CassBoardDrawer({
     });
   }
 
+  // ── Refocus helpers ──────────────────────────────────────────────────────────
+
+  const rfIncompleteTasks = tasks.filter((t) => {
+    const col = columns.find((c) => c.id === t.columnId);
+    return col?.name.toLowerCase() !== "done";
+  });
+
+  function enterRefocusMode() {
+    const ageDays = getChapterAgeDays(board) ?? 0;
+    const opener = buildRfOpener(board, rfIncompleteTasks, ageDays);
+    setRfMessages([{ role: "assistant", content: opener }]);
+    setRfPhase("chat");
+    setRfDraft("");
+    setRfTriageMap({});
+    setRfError(null);
+    setRfDoneCount(null);
+    setMenuSelected("Refocus");
+    setMode("refocus");
+  }
+
+  function sendRfMessage() {
+    const content = rfDraft.trim();
+    if (!content || rfIsPending) return;
+    const next = [...rfMessages, { role: "user" as const, content }];
+    setRfMessages(next);
+    setRfDraft("");
+    setRfError(null);
+    startRfTransition(async () => {
+      try {
+        const res = await fetch("/api/chat/refocus", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: project.id, chapterId: board.id, messages: next }),
+        });
+        const payload = await res.json() as { reply: string; done: boolean; keepTaskIds: string[]; deferTaskIds: string[]; rationale: string; error?: string };
+        if (!res.ok) throw new Error(payload.error ?? "Refocus failed.");
+        const withReply = [...next, { role: "assistant" as const, content: payload.reply }];
+        setRfMessages(withReply);
+        if (payload.done) {
+          const map: Record<string, TriageDecision> = {};
+          for (const t of rfIncompleteTasks) {
+            if (payload.deferTaskIds.includes(t.id)) map[t.id] = "move";
+            else map[t.id] = "keep";
+          }
+          setRfTriageMap(map);
+          setRfPhase("triage");
+        }
+      } catch (err) {
+        setRfError(err instanceof Error ? err.message : "Something went wrong.");
+      }
+    });
+  }
+
+  function handleRfConfirm() {
+    const deleteIds = Object.entries(rfTriageMap).filter(([, v]) => v === "delete").map(([k]) => k);
+    const moveIds   = Object.entries(rfTriageMap).filter(([, v]) => v === "move").map(([k]) => k);
+    setRfError(null);
+    startRfSaveTransition(async () => {
+      try {
+        if (deleteIds.length > 0) {
+          await Promise.all(deleteIds.map((id) => deleteTaskAction({ taskId: id, projectId: project.id, boardId: board.id })));
+        }
+        if (moveIds.length > 0) {
+          await deferTasksToNextChapterAction({ projectId: project.id, boardId: board.id, taskIds: moveIds });
+        }
+        onTasksAdded();
+        setRfDoneCount({ deleted: deleteIds.length, moved: moveIds.length });
+        setRfPhase("retro");
+      } catch (err) {
+        setRfError(err instanceof Error ? err.message : "Failed to save changes.");
+      }
+    });
+  }
+
   const hasProposals = proposedTasks.length > 0;
   const isBrainDump = chatSubMode === "braindump";
   const isMoveMode = chatSubMode === "move";
@@ -1188,10 +1294,15 @@ export function CassBoardDrawer({
 
   // Cass anim in the header: playing while AI is thinking, talking while typewriting text
   const isTypewriting = menuDisplayed.length > 0 && menuDisplayed.length < MENU_QUESTION.length;
-  const headerCassAnim: CassAnimState = isPending ? "playing" : isTypewriting ? "talking" : "idle";
+  const headerCassAnim: CassAnimState =
+    mode === "refocus" ? (rfIsPending || rfIsSaving ? "playing" : "idle") :
+    isPending ? "playing" : isTypewriting ? "talking" : "idle";
 
   // Progress bar percentage
   const progressPercent =
+    mode === "refocus" && rfPhase === "chat"   ? 25 :
+    mode === "refocus" && rfPhase === "triage" ? 55 :
+    mode === "refocus" && rfPhase === "retro"  ? 80 :
     mode === "menu" ? 15 :
     mode === "completed" ? 100 :
     savedOk ? 90 :
@@ -1228,9 +1339,10 @@ export function CassBoardDrawer({
       >
         <CassProgressBar percent={progressPercent} />
 
-        {/* ── Header ── */}
+        {/* ── Header — hidden during refocus retro (CassRetroChat owns the stage) ── */}
+        {!(mode === "refocus" && rfPhase === "retro") && (
         <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px", position: "relative" }}>
-          {mode === "chat" && !savedOk && (
+          {(mode === "chat" && !savedOk) && (
             <button
               type="button"
               onClick={isBreakupMode ? onClose : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); }}
@@ -1238,6 +1350,15 @@ export function CassBoardDrawer({
               onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
             >{isBreakupMode ? "✕ cancel" : "← back"}</button>
+          )}
+          {mode === "refocus" && rfPhase === "chat" && (
+            <button
+              type="button"
+              onClick={() => { setMode("menu"); setMenuSelected(null); }}
+              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: btnBg, color: btnColor, border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
+            >← back</button>
           )}
           <button
             type="button" onClick={onClose} aria-label="Close"
@@ -1251,8 +1372,9 @@ export function CassBoardDrawer({
             <CassRecorder animState={headerCassAnim} size="sm" />
           )}
         </div>
+        )}
 
-        {!(mode === "chat" && isBrainDump && !hasProposals && !savedOk) && (
+        {!(mode === "chat" && isBrainDump && !hasProposals && !savedOk) && !(mode === "refocus" && rfPhase === "retro") && (
           <div style={{ height: "1px", background: dividerColor, flexShrink: 0 }} />
         )}
 
@@ -1274,7 +1396,7 @@ export function CassBoardDrawer({
                 {onRefocus ? (
                   <button
                     type="button"
-                    onClick={() => { onRefocus(); onClose(); }}
+                    onClick={enterRefocusMode}
                     style={{ background: "rgba(251,146,60,0.04)", border: "1px solid rgba(251,146,60,0.22)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(251,146,60,0.5)"; e.currentTarget.style.background = "rgba(251,146,60,0.09)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(251,146,60,0.22)"; e.currentTarget.style.background = "rgba(251,146,60,0.04)"; }}
@@ -1331,6 +1453,119 @@ export function CassBoardDrawer({
               </div>
             )}
           </div>
+        )}
+
+        {/* ── Refocus mode ── */}
+        {mode === "refocus" && rfPhase === "retro" && (() => {
+          const doneColId = columns.find((c) => c.name.toLowerCase() === "done")?.id;
+          const completedTasksForRetro = tasks.filter((t) => t.columnId === doneColId);
+          const keepIds = new Set(Object.entries(rfTriageMap).filter(([, v]) => v === "keep").map(([k]) => k));
+          const remainingTasksForRetro = tasks.filter((t) => keepIds.has(t.id));
+          return (
+            <CassRetroChat
+              project={project}
+              board={board}
+              completedTasks={completedTasksForRetro}
+              remainingTasks={remainingTasksForRetro}
+              onComplete={() => { onTasksAdded(); setTimeout(onClose, 800); }}
+              onDismiss={onClose}
+            />
+          );
+        })()}
+
+        {mode === "refocus" && rfPhase === "triage" && (
+          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            {/* Cass summary bubble */}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
+              <div style={CASS_B}>
+                For each task below, choose: keep it in this chapter, move it to the next one, or cut it entirely.
+              </div>
+            </div>
+
+            {/* Task triage cards */}
+            {rfIncompleteTasks.map((t) => {
+              const decision = rfTriageMap[t.id] ?? "keep";
+              const colName = columns.find((c) => c.id === t.columnId)?.name ?? "";
+              return (
+                <div key={t.id} style={{ background: surface, border: `1px solid ${borderGoldDim}`, borderRadius: "12px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", color: textPrimary, margin: 0, lineHeight: "1.5" }}>{t.title}</p>
+                  {colName && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.5)", margin: 0, letterSpacing: "1px", textTransform: "uppercase" }}>{colName}</p>}
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                    {(["keep", "move", "delete"] as TriageDecision[]).map((opt) => {
+                      const labels = { keep: "✓ Keep", move: "→ Next chapter", delete: "✕ Cut it" };
+                      const activeColors = { keep: "rgba(110,231,183,0.2)", move: "rgba(200,168,107,0.2)", delete: "rgba(248,113,113,0.2)" };
+                      const activeBorders = { keep: "rgba(110,231,183,0.5)", move: "rgba(200,168,107,0.5)", delete: "rgba(248,113,113,0.5)" };
+                      const activeText = { keep: "#6ee7b7", move: "#c8a86b", delete: "#f87171" };
+                      const isActive = decision === opt;
+                      return (
+                        <button
+                          key={opt} type="button"
+                          onClick={() => setRfTriageMap((prev) => ({ ...prev, [t.id]: opt }))}
+                          style={{ padding: "4px 12px", borderRadius: "999px", border: `1px solid ${isActive ? activeBorders[opt] : "rgba(255,255,255,0.1)"}`, background: isActive ? activeColors[opt] : "transparent", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: isActive ? activeText[opt] : "rgba(255,255,255,0.3)", cursor: "pointer", transition: "all 0.15s", letterSpacing: "0.5px" }}
+                        >{labels[opt]}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            {rfError && (
+              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "#f87171", margin: 0 }}>{rfError}</p>
+            )}
+
+            {/* Confirm */}
+            <button
+              type="button" onClick={handleRfConfirm} disabled={rfIsSaving}
+              style={{ marginTop: "8px", padding: "13px", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: rfIsSaving ? "not-allowed" : "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", fontWeight: 700, color: "#0a0a0a", letterSpacing: "0.5px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: rfIsSaving ? 0.7 : 1 }}
+            >
+              {rfIsSaving
+                ? <><LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> Saving…</>
+                : "Lock it in → Write the retro"}
+            </button>
+          </div>
+        )}
+
+        {mode === "refocus" && rfPhase === "chat" && (
+          <>
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 16px", display: "flex", flexDirection: "column", gap: "12px" }} ref={messagesEndRef as React.RefObject<HTMLDivElement>}>
+              {rfMessages.map((msg, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: "10px" }}>
+                  {msg.role === "assistant" && <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />}
+                  <div style={msg.role === "assistant" ? CASS_B : USER_B}>{msg.content}</div>
+                </div>
+              ))}
+              {rfIsPending && (
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
+                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
+                  <div style={{ ...CASS_B, color: "rgba(200,168,107,0.5)", fontSize: "13px" }}>
+                    <LoaderCircle size={14} style={{ display: "inline", verticalAlign: "middle", animation: "cassBoardSpin 1s linear infinite", marginRight: "6px" }} />rolling…
+                  </div>
+                </div>
+              )}
+              {rfError && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "#f87171", margin: 0 }}>{rfError}</p>}
+            </div>
+            <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", gap: "10px", alignItems: "flex-end" }}>
+              <textarea
+                value={rfDraft}
+                onChange={(e) => setRfDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendRfMessage(); } }}
+                placeholder="What's been getting in the way…"
+                rows={2}
+                disabled={rfIsPending}
+                style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
+              />
+              <button
+                type="button" onClick={sendRfMessage} disabled={!rfDraft.trim() || rfIsPending}
+                style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%", border: "none", cursor: rfDraft.trim() && !rfIsPending ? "pointer" : "not-allowed", background: rfDraft.trim() && !rfIsPending ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
+              >
+                {rfIsPending
+                  ? <LoaderCircle size={16} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite" }} />
+                  : <ArrowUp size={16} style={{ color: rfDraft.trim() ? "#0a0a0a" : "#555" }} />}
+              </button>
+            </div>
+          </>
         )}
 
         {/* ── Completed chapter mode ── */}

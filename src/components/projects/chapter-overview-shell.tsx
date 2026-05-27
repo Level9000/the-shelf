@@ -475,18 +475,11 @@ export function ChapterOverviewShell({
     (c) => c.id === currentChapterId,
   );
   const chapterNumber = chapterIndex >= 0 ? chapterIndex + 1 : 1;
-  const previousChapter =
-    chapterIndex > 0 ? currentProjectChapters[chapterIndex - 1] : null;
-  const previousChapterGoal = previousChapter?.goal ?? null;
-
   const { completedTasks, remainingTasks } = useMemo(
     () => classifyTasks(snapshot),
     [snapshot],
   );
 
-  // Show escape hatch (X button) on Cass screens when user has other content to return to
-  const hasEscapeRoute =
-    projects.length > 1 || currentProjectChapters.length > 1;
 
   function handleEndChapterConfirmed(_nextChapterId: string | null) {
     setEndChapterModalOpen(false);
@@ -526,9 +519,8 @@ export function ChapterOverviewShell({
               board={snapshot.board}
               columns={snapshot.columns}
               chapterNumber={chapterNumber}
-              previousChapterGoal={previousChapterGoal}
-              onComplete={() => setKickoffDismissed(true)}
-              onDismiss={hasEscapeRoute ? () => setKickoffDismissed(true) : undefined}
+              onComplete={() => { setKickoffDismissed(true); router.refresh(); }}
+              onDismiss={undefined}
               isPrefilled={kickoffMode === "confirmation"}
             />
           ) : retroOpen ? (

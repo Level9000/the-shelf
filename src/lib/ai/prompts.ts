@@ -1199,6 +1199,7 @@ export function buildCassChapterKickoffPrompt(input: {
   chapterNumber: number;
   chapterName: string;
   previousChapterGoal?: string | null;
+  previousChapterStory?: string | null;
   prefill?: {
     goal?: string | null;
     value?: string | null;
@@ -1218,15 +1219,27 @@ export function buildCassChapterKickoffPrompt(input: {
     `North Star: ${input.northStar ?? "Not set"}`,
     `Project Goal: ${input.projectGoal ?? "Not set"}`,
     hasPrevious
-      ? `Previous Chapter Goal: ${input.previousChapterGoal}`
+      ? [
+          `Previous Chapter Goal: ${input.previousChapterGoal}`,
+          input.previousChapterStory
+            ? `Previous Chapter Story: ${input.previousChapterStory}`
+            : "Previous Chapter Story: Not yet written.",
+        ].join("\n")
       : "This is the first chapter.",
     "",
     CASS_VOICE,
     "",
-    "YOUR OPENING LINE:",
+    "YOUR OPENING LINE — write it fresh from their actual context. Rules:",
+    "- Every sentence must be under 50 words.",
+    "- Line 1: Mark the new chapter. Short. E.g. \"Chapter 3. New tape.\" or \"Chapter 3. New side.\"",
     hasPrevious
-      ? `Start with: "Chapter ${input.chapterNumber}. New tape, new side." Then: "Last time we ${input.previousChapterGoal?.toLowerCase() ?? "got started"}. This time — what are we going for?"`
-      : `Start with: "Chapter ${input.chapterNumber}. Tape's rolling. What are we building this sprint?"`,
+      ? [
+          "- Line 2: ONE sentence that naturally captures what they were going for last chapter and what came of it.",
+          "  Read the previous goal and story, then say it like a human recap — not a quote, not a template.",
+          "  If there's no story yet, just reference what they were aiming for.",
+          "- Line 3: Ask what they want to accomplish this chapter. One short question.",
+        ].join("\n")
+      : "- Line 2: Ask what they want to build this chapter. One short question.",
     "",
     isPrefilled
       ? [

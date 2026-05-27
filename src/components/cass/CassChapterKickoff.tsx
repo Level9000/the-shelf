@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import type { CassAnimState } from "./cassVoice";
 import type { AIKickoffDialogue } from "@/lib/ai/schema";
 import type { Board, BoardColumn, Project } from "@/types";
@@ -13,36 +13,15 @@ import { CASS_ERROR_LINES } from "./cassVoice";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
 
-// Opening message is sent from the API — we show an opening state
-function buildOpeningMessage(
-  chapterNumber: number,
-  previousChapterGoal: string | null,
-  isPrefilled: boolean,
-): DialogueMessage {
-  if (isPrefilled) {
-    return {
-      role: "assistant",
-      content: `Chapter ${chapterNumber}. Tape's loaded from our planning session. Let me read back what we set up — tell me if it still fits.`,
-    };
-  }
-  if (previousChapterGoal) {
-    return {
-      role: "assistant",
-      content: `Chapter ${chapterNumber}. New tape, new side.\n\nLast time we ${previousChapterGoal.toLowerCase()}. This time — what are we going for?`,
-    };
-  }
-  return {
-    role: "assistant",
-    content: `Chapter ${chapterNumber}. Tape's rolling. What are we building this sprint?`,
-  };
-}
+// Synthetic first-user turn that satisfies Anthropic's message-alternation rule.
+// Never shown in the UI — just primes the AI to deliver its opener.
+const OPENER_TRIGGER: DialogueMessage = { role: "user", content: "__kickoff_open__" };
 
 export function CassChapterKickoff({
   project,
   board,
   columns,
   chapterNumber,
-  previousChapterGoal,
   onComplete,
   onDismiss,
   isPrefilled,
@@ -51,25 +30,50 @@ export function CassChapterKickoff({
   board: Board;
   columns: BoardColumn[];
   chapterNumber: number;
-  previousChapterGoal?: string | null;
   onComplete: () => void;
   onDismiss?: () => void;
   isPrefilled: boolean;
 }) {
-  const openingMsg = buildOpeningMessage(
-    chapterNumber,
-    previousChapterGoal ?? null,
-    isPrefilled,
-  );
-
-  const [messages, setMessages] = useState<DialogueMessage[]>([openingMsg]);
-  const [currentReply, setCurrentReply] = useState(openingMsg.content);
-  const [animState, setAnimState] = useState<CassAnimState>("talking");
+  // Start in loading state — opener is fetched from the API on mount
+  const [messages, setMessages] = useState<DialogueMessage[]>([OPENER_TRIGGER]);
+  const [currentReply, setCurrentReply] = useState("");
+  const [animState, setAnimState] = useState<CassAnimState>("recording");
   const [inputValue, setInputValue] = useState("");
   const [kickoffData, setKickoffData] = useState<AIKickoffDialogue | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isSaving, startSaveTransition] = useTransition();
+
+  // Fetch the AI-generated opener on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    startTransition(async () => {
+      try {
+        const response = await fetch("/api/chat/cass-chapter-kickoff", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [],          // empty = opener request
+            projectId: project.id,
+            chapterId: board.id,
+          }),
+        });
+
+        const data = (await response.json()) as AIKickoffDialogue & { error?: string };
+        if (!response.ok) throw new Error(data.error ?? CASS_ERROR_LINES[0]);
+
+        const reply = data.reply?.trim();
+        if (!reply) throw new Error(CASS_ERROR_LINES[1]);
+
+        setMessages([OPENER_TRIGGER, { role: "assistant", content: reply }]);
+        setCurrentReply(reply);
+        setAnimState("talking");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : CASS_ERROR_LINES[0]);
+        setAnimState("listening");
+      }
+    });
+  }, []);
 
   const isListening = animState === "listening" && !isPending;
 
@@ -151,7 +155,8 @@ export function CassChapterKickoff({
           successLooksLike: data.successLooksLike,
           doneDefinition: data.doneDefinition,
           openingLine: data.openingLine,
-          conversation: messages,
+          // Strip the synthetic opener trigger before storing
+          conversation: messages.filter((m) => m.content !== OPENER_TRIGGER.content),
           tasks: (data.proposedTasks ?? []).map((t) => ({ title: t.title })),
           columns: columns.map((c) => ({ id: c.id, name: c.name })),
         });
@@ -184,126 +189,153 @@ export function CassChapterKickoff({
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
           background: "#0a0a0a",
           backgroundImage:
             "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)",
-          padding: "24px 16px",
           fontFamily: "'Share Tech Mono', 'Courier New', monospace",
           color: "#c8c8c8",
-          overflowY: "auto",
-          position: "relative",
         }}
       >
-        {/* Progress bar — absolute at top */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-          <CassProgressBar percent={kickoffData || isSaving ? 85 : 45} />
-        </div>
+        {/* Progress bar — flush at the very top */}
+        <CassProgressBar percent={kickoffData || isSaving ? 85 : 45} />
 
-        {onDismiss && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            aria-label="Close"
-            style={{
-              position: "absolute",
-              top: "16px",
-              right: "16px",
-              background: "transparent",
-              border: "none",
-              color: "#444",
-              cursor: "pointer",
-              fontSize: "20px",
-              lineHeight: 1,
-              padding: "4px",
-              transition: "color 0.2s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; }}
-          >
-            ✕
-          </button>
-        )}
+        {/* Header row — label left, optional dismiss right */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            width: "100%",
-            maxWidth: "480px",
+            justifyContent: "space-between",
+            padding: "12px 20px",
+            flexShrink: 0,
           }}
         >
-          <CassRecorder animState={animState} size="md" />
+          <span
+            style={{
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: "11px",
+              letterSpacing: "2px",
+              color: "rgba(200,168,107,0.8)",
+              textTransform: "uppercase",
+            }}
+          >
+            ◉ Chapter {chapterNumber} Kickoff
+          </span>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Close"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#444",
+                cursor: "pointer",
+                fontSize: "18px",
+                lineHeight: 1,
+                padding: "4px",
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
-          {/* Speech area */}
+        {/* Cass content — centred in remaining space */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "0 16px 24px",
+            overflowY: "auto",
+          }}
+        >
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "16px",
+              alignItems: "center",
               width: "100%",
-              padding: "24px 0 16px",
+              maxWidth: "480px",
             }}
           >
-            {currentReply && (
-              <CassSpeechBubble
-                key={currentReply}
-                text={currentReply}
-                onComplete={handleReplyComplete}
-                speed={24}
-              />
-            )}
+            <CassRecorder animState={animState} size="md" />
 
-            {(isPending || isSaving) && !currentReply && (
-              <div
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(200,168,107,0.15)",
-                  borderRadius: "12px",
-                  padding: "20px 24px",
-                  width: "100%",
-                  minHeight: "64px",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <span
+            {/* Speech area */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+                width: "100%",
+                padding: "24px 0 16px",
+              }}
+            >
+              {currentReply && (
+                <CassSpeechBubble
+                  key={currentReply}
+                  text={currentReply}
+                  onComplete={handleReplyComplete}
+                  speed={24}
+                />
+              )}
+
+              {(isPending || isSaving) && !currentReply && (
+                <div
                   style={{
-                    fontFamily: "'Share Tech Mono', monospace",
-                    fontSize: "13px",
-                    color: "#555",
-                    letterSpacing: "1px",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(200,168,107,0.15)",
+                    borderRadius: "12px",
+                    padding: "20px 24px",
+                    width: "100%",
+                    minHeight: "64px",
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
-                  {isSaving ? "◉ saving..." : "◉ rolling..."}
-                </span>
-              </div>
-            )}
+                  <span
+                    style={{
+                      fontFamily: "'Share Tech Mono', monospace",
+                      fontSize: "13px",
+                      color: "#555",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    {isSaving ? "◉ saving..." : "◉ rolling..."}
+                  </span>
+                </div>
+              )}
 
-            {error && (
-              <p
-                style={{
-                  color: "#ff3b30",
-                  fontFamily: "'Share Tech Mono', monospace",
-                  fontSize: "13px",
-                  textAlign: "center",
-                  width: "100%",
-                }}
-              >
-                {error}
-              </p>
-            )}
+              {error && (
+                <p
+                  style={{
+                    color: "#ff3b30",
+                    fontFamily: "'Share Tech Mono', monospace",
+                    fontSize: "13px",
+                    textAlign: "center",
+                    width: "100%",
+                  }}
+                >
+                  {error}
+                </p>
+              )}
 
-            {isListening && (
-              <CassInput
-                value={inputValue}
-                onChange={setInputValue}
-                onSubmit={handleSend}
-                placeholder="Keep going..."
-                autoFocus
-              />
-            )}
+              {isListening && (
+                <CassInput
+                  value={inputValue}
+                  onChange={setInputValue}
+                  onSubmit={handleSend}
+                  placeholder="Keep going..."
+                  autoFocus
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -50,7 +50,7 @@ function AssigneeMultiSelect({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "flex w-full items-center justify-between rounded-2xl border bg-white/90 px-4 py-3 text-sm shadow-sm outline-none transition",
+          "flex w-full items-center justify-between rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none transition",
           open
             ? "border-[var(--accent)] ring-4 ring-[var(--accent-soft)]"
             : "border-[var(--border,#e5e7eb)] hover:border-[var(--accent)]/50",
@@ -68,7 +68,7 @@ function AssigneeMultiSelect({
       </button>
 
       {open && memberOptions.length > 0 && (
-        <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-2xl border bg-white shadow-lg">
+        <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-2xl border bg-[var(--field-bg)] shadow-lg">
           {memberOptions.map((option) => {
             const isSelected = selected.includes(option.value);
             return (
@@ -184,7 +184,7 @@ export function TaskFormFields({
           <select
             value={columnId}
             onChange={(event) => onChange("columnId", event.target.value)}
-            className="w-full rounded-2xl border bg-white/90 px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+            className="w-full rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
           >
             {columns.map((column) => (
               <option key={column.id} value={column.id}>
@@ -198,7 +198,7 @@ export function TaskFormFields({
           <select
             value={priority ?? ""}
             onChange={(event) => onChange("priority", event.target.value)}
-            className="w-full rounded-2xl border bg-white/90 px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+            className="w-full rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
           >
             <option value="">None</option>
             {PRIORITY_OPTIONS.map((option) => (
