@@ -77,7 +77,7 @@ export function TapeButton({
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         style={{
-          fontFamily: "'Caveat', cursive",
+          fontFamily: "var(--font-cass)",
           fontSize: s.fontSize,
           fontWeight: 700,
           color: hover ? "#f5c84a" : "rgba(245,200,74,0.65)",
@@ -112,7 +112,7 @@ export function TapeButton({
         alignItems: "center",
         justifyContent: "center",
         gap: "8px",
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "var(--font-cass)",
         fontSize: s.fontSize,
         fontWeight: 700,
         color: v.color,

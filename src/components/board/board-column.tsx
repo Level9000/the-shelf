@@ -60,7 +60,7 @@ export function BoardColumnView({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "'Caveat', cursive",
+          fontFamily: "var(--font-cass)",
           fontSize: "24px",
           fontWeight: 700,
           padding: "7px 16px 9px",
@@ -99,7 +99,7 @@ export function BoardColumnView({
         </div>
         {/* Card count */}
         <div style={{ padding: "6px 4px 0" }}>
-          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(0,0,0,0.35)" }}>
+          <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(0,0,0,0.35)" }}>
             {tasks.length} card{tasks.length === 1 ? "" : "s"}
           </span>
         </div>
@@ -120,7 +120,7 @@ export function BoardColumnView({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontFamily: "'Caveat', cursive",
+            fontFamily: "var(--font-cass)",
             fontSize: "24px",
             fontWeight: 700,
             padding: "10px 16px 12px",
@@ -157,7 +157,7 @@ export function BoardColumnView({
           </div>
           {/* Card count */}
           <div style={{ padding: "6px 4px 0" }}>
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(0,0,0,0.35)" }}>
+            <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(0,0,0,0.35)" }}>
               {tasks.length} card{tasks.length === 1 ? "" : "s"}
             </span>
           </div>

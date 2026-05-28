@@ -1,7 +1,37 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+async function getOrigin() {
+  const h = await headers();
+  const host = h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+export async function signInWithGoogleAction() {
+  const origin = await getOrigin();
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${origin}/auth/callback` },
+  });
+  if (error || !data.url) return;
+  redirect(data.url);
+}
+
+export async function signInWithAppleAction() {
+  const origin = await getOrigin();
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "apple",
+    options: { redirectTo: `${origin}/auth/callback` },
+  });
+  if (error || !data.url) return;
+  redirect(data.url);
+}
 
 export type FormState = {
   error?: string;

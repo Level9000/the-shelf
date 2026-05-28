@@ -12,9 +12,12 @@ import {
   aiWeeklyPlanningDialogueSchema,
   cassOnboardingDialogueSchema,
   cassRetroDialogueSchema,
+  cassEnhancedKickoffDialogueSchema,
+  cassEnhancedRetroDialogueSchema,
   type AITaskChunking,
   type ProjectOverviewSection,
   type StrategicDialogueMessage,
+  type NarrativeEngineOutput,
 } from "@/lib/ai/schema";
 import {
   buildCassBoardPrompt,
@@ -27,6 +30,8 @@ import {
   buildChapterPlannerPrompt,
   buildChapterRefocusPrompt,
   buildChapterRetroPrompt,
+  buildNarrativeEnginePass1Prompt,
+  buildNarrativeEnginePass2Prompt,
   buildProjectArcDialoguePrompt,
   buildProjectKickoffPrompt,
   buildProjectOverviewDialoguePrompt,
@@ -40,6 +45,8 @@ import {
   buildWeeklyPlanningPrompt,
 } from "@/lib/ai/prompts";
 import { safeJsonParse } from "@/lib/utils";
+import type { ChapterType } from "@/prompts/chapter-templates";
+import type { StitchingPattern } from "@/prompts/chapter-templates";
 
 const ANTHROPIC_API_BASE = "https://api.anthropic.com/v1";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
@@ -108,33 +115,75 @@ export async function runProjectKickoffDialogue(input: {
 
 // Tool definition for chapter kickoff — forces the model to always return structured JSON.
 // With tool_choice "any", the model cannot respond in plain prose.
+// Extended for 3-beat kickoff: includes currentBeat, confirmedThesis, kickoffBeats.
 const KICKOFF_TOOL = {
   name: "kickoff_response",
   description: "Submit the chapter kickoff dialogue response. Always call this tool — never respond in plain text.",
   input_schema: {
     type: "object",
     properties: {
-      reply: { type: "string", description: "Your conversational response to the user." },
-      done: { type: "boolean", description: "True only when you have collected all four answers and are ready to propose tasks." },
-      goal: { type: "string", description: "The bet — the hypothesis being acted on, as a complete conviction statement. Empty string while gathering." },
-      whyItMatters: { type: "string", description: "Why now — the urgency or window behind this chapter. Empty string while gathering." },
-      successLooksLike: { type: "string", description: "What has to be true — specific conditions that need to hold; primary source for task generation. Empty string while gathering." },
-      doneDefinition: { type: "string", description: "The proof point — the tangible thing that will exist at the end. Empty string while gathering." },
-      openingLine: { type: "string", description: "The narrative seed sentence. Empty string while gathering." },
+      reply:            { type: "string", description: "Your conversational response to the user." },
+      done:             { type: "boolean", description: "True only when all three beats are complete AND thesis is confirmed." },
+      currentBeat:      { type: "string", description: "Which beat you are currently on: context | work | stakes | thesis." },
+      goal:             { type: "string", description: "The chapter goal from the work beat. Empty string while gathering." },
+      whyItMatters:     { type: "string", description: "Why it matters from the work beat. Empty string while gathering." },
+      successLooksLike: { type: "string", description: "Success definition from the work beat. Empty string while gathering." },
+      doneDefinition:   { type: "string", description: "Target completion / timeline from the work beat. Empty string while gathering." },
+      openingLine:      { type: "string", description: "Narrative seed sentence. Empty string until done." },
+      confirmedThesis:  { type: "string", description: "The thesis sentence after founder confirms it. Empty string until confirmed." },
       proposedTasks: {
         type: "array",
-        description: "Proposed backlog tasks. Empty array while gathering.",
+        description: "4–8 concrete task titles derived from the work and stakes beats. Empty array until done.",
         items: {
           type: "object",
           properties: {
-            title: { type: "string" },
+            title:  { type: "string" },
             source: { type: "string", enum: ["ai_suggested"] },
           },
           required: ["title", "source"],
         },
       },
+      kickoffBeats: {
+        type: "object",
+        description: "Full structured beats data. Omit until done=true.",
+        properties: {
+          context: {
+            type: "object",
+            properties: {
+              previous_chapter_summary: { type: "string" },
+              incoming_feeling:         { type: "string" },
+            },
+            required: ["previous_chapter_summary", "incoming_feeling"],
+          },
+          work: {
+            type: "object",
+            properties: {
+              goal:               { type: "string" },
+              why_it_matters:     { type: "string" },
+              success_definition: { type: "string" },
+              target_completion:  { type: "string" },
+            },
+            required: ["goal", "why_it_matters", "success_definition", "target_completion"],
+          },
+          stakes: {
+            type: "object",
+            properties: {
+              biggest_risk:     { type: "string" },
+              personal_meaning: { type: "string" },
+              gut_feeling:      { type: "string" },
+            },
+            required: ["biggest_risk", "personal_meaning", "gut_feeling"],
+          },
+          confirmed_thesis: { type: "string" },
+        },
+        required: ["context", "work", "stakes", "confirmed_thesis"],
+      },
     },
-    required: ["reply", "done", "goal", "whyItMatters", "successLooksLike", "doneDefinition", "openingLine", "proposedTasks"],
+    required: [
+      "reply", "done", "currentBeat", "goal", "whyItMatters",
+      "successLooksLike", "doneDefinition", "openingLine",
+      "confirmedThesis", "proposedTasks",
+    ],
   },
 } as const;
 
@@ -890,6 +939,9 @@ export async function runCassChapterKickoffDialogue(input: {
   chapterName: string;
   previousChapterGoal?: string | null;
   previousChapterStory?: string | null;
+  previousChapterBridgeSentence?: string | null;
+  recenteringType?: string | null;
+  foundingThesis?: string | null;
   prefill?: {
     goal?: string | null;
     value?: string | null;
@@ -934,6 +986,9 @@ export async function runCassChapterKickoffDialogue(input: {
     throw new Error("Cass chapter kickoff did not return a tool call.");
   }
 
+  // Try enhanced schema first (includes beats + thesis), fall back to standard
+  const enhanced = cassEnhancedKickoffDialogueSchema.safeParse(toolUse.input);
+  if (enhanced.success) return enhanced.data;
   return aiKickoffDialogueSchema.parse(toolUse.input);
 }
 
@@ -949,10 +1004,12 @@ export async function runCassRetroDialogue(input: {
     whyItMatters?: string | null;
     successLooksLike?: string | null;
     doneDefinition?: string | null;
+    kickoffGutFeeling?: string | null;
+    confirmedThesis?: string | null;
   };
   completedTasks: Array<{ title: string; context?: string | null }>;
   incompleteTasks: Array<{ title: string }>;
-  standoutCard?: string | null;
+  recenteringType?: string | null;
 }) {
   const apiKey = requireAnthropicKey();
   const systemPrompt = buildCassRetroPrompt(input);
@@ -984,7 +1041,144 @@ export async function runCassRetroDialogue(input: {
   const rawText = payload.content?.find((block) => block.type === "text")?.text;
   if (!rawText) throw new Error("Cass retro returned no content.");
 
+  // Try enhanced schema first (includes beats + bridge), fall back to legacy
+  const enhanced = cassEnhancedRetroDialogueSchema.safeParse(
+    safeJsonParse(extractJsonObject(rawText)),
+  );
+  if (enhanced.success) return enhanced.data;
   return cassRetroDialogueSchema.parse(safeJsonParse(extractJsonObject(rawText)));
+}
+
+// ── Narrative Engine ──────────────────────────────────────────────────────────
+
+/**
+ * Pass 1: Draft the chapter from the assembled brief using the type-specific template.
+ * Returns raw text (headline + subheadline + body).
+ */
+export async function runNarrativeEnginePass1(input: {
+  chapterBriefText: string;
+  chapterType: ChapterType;
+  stitchingPattern: StitchingPattern | null;
+}): Promise<string> {
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildNarrativeEnginePass1Prompt(input);
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: "user", content: "Write the chapter now." }],
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Narrative engine Pass 1 failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+
+  const text = payload.content?.find((b) => b.type === "text")?.text?.trim();
+  if (!text) throw new Error("Narrative engine Pass 1 returned no content.");
+
+  return text;
+}
+
+/**
+ * Pass 2: Editorial review — rewrites only the sections that fail quality criteria.
+ * Returns the final chapter text (headline + subheadline + body).
+ */
+export async function runNarrativeEnginePass2(input: {
+  pass1Draft: string;
+  chapterBriefText: string;
+}): Promise<string> {
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildNarrativeEnginePass2Prompt(input);
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: "user", content: "Review and finalize the chapter now." }],
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Narrative engine Pass 2 failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+
+  const text = payload.content?.find((b) => b.type === "text")?.text?.trim();
+  if (!text) throw new Error("Narrative engine Pass 2 returned no content.");
+
+  return text;
+}
+
+/**
+ * Parses the final chapter text into structured fields.
+ * Expected format:
+ *   Line 1: HEADLINE
+ *   Line 2: SUBHEADLINE
+ *   (blank line)
+ *   BODY...
+ */
+export function parseNarrativeEngineOutput(
+  rawText: string,
+  chapterType: ChapterType,
+): NarrativeEngineOutput {
+  const lines = rawText.split("\n");
+
+  // First non-empty line = headline
+  const headlineIndex = lines.findIndex((l) => l.trim().length > 0);
+  const headline = lines[headlineIndex]?.trim() ?? "";
+
+  // Second non-empty line = subheadline
+  const subheadlineIndex = lines.findIndex(
+    (l, i) => i > headlineIndex && l.trim().length > 0,
+  );
+  const subheadline = lines[subheadlineIndex]?.trim() ?? "";
+
+  // Everything after subheadline = body
+  const bodyLines = lines.slice(subheadlineIndex + 1);
+  const body = bodyLines.join("\n").trim();
+
+  return { headline, subheadline, body, chapterType };
+}
+
+/**
+ * Full narrative engine: Pass 1 → Pass 2 → parse output.
+ */
+export async function runNarrativeEngine(input: {
+  chapterBriefText: string;
+  chapterType: ChapterType;
+  stitchingPattern: StitchingPattern | null;
+}): Promise<NarrativeEngineOutput> {
+  const pass1Draft = await runNarrativeEnginePass1(input);
+  const finalText  = await runNarrativeEnginePass2({
+    pass1Draft,
+    chapterBriefText: input.chapterBriefText,
+  });
+  return parseNarrativeEngineOutput(finalText, input.chapterType);
 }
 
 export async function runCassStoryShareRefinement(input: {

@@ -160,7 +160,7 @@ export function CassRecorder({
 
         {/* Brand label */}
         <rect x="30" y="34" width="102" height="19" rx="3" fill={c.labelBg} />
-        <text x="38" y="49" fontFamily="'Share Tech Mono', 'Courier New', monospace" fontSize="12" fill="#c8a86b" letterSpacing="2">
+        <text x="38" y="49" fontFamily="var(--font-cass)" fontSize="12" fill="#c8a86b" letterSpacing="2">
           CASS
         </text>
 
@@ -170,7 +170,7 @@ export function CassRecorder({
             <animate attributeName="opacity" values="1;0.2;1" dur="1s" repeatCount="indefinite" />
           )}
         </circle>
-        <text x="157" y="49" fontFamily="'Share Tech Mono', 'Courier New', monospace" fontSize="6" fill={isRecording ? "#ff3b30" : c.recTextOff}>
+        <text x="157" y="49" fontFamily="var(--font-cass)" fontSize="6" fill={isRecording ? "#ff3b30" : c.recTextOff}>
           REC
         </text>
 
@@ -191,7 +191,7 @@ export function CassRecorder({
 
         {/* Cassette status label */}
         <rect x="60" y="78" width="80" height="22" rx="3" fill="#c8a86b" opacity="0.12" />
-        <text x="100" y="91" fontFamily="'Share Tech Mono', 'Courier New', monospace" fontSize="6" fill="#c8a86b" textAnchor="middle" opacity="0.7">
+        <text x="100" y="91" fontFamily="var(--font-cass)" fontSize="6" fill="#c8a86b" textAnchor="middle" opacity="0.7">
           {statusLabel}
         </text>
 
@@ -239,7 +239,7 @@ export function CassRecorder({
 
         {/* Level meter */}
         <rect x="100" y="196" width="70" height="34" rx="4" fill={c.meterBox} />
-        <text x="135" y="207" fontFamily="'Share Tech Mono', 'Courier New', monospace" fontSize="5" fill={c.meterLabel} textAnchor="middle">
+        <text x="135" y="207" fontFamily="var(--font-cass)" fontSize="5" fill={c.meterLabel} textAnchor="middle">
           LEVEL
         </text>
         {[0, 1, 2, 3, 4, 5, 6, 7].map((bar) => {

@@ -219,7 +219,7 @@ export function TaskDetailModal({
               </div>
             </span>
             {/* Hover label */}
-            <span style={{ whiteSpace: "nowrap", paddingRight: "18px", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", color: "#c8a86b" }}>
+            <span style={{ whiteSpace: "nowrap", paddingRight: "18px", fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "0.5px", color: "#c8a86b" }}>
               Need to break this up?
             </span>
           </button>

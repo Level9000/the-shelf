@@ -117,7 +117,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
     >
       <div
         style={{
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
           fontSize: "11px",
           letterSpacing: "4px",
           color: "#444",
@@ -158,7 +158,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
 
       <div
         style={{
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
           fontSize: "13px",
           color: "#555",
           lineHeight: "1.6",
@@ -179,7 +179,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           color: "#c8a86b",
           borderRadius: "6px",
           padding: "12px 32px",
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
           fontSize: "13px",
           letterSpacing: "2px",
           cursor: "pointer",
@@ -206,7 +206,7 @@ function UserEcho({ answer }: { answer: string }) {
   return (
     <div
       style={{
-        fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+        fontFamily: "var(--font-cass)",
         fontSize: "13px",
         color: "#555",
         textAlign: "right",
@@ -403,7 +403,7 @@ export function CassOnboardingChat({
           display: "flex",
           flexDirection: "column",
           padding: "0",
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
           color: "#c8c8c8",
         }}
       >
@@ -422,7 +422,7 @@ export function CassOnboardingChat({
           <div>
             <div
               style={{
-                fontFamily: "'Share Tech Mono', monospace",
+                fontFamily: "var(--font-cass)",
                 fontSize: "11px",
                 letterSpacing: "3px",
                 color: "#c8a86b",
@@ -448,7 +448,7 @@ export function CassOnboardingChat({
           <p
             style={{
               color: "#ff3b30",
-              fontFamily: "'Share Tech Mono', monospace",
+              fontFamily: "var(--font-cass)",
               fontSize: "13px",
               textAlign: "center",
               marginBottom: "16px",
@@ -501,7 +501,7 @@ export function CassOnboardingChat({
           alignItems: "center",
           justifyContent: "center",
           padding: "32px 16px",
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
           color: "#c8c8c8",
           position: "relative",
         }}
@@ -597,7 +597,7 @@ export function CassOnboardingChat({
               >
                 <span
                   style={{
-                    fontFamily: "'Share Tech Mono', monospace",
+                    fontFamily: "var(--font-cass)",
                     fontSize: "13px",
                     color: "#555",
                     letterSpacing: "1px",
@@ -612,7 +612,7 @@ export function CassOnboardingChat({
               <p
                 style={{
                   color: "#ff3b30",
-                  fontFamily: "'Share Tech Mono', monospace",
+                  fontFamily: "var(--font-cass)",
                   fontSize: "13px",
                   textAlign: "center",
                   width: "100%",

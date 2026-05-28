@@ -50,7 +50,7 @@ function LedItem({
           padding: "8px 28px 10px",
           textAlign: "left",
           display: "block",
-          fontFamily: "'Caveat', cursive",
+          fontFamily: "var(--font-cass)",
           fontSize: "20px",
           fontWeight: 700,
           color: textColor,
@@ -77,7 +77,7 @@ function LedMenuHeader({ children }: { children: React.ReactNode }) {
     <div style={{ padding: "14px 0 6px" }}>
       <span style={{
         display: "inline-block",
-        fontFamily: "'Share Tech Mono', monospace",
+        fontFamily: "var(--font-cass)",
         fontSize: "11px",
         letterSpacing: "0.15em",
         color: "#1a0e00",
@@ -113,7 +113,7 @@ function TapeLabel({
     <span
       onClick={disabled ? undefined : onClick}
       style={{
-        fontFamily: "'Caveat', cursive",
+        fontFamily: "var(--font-cass)",
         fontSize: "18px",
         fontWeight: 700,
         padding: "5px 14px",
@@ -307,7 +307,7 @@ export function ProjectAppHeader({
         {currentProject && (
           <div className="hidden lg:block" style={{ zIndex: 1, minWidth: 0 }}>
             <span style={{
-              fontFamily: "'Share Tech Mono', monospace",
+              fontFamily: "var(--font-cass)",
               fontSize: "14px",
               letterSpacing: "0.06em",
               color: isDark ? "rgba(232,223,192,0.45)" : "rgba(26,14,0,0.38)",

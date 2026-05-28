@@ -535,6 +535,14 @@ export async function completeChapterKickoffAction(input: {
   conversation: Array<{ role: string; content: string }>;
   tasks: Array<{ title: string }>;
   columns: Array<{ id: string; name: string }>;
+  // Enhanced storytelling fields
+  kickoffBeats?: {
+    context:  { previous_chapter_summary: string; incoming_feeling: string };
+    work:     { goal: string; why_it_matters: string; success_definition: string; target_completion: string };
+    stakes:   { biggest_risk: string; personal_meaning: string; gut_feeling: string };
+    confirmed_thesis: string;
+  } | null;
+  confirmedThesis?: string;
 }) {
   const { supabase, user } = await getAuthenticatedUser();
 
@@ -542,13 +550,16 @@ export async function completeChapterKickoffAction(input: {
   const { error: boardError } = await supabase
     .from("boards")
     .update({
-      goal: input.goal.trim() || null,
-      why_it_matters: input.whyItMatters.trim() || null,
-      success_looks_like: input.successLooksLike.trim() || null,
-      done_definition: input.doneDefinition.trim() || null,
-      opening_line: input.openingLine.trim() || null,
+      goal:                 input.goal.trim() || null,
+      why_it_matters:       input.whyItMatters.trim() || null,
+      success_looks_like:   input.successLooksLike.trim() || null,
+      done_definition:      input.doneDefinition.trim() || null,
+      opening_line:         input.openingLine.trim() || null,
       kickoff_conversation: input.conversation,
       kickoff_completed_at: new Date().toISOString(),
+      // Enhanced fields
+      kickoff_beats:    input.kickoffBeats ?? null,
+      confirmed_thesis: (input.confirmedThesis ?? input.kickoffBeats?.confirmed_thesis ?? "").trim() || null,
     })
     .eq("id", input.boardId)
     .eq("project_id", input.projectId);
@@ -610,10 +621,19 @@ export async function completeChapterRetroAction(input: {
   projectId: string;
   boardId: string;
   conversation: Array<{ role: string; content: string }>;
-  chapterStory: string;
-  storyLength: "short" | "long";
-  pullQuote: string;
-  accumulativeParagraph: string;
+  // Legacy fields (kept for backwards compat with older flow)
+  chapterStory?: string;
+  storyLength?: "short" | "long";
+  pullQuote?: string;
+  accumulativeParagraph?: string;
+  // Enhanced storytelling fields
+  retroBeats?: {
+    accounting:      { overall_rating: string; most_proud_of: string };
+    surprise:        { biggest_surprise: string; easier_than_expected: string; harder_than_expected: string; unplanned_events: string };
+    learning:        { new_knowledge: string; thinking_shift: string; would_do_differently: string };
+    emotional_close: { gut_feeling_delta: string; road_ahead_feeling: string; weighing_or_energizing: string };
+  } | null;
+  bridgeSentence?: string;
 }): Promise<{ shareSlug: string }> {
   const { supabase } = await getAuthenticatedUser();
 
@@ -622,16 +642,26 @@ export async function completeChapterRetroAction(input: {
     Math.random().toString(36).slice(2, 8) +
     Math.random().toString(36).slice(2, 8);
 
+  // Build the update — story fields are optional (set by /api/story/generate later)
+  const boardUpdate: Record<string, unknown> = {
+    retro_conversation: input.conversation,
+    retro_completed_at: new Date().toISOString(),
+    share_slug:         shareSlug,
+    shared_at:          new Date().toISOString(),
+    // Enhanced fields
+    retro_beats:     input.retroBeats ?? null,
+    bridge_sentence: (input.bridgeSentence ?? "").trim() || null,
+  };
+
+  // If legacy story fields are provided (old flow), save them too
+  if (input.chapterStory) {
+    boardUpdate.chapter_story = input.chapterStory.trim();
+    boardUpdate.story_length  = input.storyLength ?? "short";
+  }
+
   const { error: boardError } = await supabase
     .from("boards")
-    .update({
-      retro_conversation: input.conversation,
-      chapter_story: input.chapterStory.trim(),
-      story_length: input.storyLength,
-      retro_completed_at: new Date().toISOString(),
-      share_slug: shareSlug,
-      shared_at: new Date().toISOString(),
-    })
+    .update(boardUpdate)
     .eq("id", input.boardId)
     .eq("project_id", input.projectId);
 
@@ -639,7 +669,59 @@ export async function completeChapterRetroAction(input: {
     throw new Error(boardError.message);
   }
 
-  // Append accumulative paragraph to the project story
+  // Append accumulative paragraph to the project story (legacy + new flow)
+  if (input.accumulativeParagraph) {
+    const { data: project, error: projectReadError } = await supabase
+      .from("projects")
+      .select("accumulative_story")
+      .eq("id", input.projectId)
+      .maybeSingle();
+
+    if (projectReadError) {
+      throw new Error(projectReadError.message);
+    }
+
+    const existingStory = (project?.accumulative_story as string | null) ?? "";
+    const updatedStory  = existingStory
+      ? `${existingStory}\n\n${input.accumulativeParagraph.trim()}`
+      : input.accumulativeParagraph.trim();
+
+    const { error: projectError } = await supabase
+      .from("projects")
+      .update({
+        accumulative_story: updatedStory,
+        story_updated_at:   new Date().toISOString(),
+      })
+      .eq("id", input.projectId);
+
+    if (projectError) {
+      throw new Error(projectError.message);
+    }
+  }
+
+  revalidatePath(`/projects/${input.projectId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
+  revalidatePath(`/story/${shareSlug}`);
+
+  return { shareSlug };
+}
+
+/**
+ * Called after /api/story/generate completes to update the project accumulative
+ * story with the new chapter body and revalidate paths.
+ */
+export async function updateChapterStoryAfterGenerationAction(input: {
+  projectId: string;
+  boardId:   string;
+  shareSlug: string;
+  chapterBody: string;
+}): Promise<void> {
+  const { supabase } = await getAuthenticatedUser();
+
+  // Append first two sentences of the chapter body as the accumulative paragraph
+  const sentences     = input.chapterBody.split(/(?<=[.!?])\s+/);
+  const accumulativeParagraph = sentences.slice(0, 2).join(" ").trim();
+
   const { data: project, error: projectReadError } = await supabase
     .from("projects")
     .select("accumulative_story")
@@ -650,28 +732,24 @@ export async function completeChapterRetroAction(input: {
     throw new Error(projectReadError.message);
   }
 
-  const existingStory = (project?.accumulative_story as string | null) ?? "";
-  const updatedStory = existingStory
-    ? `${existingStory}\n\n${input.accumulativeParagraph.trim()}`
-    : input.accumulativeParagraph.trim();
+  if (accumulativeParagraph) {
+    const existingStory = (project?.accumulative_story as string | null) ?? "";
+    const updatedStory  = existingStory
+      ? `${existingStory}\n\n${accumulativeParagraph}`
+      : accumulativeParagraph;
 
-  const { error: projectError } = await supabase
-    .from("projects")
-    .update({
-      accumulative_story: updatedStory,
-      story_updated_at: new Date().toISOString(),
-    })
-    .eq("id", input.projectId);
-
-  if (projectError) {
-    throw new Error(projectError.message);
+    await supabase
+      .from("projects")
+      .update({
+        accumulative_story: updatedStory,
+        story_updated_at:   new Date().toISOString(),
+      })
+      .eq("id", input.projectId);
   }
 
   revalidatePath(`/projects/${input.projectId}`);
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
-  revalidatePath(`/story/${shareSlug}`);
-
-  return { shareSlug };
+  revalidatePath(`/story/${input.shareSlug}`);
 }
 
 export async function endChapterEarlyAction(input: {

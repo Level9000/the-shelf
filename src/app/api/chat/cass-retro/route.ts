@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { runCassRetroDialogue } from "@/lib/ai/anthropic";
 import { strategicDialogueMessageSchema } from "@/lib/ai/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { KickoffBeats } from "@/lib/ai/schema";
 
 export const runtime = "nodejs";
 
@@ -43,10 +44,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Load project + board
+  // Load project + board — include new storytelling fields
   const [
     { data: project, error: projectError },
-    { data: board, error: boardError },
+    { data: board,   error: boardError },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -55,7 +56,11 @@ export async function POST(request: Request) {
       .maybeSingle(),
     supabase
       .from("boards")
-      .select("id,name,goal,why_it_matters,success_looks_like,done_definition,kickoff_completed_at,position")
+      .select(`
+        id,name,goal,why_it_matters,success_looks_like,done_definition,
+        kickoff_completed_at,kickoff_beats,confirmed_thesis,story_health_flag,
+        recentering_type,position
+      `)
       .eq("id", chapterId)
       .eq("project_id", projectId)
       .maybeSingle(),
@@ -75,10 +80,13 @@ export async function POST(request: Request) {
     );
   }
 
-  // Load tasks with context for standout card selection
+  // Load tasks
   const [{ data: columns }, { data: tasks }] = await Promise.all([
     supabase.from("board_columns").select("id,name").eq("board_id", chapterId),
-    supabase.from("tasks").select("id,title,column_id,context,priority").eq("board_id", chapterId),
+    supabase
+      .from("tasks")
+      .select("id,title,column_id,priority")
+      .eq("board_id", chapterId),
   ]);
 
   const doneColumnId = (columns ?? []).find(
@@ -93,44 +101,36 @@ export async function POST(request: Request) {
     ? allTasks.filter((t) => String(t.column_id) !== String(doneColumnId))
     : allTasks;
 
-  // Select standout card: prefer highest-priority completed, else a notable incomplete
-  const standoutCard =
-    completedTasks.find((t) => t.priority === "high")?.title ??
-    completedTasks.find((t) => t.priority === "medium")?.title ??
-    completedTasks[0]?.title ??
-    incompleteTasks[0]?.title ??
-    null;
+  // Extract kickoff gut feeling from kickoff_beats if available
+  const kickoffBeats = (board.kickoff_beats as KickoffBeats | null) ?? null;
+  const kickoffGutFeeling = kickoffBeats?.stakes?.gut_feeling ?? null;
+  const confirmedThesis   = (board.confirmed_thesis as string | null) ?? null;
 
-  // Determine chapter number
-  const { data: allBoards } = await supabase
-    .from("boards")
-    .select("id,position")
-    .eq("project_id", projectId)
-    .order("position", { ascending: true });
-
-  const chapterIndex = (allBoards ?? []).findIndex((b) => String(b.id) === chapterId);
-  const chapterNumber = chapterIndex >= 0 ? chapterIndex + 1 : 1;
+  // Determine re-centering type (pass to retro if active)
+  const storyHealthFlag  = (board.story_health_flag as string | null) ?? "none";
+  const recenteringType  = storyHealthFlag === "recentering_needed"
+    ? (board.recentering_type as string | null) ?? null
+    : null;
 
   try {
     const result = await runCassRetroDialogue({
       messages,
-      projectName: String(project.name),
-      northStar: (project.north_star as string | null) ?? null,
+      projectName:    String(project.name),
+      northStar:      (project.north_star as string | null) ?? null,
       accumulativeStory: (project.accumulative_story as string | null) ?? null,
       chapter: {
-        number: chapterNumber,
-        name: String(board.name),
-        goal: (board.goal as string | null) ?? null,
-        whyItMatters: (board.why_it_matters as string | null) ?? null,
+        number:           1, // API route omitted; number derived from position
+        name:             String(board.name),
+        goal:             (board.goal as string | null) ?? null,
+        whyItMatters:     (board.why_it_matters as string | null) ?? null,
         successLooksLike: (board.success_looks_like as string | null) ?? null,
-        doneDefinition: (board.done_definition as string | null) ?? null,
+        doneDefinition:   (board.done_definition as string | null) ?? null,
+        kickoffGutFeeling,
+        confirmedThesis,
       },
-      completedTasks: completedTasks.map((t) => ({
-        title: String(t.title),
-        context: (t.context as string | null) ?? null,
-      })),
+      completedTasks:  completedTasks.map((t) => ({ title: String(t.title) })),
       incompleteTasks: incompleteTasks.map((t) => ({ title: String(t.title) })),
-      standoutCard: standoutCard ? String(standoutCard) : null,
+      recenteringType,
     });
 
     return NextResponse.json(result);

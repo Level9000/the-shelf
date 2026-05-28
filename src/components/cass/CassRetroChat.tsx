@@ -7,37 +7,63 @@ import { CassProgressBar } from "./CassProgressBar";
 import { CassRecorder } from "./CassRecorder";
 import { CassSpeechBubble } from "./CassSpeechBubble";
 import { CassInput } from "./CassInput";
-import { completeChapterRetroAction } from "@/lib/actions/project-actions";
+import {
+  completeChapterRetroAction,
+  updateChapterStoryAfterGenerationAction,
+} from "@/lib/actions/project-actions";
 import { CASS_ERROR_LINES } from "./cassVoice";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
 
-type RetroPayload = {
-  reply: string;
-  done: boolean;
-  chapter_story: string;
-  chapter_title: string;
-  accumulative_paragraph: string;
+// The enhanced retro payload now collects beats instead of writing the story.
+type EnhancedRetroPayload = {
+  reply:        string;
+  done:         boolean;
+  currentBeat?: "accounting" | "surprise" | "learning" | "emotional_close" | "bridge";
+  bridge_sentence?: string;
+  retroBeats?: {
+    accounting:       { overall_rating: string; most_proud_of: string };
+    surprise:         { biggest_surprise: string; easier_than_expected: string; harder_than_expected: string; unplanned_events: string };
+    learning:         { new_knowledge: string; thinking_shift: string; would_do_differently: string };
+    emotional_close:  { gut_feeling_delta: string; road_ahead_feeling: string; weighing_or_energizing: string };
+  };
+  // Legacy fields (kept for backwards compat)
+  chapter_story?:         string;
+  chapter_title?:         string;
+  accumulative_paragraph?: string;
   error?: string;
 };
+
+// Payload from /api/story/generate
+type GeneratedStoryPayload = {
+  headline:    string;
+  subheadline: string;
+  body:        string;
+  chapterType: string;
+  pullQuote:   string;
+  error?:      string;
+};
+
+type RetroPhase =
+  | "conversation"           // Active retro conversation
+  | "saving"                 // Saving retro beats to DB
+  | "generating"             // Narrative engine running (Pass 1 + Pass 2)
+  | "done";                  // Story ready, call onComplete
 
 function buildOpeningMessage(
   chapterNumber: number,
   chapterGoal: string | null,
   completedCount: number,
   incompleteCount: number,
-  standoutTitle: string | null,
 ): DialogueMessage {
   const total = completedCount + incompleteCount;
-  let text = `Alright. Chapter ${chapterNumber} is done.\n\n`;
-
-  if (total === 0) {
-    text += `You said you wanted to ${chapterGoal?.toLowerCase() ?? "get something done"}. Let's see what actually happened.`;
-  } else if (standoutTitle) {
-    text += `You said you wanted to ${chapterGoal?.toLowerCase() ?? "get something done"}. You got ${completedCount} of ${total} things done — "${standoutTitle}" stood out. What happened there?`;
-  } else {
-    text += `You said you wanted to ${chapterGoal?.toLowerCase() ?? "get something done"}. Let's see what actually happened.`;
-  }
+  const text = [
+    `Alright. Chapter ${chapterNumber} is done.`,
+    "",
+    `You said you wanted to ${chapterGoal?.toLowerCase() ?? "get something done"}. Let's see what actually happened.`,
+    "",
+    `You completed ${completedCount} of ${total} cards. On a scale of 1–5, how would you rate this chapter overall?`,
+  ].join("\n");
 
   return { role: "assistant", content: text };
 }
@@ -51,50 +77,51 @@ export function CassRetroChat({
   onDismiss,
 }: {
   project: {
-    id: string;
-    name: string;
+    id:                string;
+    name:              string;
     accumulativeStory?: string | null;
   };
   board: Board;
   completedTasks: Task[];
   remainingTasks: Task[];
-  onComplete: (data: { chapterStory: string; pullQuote: string }) => void;
+  onComplete: (data: { chapterStory: string; pullQuote: string; headline?: string; subheadline?: string; chapterType?: string }) => void;
   onDismiss?: () => void;
 }) {
-  // Determine chapter number from board position (approximate)
-  const chapterNumber = 1; // API route calculates the real number; this is display-only
-
-  // Select standout card: highest-priority completed, else first incomplete
-  const standoutTitle =
-    completedTasks.find((t) => t.priority === "high")?.title ??
-    completedTasks.find((t) => t.priority === "medium")?.title ??
-    completedTasks[0]?.title ??
-    remainingTasks[0]?.title ??
-    null;
+  const chapterNumber = 1; // API calculates the real number; this is display-only
 
   const openingMsg = buildOpeningMessage(
     chapterNumber,
     board.goal,
     completedTasks.length,
     remainingTasks.length,
-    standoutTitle,
   );
 
-  const [messages, setMessages] = useState<DialogueMessage[]>([openingMsg]);
-  const [currentReply, setCurrentReply] = useState(openingMsg.content);
-  const [animState, setAnimState] = useState<CassAnimState>("talking");
-  const [inputValue, setInputValue] = useState("");
-  const [approvedStory, setApprovedStory] = useState<RetroPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [isSaving, startSaveTransition] = useTransition();
-  const [saved, setSaved] = useState(false);
+  const [messages,      setMessages]      = useState<DialogueMessage[]>([openingMsg]);
+  const [currentReply,  setCurrentReply]  = useState(openingMsg.content);
+  const [animState,     setAnimState]     = useState<CassAnimState>("talking");
+  const [inputValue,    setInputValue]    = useState("");
+  const [phase,         setPhase]         = useState<RetroPhase>("conversation");
+  const [retroData,     setRetroData]     = useState<EnhancedRetroPayload | null>(null);
+  const [shareSlug,     setShareSlug]     = useState<string>("");
+  const [generatedStory, setGeneratedStory] = useState<GeneratedStoryPayload | null>(null);
+  const [error,         setError]         = useState<string | null>(null);
+  const [isPending,     startTransition]  = useTransition();
+  const [isSaving,      startSaveTransition] = useTransition();
 
-  const isListening = animState === "listening" && !isPending;
+  const isListening = animState === "listening" && !isPending && phase === "conversation";
+
+  // Progress bar: conversation = 0–50%, saving = 55%, generating = 65–90%, done = 100%
+  function progressPercent(): number {
+    if (phase === "done")       return 100;
+    if (phase === "generating") return 75;
+    if (phase === "saving")     return 55;
+    if (retroData)              return 50;
+    return 30;
+  }
 
   function handleSend() {
     const trimmed = inputValue.trim();
-    if (!trimmed || isPending) return;
+    if (!trimmed || isPending || phase !== "conversation") return;
 
     const next: DialogueMessage[] = [
       ...messages,
@@ -118,7 +145,7 @@ export function CassRetroChat({
           }),
         });
 
-        const data = (await response.json()) as RetroPayload;
+        const data = (await response.json()) as EnhancedRetroPayload;
 
         if (!response.ok) {
           throw new Error(data.error ?? CASS_ERROR_LINES[0]);
@@ -135,8 +162,9 @@ export function CassRetroChat({
         setCurrentReply(reply);
         setAnimState("talking");
 
-        if (data.done && data.chapter_story) {
-          setApprovedStory(data);
+        // If retro beats collected and bridge confirmed, store payload for saving
+        if (data.done) {
+          setRetroData(data);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : CASS_ERROR_LINES[0]);
@@ -146,45 +174,87 @@ export function CassRetroChat({
   }
 
   function handleReplyComplete() {
-    if (approvedStory) {
-      saveRetro(approvedStory);
-    } else {
+    if (phase === "conversation" && retroData?.done) {
+      // Kick off the save + generation pipeline
+      saveRetroAndGenerate(retroData, messages);
+    } else if (phase === "conversation") {
       setAnimState("listening");
     }
   }
 
-  function saveRetro(data: RetroPayload) {
+  function saveRetroAndGenerate(data: EnhancedRetroPayload, conversation: DialogueMessage[]) {
+    setPhase("saving");
     setAnimState("recording");
 
     startSaveTransition(async () => {
       try {
-        await completeChapterRetroAction({
-          projectId: project.id,
-          boardId: board.id,
-          conversation: messages,
-          chapterStory: data.chapter_story,
-          storyLength: data.chapter_story.length > 400 ? "long" : "short",
-          pullQuote: data.chapter_title || data.chapter_story.slice(0, 120),
-          accumulativeParagraph:
-            data.accumulative_paragraph || data.chapter_story,
+        // Step 1: Save retro beats to DB
+        const { shareSlug: slug } = await completeChapterRetroAction({
+          projectId:    project.id,
+          boardId:      board.id,
+          conversation,
+          retroBeats:   data.retroBeats ?? null,
+          bridgeSentence: data.bridge_sentence ?? "",
+          // Legacy fallback if old schema comes back
+          chapterStory:          data.chapter_story ?? undefined,
+          accumulativeParagraph: data.accumulative_paragraph ?? undefined,
         });
 
-        setSaved(true);
+        setShareSlug(slug);
+        setPhase("generating");
+
+        // Show "writing your chapter" message
+        setCurrentReply("Give me a moment. Writing this chapter now.");
+        setAnimState("talking");
+
+        // Step 2: Trigger narrative engine (Pass 1 + Pass 2)
+        const genResponse = await fetch("/api/story/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: project.id,
+            chapterId: board.id,
+          }),
+        });
+
+        const generated = (await genResponse.json()) as GeneratedStoryPayload;
+
+        if (!genResponse.ok) {
+          throw new Error(generated.error ?? "Chapter generation failed.");
+        }
+
+        setGeneratedStory(generated);
+        setPhase("done");
         setAnimState("idle");
 
-        // Brief celebration pause before calling onComplete
+        // Step 3: Update accumulative story on project with generated chapter body
+        await updateChapterStoryAfterGenerationAction({
+          projectId:  project.id,
+          boardId:    board.id,
+          shareSlug:  slug,
+          chapterBody: generated.body,
+        });
+
+        // Brief pause for celebration animation, then call onComplete
         setTimeout(() => {
           onComplete({
-            chapterStory: data.chapter_story,
-            pullQuote: data.chapter_title || data.chapter_story.slice(0, 120),
+            chapterStory: generated.body,
+            pullQuote:    generated.pullQuote,
+            headline:     generated.headline,
+            subheadline:  generated.subheadline,
+            chapterType:  generated.chapterType,
           });
-        }, 1800);
+        }, 1200);
+
       } catch (err) {
         setError(err instanceof Error ? err.message : CASS_ERROR_LINES[2]);
+        setPhase("conversation");
         setAnimState("listening");
       }
     });
   }
+
+  const saved = phase === "done";
 
   return (
     <>
@@ -216,17 +286,18 @@ export function CassRetroChat({
           backgroundImage:
             "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)",
           padding: "24px 16px",
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
           color: "#c8c8c8",
           overflowY: "auto",
           position: "relative",
         }}
       >
-        {/* Progress bar — absolute at top */}
+        {/* Progress bar */}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-          <CassProgressBar percent={saved ? 100 : approvedStory ? 82 : 45} />
+          <CassProgressBar percent={progressPercent()} />
         </div>
 
+        {/* Dismiss button */}
         {onDismiss && (
           <button
             type="button"
@@ -251,6 +322,7 @@ export function CassRetroChat({
             ✕
           </button>
         )}
+
         <div
           style={{
             display: "flex",
@@ -260,7 +332,7 @@ export function CassRetroChat({
             maxWidth: "480px",
           }}
         >
-          {/* Cass recorder with optional celebration glow */}
+          {/* Cass recorder with celebration glow when done */}
           <div
             style={{
               borderRadius: "50%",
@@ -269,6 +341,22 @@ export function CassRetroChat({
           >
             <CassRecorder animState={animState} size="md" />
           </div>
+
+          {/* Phase label */}
+          {phase === "generating" && (
+            <div
+              style={{
+                marginTop: "8px",
+                fontFamily: "var(--font-cass)",
+                fontSize: "11px",
+                letterSpacing: "2px",
+                color: "rgba(200,168,107,0.6)",
+                textTransform: "uppercase",
+              }}
+            >
+              ◉ Writing your chapter...
+            </div>
+          )}
 
           {/* Speech area */}
           <div
@@ -304,13 +392,17 @@ export function CassRetroChat({
               >
                 <span
                   style={{
-                    fontFamily: "'Share Tech Mono', monospace",
+                    fontFamily: "var(--font-cass)",
                     fontSize: "13px",
                     color: "#555",
                     letterSpacing: "1px",
                   }}
                 >
-                  {isSaving ? "◉ writing this down..." : "◉ rolling..."}
+                  {phase === "generating"
+                    ? "◉ writing your chapter..."
+                    : phase === "saving"
+                    ? "◉ saving..."
+                    : "◉ rolling..."}
                 </span>
               </div>
             )}
@@ -319,7 +411,7 @@ export function CassRetroChat({
               <p
                 style={{
                   color: "#ff3b30",
-                  fontFamily: "'Share Tech Mono', monospace",
+                  fontFamily: "var(--font-cass)",
                   fontSize: "13px",
                   textAlign: "center",
                   width: "100%",

@@ -158,7 +158,7 @@ export function CassFab({
               padding: "8px 18px",
               backdropFilter: "blur(10px)",
               WebkitBackdropFilter: "blur(10px)",
-              fontFamily: "'Share Tech Mono', monospace",
+              fontFamily: "var(--font-cass)",
               fontSize: "12.5px",
               lineHeight: "1.45",
               letterSpacing: "0.5px",

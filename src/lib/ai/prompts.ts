@@ -1200,6 +1200,9 @@ export function buildCassChapterKickoffPrompt(input: {
   chapterName: string;
   previousChapterGoal?: string | null;
   previousChapterStory?: string | null;
+  previousChapterBridgeSentence?: string | null;
+  recenteringType?: string | null;
+  foundingThesis?: string | null;
   prefill?: {
     goal?: string | null;
     value?: string | null;
@@ -1211,6 +1214,9 @@ export function buildCassChapterKickoffPrompt(input: {
   const isPrefilled = Boolean(
     input.prefill?.goal || input.prefill?.value || input.prefill?.measure || input.prefill?.done,
   );
+
+  // Build re-centering injection based on type (injected after appropriate beat)
+  const recenteringBlock = buildRecenteringInjection(input.recenteringType ?? null, input.foundingThesis ?? null);
 
   return [
     `You are Cass, running a chapter kickoff for Chapter ${input.chapterNumber} of "${input.projectName}".`,
@@ -1224,22 +1230,13 @@ export function buildCassChapterKickoffPrompt(input: {
           input.previousChapterStory
             ? `Previous Chapter Story: ${input.previousChapterStory}`
             : "Previous Chapter Story: Not yet written.",
-        ].join("\n")
+          input.previousChapterBridgeSentence
+            ? `Bridge sentence from last retro: "${input.previousChapterBridgeSentence}"`
+            : "",
+        ].filter(Boolean).join("\n")
       : "This is the first chapter.",
     "",
     CASS_VOICE,
-    "",
-    "YOUR OPENING LINE — write it fresh from their actual context. Rules:",
-    "- Every sentence must be under 50 words.",
-    "- Line 1: Mark the new chapter. Short. E.g. \"Chapter 3. New tape.\" or \"Chapter 3. New side.\"",
-    hasPrevious
-      ? [
-          "- Line 2: ONE sentence that naturally captures what they were going for last chapter and what came of it.",
-          "  Read the previous goal and story, then say it like a human recap — not a quote, not a template.",
-          "  If there's no story yet, just reference what they were aiming for.",
-          "- Line 3: Ask what they want to accomplish this chapter. One short question.",
-        ].join("\n")
-      : "- Line 2: Ask what they want to build this chapter. One short question.",
     "",
     isPrefilled
       ? [
@@ -1249,29 +1246,110 @@ export function buildCassChapterKickoffPrompt(input: {
           `Measure: ${input.prefill?.measure ?? ""}`,
           `Done: ${input.prefill?.done ?? ""}`,
           "",
-          "Present these back in Cass's voice and ask if it feels right. If confirmed, set done=true.",
+          "CONFIRMATION MODE: Present these back in Cass's voice and ask if it feels right.",
+          "If confirmed, transition to the Stakes beat questions before setting done=true.",
         ].join("\n")
       : [
-          "ASK THESE FOUR QUESTIONS ONE AT A TIME (never all at once):",
-          "Q1 — Goal: 'What are we trying to do this Chapter? One clear thing.'",
-          "Q2 — Value: 'Who gets something out of this, and what do they get?'",
-          "Q3 — Measure: 'How will we know it worked? What's the number, or the moment?'",
-          "Q4 — Done: 'Last one — what does done actually look like? Like, done done.'",
+          "THREE-BEAT KICKOFF CONVERSATION:",
           "",
-          "After the fourth answer, say: 'Got it. I've got the tape loaded. Go build.'",
-          "Then set done=true.",
-        ].join("\n"),
+          "BEAT 1 — CONTEXT (ask both questions, in order):",
+          '  Q1: "Before we map out this chapter, I want to know where you\'re coming from. What happened last chapter that leads us here?"',
+          '  Q2: "And how are you feeling coming into this one?"',
+          "  → If answer to Q2 is thin (under 2 sentences or flat): probe with one of:",
+          '    "Say more about that — what\'s underneath that feeling?"',
+          '    "Is that excitement, anxiety, something else?"',
+          '    "What would make this chapter feel different from the last one?"',
+          "",
+          "BEAT 2 — THE WORK (ask in order, one at a time):",
+          '  Q1: "What\'s the goal for this chapter?"',
+          '  Q2: "Why does that matter right now?"',
+          '  Q3: "What does success look like when this chapter is done?"',
+          '  Q4: "When do you expect to be done?"',
+          "  → Probes if answers are thin:",
+          '    Goal vague: "Can you make that more specific? What would be true that isn\'t true today?"',
+          '    Why thin: "Is that the business reason or the personal reason? Tell me both."',
+          '    Success vague: "If I checked in on the last day of this chapter, what would you show me?"',
+          recenteringBlock?.beat === "work" ? `\n  ADDITIONAL QUESTION (add after Q1): "${recenteringBlock.question}"` : "",
+          "",
+          "BEAT 3 — THE STAKES (ask in order, one at a time):",
+          '  Q1: "What\'s the biggest risk or unknown heading into this chapter?"',
+          '  Q2: "What would it mean to you personally — not just for the business — if this goes well?"',
+          '  Q3: "What\'s your gut telling you going in?"',
+          "  → Probes if answers are thin:",
+          '    Risk thin: "What\'s the thing you\'re not saying? The worry that\'s actually in the back of your head?"',
+          '    Personal thin: "Push past the business answer. Why does this matter to you?"',
+          '    Gut vague: "If you had to put a percentage on it — how confident are you really?"',
+          recenteringBlock?.beat === "stakes" ? `\n  ADDITIONAL QUESTION (add after Q2): "${recenteringBlock.question}"` : "",
+        ].filter(Boolean).join("\n"),
+    "",
+    "THESIS GENERATION (after all beats complete):",
+    "When you have collected all three beats, generate a single declarative thesis sentence that captures",
+    "what this chapter is really about — not the goal, but the underlying tension or opportunity.",
+    "Example: \"This chapter is about finding out if strangers will pay for what friends have praised.\"",
+    "Present it as: \"So if I had to capture what this chapter is really about in one sentence, I'd say: [THESIS]. Does that feel right?\"",
+    "If they adjust it, use their version as confirmedThesis. Then say: \"Got it. Tape's loaded. Go build.\"",
+    "Only set done=true after thesis is confirmed.",
+    recenteringBlock?.beat === "context" ? `\nADDITIONAL QUESTION (add after Context Beat): "${recenteringBlock.question}"` : "",
+    "",
+    "OPENING LINE (generate when done=true):",
+    "A one-sentence narrative seed that captures what's really at stake — specific to this founder's words.",
+    "NOT generic ('This chapter focuses on...'). Earned and specific:",
+    '  GOOD: "Everything depends on the first five seconds — this chapter is about making those feel effortless."',
+    '  GOOD: "The idea has been proven. Now comes the harder part: getting strangers to care."',
+    "Write in second or third person. Never start with 'This chapter'. Never first person.",
     "",
     "OUTPUT FORMAT — always use the kickoff_response tool:",
     "- reply: your conversational message",
-    "- done: true only when all four answers are collected (or prefill confirmed)",
-    "- goal: the chapter bet (empty string while gathering)",
-    "- whyItMatters: why now — the urgency (empty string while gathering)",
-    "- successLooksLike: what has to be true (empty string while gathering)",
-    "- doneDefinition: the tangible proof point (empty string while gathering)",
-    "- openingLine: a one-sentence narrative seed for this chapter (empty string while gathering)",
-    "- proposedTasks: empty array",
-  ].join("\n");
+    "- done: true only when ALL three beats complete AND thesis confirmed",
+    "- currentBeat: 'context' | 'work' | 'stakes' | 'thesis' — which beat you are currently on",
+    "- goal: the chapter bet from work beat (empty string while gathering)",
+    "- whyItMatters: why now from work beat (empty string while gathering)",
+    "- successLooksLike: success definition from work beat (empty string while gathering)",
+    "- doneDefinition: target completion from work beat (empty string while gathering)",
+    "- openingLine: narrative seed sentence (empty string until done)",
+    "- proposedTasks: 4–8 concrete task titles derived from the work and stakes beats (empty array until done)",
+    "- confirmedThesis: the thesis sentence after founder confirms it (empty string until confirmed)",
+    "- kickoffBeats: full structured beats data (omit until done=true):",
+    "    { context: { previous_chapter_summary, incoming_feeling },",
+    "      work: { goal, why_it_matters, success_definition, target_completion },",
+    "      stakes: { biggest_risk, personal_meaning, gut_feeling },",
+    "      confirmed_thesis }",
+  ].filter(Boolean).join("\n");
+}
+
+/** Build a re-centering injection question for the appropriate beat. */
+function buildRecenteringInjection(
+  recenteringType: string | null,
+  foundingThesis: string | null,
+): { beat: "context" | "work" | "stakes"; question: string } | null {
+  if (!recenteringType) return null;
+
+  switch (recenteringType) {
+    case "flatline":
+      return {
+        beat: "work",
+        question: "Before we go any further — I want to zoom out for a second. You've been heads down executing consistently, and that's real. But I'm curious: has anything shifted in how you think about what you're building? Sometimes the most important chapter isn't about a new task. It's about a new perspective.",
+      };
+    case "missing_antagonist":
+      return {
+        beat: "stakes",
+        question: "One thing I want to make sure we capture — what's the thing that's most in your way right now? Not a task. The actual obstacle. The thing you're really fighting against this chapter.",
+      };
+    case "shrinking_stakes":
+      return {
+        beat: "stakes",
+        question: "We haven't talked about this in a few chapters, so I want to ask directly: why does this still matter to you personally? Not the business case — the personal one. What would it mean to you if this works?",
+      };
+    case "drift":
+      return {
+        beat: "context",
+        question: foundingThesis
+          ? `I want to ask you something before we plan this chapter. When you started building this, the story was really about: "${foundingThesis}". Does that still feel like the right frame for what you're doing? Or has what you're actually building shifted?`
+          : "I want to ask you something before we plan this chapter. When you started building this, what was the original story you were telling yourself about what this was for? Does that still feel true?",
+      };
+    default:
+      return null;
+  }
 }
 
 export function buildCassRetroPrompt(input: {
@@ -1285,20 +1363,22 @@ export function buildCassRetroPrompt(input: {
     whyItMatters?: string | null;
     successLooksLike?: string | null;
     doneDefinition?: string | null;
+    kickoffGutFeeling?: string | null;
+    confirmedThesis?: string | null;
   };
   completedTasks: Array<{ title: string; context?: string | null }>;
   incompleteTasks: Array<{ title: string }>;
-  standoutCard?: string | null;
+  recenteringType?: string | null;
 }): string {
   const completedCount = input.completedTasks.length;
   const incompleteCount = input.incompleteTasks.length;
   const total = completedCount + incompleteCount;
 
-  const cardContext = input.completedTasks
-    .filter((t) => t.context)
-    .slice(0, 3)
-    .map((t) => `  - "${t.title}": ${t.context}`)
-    .join("\n");
+  const completedTitles = input.completedTasks.slice(0, 6).map((t) => t.title);
+  const incompleteTitles = input.incompleteTasks.slice(0, 4).map((t) => t.title);
+
+  const gutFeeling = input.chapter.kickoffGutFeeling ?? null;
+  const fogSpiralInjection = input.recenteringType === "fog_spiral";
 
   return [
     `You are Cass, running a chapter retrospective for Chapter ${input.chapter.number} of "${input.projectName}".`,
@@ -1306,59 +1386,90 @@ export function buildCassRetroPrompt(input: {
     "PROJECT CONTEXT:",
     `North Star: ${input.northStar ?? "Not set"}`,
     input.accumulativeStory
-      ? `Accumulative Story So Far: ${input.accumulativeStory.slice(0, 600)}`
-      : "Accumulative Story: None yet",
+      ? `Story So Far: ${input.accumulativeStory.slice(0, 500)}`
+      : "Story So Far: None yet",
     "",
     "THIS CHAPTER:",
     `Chapter Goal: ${input.chapter.goal ?? "Not set"}`,
     `Why It Mattered: ${input.chapter.whyItMatters ?? "Not set"}`,
     `Success Looked Like: ${input.chapter.successLooksLike ?? "Not set"}`,
-    `Done Was Defined As: ${input.chapter.doneDefinition ?? "Not set"}`,
+    `Confirmed Thesis: ${input.chapter.confirmedThesis ?? "Not set"}`,
+    gutFeeling ? `Kickoff Gut Feeling: "${gutFeeling}"` : "",
     "",
     total > 0
       ? [
           "CHAPTER RESULTS:",
-          `${completedCount} tasks completed, ${incompleteCount} didn't make it.`,
-          input.standoutCard ? `Standout card: "${input.standoutCard}"` : "",
-          cardContext ? `Card context:\n${cardContext}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n")
+          `${completedCount} of ${total} cards completed.`,
+          completedTitles.length > 0 ? `Completed: ${completedTitles.join(", ")}` : "",
+          incompleteTitles.length > 0 ? `Left behind: ${incompleteTitles.join(", ")}` : "",
+        ].filter(Boolean).join("\n")
       : "No tasks were recorded for this chapter.",
     "",
     CASS_VOICE,
     "",
-    "YOUR OPENING LINE:",
-    `Start with: "Alright. Chapter ${input.chapter.number} is done."`,
-    `Then: "You said you wanted to ${input.chapter.goal?.toLowerCase() ?? "get something done"}. Let's see what actually happened."`,
+    "FOUR-BEAT RETRO CONVERSATION:",
+    "You are NOT writing the chapter story here. You are collecting honest raw material.",
+    "The story will be written by a separate system after you complete this conversation.",
+    "Your job: ask one question at a time. Listen carefully. Follow up when answers are thin.",
     "",
-    "CONVERSATION FLOW:",
-    "1. Reference the standout card or completion rate — show you were watching.",
-    "2. Ask ONE question: 'Did this Chapter move the needle on what you're actually building? Not the tasks — the thing.'",
-    "3. After they respond, say 'Give me a second. Writing this down.' then generate the story.",
-    "4. Generate a 3-5 sentence chapter story paragraph that:",
-    "   - Opens with what the founder set out to do",
-    "   - Notes what actually happened (including what didn't make it)",
-    "   - Connects the work to the larger project meaning",
-    "   - Reads like a paragraph in a founder's memoir, not a sprint report",
-    "   - Is written in second person past tense",
-    "   - References card context where it adds color",
-    "5. Present it as: 'Here's what I've got —' then the paragraph. Then ask: 'Does that sound right?'",
-    "6. If yes: set done=true and emit full structured data.",
-    "7. If no: ask 'What's off?' Make ONE surgical edit. Re-present. Then set done=true.",
+    "BEAT 1 — HONEST ACCOUNTING:",
+    `Open with exactly this: "Okay, let's look at how this chapter actually went. You completed ${completedCount} of ${total} cards.`,
+    completedTitles.length > 0 ? `  Completed: ${completedTitles.join(", ")}.` : "",
+    incompleteTitles.length > 0 ? `  Left behind: ${incompleteTitles.join(", ")}.` : "",
+    `  On a scale of 1–5, how would you rate this chapter overall?"`,
+    "Then ask: \"What are you most proud of from this period?\"",
+    "  → If answer is thin: \"Not what got done — what are you personally proud of? Even if it's something small.\"",
+    fogSpiralInjection
+      ? "ADDITIONAL QUESTION (fog spiral re-centering): \"I want to make sure we don't miss anything in this one. Even in a quiet chapter, there are usually moments that matter more than they seem. Was there a moment this chapter — even a small one — where something made you think differently? A conversation, something you read, a decision that felt harder than it should have?\""
+      : "",
     "",
-    "STORY QUALITY RULES:",
-    "- Never use sprint vocabulary: no 'velocity', 'deliverables', 'action items', 'stakeholders'",
-    "- Write like a human who cares about this project, not a tool that logged it",
-    "- The story paragraph is the most important writing in the product — make it good",
-    "- Preserve the founder's voice",
+    "BEAT 2 — THE SURPRISE:",
+    '  Ask: "What surprised you most this chapter — good or bad?"',
+    '  Then: "What did you expect to be hard that turned out to be easier than you thought?"',
+    '  Then: "What did you expect to be easy that turned out to be harder?"',
+    '  Then: "Did anything happen that wasn\'t on a card at all?"',
+    "  → Follow-up probes if thin:",
+    '    "Tell me more about that surprise. What made it unexpected?"',
+    '    "How did that change what you did?"',
+    '    "Did it change how you think about the product or the work?"',
+    "",
+    "BEAT 3 — THE LEARNING:",
+    '  Ask: "What do you know now that you didn\'t know when you started this chapter?"',
+    '  Then: "Did your thinking change at all — about the product, the market, or yourself?"',
+    '  Then: "If you ran this chapter again with what you know now, what would you do differently?"',
+    "  → Probes if thin:",
+    '    "Is that a tactical thing or something more fundamental?"',
+    '    "Has this changed how you think about the next chapter?"',
+    fogSpiralInjection
+      ? "ADDITIONAL QUESTION (fog spiral re-centering): \"Let me ask you something directly. How are you actually feeling about where things are right now? Not the progress — you. Because sometimes the most important chapter is the one that captures what it costs to keep going.\""
+      : "",
+    "",
+    "BEAT 4 — EMOTIONAL CLOSE:",
+    gutFeeling
+      ? `  Ask: "At kickoff you said your gut feeling going in was: \\"${gutFeeling}\\". How does that compare to how you feel now that the chapter is done?"`
+      : '  Ask: "Coming into this chapter, you had a certain feeling about it. How does that compare to how you feel now that it\'s done?"',
+    '  Then: "How are you feeling about the road ahead coming out of this chapter?"',
+    '  Then: "Is there anything weighing on you, or anything that\'s energizing you, as you head into the next one?"',
+    "  → Probes if thin:",
+    '    "Say more about that. What\'s driving that feeling?"',
+    '    "Is this a different kind of confidence/uncertainty than when you started?"',
+    "",
+    "BRIDGE SENTENCE (after all four beats):",
+    "Generate a single sentence that captures what the next chapter is really about.",
+    "It should follow naturally from what this chapter revealed — forward momentum, not falsely optimistic.",
+    'Present as: "Based on everything you just told me, it sounds like the next chapter is really about: [BRIDGE]. Does that feel right as a starting point for next time?"',
+    "If they adjust, use their version.",
     "",
     "OUTPUT FORMAT (JSON — always return this exact structure):",
-    "- reply: your full conversational message (include the story paragraph in reply when presenting)",
-    "- done: true only when story is approved and ready to save",
-    "- chapter_story: the final approved story paragraph (empty string until approved)",
-    "- chapter_title: a short evocative 2-4 word title for this chapter (empty string until done)",
-    "- accumulative_paragraph: 1-2 sentence addition to append to the project's running story (empty until done)",
+    "- reply: your full conversational message",
+    "- done: true only when all four beats complete AND bridge confirmed",
+    "- currentBeat: 'accounting' | 'surprise' | 'learning' | 'emotional_close' | 'bridge'",
+    "- bridge_sentence: the confirmed bridge sentence (empty string until confirmed)",
+    "- retroBeats: full structured beats data (omit until done=true):",
+    "    { accounting: { overall_rating, most_proud_of },",
+    "      surprise: { biggest_surprise, easier_than_expected, harder_than_expected, unplanned_events },",
+    "      learning: { new_knowledge, thinking_shift, would_do_differently },",
+    "      emotional_close: { gut_feeling_delta, road_ahead_feeling, weighing_or_energizing } }",
     "",
     "Return JSON only.",
   ]
@@ -1398,4 +1509,75 @@ export function buildCassStoryShareRefinementPrompt(input: {
   ]
     .filter((line) => line !== undefined)
     .join("\n");
+}
+
+// ── Narrative Engine prompt builders ──────────────────────────────────────────
+// Imported from the prompts directory to keep agent personas canonical.
+
+import {
+  WRITER_AGENT_PERSONA,
+  WRITER_OUTPUT_FORMAT,
+  EDITORIAL_AGENT_PERSONA,
+  EDITORIAL_CRITERIA,
+} from "@/prompts/writer-agent";
+import {
+  CHAPTER_TEMPLATES,
+  STITCHING_NOTES,
+  type ChapterType as TemplateChapterType,
+  type StitchingPattern,
+} from "@/prompts/chapter-templates";
+
+/**
+ * Pass 1 — Draft prompt.
+ * Assembles the writer persona + chapter brief + type-specific template.
+ */
+export function buildNarrativeEnginePass1Prompt(input: {
+  chapterBriefText: string;
+  chapterType: TemplateChapterType;
+  stitchingPattern: StitchingPattern | null;
+}): string {
+  const template = CHAPTER_TEMPLATES[input.chapterType];
+  const stitchingNote = input.stitchingPattern
+    ? STITCHING_NOTES[input.stitchingPattern]
+    : null;
+
+  return [
+    WRITER_AGENT_PERSONA,
+    "",
+    "Here is the chapter brief:",
+    "",
+    input.chapterBriefText,
+    "",
+    `Here is the structure template for this chapter type (${input.chapterType.toUpperCase()}):`,
+    "",
+    template,
+    stitchingNote
+      ? ["", stitchingNote].join("\n")
+      : "",
+    "",
+    WRITER_OUTPUT_FORMAT,
+  ]
+    .filter((line) => line !== undefined)
+    .join("\n");
+}
+
+/**
+ * Pass 2 — Editorial review prompt.
+ * Reviews the Pass 1 draft and rewrites failing sections only.
+ */
+export function buildNarrativeEnginePass2Prompt(input: {
+  pass1Draft: string;
+  chapterBriefText: string;
+}): string {
+  return [
+    EDITORIAL_AGENT_PERSONA,
+    "",
+    "CHAPTER DRAFT:",
+    input.pass1Draft,
+    "",
+    "BRIEF CONTEXT (for pulling better quotes or details if needed):",
+    input.chapterBriefText,
+    "",
+    EDITORIAL_CRITERIA,
+  ].join("\n");
 }

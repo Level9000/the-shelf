@@ -84,7 +84,7 @@ function HubView({
             "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)",
           borderRadius: "1.75rem",
           padding: "28px 24px",
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
         }}
       >
         {/* Recorder + speech bubble — side by side, recorder flush to bubble bottom */}
@@ -123,7 +123,7 @@ function HubView({
             </p>
             <p
               style={{
-                fontFamily: "'Share Tech Mono', monospace",
+                fontFamily: "var(--font-cass)",
                 fontSize: "11px",
                 color: "#555",
                 letterSpacing: "1px",
@@ -160,7 +160,7 @@ function HubView({
         {/* Format label */}
         <p
           style={{
-            fontFamily: "'Share Tech Mono', monospace",
+            fontFamily: "var(--font-cass)",
             fontSize: "11px",
             letterSpacing: "2px",
             color: "#444",
@@ -225,7 +225,7 @@ function HubView({
                 <div>
                   <p
                     style={{
-                      fontFamily: "'Share Tech Mono', monospace",
+                      fontFamily: "var(--font-cass)",
                       fontSize: "13px",
                       fontWeight: 600,
                       color: "#d4cec4",
@@ -236,7 +236,7 @@ function HubView({
                   </p>
                   <p
                     style={{
-                      fontFamily: "'Share Tech Mono', monospace",
+                      fontFamily: "var(--font-cass)",
                       fontSize: "11px",
                       color: "#555",
                       marginTop: "3px",

@@ -75,7 +75,7 @@ const CASS_B: React.CSSProperties = {
 const USER_B: React.CSSProperties = {
   background: "rgba(200,168,107,0.1)", border: "1px solid rgba(200,168,107,0.22)",
   borderRadius: "12px 12px 2px 12px", padding: "10px 16px",
-  fontFamily: "'Share Tech Mono', monospace", fontSize: "14px",
+  fontFamily: "var(--font-cass)", fontSize: "14px",
   lineHeight: "1.5", color: "#c8a86b", maxWidth: "80%",
 };
 const PRIORITY_COLORS: Record<NonNullable<Priority>, string> = {
@@ -128,19 +128,19 @@ function ProposalCard({
         <select
           value={task.suggestedColumn}
           onChange={(e) => onColumnChange(e.target.value)}
-          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "999px", padding: "2px 10px", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#c8a86b", cursor: "pointer", outline: "none" }}
+          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "999px", padding: "2px 10px", fontFamily: "var(--font-cass)", fontSize: "11px", color: "#c8a86b", cursor: "pointer", outline: "none" }}
         >
           {availableCols.map((c) => (
             <option key={c} value={c} style={{ background: "#1a1a1a" }}>{COLUMN_LABELS[c] ?? c}</option>
           ))}
         </select>
         {task.priority && (
-          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "1.5px", color: PRIORITY_COLORS[task.priority], textTransform: "uppercase", opacity: 0.8 }}>
+          <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "1.5px", color: PRIORITY_COLORS[task.priority], textTransform: "uppercase", opacity: 0.8 }}>
             {task.priority}
           </span>
         )}
         {task.dueDate && (
-          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)", letterSpacing: "0.5px" }}>
+          <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.4)", letterSpacing: "0.5px" }}>
             due {task.dueDate}
           </span>
         )}
@@ -279,7 +279,7 @@ function BrainDumpRecorderView({
 
       {/* State label */}
       <p style={{
-        fontFamily: "'Share Tech Mono', monospace",
+        fontFamily: "var(--font-cass)",
         fontSize: "11px",
         letterSpacing: "3px",
         textTransform: "uppercase",
@@ -295,7 +295,7 @@ function BrainDumpRecorderView({
 
       {/* Elapsed timer */}
       {dumpState === "recording" && (
-        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "28px", color: "#c8a86b", margin: "0 0 28px", letterSpacing: "2px" }}>
+        <p style={{ fontFamily: "var(--font-cass)", fontSize: "28px", color: "#c8a86b", margin: "0 0 28px", letterSpacing: "2px" }}>
           {formatTime(elapsed)}
         </p>
       )}
@@ -316,7 +316,7 @@ function BrainDumpRecorderView({
 
       {/* Error message */}
       {dumpState === "error" && error && (
-        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#f87171", margin: "8px 0 20px", textAlign: "center", lineHeight: "1.6" }}>
+        <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: "8px 0 20px", textAlign: "center", lineHeight: "1.6" }}>
           {error}
         </p>
       )}
@@ -368,7 +368,7 @@ function BrainDumpRecorderView({
         </div>
       )}
 
-      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.25)", textTransform: "uppercase", letterSpacing: "2px", margin: "20px 0 0" }}>
+      <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.25)", textTransform: "uppercase", letterSpacing: "2px", margin: "20px 0 0" }}>
         {dumpState === "recording" ? "Tap to stop" : dumpState === "idle" || dumpState === "error" ? "Tap to record" : ""}
       </p>
     </div>
@@ -462,7 +462,7 @@ function MoveToChapterView({
           <Check size={20} style={{ color: "#6ee7b7" }} />
         </div>
         <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#d4cec4", margin: 0, textAlign: "center" }}>Done. Those tasks are out of your way.</p>
-        <button type="button" onClick={onClose} style={{ marginTop: "8px", padding: "10px 24px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", cursor: "pointer" }}>Close</button>
+        <button type="button" onClick={onClose} style={{ marginTop: "8px", padding: "10px 24px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "var(--font-cass)", fontSize: "11px", cursor: "pointer" }}>Close</button>
       </div>
     );
   }
@@ -497,7 +497,7 @@ function MoveToChapterView({
                 onMouseEnter={(e) => { if (!isPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; } }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
               >
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#d4cec4", margin: 0 }}>{chapter.name}</p>
+                <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 600, color: "#d4cec4", margin: 0 }}>{chapter.name}</p>
                 {isPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.4)", flexShrink: 0 }} />}
               </button>
             ))}
@@ -524,7 +524,7 @@ function MoveToChapterView({
               onMouseEnter={(e) => { if (!isPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.6)"; e.currentTarget.style.background = "rgba(200,168,107,0.12)"; } }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.08)"; }}
             >
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#c8a86b", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 600, color: "#c8a86b", margin: 0 }}>
                 Create Chapter {allChaptersCount + 1} and move there
               </p>
               {isPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
@@ -542,7 +542,7 @@ function MoveToChapterView({
               padding: "10px 14px", borderRadius: "999px",
               background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.18)",
               cursor: isPending ? "not-allowed" : "pointer",
-              fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#f87171",
+              fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171",
               transition: "background 0.15s",
             }}
             onMouseEnter={(e) => { if (!isPending) e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}
@@ -553,7 +553,7 @@ function MoveToChapterView({
           </button>
         </div>
 
-        {error && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
+        {error && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
       </div>
     );
   }
@@ -574,13 +574,13 @@ function MoveToChapterView({
         {movableTasks.length > 0 && (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2px" }}>
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
                 {selectedCount} selected
               </p>
               <button
                 type="button"
                 onClick={selectedCount === movableTasks.length ? () => setSelectedIds(new Set()) : selectAll}
-                style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.5)", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.5px", padding: "2px 4px" }}
+                style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.5)", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.5px", padding: "2px 4px" }}
               >
                 {selectedCount === movableTasks.length ? "Deselect all" : "Select all"}
               </button>
@@ -623,7 +623,7 @@ function MoveToChapterView({
           </>
         )}
 
-        {error && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
+        {error && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
       </div>
 
       {/* Footer */}
@@ -638,7 +638,7 @@ function MoveToChapterView({
               padding: "12px", width: "100%", borderRadius: "12px",
               background: selectedCount > 0 ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.06)",
               border: "none", cursor: selectedCount > 0 ? "pointer" : "not-allowed",
-              fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 700,
+              fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 700,
               color: selectedCount > 0 ? "#0a0a0a" : "#555",
               transition: "background 0.2s", letterSpacing: "0.5px",
             }}
@@ -712,7 +712,7 @@ function EndChapterView({
           <>
             {/* Task list */}
             <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(200,168,107,0.1)", borderRadius: "12px", padding: "12px 14px" }}>
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 10px" }}>
+              <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 10px" }}>
                 Open tasks
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -722,7 +722,7 @@ function EndChapterView({
                   </p>
                 ))}
                 {incompleteTasks.length > 5 && (
-                  <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.35)", margin: 0 }}>
+                  <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.35)", margin: 0 }}>
                     +{incompleteTasks.length - 5} more
                   </p>
                 )}
@@ -748,8 +748,8 @@ function EndChapterView({
                 {choice === "carry_over" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b" }} />}
               </div>
               <div>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Carry over to the next chapter</p>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Open tasks move into the next chapter&apos;s backlog</p>
+                <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Carry over to the next chapter</p>
+                <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Open tasks move into the next chapter&apos;s backlog</p>
               </div>
             </button>
 
@@ -772,14 +772,14 @@ function EndChapterView({
                 {choice === "delete" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#f87171" }} />}
               </div>
               <div>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: choice === "delete" ? "#fca5a5" : "#d4cec4", margin: 0, lineHeight: "1.3" }}>Remove them — this chapter is done</p>
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Incomplete tasks are deleted. The chapter closes clean.</p>
+                <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: choice === "delete" ? "#fca5a5" : "#d4cec4", margin: 0, lineHeight: "1.3" }}>Remove them — this chapter is done</p>
+                <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Incomplete tasks are deleted. The chapter closes clean.</p>
               </div>
             </button>
           </>
         )}
 
-        {error && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
+        {error && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
       </div>
 
       {/* Footer */}
@@ -794,7 +794,7 @@ function EndChapterView({
             background: (!isPending && (!hasIncompleteTasks || choice)) ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.06)",
             border: "none",
             cursor: (isPending || (hasIncompleteTasks && !choice)) ? "not-allowed" : "pointer",
-            fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 700,
+            fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 700,
             color: (!isPending && (!hasIncompleteTasks || choice)) ? "#0a0a0a" : "#555",
             opacity: isPending ? 0.7 : 1,
             transition: "background 0.2s", letterSpacing: "0.5px",
@@ -892,7 +892,7 @@ export function CassBoardDrawer({
     border: `1px solid ${borderGoldDim}`,
     borderRadius: "12px 12px 2px 12px",
     padding: "10px 16px",
-    fontFamily: "'Share Tech Mono', monospace",
+    fontFamily: "var(--font-cass)",
     fontSize: "14px",
     lineHeight: "1.5",
     color: isDark ? "#c8a86b" : "#8a6a20",
@@ -1346,7 +1346,7 @@ export function CassBoardDrawer({
             <button
               type="button"
               onClick={isBreakupMode ? onClose : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); }}
-              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: btnBg, color: btnColor, border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
+              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: btnBg, color: btnColor, border: "none", cursor: "pointer", fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
             >{isBreakupMode ? "✕ cancel" : "← back"}</button>
@@ -1355,7 +1355,7 @@ export function CassBoardDrawer({
             <button
               type="button"
               onClick={() => { setMode("menu"); setMenuSelected(null); }}
-              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: btnBg, color: btnColor, border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
+              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: btnBg, color: btnColor, border: "none", cursor: "pointer", fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
             >← back</button>
@@ -1403,8 +1403,8 @@ export function CassBoardDrawer({
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(251,146,60,0.6)", background: "transparent" }} />
                     <div>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: "rgba(251,180,80,0.9)", margin: 0, lineHeight: "1.3" }}>We need to refocus this chapter.</p>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(251,146,60,0.5)", margin: "3px 0 0" }}>Let&apos;s see how we can wrap things up together</p>
+                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: "rgba(251,180,80,0.9)", margin: 0, lineHeight: "1.3" }}>We need to refocus this chapter.</p>
+                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(251,146,60,0.5)", margin: "3px 0 0" }}>Let&apos;s see how we can wrap things up together</p>
                     </div>
                   </button>
                 ) : (
@@ -1418,8 +1418,8 @@ export function CassBoardDrawer({
                       >
                         <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                         <div>
-                          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
-                          {opt.sub && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>}
+                          <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
+                          {opt.sub && <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>}
                         </div>
                       </button>
                     ))}
@@ -1437,8 +1437,8 @@ export function CassBoardDrawer({
                         >
                           <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
                           <div>
-                            <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>End this chapter early</p>
-                            <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the chapter and write the story</p>
+                            <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>End this chapter early</p>
+                            <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the chapter and write the story</p>
                           </div>
                         </button>
                       </>
@@ -1490,7 +1490,7 @@ export function CassBoardDrawer({
               return (
                 <div key={t.id} style={{ background: surface, border: `1px solid ${borderGoldDim}`, borderRadius: "12px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
                   <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", color: textPrimary, margin: 0, lineHeight: "1.5" }}>{t.title}</p>
-                  {colName && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "rgba(200,168,107,0.5)", margin: 0, letterSpacing: "1px", textTransform: "uppercase" }}>{colName}</p>}
+                  {colName && <p style={{ fontFamily: "var(--font-cass)", fontSize: "10px", color: "rgba(200,168,107,0.5)", margin: 0, letterSpacing: "1px", textTransform: "uppercase" }}>{colName}</p>}
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     {(["keep", "move", "delete"] as TriageDecision[]).map((opt) => {
                       const labels = { keep: "✓ Keep", move: "→ Next chapter", delete: "✕ Cut it" };
@@ -1502,7 +1502,7 @@ export function CassBoardDrawer({
                         <button
                           key={opt} type="button"
                           onClick={() => setRfTriageMap((prev) => ({ ...prev, [t.id]: opt }))}
-                          style={{ padding: "4px 12px", borderRadius: "999px", border: `1px solid ${isActive ? activeBorders[opt] : "rgba(255,255,255,0.1)"}`, background: isActive ? activeColors[opt] : "transparent", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: isActive ? activeText[opt] : "rgba(255,255,255,0.3)", cursor: "pointer", transition: "all 0.15s", letterSpacing: "0.5px" }}
+                          style={{ padding: "4px 12px", borderRadius: "999px", border: `1px solid ${isActive ? activeBorders[opt] : "rgba(255,255,255,0.1)"}`, background: isActive ? activeColors[opt] : "transparent", fontFamily: "var(--font-cass)", fontSize: "11px", color: isActive ? activeText[opt] : "rgba(255,255,255,0.3)", cursor: "pointer", transition: "all 0.15s", letterSpacing: "0.5px" }}
                         >{labels[opt]}</button>
                       );
                     })}
@@ -1512,13 +1512,13 @@ export function CassBoardDrawer({
             })}
 
             {rfError && (
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "#f87171", margin: 0 }}>{rfError}</p>
+              <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "#f87171", margin: 0 }}>{rfError}</p>
             )}
 
             {/* Confirm */}
             <button
               type="button" onClick={handleRfConfirm} disabled={rfIsSaving}
-              style={{ marginTop: "8px", padding: "13px", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: rfIsSaving ? "not-allowed" : "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", fontWeight: 700, color: "#0a0a0a", letterSpacing: "0.5px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: rfIsSaving ? 0.7 : 1 }}
+              style={{ marginTop: "8px", padding: "13px", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: rfIsSaving ? "not-allowed" : "pointer", fontFamily: "var(--font-cass)", fontSize: "13px", fontWeight: 700, color: "#0a0a0a", letterSpacing: "0.5px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: rfIsSaving ? 0.7 : 1 }}
             >
               {rfIsSaving
                 ? <><LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> Saving…</>
@@ -1544,7 +1544,7 @@ export function CassBoardDrawer({
                   </div>
                 </div>
               )}
-              {rfError && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "#f87171", margin: 0 }}>{rfError}</p>}
+              {rfError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "#f87171", margin: 0 }}>{rfError}</p>}
             </div>
             <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", gap: "10px", alignItems: "flex-end" }}>
               <textarea
@@ -1592,8 +1592,8 @@ export function CassBoardDrawer({
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                     <div>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Take me to the latest chapter</p>
-                      <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Jump to where the work is happening</p>
+                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Take me to the latest chapter</p>
+                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Jump to where the work is happening</p>
                     </div>
                   </button>
                   {onPlanChapters && (
@@ -1606,8 +1606,8 @@ export function CassBoardDrawer({
                     >
                       <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                       <div>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Plan new chapters</p>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Write the next act of the story</p>
+                        <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Plan new chapters</p>
+                        <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Write the next act of the story</p>
                       </div>
                     </button>
                   )}
@@ -1633,7 +1633,7 @@ export function CassBoardDrawer({
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
-                    <div><p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
+                    <div><p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
                   </button>
                   <button
                     type="button"
@@ -1643,7 +1643,7 @@ export function CassBoardDrawer({
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
-                    <div><p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
+                    <div><p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
                   </button>
                 </div>
               </div>
@@ -1667,7 +1667,7 @@ export function CassBoardDrawer({
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
-                    <div><p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
+                    <div><p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
                   </button>
                 )}
                 <button
@@ -1678,7 +1678,7 @@ export function CassBoardDrawer({
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
                 >
                   <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
-                  <div><p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
+                  <div><p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
                 </button>
               </div>
             </div>
@@ -1726,7 +1726,7 @@ export function CassBoardDrawer({
                     flexDirection: "column",
                     gap: "3px",
                   }}>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>Breaking up</p>
+                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>Breaking up</p>
                     <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: textPrimary, margin: 0, lineHeight: "1.4" }}>{breakupTask.title}</p>
                   </div>
                 )}
@@ -1753,7 +1753,7 @@ export function CassBoardDrawer({
                 {/* Proposal cards */}
                 {hasProposals && !savedOk && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 4px" }}>
+                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 4px" }}>
                       {reviewTasks.length} card{reviewTasks.length !== 1 ? "s" : ""} captured — review &amp; adjust
                     </p>
                     {reviewTasks.map((task, i) => (
@@ -1789,27 +1789,27 @@ export function CassBoardDrawer({
                             <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#d4cec4", margin: "0 0 4px", lineHeight: "1.6" }}>
                               This looks like something you'd run again. Want me to save it as a workflow?
                             </p>
-                            <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: 0 }}>
+                            <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: 0 }}>
                               "{templateDraft.name}"
                             </p>
                           </div>
                         </div>
-                        {templateError && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#f87171", margin: 0 }}>{templateError}</p>}
+                        {templateError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{templateError}</p>}
                         <div style={{ display: "flex", gap: "8px" }}>
-                          <button type="button" onClick={() => setSuggestSaveAsTemplate(false)} disabled={templateSaving} style={{ flex: 1, padding: "9px 14px", borderRadius: "999px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", cursor: "pointer" }}>Not now</button>
-                          <button type="button" onClick={handleSaveTemplate} disabled={templateSaving} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "9px 14px", borderRadius: "999px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: templateSaving ? "not-allowed" : "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", fontWeight: 600, color: "#0a0a0a", opacity: templateSaving ? 0.7 : 1 }}>
+                          <button type="button" onClick={() => setSuggestSaveAsTemplate(false)} disabled={templateSaving} style={{ flex: 1, padding: "9px 14px", borderRadius: "999px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "var(--font-cass)", fontSize: "11px", cursor: "pointer" }}>Not now</button>
+                          <button type="button" onClick={handleSaveTemplate} disabled={templateSaving} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "9px 14px", borderRadius: "999px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: templateSaving ? "not-allowed" : "pointer", fontFamily: "var(--font-cass)", fontSize: "11px", fontWeight: 600, color: "#0a0a0a", opacity: templateSaving ? 0.7 : 1 }}>
                             {templateSaving ? <LoaderCircle size={11} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={11} />}
                             {templateSaving ? "Saving…" : "Save workflow"}
                           </button>
                         </div>
                       </div>
                     )}
-                    {templateSaved && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#6ee7b7", margin: 0, letterSpacing: "0.5px" }}>✓ Workflow saved — Cass will suggest it next time.</p>}
-                    <button type="button" onClick={onClose} style={{ padding: "10px 16px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", cursor: "pointer", marginTop: "4px" }}>Done</button>
+                    {templateSaved && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#6ee7b7", margin: 0, letterSpacing: "0.5px" }}>✓ Workflow saved — Cass will suggest it next time.</p>}
+                    <button type="button" onClick={onClose} style={{ padding: "10px 16px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "var(--font-cass)", fontSize: "11px", cursor: "pointer", marginTop: "4px" }}>Done</button>
                   </div>
                 )}
 
-                {chatError && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#f87171", margin: 0 }}>{chatError}</p>}
+                {chatError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{chatError}</p>}
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -1820,7 +1820,7 @@ export function CassBoardDrawer({
                 {hasProposals && reviewTasks.length > 0 && (
                   <button
                     type="button" onClick={handleAddTasks} disabled={isSaving}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: isSaving ? "not-allowed" : "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 700, color: "#0a0a0a", opacity: isSaving ? 0.7 : 1, letterSpacing: "0.5px" }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: isSaving ? "not-allowed" : "pointer", fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 700, color: "#0a0a0a", opacity: isSaving ? 0.7 : 1, letterSpacing: "0.5px" }}
                   >
                     {isSaving ? <LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={14} />}
                     {isSaving
@@ -1859,7 +1859,7 @@ export function CassBoardDrawer({
               <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px" }}>
                 <button
                   type="button" onClick={handleAddTasks} disabled={isSaving || reviewTasks.length === 0}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", width: "100%", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: (isSaving || reviewTasks.length === 0) ? "not-allowed" : "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", fontWeight: 700, color: "#0a0a0a", opacity: (isSaving || reviewTasks.length === 0) ? 0.7 : 1, letterSpacing: "0.5px" }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", width: "100%", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: (isSaving || reviewTasks.length === 0) ? "not-allowed" : "pointer", fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 700, color: "#0a0a0a", opacity: (isSaving || reviewTasks.length === 0) ? 0.7 : 1, letterSpacing: "0.5px" }}
                 >
                   {isSaving ? <LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={14} />}
                   {isSaving ? "Adding…" : `Add ${reviewTasks.length} card${reviewTasks.length !== 1 ? "s" : ""} to board`}

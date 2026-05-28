@@ -141,7 +141,7 @@ function UserBubble({ text }: { text: string }) {
           border: "1px solid rgba(200,168,107,0.22)",
           borderRadius: "12px 12px 2px 12px",
           padding: "10px 16px",
-          fontFamily: "'Share Tech Mono', monospace",
+          fontFamily: "var(--font-cass)",
           fontSize: "13px",
           lineHeight: "1.5",
           color: "#c8a86b",
@@ -214,7 +214,7 @@ function FormatPicker({
           <div>
             <p
               style={{
-                fontFamily: "'Share Tech Mono', monospace",
+                fontFamily: "var(--font-cass)",
                 fontSize: "12px",
                 fontWeight: 600,
                 color: "#d4cec4",
@@ -226,7 +226,7 @@ function FormatPicker({
             </p>
             <p
               style={{
-                fontFamily: "'Share Tech Mono', monospace",
+                fontFamily: "var(--font-cass)",
                 fontSize: "11px",
                 color: "#555",
                 margin: "3px 0 0",
@@ -288,7 +288,7 @@ const ROW_STYLE_BASE = {
 };
 
 const LABEL_STYLE = {
-  fontFamily: "'Share Tech Mono', monospace",
+  fontFamily: "var(--font-cass)",
   fontSize: "12px",
   fontWeight: 600,
   color: "#d4cec4",
@@ -395,7 +395,7 @@ function ChipRow({
               background: "transparent",
               border: "none",
               outline: "none",
-              fontFamily: "'Share Tech Mono', monospace",
+              fontFamily: "var(--font-cass)",
               fontSize: "12px",
               color: "#d4cec4",
               lineHeight: "1.3",

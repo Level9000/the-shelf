@@ -655,7 +655,7 @@ export function ProjectBoardClient({
                   width: "110%",
                   padding: "18px 60px 22px",
                   textAlign: "center",
-                  fontFamily: "'Caveat', cursive",
+                  fontFamily: "var(--font-cass)",
                   fontSize: "42px",
                   fontWeight: 700,
                   color: "#1a0e00",
@@ -665,7 +665,7 @@ export function ProjectBoardClient({
                   boxShadow: "0 4px 24px rgba(0,0,0,0.2), 0 8px 40px rgba(0,0,0,0.15)",
                   whiteSpace: "nowrap",
                 }}>
-                  Completed on: {new Date(snapshot.board.retroCompletedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  Completed<span className="hidden sm:inline"> on: {new Date(snapshot.board.retroCompletedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
                 </div>
               </div>
             )}

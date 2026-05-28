@@ -54,7 +54,10 @@ export async function POST(request: Request) {
       .maybeSingle(),
     supabase
       .from("boards")
-      .select("id,name,goal,why_it_matters,success_looks_like,done_definition,kickoff_prefilled_at,position")
+      .select(`
+        id,name,goal,why_it_matters,success_looks_like,done_definition,
+        kickoff_prefilled_at,story_health_flag,recentering_type,position
+      `)
       .eq("id", chapterId)
       .eq("project_id", projectId)
       .maybeSingle(),
@@ -67,20 +70,19 @@ export async function POST(request: Request) {
     );
   }
 
-  // Find previous chapter for narrative continuity (goal + story)
+  // Find previous chapter for narrative continuity (goal + story + bridge sentence)
   const { data: previousBoards } = await supabase
     .from("boards")
-    .select("name,goal,chapter_story,position")
+    .select("name,goal,chapter_story,bridge_sentence,position")
     .eq("project_id", projectId)
     .neq("id", chapterId)
     .not("kickoff_completed_at", "is", null)
     .order("position", { ascending: false })
     .limit(1);
 
-  const previousChapterGoal =
-    (previousBoards?.[0]?.goal as string | null) ?? null;
-  const previousChapterStory =
-    (previousBoards?.[0]?.chapter_story as string | null) ?? null;
+  const previousChapterGoal         = (previousBoards?.[0]?.goal as string | null) ?? null;
+  const previousChapterStory        = (previousBoards?.[0]?.chapter_story as string | null) ?? null;
+  const previousChapterBridgeSentence = (previousBoards?.[0]?.bridge_sentence as string | null) ?? null;
 
   // Determine chapter number from position
   const { data: allBoards } = await supabase
@@ -89,27 +91,50 @@ export async function POST(request: Request) {
     .eq("project_id", projectId)
     .order("position", { ascending: true });
 
-  const chapterIndex = (allBoards ?? []).findIndex((b) => String(b.id) === chapterId);
+  const chapterIndex  = (allBoards ?? []).findIndex((b) => String(b.id) === chapterId);
   const chapterNumber = chapterIndex >= 0 ? chapterIndex + 1 : 1;
+
+  // Founding thesis = north star or chapter 1 confirmed_thesis
+  const { data: chapter1 } = await supabase
+    .from("boards")
+    .select("confirmed_thesis")
+    .eq("project_id", projectId)
+    .order("position", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const foundingThesis =
+    (project.north_star as string | null) ??
+    (chapter1?.confirmed_thesis as string | null) ??
+    null;
+
+  // Re-centering state
+  const storyHealthFlag = (board.story_health_flag as string | null) ?? "none";
+  const recenteringType = storyHealthFlag === "recentering_needed"
+    ? (board.recentering_type as string | null) ?? null
+    : null;
 
   const isPrefilled = Boolean(board.kickoff_prefilled_at);
 
   try {
     const result = await runCassChapterKickoffDialogue({
-      messages: effectiveMessages,
-      projectName: String(project.name),
-      northStar: (project.north_star as string | null) ?? null,
-      projectGoal: (project.project_goal as string | null) ?? null,
+      messages:                    effectiveMessages,
+      projectName:                 String(project.name),
+      northStar:                   (project.north_star as string | null) ?? null,
+      projectGoal:                 (project.project_goal as string | null) ?? null,
       chapterNumber,
-      chapterName: String(board.name),
+      chapterName:                 String(board.name),
       previousChapterGoal,
       previousChapterStory,
+      previousChapterBridgeSentence,
+      recenteringType,
+      foundingThesis,
       prefill: isPrefilled
         ? {
-            goal: (board.goal as string | null) ?? null,
-            value: (board.why_it_matters as string | null) ?? null,
+            goal:    (board.goal as string | null) ?? null,
+            value:   (board.why_it_matters as string | null) ?? null,
             measure: (board.success_looks_like as string | null) ?? null,
-            done: (board.done_definition as string | null) ?? null,
+            done:    (board.done_definition as string | null) ?? null,
           }
         : null,
     });

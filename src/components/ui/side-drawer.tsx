@@ -104,7 +104,7 @@ export function SideDrawer({
           }}>
             <span style={{
               display: "inline-block",
-              fontFamily: "'Caveat', cursive",
+              fontFamily: "var(--font-cass)",
               fontSize: "18px",
               fontWeight: 700,
               color: "#1a0e00",

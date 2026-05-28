@@ -171,7 +171,7 @@ function CassRefineDrawer({
   const USER_B: React.CSSProperties = {
     background: "rgba(200,168,107,0.1)", border: "1px solid rgba(200,168,107,0.22)",
     borderRadius: "12px 12px 2px 12px", padding: "10px 16px",
-    fontFamily: "'Share Tech Mono', monospace", fontSize: "14px",
+    fontFamily: "var(--font-cass)", fontSize: "14px",
     lineHeight: "1.5", color: "#c8a86b", maxWidth: "80%",
   };
 
@@ -210,7 +210,7 @@ function CassRefineDrawer({
             <button
               type="button"
               onClick={() => setMode("menu")}
-              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
+              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
             >
@@ -239,7 +239,7 @@ function CassRefineDrawer({
                   <div key={s.key} title={s.title} style={{ width: current ? "20px" : "7px", height: "7px", borderRadius: "999px", background: done ? "#c8a86b" : current ? "rgba(200,168,107,0.5)" : "rgba(255,255,255,0.12)", transition: "all 0.3s ease" }} />
                 );
               })}
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "0 0 0 4px", letterSpacing: "1px" }}>{completedCount}/4</p>
+              <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "0 0 0 4px", letterSpacing: "1px" }}>{completedCount}/4</p>
             </div>
           )}
         </div>
@@ -287,11 +287,11 @@ function CassRefineDrawer({
                       <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>
+                          <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>
                             {s.nav} — {s.title}
                           </p>
                         </div>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>
+                        <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>
                           {filled ? "Already filled in — refine the language" : "Not set yet"}
                         </p>
                       </div>
@@ -340,7 +340,7 @@ function CassRefineDrawer({
               {approvalOpen && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
                   <div style={{ background: "rgba(200,168,107,0.06)", border: "1px solid rgba(200,168,107,0.25)", borderRadius: "14px", padding: "14px 16px" }}>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 8px" }}>
+                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 8px" }}>
                       Draft — {currentSection.shortTitle}
                     </p>
                     <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.75, color: "#d4cec4", margin: 0 }}>{approvalDraft}</p>
@@ -348,13 +348,13 @@ function CassRefineDrawer({
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button
                       type="button" onClick={() => setApprovalOpen(false)} disabled={isApproving}
-                      style={{ flex: 1, padding: "10px 14px", borderRadius: "999px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
+                      style={{ flex: 1, padding: "10px 14px", borderRadius: "999px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "var(--font-cass)", fontSize: "11px", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#888"; }}
                     >Keep refining</button>
                     <button
                       type="button" onClick={handleApprove} disabled={isApproving}
-                      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px 14px", borderRadius: "999px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: isApproving ? "not-allowed" : "pointer", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", fontWeight: 600, color: "#0a0a0a", opacity: isApproving ? 0.7 : 1 }}
+                      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px 14px", borderRadius: "999px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: isApproving ? "not-allowed" : "pointer", fontFamily: "var(--font-cass)", fontSize: "11px", fontWeight: 600, color: "#0a0a0a", opacity: isApproving ? 0.7 : 1 }}
                     >
                       {isApproving ? <LoaderCircle size={11} style={{ animation: "refineSpin 1s linear infinite" }} /> : <Check size={11} />}
                       {isApproving ? "Saving…" : "Approve"}
@@ -363,13 +363,13 @@ function CassRefineDrawer({
                 </div>
               )}
 
-              {error && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
+              {error && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
               <div ref={messagesEndRef} />
             </div>
 
             {/* Input bar */}
             <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px" }}>
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.35)", textTransform: "uppercase", margin: "0 0 10px" }}>
+              <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.35)", textTransform: "uppercase", margin: "0 0 10px" }}>
                 {currentSection.nav} — {currentSection.title}
               </p>
               <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
@@ -456,6 +456,9 @@ export function ChapterOverviewShell({
   const [storyPlayerData, setStoryPlayerData] = useState<{
     chapterStory: string;
     pullQuote: string;
+    headline?: string;
+    subheadline?: string;
+    chapterType?: string;
   } | null>(null);
   const [showStoryHub, setShowStoryHub] = useState(false);
   const [endChapterModalOpen, setEndChapterModalOpen] = useState(false);
@@ -486,7 +489,7 @@ export function ChapterOverviewShell({
     setRetroOpen(true);
   }
 
-  function handleRetroComplete(data: { chapterStory: string; pullQuote: string }) {
+  function handleRetroComplete(data: { chapterStory: string; pullQuote: string; headline?: string; subheadline?: string; chapterType?: string }) {
     setRetroOpen(false);
     setStoryPlayerData(data);
   }
@@ -541,6 +544,8 @@ export function ChapterOverviewShell({
               chapterName={snapshot.board.name}
               chapterStory={storyPlayerData.chapterStory}
               pullQuote={storyPlayerData.pullQuote}
+              headline={storyPlayerData.headline}
+              subheadline={storyPlayerData.subheadline}
               projectId={currentProjectId}
               boardId={currentChapterId}
               onShareThis={() => {

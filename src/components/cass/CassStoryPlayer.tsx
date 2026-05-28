@@ -34,7 +34,7 @@ function CassShareCard({ pullQuote }: { pullQuote: string }) {
       </p>
       <p
         style={{
-          fontFamily: "'Share Tech Mono', monospace",
+          fontFamily: "var(--font-cass)",
           fontSize: "11px",
           color: "#c8a86b",
           letterSpacing: "3px",
@@ -56,6 +56,8 @@ export function CassStoryPlayer({
   chapterName,
   chapterStory,
   pullQuote,
+  headline,
+  subheadline,
   projectId,
   boardId,
   onShareThis,
@@ -64,6 +66,8 @@ export function CassStoryPlayer({
   chapterName: string;
   chapterStory: string;
   pullQuote: string;
+  headline?: string;
+  subheadline?: string;
   projectId: string;
   boardId: string;
   onShareThis: () => void;
@@ -188,7 +192,7 @@ export function CassStoryPlayer({
           backgroundImage:
             "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)",
           padding: "32px 16px 40px",
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
           color: "#c8c8c8",
           overflowY: "auto",
           position: "relative",
@@ -231,17 +235,59 @@ export function CassStoryPlayer({
           {/* Header */}
           <div style={{ textAlign: "center" }}>
             <CassRecorder animState={animState} size="sm" />
-            <div
-              style={{
-                marginTop: "10px",
-                fontFamily: "'Special Elite', cursive",
-                fontSize: "22px",
-                color: "#d4cec4",
-                letterSpacing: "0.5px",
-              }}
-            >
-              {chapterName}
-            </div>
+            {headline ? (
+              <div style={{ marginTop: "16px" }}>
+                <div
+                  style={{
+                    fontFamily: "'Special Elite', cursive",
+                    fontSize: "24px",
+                    color: "#d4cec4",
+                    letterSpacing: "0.3px",
+                    lineHeight: "1.3",
+                  }}
+                >
+                  {headline}
+                </div>
+                {subheadline && (
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      fontFamily: "var(--font-cass)",
+                      fontSize: "13px",
+                      color: "rgba(200,168,107,0.7)",
+                      letterSpacing: "1px",
+                      lineHeight: "1.5",
+                    }}
+                  >
+                    {subheadline}
+                  </div>
+                )}
+                <div
+                  style={{
+                    marginTop: "10px",
+                    fontFamily: "var(--font-cass)",
+                    fontSize: "11px",
+                    color: "#444",
+                    letterSpacing: "2px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {chapterName}
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginTop: "10px",
+                  fontFamily: "'Special Elite', cursive",
+                  fontSize: "22px",
+                  color: "#d4cec4",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                {chapterName}
+              </div>
+            )}
           </div>
 
           {/* Tape progress bar */}
@@ -421,7 +467,7 @@ export function CassStoryPlayer({
                       border: "none",
                       borderRadius: "8px",
                       padding: "14px",
-                      fontFamily: "'Share Tech Mono', monospace",
+                      fontFamily: "var(--font-cass)",
                       fontSize: "13px",
                       letterSpacing: "2px",
                       cursor: "pointer",
@@ -449,7 +495,7 @@ export function CassStoryPlayer({
                       border: "1px solid rgba(255,255,255,0.08)",
                       borderRadius: "8px",
                       padding: "12px",
-                      fontFamily: "'Share Tech Mono', monospace",
+                      fontFamily: "var(--font-cass)",
                       fontSize: "12px",
                       letterSpacing: "1px",
                       cursor: "pointer",

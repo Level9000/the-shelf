@@ -23,7 +23,7 @@ function DrawerSection({ label, children }: { label: string; children: React.Rea
       <div style={{ padding: "10px 0 8px" }}>
         <span style={{
           display: "inline-block",
-          fontFamily: "'Share Tech Mono', monospace",
+          fontFamily: "var(--font-cass)",
           fontSize: "11px",
           letterSpacing: "0.15em",
           color: "#1a0e00",
@@ -118,7 +118,7 @@ export function SettingsContent({
       <DrawerSection label="Appearance">
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
           <span style={{
-            fontFamily: "'Share Tech Mono', monospace",
+            fontFamily: "var(--font-cass)",
             fontSize: "7.5px",
             letterSpacing: "0.18em",
             color: themeLabelColor,
@@ -132,7 +132,7 @@ export function SettingsContent({
             <span
               onClick={() => setTheme("light")}
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "var(--font-cass)",
                 fontSize: "18px",
                 fontWeight: 700,
                 padding: "5px 14px",
@@ -186,7 +186,7 @@ export function SettingsContent({
             <span
               onClick={() => setTheme("dark")}
               style={{
-                fontFamily: "'Caveat', cursive",
+                fontFamily: "var(--font-cass)",
                 fontSize: "18px",
                 fontWeight: 700,
                 padding: "5px 14px",
@@ -215,7 +215,7 @@ export function SettingsContent({
           <div style={{ padding: "10px 0 8px" }}>
             <span style={{
               display: "inline-block",
-              fontFamily: "'Share Tech Mono', monospace",
+              fontFamily: "var(--font-cass)",
               fontSize: "11px",
               letterSpacing: "0.15em",
               color: "#fff0f0",
@@ -272,7 +272,7 @@ export function SettingsContent({
                 {confirmingDeleteProject ? (
                   <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
                     <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 2px" }}>Type the project name to confirm:</p>
-                    <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(248,113,113,0.6)", margin: "0 0 10px" }}>{currentProjectName}</p>
+                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(248,113,113,0.6)", margin: "0 0 10px" }}>{currentProjectName}</p>
                     <input
                       type="text"
                       value={deleteProjectInput}

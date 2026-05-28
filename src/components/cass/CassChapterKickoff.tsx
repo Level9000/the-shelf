@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import type { CassAnimState } from "./cassVoice";
-import type { AIKickoffDialogue } from "@/lib/ai/schema";
+import type { CassEnhancedKickoffDialogue } from "@/lib/ai/schema";
 import type { Board, BoardColumn, Project } from "@/types";
 import { CassProgressBar } from "./CassProgressBar";
 import { CassRecorder } from "./CassRecorder";
@@ -39,7 +39,7 @@ export function CassChapterKickoff({
   const [currentReply, setCurrentReply] = useState("");
   const [animState, setAnimState] = useState<CassAnimState>("recording");
   const [inputValue, setInputValue] = useState("");
-  const [kickoffData, setKickoffData] = useState<AIKickoffDialogue | null>(null);
+  const [kickoffData, setKickoffData] = useState<CassEnhancedKickoffDialogue | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isSaving, startSaveTransition] = useTransition();
@@ -59,7 +59,7 @@ export function CassChapterKickoff({
           }),
         });
 
-        const data = (await response.json()) as AIKickoffDialogue & { error?: string };
+        const data = (await response.json()) as CassEnhancedKickoffDialogue & { error?: string };
         if (!response.ok) throw new Error(data.error ?? CASS_ERROR_LINES[0]);
 
         const reply = data.reply?.trim();
@@ -103,7 +103,7 @@ export function CassChapterKickoff({
           }),
         });
 
-        const data = (await response.json()) as AIKickoffDialogue & {
+        const data = (await response.json()) as CassEnhancedKickoffDialogue & {
           error?: string;
         };
 
@@ -142,7 +142,7 @@ export function CassChapterKickoff({
     }
   }
 
-  function saveKickoff(data: AIKickoffDialogue) {
+  function saveKickoff(data: CassEnhancedKickoffDialogue) {
     setAnimState("recording");
 
     startSaveTransition(async () => {
@@ -159,6 +159,9 @@ export function CassChapterKickoff({
           conversation: messages.filter((m) => m.content !== OPENER_TRIGGER.content),
           tasks: (data.proposedTasks ?? []).map((t) => ({ title: t.title })),
           columns: columns.map((c) => ({ id: c.id, name: c.name })),
+          // Enhanced beats data (only present when done=true with new 3-beat flow)
+          kickoffBeats:    data.kickoffBeats,
+          confirmedThesis: data.confirmedThesis || undefined,
         });
 
         setAnimState("idle");
@@ -192,7 +195,7 @@ export function CassChapterKickoff({
           background: "#0a0a0a",
           backgroundImage:
             "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)",
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
           color: "#c8c8c8",
         }}
       >
@@ -211,7 +214,7 @@ export function CassChapterKickoff({
         >
           <span
             style={{
-              fontFamily: "'Share Tech Mono', monospace",
+              fontFamily: "var(--font-cass)",
               fontSize: "11px",
               letterSpacing: "2px",
               color: "rgba(200,168,107,0.8)",
@@ -301,7 +304,7 @@ export function CassChapterKickoff({
                 >
                   <span
                     style={{
-                      fontFamily: "'Share Tech Mono', monospace",
+                      fontFamily: "var(--font-cass)",
                       fontSize: "13px",
                       color: "#555",
                       letterSpacing: "1px",
@@ -316,7 +319,7 @@ export function CassChapterKickoff({
                 <p
                   style={{
                     color: "#ff3b30",
-                    fontFamily: "'Share Tech Mono', monospace",
+                    fontFamily: "var(--font-cass)",
                     fontSize: "13px",
                     textAlign: "center",
                     width: "100%",

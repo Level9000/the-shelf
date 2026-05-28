@@ -243,3 +243,130 @@ export const cassRetroDialogueSchema = z.object({
   chapter_title: z.string().trim().max(120).default(""),
   accumulative_paragraph: z.string().trim().max(2000).default(""),
 });
+
+// ── Authored By: Enhanced Storytelling System schemas ─────────────────────────
+
+// Chapter type enum (used by chapter intelligence + narrative engine)
+export const chapterTypeSchema = z.enum(["climb", "win", "turn", "fog", "reframe"]);
+export type ChapterType = z.infer<typeof chapterTypeSchema>;
+
+// ── Kickoff beats ─────────────────────────────────────────────────────────────
+
+export const kickoffContextBeatSchema = z.object({
+  previous_chapter_summary: z.string().trim().max(2000).default(""),
+  incoming_feeling:         z.string().trim().max(1000).default(""),
+});
+
+export const kickoffWorkBeatSchema = z.object({
+  goal:               z.string().trim().max(2000).default(""),
+  why_it_matters:     z.string().trim().max(2000).default(""),
+  success_definition: z.string().trim().max(2000).default(""),
+  target_completion:  z.string().trim().max(500).default(""),
+});
+
+export const kickoffStakesBeatSchema = z.object({
+  biggest_risk:    z.string().trim().max(2000).default(""),
+  personal_meaning: z.string().trim().max(2000).default(""),
+  gut_feeling:     z.string().trim().max(1000).default(""),
+});
+
+export const kickoffBeatsSchema = z.object({
+  context: kickoffContextBeatSchema,
+  work:    kickoffWorkBeatSchema,
+  stakes:  kickoffStakesBeatSchema,
+  confirmed_thesis: z.string().trim().max(1000).default(""),
+});
+export type KickoffBeats = z.infer<typeof kickoffBeatsSchema>;
+
+// Enhanced kickoff dialogue output (captures all three beats + thesis)
+export const cassEnhancedKickoffDialogueSchema = z.object({
+  reply:       z.string().trim().min(1).max(4000),
+  done:        z.boolean(),
+  currentBeat: z.enum(["context", "work", "stakes", "thesis"]).default("context"),
+  // Standard flat fields (kept for backwards compat with board columns)
+  goal:             z.string().trim().max(2000).default(""),
+  whyItMatters:     z.string().trim().max(2000).default(""),
+  successLooksLike: z.string().trim().max(2000).default(""),
+  doneDefinition:   z.string().trim().max(2000).default(""),
+  openingLine:      z.string().trim().max(500).default(""),
+  proposedTasks:    z.array(kickoffProposedTaskSchema).max(12).default([]),
+  // Rich beats data
+  kickoffBeats:     kickoffBeatsSchema.optional(),
+  confirmedThesis:  z.string().trim().max(1000).default(""),
+});
+export type CassEnhancedKickoffDialogue = z.infer<typeof cassEnhancedKickoffDialogueSchema>;
+
+// ── Retro beats ───────────────────────────────────────────────────────────────
+
+export const retroAccountingBeatSchema = z.object({
+  overall_rating:  z.string().trim().max(10).default(""),
+  most_proud_of:   z.string().trim().max(2000).default(""),
+});
+
+export const retroSurpriseBeatSchema = z.object({
+  biggest_surprise:     z.string().trim().max(2000).default(""),
+  easier_than_expected: z.string().trim().max(2000).default(""),
+  harder_than_expected: z.string().trim().max(2000).default(""),
+  unplanned_events:     z.string().trim().max(2000).default(""),
+});
+
+export const retroLearningBeatSchema = z.object({
+  new_knowledge:        z.string().trim().max(2000).default(""),
+  thinking_shift:       z.string().trim().max(2000).default(""),
+  would_do_differently: z.string().trim().max(2000).default(""),
+});
+
+export const retroEmotionalCloseBeatSchema = z.object({
+  gut_feeling_delta:       z.string().trim().max(2000).default(""),
+  road_ahead_feeling:      z.string().trim().max(2000).default(""),
+  weighing_or_energizing:  z.string().trim().max(2000).default(""),
+});
+
+export const retroBeatsSchema = z.object({
+  accounting:     retroAccountingBeatSchema,
+  surprise:       retroSurpriseBeatSchema,
+  learning:       retroLearningBeatSchema,
+  emotional_close: retroEmotionalCloseBeatSchema,
+});
+export type RetroBeats = z.infer<typeof retroBeatsSchema>;
+
+// Enhanced retro dialogue output (collects beats; story written separately)
+export const cassEnhancedRetroDialogueSchema = z.object({
+  reply:       z.string().trim().min(1).max(8000),
+  done:        z.boolean().default(false),
+  currentBeat: z.enum(["accounting", "surprise", "learning", "emotional_close", "bridge"])
+    .default("accounting"),
+  retroBeats:      retroBeatsSchema.optional(),
+  bridge_sentence: z.string().trim().max(1000).default(""),
+});
+export type CassEnhancedRetroDialogue = z.infer<typeof cassEnhancedRetroDialogueSchema>;
+
+// ── Narrative engine output ───────────────────────────────────────────────────
+
+export const narrativeEngineOutputSchema = z.object({
+  headline:    z.string().trim().max(120),
+  subheadline: z.string().trim().max(300),
+  body:        z.string().trim().min(100),
+  chapterType: chapterTypeSchema,
+});
+export type NarrativeEngineOutput = z.infer<typeof narrativeEngineOutputSchema>;
+
+// ── Story health report ───────────────────────────────────────────────────────
+
+export const storyHealthSignalsSchema = z.object({
+  type_variety:      z.boolean(),
+  emotional_texture: z.boolean(),
+  thesis_visible:    z.boolean(),
+  stakes_named:      z.boolean(),
+  learning_present:  z.boolean(),
+});
+
+export const storyHealthReportSchema = z.object({
+  chapters_scored:      z.number().int().min(0),
+  signals:              storyHealthSignalsSchema,
+  failing_signal_count: z.number().int().min(0),
+  patterns_detected:    z.array(z.string()).default([]),
+  recentering_needed:   z.boolean(),
+  recentering_type:     z.string().nullable().default(null),
+});
+export type StoryHealthReport = z.infer<typeof storyHealthReportSchema>;

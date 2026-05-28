@@ -107,7 +107,7 @@ export function ProjectShellFrame({
               <p
                 className="mt-0.5 leading-tight"
                 style={{
-                  fontFamily: "'Share Tech Mono', monospace",
+                  fontFamily: "var(--font-cass)",
                   fontSize: "14px",
                   letterSpacing: "0.06em",
                   color: theme === "dark" ? "rgba(232,223,192,0.5)" : "rgba(26,14,0,0.42)",

@@ -59,7 +59,7 @@ export function SettingsForm({ profile }: { profile: UserProfile }) {
       <div style={{ padding: "10px 0 8px" }}>
         <span style={{
           display: "inline-block",
-          fontFamily: "'Share Tech Mono', monospace",
+          fontFamily: "var(--font-cass)",
           fontSize: "11px",
           letterSpacing: "0.15em",
           color: "#1a0e00",

@@ -161,7 +161,7 @@ export function ChapterOverviewPanel({
   };
 
   const headingStyle: React.CSSProperties = {
-    fontFamily: "'Caveat', cursive",
+    fontFamily: "var(--font-cass)",
     fontSize: "44px",
     margin: 0,
     lineHeight: 1.2,
@@ -212,7 +212,7 @@ export function ChapterOverviewPanel({
                 border: "1px solid rgba(200,168,107,0.18)",
               }}
             >
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.6)", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.6)", margin: 0 }}>
                 completed{" "}
                 <span style={{ color: "#c8a86b" }}>
                   {new Date(board.retroCompletedAt!).toLocaleDateString("en-US", {
@@ -225,7 +225,7 @@ export function ChapterOverviewPanel({
                   href={activeChapterUrl}
                   style={{
                     display: "flex", alignItems: "center", gap: "4px",
-                    fontFamily: "'Share Tech Mono', monospace", fontSize: "11px",
+                    fontFamily: "var(--font-cass)", fontSize: "11px",
                     color: "#c8a86b", textDecoration: "none", flexShrink: 0,
                     letterSpacing: "0.5px",
                   }}
@@ -247,7 +247,7 @@ export function ChapterOverviewPanel({
                   padding: "10px 20px", borderRadius: "999px",
                   background: "linear-gradient(135deg, #c8a86b, #a8864e)",
                   border: "none", cursor: "pointer",
-                  fontFamily: "'Share Tech Mono', monospace",
+                  fontFamily: "var(--font-cass)",
                   fontSize: "12px", fontWeight: 600, color: "#0a0a0a",
                   boxShadow: "0 4px 16px rgba(200,168,107,0.3)",
                 }}
@@ -279,7 +279,7 @@ export function ChapterOverviewPanel({
                     background: "transparent",
                     border: "1px solid rgba(200,168,107,0.3)",
                     cursor: "pointer",
-                    fontFamily: "'Share Tech Mono', monospace",
+                    fontFamily: "var(--font-cass)",
                     fontSize: "11px", color: "#c8a86b", letterSpacing: "0.5px",
                     transition: "border-color 0.15s, background 0.15s",
                   }}
@@ -353,7 +353,7 @@ export function ChapterOverviewPanel({
                   marginBottom: "28px",
                 }}
               />
-              <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "3px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", marginBottom: "16px" }}>
+              <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "3px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", marginBottom: "16px" }}>
                 All chapters
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -384,11 +384,11 @@ export function ChapterOverviewPanel({
                         ) : status === "active" ? (
                           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", display: "block", animation: "chapterPanelPulse 2s ease-in-out infinite" }} />
                         ) : (
-                          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "rgba(200,168,107,0.4)" }}>{i + 1}</span>
+                          <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.4)" }}>{i + 1}</span>
                         )}
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: isCurrent ? "#c8a86b" : "rgba(200,168,107,0.4)", margin: 0, letterSpacing: "1px" }}>
+                        <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: isCurrent ? "#c8a86b" : "rgba(200,168,107,0.4)", margin: 0, letterSpacing: "1px" }}>
                           Chapter {i + 1}{isCurrent && " · current"}
                         </p>
                         {ch.goal && (
@@ -410,7 +410,7 @@ export function ChapterOverviewPanel({
                     padding: "12px 14px", width: "100%",
                     background: "transparent", border: "none",
                     cursor: "pointer", marginTop: "4px",
-                    fontFamily: "'Share Tech Mono', monospace",
+                    fontFamily: "var(--font-cass)",
                     fontSize: "11px", color: "rgba(200,168,107,0.5)",
                     letterSpacing: "0.5px",
                   }}
@@ -464,7 +464,7 @@ export function ChapterOverviewPanel({
           transform: shareDrawerOpen ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           boxShadow: shareDrawerOpen ? "-8px 0 40px rgba(0,0,0,0.4)" : "none",
-          fontFamily: "'Share Tech Mono', 'Courier New', monospace",
+          fontFamily: "var(--font-cass)",
         }}
         aria-hidden={!shareDrawerOpen}
       >
