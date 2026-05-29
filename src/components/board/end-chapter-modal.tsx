@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowRight, LoaderCircle, Trash2 } from "lucide-react";
+import { ArrowRight, LoaderCircle } from "lucide-react";
 import { endChapterEarlyAction } from "@/lib/actions/project-actions";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Modal } from "@/components/ui/modal";
 
 type IncompleteTaskChoice = "carry_over" | "delete" | null;
@@ -63,11 +63,11 @@ export function EndChapterModal({
   return (
     <Modal
       open={open}
-      title={hasIncompleteTasks ? "End chapter early" : "Close this chapter"}
+      title={hasIncompleteTasks ? "End track early" : "Close this track"}
       description={
         hasIncompleteTasks
           ? `${incompleteCount} task${incompleteCount === 1 ? "" : "s"} still in progress. What should happen to ${incompleteCount === 1 ? "it" : "them"}?`
-          : "All tasks are done. Ready to write this chapter's story?"
+          : "All tasks are done. Ready to write this track's story?"
       }
       onClose={handleClose}
     >
@@ -113,10 +113,10 @@ export function EndChapterModal({
             </div>
             <div>
               <p className="font-semibold text-[var(--ink)]">
-                Carry over to the next chapter
+                Carry over to the next track
               </p>
               <p className="mt-0.5 text-sm text-[var(--muted)]">
-                A new chapter is created with these tasks already in the
+                A new track is created with these tasks already in the
                 backlog.
               </p>
             </div>
@@ -144,10 +144,10 @@ export function EndChapterModal({
             </div>
             <div>
               <p className="font-semibold text-[var(--ink)]">
-                Remove them — this chapter is done
+                Remove them — this track is done
               </p>
               <p className="mt-0.5 text-sm text-[var(--muted)]">
-                Incomplete tasks are deleted. The chapter closes clean.
+                Incomplete tasks are deleted. The track closes clean.
               </p>
             </div>
           </button>
@@ -155,7 +155,7 @@ export function EndChapterModal({
       ) : (
         <p className="text-sm leading-6 text-[var(--muted)]">
           You&apos;ve completed all tasks. Click below to start the retro and
-          write this chapter&apos;s story.
+          write this track&apos;s story.
         </p>
       )}
 
@@ -166,13 +166,14 @@ export function EndChapterModal({
       ) : null}
 
       <div className="mt-6 flex flex-wrap justify-end gap-3">
-        <Button variant="secondary" onClick={handleClose} disabled={isPending}>
+        <TapeButton variant="secondary" size="sm" onClick={handleClose} disabled={isPending}>
           Cancel
-        </Button>
-        <Button
+        </TapeButton>
+        <TapeButton
+          variant="primary"
+          size="sm"
           onClick={handleConfirm}
           disabled={isPending || (hasIncompleteTasks && !choice)}
-          className="gap-2"
         >
           {isPending ? (
             <LoaderCircle className="size-4 animate-spin" />
@@ -180,7 +181,7 @@ export function EndChapterModal({
             <ArrowRight className="size-4" />
           )}
           {isPending ? "Working..." : "Start the retro"}
-        </Button>
+        </TapeButton>
       </div>
     </Modal>
   );

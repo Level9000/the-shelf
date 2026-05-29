@@ -113,7 +113,7 @@ export function ProjectShellFrame({
                   color: theme === "dark" ? "rgba(232,223,192,0.5)" : "rgba(26,14,0,0.42)",
                 }}
               >
-                {currentProject.name}: Chapter {chapterIndex + 1}
+                {currentProject.name}: Track {chapterIndex + 1}
               </p>
             ) : (
               /* Story tab — keep the chapter name as before */

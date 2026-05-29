@@ -343,6 +343,7 @@ export async function updateBoardOverviewAction(input: {
 export async function inviteProjectMemberAction(input: {
   projectId: string;
   email: string;
+  role?: "author" | "contributor";
 }) {
   const email = input.email.trim().toLowerCase();
 
@@ -387,6 +388,7 @@ export async function inviteProjectMemberAction(input: {
     project_id: input.projectId,
     user_id: profile.id,
     invited_by: user.id,
+    role: input.role ?? "author",
   });
 
   if (insertError) {

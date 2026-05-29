@@ -102,7 +102,7 @@ export function WorkplanProposal({
     const nextNumber = chapters.length + 1;
     const newChapter: WorkplanChapter = {
       chapterNumber: nextNumber,
-      title: `Chapter ${nextNumber}`,
+      title: `Track ${nextNumber}`,
       goal: "",
     };
     setChapters((current) => [...current, newChapter]);
@@ -131,7 +131,7 @@ export function WorkplanProposal({
           <div className="border-b border-black/6 px-6 py-4">
             <p className="text-sm font-semibold text-[var(--ink)]">Suggested workplan</p>
             <p className="mt-0.5 text-xs text-[var(--muted)]">
-              Click any chapter to rename it or adjust its goal. Drag to reorder.
+              Click any track to rename it or adjust its goal. Drag to reorder.
             </p>
           </div>
 
@@ -175,7 +175,7 @@ export function WorkplanProposal({
                             if (e.key === "Escape") cancelEdit();
                           }}
                           className="w-full rounded-xl border border-[var(--accent)]/40 bg-white px-3 py-1.5 text-sm font-semibold text-[var(--ink)] outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
-                          placeholder="Chapter title"
+                          placeholder="Track title"
                           autoFocus
                         />
                         <input
@@ -262,7 +262,7 @@ export function WorkplanProposal({
                         onClick={() => deleteChapter(index)}
                         disabled={chapters.length <= 1}
                         className="flex size-7 items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-25"
-                        title="Remove chapter"
+                        title="Remove track"
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -280,7 +280,7 @@ export function WorkplanProposal({
               className="flex items-center gap-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--ink)]"
             >
               <Plus className="size-4" />
-              Add a chapter
+              Add a track
             </button>
           </div>
         </div>
@@ -288,10 +288,10 @@ export function WorkplanProposal({
         {/* Chapter 1 notice */}
         <div className="mt-4 rounded-[1.5rem] bg-[var(--accent-soft)] px-5 py-4">
           <p className="text-sm font-semibold text-[var(--accent)]">
-            Chapter 1 is ready to kick off.
+            Track 1 is ready to kick off.
           </p>
           <p className="mt-1 text-sm leading-6 text-[var(--accent)]/80">
-            We&apos;ve already filled in your four questions based on what you told us. You&apos;ll confirm them when Chapter 1 opens.
+            We&apos;ve already filled in your four questions based on what you told us. You&apos;ll confirm them when Track 1 opens.
           </p>
         </div>
 

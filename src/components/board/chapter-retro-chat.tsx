@@ -61,7 +61,7 @@ function buildRetroOpener(
 
   return {
     role: "assistant",
-    content: `You planned to ${board.goal ?? "complete this chapter"} and got ${completedTasks.length} of ${total} tasks done. I notice ${named}${more} ${verb} still in your backlog. What happened with ${remainingTasks.length === 1 ? "that" : "those"}?`,
+    content: `You planned to ${board.goal ?? "complete this track"} and got ${completedTasks.length} of ${total} tasks done. I notice ${named}${more} ${verb} still in your backlog. What happened with ${remainingTasks.length === 1 ? "that" : "those"}?`,
   };
 }
 
@@ -138,7 +138,7 @@ function RetroCompletionModal({
   return (
     <Modal
       open={open}
-      title="Chapter complete."
+      title="Track complete."
       description={`The story for ${board.name} has been written and saved.`}
       onClose={onDone}
     >

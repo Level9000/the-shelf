@@ -76,7 +76,7 @@ function CompletedBanner({
           href={activeChapterUrl}
           className="flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3.5 py-1.5 text-xs font-semibold text-green-800 ring-1 ring-green-300 transition hover:bg-green-100"
         >
-          Go to current chapter
+          Go to current track
           <ArrowRight className="size-3.5" />
         </Link>
       ) : null}
@@ -100,7 +100,7 @@ function OnPaceBanner({
           {completedCount} {completedCount === 1 ? "task" : "tasks"} done in {ageDays}{" "}
           {ageDays === 1 ? "day" : "days"}.
         </span>{" "}
-        <span className="text-green-700">You&rsquo;re on pace to close this chapter this week.</span>
+        <span className="text-green-700">You&rsquo;re on pace to close this track this week.</span>
       </p>
       <button
         type="button"
@@ -163,7 +163,7 @@ function RunningLongBanner({
     <div className="mb-2 mt-1 mx-auto flex w-fit items-center gap-4 rounded-[1.75rem] bg-amber-50 px-5 py-3.5 ring-1 ring-amber-200">
       <div>
         <p className="text-sm font-medium text-amber-900">
-          This chapter is {ageDays} days in.{" "}
+          This track is {ageDays} days in.{" "}
           <span className="text-amber-700">There&rsquo;s a story waiting to be written.</span>
         </p>
         {openingLine ? (

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { PlusCircle } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
 import { createChapterAction } from "@/lib/actions/project-actions";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 
@@ -47,7 +47,7 @@ export function CreateChapterModal({
         setError(
           createError instanceof Error
             ? createError.message
-            : "Failed to create chapter.",
+            : "Failed to create track.",
         );
       }
     });
@@ -57,16 +57,16 @@ export function CreateChapterModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={`New chapter for ${currentProject.name}`}
-      description="Each chapter is its own sprint board inside the same project."
+      title={`New track for ${currentProject.name}`}
+      description="Each track is its own sprint board inside the same project."
     >
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-medium">Chapter name</label>
+          <label className="mb-2 block text-sm font-medium">Track name</label>
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder={`Chapter ${currentProject.chapters.length + 1}`}
+            placeholder={`Track ${currentProject.chapters.length + 1}`}
           />
         </div>
         <label className="flex items-start gap-3 rounded-[1.25rem] bg-[var(--surface-muted)] p-4">
@@ -81,7 +81,7 @@ export function CreateChapterModal({
               Carry incomplete tasks forward
             </p>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Move unfinished tasks from the previous chapter into this new one.
+              Move unfinished tasks from the previous track into this new one.
             </p>
           </div>
         </label>
@@ -92,13 +92,13 @@ export function CreateChapterModal({
         </p>
       ) : null}
       <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
-        <Button variant="secondary" onClick={onClose}>
+        <TapeButton variant="secondary" size="sm" onClick={onClose}>
           Cancel
-        </Button>
-        <Button onClick={handleCreate} disabled={isPending}>
-          <PlusCircle className="mr-2 size-4" />
-          {isPending ? "Creating..." : "Create chapter"}
-        </Button>
+        </TapeButton>
+        <TapeButton variant="primary" size="sm" onClick={handleCreate} disabled={isPending}>
+          <PlusCircle className="size-4" />
+          {isPending ? "Creating..." : "Create track"}
+        </TapeButton>
       </div>
     </Modal>
   );

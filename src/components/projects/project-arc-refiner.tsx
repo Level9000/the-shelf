@@ -438,7 +438,7 @@ export function ProjectArcRefiner({
                               i + 1
                             )}
                           </span>
-                          <p className="text-xs font-semibold text-[var(--ink)]">Chapter {i + 1}</p>
+                          <p className="text-xs font-semibold text-[var(--ink)]">Track {i + 1}</p>
                           <span
                             className={cn(
                               "ml-auto text-[11px] font-semibold",

@@ -2,7 +2,7 @@
 
 import { Mic, Sparkles, Speech } from "lucide-react";
 import type { Project } from "@/types";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Modal } from "@/components/ui/modal";
 
 export function StrategicVoiceDialogueModal({
@@ -88,9 +88,9 @@ export function StrategicVoiceDialogueModal({
               handoff used by the text strategy flow.
             </p>
             <div className="mt-8">
-              <Button variant="secondary" onClick={onClose}>
+              <TapeButton variant="secondary" size="sm" onClick={onClose}>
                 Back to board
-              </Button>
+              </TapeButton>
             </div>
           </section>
         </div>

@@ -13,7 +13,10 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${safeNext}`);
     }
+    console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
   }
 
+  console.error("[auth/callback] No code in callback. Params:", Object.fromEntries(searchParams));
   return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
 }

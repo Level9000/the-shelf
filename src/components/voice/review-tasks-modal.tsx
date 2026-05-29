@@ -6,7 +6,7 @@ import type { Board, BoardColumn, ProjectMember, ProposedTask } from "@/types";
 import { acceptProposedTasksAction } from "@/lib/actions/task-actions";
 import { fallbackColumnName } from "@/lib/board-utils";
 import { PRIORITY_OPTIONS } from "@/lib/constants";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -153,8 +153,9 @@ export function ReviewTasksModal({
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
+              <TapeButton
                 variant="secondary"
+                size="sm"
                 onClick={() =>
                   setItems((current) =>
                     current.map((item) => ({ ...item, selected: true })),
@@ -162,7 +163,7 @@ export function ReviewTasksModal({
                 }
               >
                 Accept all
-              </Button>
+              </TapeButton>
             </div>
           </div>
 
@@ -194,9 +195,13 @@ export function ReviewTasksModal({
                   <Badge className="bg-black/5 text-[var(--muted)]">
                     {(item.confidence * 100).toFixed(0)}% confidence
                   </Badge>
-                  <Button variant="ghost" onClick={() => removeItem(item.id)}>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(item.id)}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(180,40,40,0.65)", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px" }}
+                  >
                     <Trash2 className="size-4" />
-                  </Button>
+                  </button>
                 </div>
               </div>
               <div className="mt-4 space-y-4">
@@ -295,13 +300,13 @@ export function ReviewTasksModal({
           Nothing is saved until you confirm.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          <Button variant="secondary" onClick={onClose}>
+          <TapeButton variant="secondary" size="sm" onClick={onClose}>
             Keep reviewing
-          </Button>
-          <Button onClick={acceptSelected} disabled={isPending || items.length === 0}>
-            <Check className="mr-2 size-4" />
+          </TapeButton>
+          <TapeButton variant="primary" size="sm" onClick={acceptSelected} disabled={isPending || items.length === 0}>
+            <Check className="size-4" />
             {isPending ? "Saving..." : `Save ${selectedCount} task${selectedCount === 1 ? "" : "s"}`}
-          </Button>
+          </TapeButton>
         </div>
       </div>
     </Modal>

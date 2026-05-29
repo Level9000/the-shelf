@@ -62,7 +62,7 @@ export type ProjectMember = {
   email: string;
   displayName: string | null;
   invitedBy: string | null;
-  role: "owner" | "editor";
+  role: "owner" | "author" | "contributor";
   createdAt: string;
 };
 
@@ -96,6 +96,8 @@ export type Board = {
   position: number;
   createdAt: string;
   boardConversations: BoardConversationEntry[];
+  confirmedThesis: string | null;
+  kickoffBeats: Record<string, unknown> | null;
 };
 
 export type Chapter = Board;

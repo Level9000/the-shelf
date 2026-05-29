@@ -205,6 +205,8 @@ export function ProjectAppHeader({
   const router = useRouter();
   const { theme } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Project selected in step 1 — waiting for track selection before navigating
+  const [pendingProject, setPendingProject] = useState<ProjectWithChapters | null>(null);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
   const effectiveNavChapterId = navChapterId ?? currentChapterId;
@@ -216,6 +218,9 @@ export function ProjectAppHeader({
   const isStory = activeNav === "story" || activeNav === "overview";
   const isDark = theme === "dark";
 
+  // The project whose tracks are shown in "Select Track"
+  const displayedProject = pendingProject ?? currentProject;
+
   // Nav drawer theme-aware colors
   const drawerBg = isDark ? "#0d1109" : "#faf9f4";
   const drawerBorder = isDark ? "#3a3010" : "rgba(26,14,0,0.10)";
@@ -225,23 +230,38 @@ export function ProjectAppHeader({
   const drawerHeaderBorder = isDark ? "#1a1608" : "rgba(26,14,0,0.10)";
   const drawerCloseColor = isDark ? "#7a6a2e" : "rgba(26,14,0,0.4)";
 
-  function handleSelectProject(p: ProjectWithChapters) {
-    const activeChapter =
-      p.chapters.find((ch) => !ch.retroCompletedAt) ??
-      p.chapters[p.chapters.length - 1];
-    const dest = activeChapter
-      ? `/projects/${p.id}?chapter=${activeChapter.id}`
-      : `/projects/${p.id}`;
-    router.push(dest);
+  function closeDrawer() {
+    setDrawerOpen(false);
+    setPendingProject(null);
+  }
+
+  function handleProjectClick(p: ProjectWithChapters) {
+    if (p.id === currentProjectId) {
+      // Tapping the active project clears any pending selection
+      setPendingProject(null);
+    } else if (p.chapters.length === 0) {
+      // No tracks to pick from — navigate directly
+      router.push(`/projects/${p.id}`);
+      closeDrawer();
+    } else {
+      // Step 1: show this project's tracks, wait for track selection
+      setPendingProject(p);
+    }
   }
 
   function handleSelectChapter(ch: { id: string }) {
-    if (isBoard) {
+    if (pendingProject) {
+      // Step 2: navigate to the chosen track in the pending project
+      router.push(`/projects/${pendingProject.id}/chapters/${ch.id}/board`);
+      closeDrawer();
+    } else if (isBoard) {
       router.push(`/projects/${currentProjectId}/chapters/${ch.id}/board`);
+      closeDrawer();
     } else {
       const el = document.getElementById(`chapter-${ch.id}`);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
       router.push(`/projects/${currentProjectId}?chapter=${ch.id}`);
+      closeDrawer();
     }
   }
 
@@ -316,7 +336,7 @@ export function ProjectAppHeader({
               textOverflow: "ellipsis",
               display: "block",
             }}>
-              {currentProject.name}{chapterNumber ? `: Chapter ${chapterNumber}` : ""}
+              {currentProject.name}{chapterNumber ? `: Track ${chapterNumber}` : ""}
             </span>
           </div>
         )}
@@ -374,7 +394,7 @@ export function ProjectAppHeader({
       >
         {/* Backdrop */}
         <div
-          onClick={() => setDrawerOpen(false)}
+          onClick={closeDrawer}
           style={{
             position: "absolute", inset: 0,
             background: "rgba(0,0,0,0.75)",
@@ -404,7 +424,7 @@ export function ProjectAppHeader({
           }}>
             <button
               type="button"
-              onClick={() => setDrawerOpen(false)}
+              onClick={closeDrawer}
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 color: drawerCloseColor, padding: "4px",
@@ -420,31 +440,43 @@ export function ProjectAppHeader({
           {projects.map((p) => (
             <LedItem
               key={p.id}
-              active={p.id === currentProjectId}
-              onClick={() => { setDrawerOpen(false); handleSelectProject(p); }}
+              active={p.id === (pendingProject?.id ?? currentProjectId)}
+              onClick={() => handleProjectClick(p)}
             >
               {p.name}
             </LedItem>
           ))}
-          <LedItem muted onClick={() => { router.push("/projects/new"); setDrawerOpen(false); }}>
+          <LedItem muted onClick={() => { router.push("/projects/new"); closeDrawer(); }}>
             + New Project
           </LedItem>
 
-
-          {/* Chapter section */}
-          <LedMenuHeader>Select Chapter</LedMenuHeader>
-          {currentProject?.chapters.map((ch, i) => (
+          {/* Track section — shows pending project's tracks while waiting for step 2 */}
+          <LedMenuHeader>
+            {pendingProject ? `Tracks — ${pendingProject.name}` : "Select Track"}
+          </LedMenuHeader>
+          {pendingProject && (
+            <div style={{
+              padding: "4px 14px 2px",
+              fontFamily: "var(--font-cass)",
+              fontSize: "11px",
+              letterSpacing: "0.1em",
+              color: isDark ? "rgba(200,168,107,0.55)" : "rgba(26,14,0,0.42)",
+            }}>
+              Pick a track to open ↓
+            </div>
+          )}
+          {displayedProject?.chapters.map((ch, i) => (
             <LedItem
               key={ch.id}
-              active={ch.id === (currentChapterId ?? navChapterId)}
-              onClick={() => { setDrawerOpen(false); handleSelectChapter(ch); }}
+              active={!pendingProject && ch.id === (currentChapterId ?? navChapterId)}
+              onClick={() => handleSelectChapter(ch)}
             >
-              Chapter {i + 1}
+              Track {i + 1}
             </LedItem>
           ))}
-          {onPlanChapters && (
-            <LedItem muted onClick={() => { onPlanChapters?.(); setDrawerOpen(false); }}>
-              + Plan new chapters
+          {!pendingProject && onPlanChapters && (
+            <LedItem muted onClick={() => { onPlanChapters?.(); closeDrawer(); }}>
+              + Plan new tracks
             </LedItem>
           )}
         </div>

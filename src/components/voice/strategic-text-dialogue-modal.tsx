@@ -15,7 +15,7 @@ import {
 import type { BoardColumn, ProposedTask, Project } from "@/types";
 import type { StrategicTemplate } from "@/lib/ai/schema";
 import { createTasksFromTemplateAction } from "@/lib/actions/task-actions";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -444,30 +444,34 @@ export function StrategicTextDialogueModal({
                             {draftTasks.length} task{draftTasks.length === 1 ? "" : "s"} ready to review
                           </p>
                         </div>
-                        <Button
+                        <TapeButton
                           variant="secondary"
+                          size="sm"
                           onClick={openTemplatePreview}
                         >
                           View template
-                        </Button>
+                        </TapeButton>
                       </div>
                       {status === "template_review" ? (
                         <div className="mt-3 flex flex-wrap gap-3">
-                          <Button
+                          <TapeButton
+                            variant="primary"
+                            size="sm"
                             onClick={confirmTemplateLibraryItem}
                             disabled={isSavingTemplate}
                           >
                             {isSavingTemplate ? "Saving..." : "Confirm template"}
-                          </Button>
-                          <Button
+                          </TapeButton>
+                          <TapeButton
                             variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setTemplatePreviewOpen(false);
                               setDraft("This needs changes. I want to adjust the workflow before saving it.");
                             }}
                           >
                             Needs changes
-                          </Button>
+                          </TapeButton>
                         </div>
                       ) : null}
                     </div>
@@ -510,10 +514,11 @@ export function StrategicTextDialogueModal({
                     <Sparkles className="size-3.5" />
                     Enter sends. Shift + Enter adds a new line.
                   </div>
-                  <Button
+                  <TapeButton
+                    variant="primary"
+                    size="sm"
                     onClick={sendMessage}
                     disabled={!draft.trim() || isPending || isConfirming || isSavingTemplate}
-                    className="gap-2"
                   >
                     {isPending ? (
                       <LoaderCircle className="size-4 animate-spin" />
@@ -521,7 +526,7 @@ export function StrategicTextDialogueModal({
                       <ArrowUp className="size-4" />
                     )}
                     Send
-                  </Button>
+                  </TapeButton>
                 </div>
               </div>
             </div>
@@ -595,13 +600,13 @@ export function StrategicTextDialogueModal({
                 </p>
               )}
               {draftTasks.length > 0 ? (
-                <Button
+                <TapeButton
                   variant="secondary"
-                  className="mt-4"
+                  size="sm"
                   onClick={openTemplatePreview}
                 >
                   Open template
-                </Button>
+                </TapeButton>
               ) : null}
             </div>
 
@@ -615,21 +620,25 @@ export function StrategicTextDialogueModal({
                   step, or open review if you want to edit the tasks first.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  <Button
+                  <TapeButton
+                    variant="primary"
+                    size="sm"
                     onClick={handleQuickAdd}
                     disabled={isApplying || isConfirming}
                   >
                     {isApplying ? "Adding to backlog..." : "Quick add to backlog"}
-                  </Button>
-                  <Button
+                  </TapeButton>
+                  <TapeButton
                     variant="secondary"
+                    size="sm"
                     onClick={confirmTasks}
                     disabled={isConfirming || isApplying}
                   >
                     {isConfirming ? "Preparing review..." : "Review before adding"}
-                  </Button>
-                  <Button
+                  </TapeButton>
+                  <TapeButton
                     variant="ghost"
+                    size="sm"
                     onClick={() => {
                       setStatus("discovery");
                       setError(null);
@@ -637,7 +646,7 @@ export function StrategicTextDialogueModal({
                     disabled={isConfirming || isApplying}
                   >
                     Keep refining
-                  </Button>
+                  </TapeButton>
                 </div>
               </div>
             ) : null}
@@ -680,10 +689,12 @@ export function StrategicTextDialogueModal({
               {savedTemplate.taskCount === 1 ? "" : "s"}.
             </div>
             <div className="flex flex-wrap justify-end gap-3">
-              <Button variant="secondary" onClick={continueChatting}>
+              <TapeButton variant="secondary" size="sm" onClick={continueChatting}>
                 Continue chatting
-              </Button>
-              <Button
+              </TapeButton>
+              <TapeButton
+                variant="primary"
+                size="sm"
                 onClick={() => {
                   setTemplatePreviewOpen(false);
                   setSavedTemplate(null);
@@ -691,7 +702,7 @@ export function StrategicTextDialogueModal({
                 }}
               >
                 Return to board
-              </Button>
+              </TapeButton>
             </div>
           </div>
         ) : template ? (
@@ -723,16 +734,19 @@ export function StrategicTextDialogueModal({
             <div className="flex flex-wrap justify-end gap-3">
               {status === "template_review" ? (
                 <>
-                  <Button
+                  <TapeButton
                     variant="ghost"
+                    size="sm"
                     onClick={() => {
                       setTemplatePreviewOpen(false);
                       setDraft("This needs changes. I want to adjust the workflow before saving it.");
                     }}
                   >
                     Needs changes
-                  </Button>
-                  <Button
+                  </TapeButton>
+                  <TapeButton
+                    variant="primary"
+                    size="sm"
                     onClick={() => {
                       setTemplatePreviewOpen(false);
                       confirmTemplateLibraryItem();
@@ -740,13 +754,14 @@ export function StrategicTextDialogueModal({
                     disabled={isSavingTemplate}
                   >
                     {isSavingTemplate ? "Saving..." : "Confirm template"}
-                  </Button>
+                  </TapeButton>
                 </>
               ) : null}
               {status === "ready_for_review" ? (
                 <>
-                  <Button
+                  <TapeButton
                     variant="secondary"
+                    size="sm"
                     onClick={() => {
                       setTemplatePreviewOpen(false);
                       confirmTasks();
@@ -754,8 +769,10 @@ export function StrategicTextDialogueModal({
                     disabled={isConfirming || isApplying}
                   >
                     {isConfirming ? "Preparing review..." : "Review before adding"}
-                  </Button>
-                  <Button
+                  </TapeButton>
+                  <TapeButton
+                    variant="primary"
+                    size="sm"
                     onClick={() => {
                       setTemplatePreviewOpen(false);
                       handleQuickAdd();
@@ -763,7 +780,7 @@ export function StrategicTextDialogueModal({
                     disabled={isApplying || isConfirming}
                   >
                     {isApplying ? "Adding to backlog..." : "Quick add to backlog"}
-                  </Button>
+                  </TapeButton>
                 </>
               ) : null}
             </div>

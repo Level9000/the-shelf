@@ -132,7 +132,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
       <div>
         <div
           style={{
-            fontFamily: "'Special Elite', cursive",
+            fontFamily: "'Literata', Georgia, serif",
             fontSize: "28px",
             color: "#d4cec4",
             lineHeight: "1.3",

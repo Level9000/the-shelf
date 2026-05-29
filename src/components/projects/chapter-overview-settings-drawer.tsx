@@ -37,7 +37,7 @@ export function ChapterOverviewSettingsDrawer({
         setError(
           deleteError instanceof Error
             ? deleteError.message
-            : "Failed to delete the chapter.",
+            : "Failed to delete the track.",
         );
       }
     });
@@ -49,16 +49,16 @@ export function ChapterOverviewSettingsDrawer({
       onClose={onClose}
       side="right"
       title={`${board.name} settings`}
-      description="Manage this chapter and remove it when the work is no longer needed."
+      description="Manage this track and remove it when the work is no longer needed."
     >
       <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "14px" }}>
         <p className="text-sm leading-6 text-[var(--muted)]">
-          Deleting a chapter removes its board, columns, and tasks.
+          Deleting a track removes its board, columns, and tasks.
         </p>
 
         {confirmingDelete ? (
           <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
-            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: "#f87171", fontWeight: 600 }}>Delete this chapter?</p>
+            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: "#f87171", fontWeight: 600 }}>Delete this track?</p>
             <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: "rgba(248,113,113,0.65)", marginTop: "4px" }}>
               This action cannot be undone.
             </p>
@@ -69,7 +69,7 @@ export function ChapterOverviewSettingsDrawer({
                 onClick={() => setConfirmingDelete(false)}
                 disabled={isPending}
               >
-                Keep chapter
+                Keep track
               </TapeButton>
               <TapeButton
                 variant="danger"
@@ -77,13 +77,13 @@ export function ChapterOverviewSettingsDrawer({
                 onClick={handleDelete}
                 disabled={isPending}
               >
-                {isPending ? "Deleting…" : "Delete chapter"}
+                {isPending ? "Deleting…" : "Delete track"}
               </TapeButton>
             </div>
           </div>
         ) : (
           <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDelete(true)}>
-            Delete chapter
+            Delete track
           </TapeButton>
         )}
 

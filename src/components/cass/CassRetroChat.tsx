@@ -58,11 +58,11 @@ function buildOpeningMessage(
 ): DialogueMessage {
   const total = completedCount + incompleteCount;
   const text = [
-    `Alright. Chapter ${chapterNumber} is done.`,
+    `Alright. Track ${chapterNumber} is done.`,
     "",
     `You said you wanted to ${chapterGoal?.toLowerCase() ?? "get something done"}. Let's see what actually happened.`,
     "",
-    `You completed ${completedCount} of ${total} cards. On a scale of 1–5, how would you rate this chapter overall?`,
+    `You completed ${completedCount} of ${total} cards. On a scale of 1–5, how would you rate this track overall?`,
   ].join("\n");
 
   return { role: "assistant", content: text };
@@ -203,8 +203,8 @@ export function CassRetroChat({
         setShareSlug(slug);
         setPhase("generating");
 
-        // Show "writing your chapter" message
-        setCurrentReply("Give me a moment. Writing this chapter now.");
+        // Show "writing your track" message
+        setCurrentReply("Give me a moment. Writing this track now.");
         setAnimState("talking");
 
         // Step 2: Trigger narrative engine (Pass 1 + Pass 2)
@@ -220,7 +220,7 @@ export function CassRetroChat({
         const generated = (await genResponse.json()) as GeneratedStoryPayload;
 
         if (!genResponse.ok) {
-          throw new Error(generated.error ?? "Chapter generation failed.");
+          throw new Error(generated.error ?? "Track generation failed.");
         }
 
         setGeneratedStory(generated);
@@ -354,7 +354,7 @@ export function CassRetroChat({
                 textTransform: "uppercase",
               }}
             >
-              ◉ Writing your chapter...
+              ◉ Writing your track...
             </div>
           )}
 
@@ -399,7 +399,7 @@ export function CassRetroChat({
                   }}
                 >
                   {phase === "generating"
-                    ? "◉ writing your chapter..."
+                    ? "◉ writing your track..."
                     : phase === "saving"
                     ? "◉ saving..."
                     : "◉ rolling..."}

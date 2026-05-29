@@ -7,6 +7,7 @@ import type { Board, BoardColumn, BoardConversationEntry, Chapter, Priority, Pro
 import { createBrainDumpCardsAction, createNextChapterForDeferAction, deleteTaskAction, moveTasksToChapterAction, saveBoardConversationAction, saveWorkflowTemplateAction } from "@/lib/actions/task-actions";
 import { deferTasksToNextChapterAction, endChapterEarlyAction } from "@/lib/actions/project-actions";
 import { getChapterAgeDays } from "@/lib/utils";
+import { CassChapterKickoff } from "@/components/cass/CassChapterKickoff";
 import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { CassRetroChat } from "@/components/cass/CassRetroChat";
@@ -48,7 +49,7 @@ declare global {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type BoardMode = "menu" | "chat" | "completed" | "refocus";
+type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "kickoff" | "retro";
 type ChatSubMode = "tasks" | "braindump" | "move" | "breakup" | "end_chapter";
 type RefocusPhase = "chat" | "triage" | "retro";
 type TriageDecision = "keep" | "move" | "delete";
@@ -61,7 +62,7 @@ const MENU_QUESTION = "What would you like to do?";
 const MENU_OPTIONS: Array<{ key: ChatSubMode; label: string; sub: string }> = [
   { key: "tasks",     label: "Add new tasks to the board thru chat",                sub: "Type what needs to get done"                   },
   { key: "braindump", label: "Brain Dump. Record me talking and convert into tasks.", sub: "Speak freely — I'll capture the cards"         },
-  { key: "move",      label: "Move some tasks to a future chapter",                 sub: "Defer tasks you won't get to this chapter"      },
+  { key: "move",      label: "Move some tasks to a future track",                   sub: "Defer tasks you won't get to this track"        },
 ];
 
 // ── Styles ───────────────────────────────────────────────────────────────────
@@ -69,7 +70,7 @@ const MENU_OPTIONS: Array<{ key: ChatSubMode; label: string; sub: string }> = [
 const CASS_B: React.CSSProperties = {
   background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
   borderRadius: "12px 12px 12px 2px", padding: "12px 16px",
-  fontFamily: "'Special Elite', cursive", fontSize: "16px",
+  fontFamily: "'Literata', Georgia, serif", fontSize: "16px",
   lineHeight: "1.7", color: "#d4cec4", maxWidth: "92%",
 };
 const USER_B: React.CSSProperties = {
@@ -89,9 +90,9 @@ const COLUMN_LABELS: Record<string, string> = {
 
 function buildRfOpener(board: Board, incompleteTasks: Task[], ageDays: number): string {
   if (incompleteTasks.length === 0) {
-    return `Your backlog for ${board.name} is clear. If you're ready to close this chapter, let's write the retro.`;
+    return `Your backlog for ${board.name} is clear. If you're ready to close this track, let's write the retro.`;
   }
-  const openingLine = board.openingLine ? `You started this chapter with: "${board.openingLine}." ` : "";
+  const openingLine = board.openingLine ? `You started this track with: "${board.openingLine}." ` : "";
   const named = incompleteTasks.slice(0, 2).map((t) => `"${t.title}"`).join(" and ");
   const more = incompleteTasks.length > 2 ? ` and ${incompleteTasks.length - 2} more` : "";
   return `${openingLine}It's been ${ageDays} days. You still have ${named}${more} in the backlog. What's actually been getting in the way?`;
@@ -302,14 +303,14 @@ function BrainDumpRecorderView({
 
       {/* Processing message */}
       {dumpState === "processing" && (
-        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", color: "rgba(232,224,208,0.6)", margin: "8px 0 28px", textAlign: "center" }}>
+        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "rgba(232,224,208,0.6)", margin: "8px 0 28px", textAlign: "center" }}>
           Pulling the cards from your dump…
         </p>
       )}
 
       {/* Idle message */}
       {dumpState === "idle" && (
-        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", color: "rgba(232,224,208,0.45)", margin: "8px 0 28px", textAlign: "center", lineHeight: "1.6", maxWidth: "260px" }}>
+        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "rgba(232,224,208,0.45)", margin: "8px 0 28px", textAlign: "center", lineHeight: "1.6", maxWidth: "260px" }}>
           Hit record and just talk. Everything on your mind — Cass will sort it into cards.
         </p>
       )}
@@ -447,7 +448,7 @@ function MoveToChapterView({
         setAvailableChapters([{ ...created, projectId, goal: null, whyItMatters: null, successLooksLike: null, doneDefinition: null, openingLine: null, kickoffCompletedAt: null, kickoffPrefilledAt: null, retroConversation: null, chapterStory: null, storyLength: null, retroCompletedAt: null, sharedAt: null, shareSlug: null, position: allChaptersCount * 1000, createdAt: new Date().toISOString() } as Chapter]);
         handleMoveToChapter(created.id);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Couldn't create chapter.");
+        setError(err instanceof Error ? err.message : "Couldn't create track.");
       }
     });
   }
@@ -461,7 +462,7 @@ function MoveToChapterView({
         <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "rgba(110,231,183,0.12)", border: "1px solid rgba(110,231,183,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Check size={20} style={{ color: "#6ee7b7" }} />
         </div>
-        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#d4cec4", margin: 0, textAlign: "center" }}>Done. Those tasks are out of your way.</p>
+        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "#d4cec4", margin: 0, textAlign: "center" }}>Done. Those tasks are out of your way.</p>
         <button type="button" onClick={onClose} style={{ marginTop: "8px", padding: "10px 24px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "var(--font-cass)", fontSize: "11px", cursor: "pointer" }}>Close</button>
       </div>
     );
@@ -507,7 +508,7 @@ function MoveToChapterView({
             <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
               <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px", opacity: 0 }} />
               <div style={{ ...CASS_B, background: "transparent", border: "none", padding: "0", fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "rgba(232,224,208,0.5)" }}>
-                No future chapters exist yet. I can create the next one for you.
+                No future tracks exist yet. I can create the next one for you.
               </div>
             </div>
             <button
@@ -525,7 +526,7 @@ function MoveToChapterView({
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.08)"; }}
             >
               <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 600, color: "#c8a86b", margin: 0 }}>
-                Create Chapter {allChaptersCount + 1} and move there
+                Create Track {allChaptersCount + 1} and move there
               </p>
               {isPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
             </button>
@@ -567,7 +568,7 @@ function MoveToChapterView({
           <div style={CASS_B}>
             {movableTasks.length === 0
               ? "Everything on the board is either done or… there's nothing here to move."
-              : "Which tasks aren't happening this chapter?"}
+              : "Which tasks aren't happening this track?"}
           </div>
         </div>
 
@@ -704,7 +705,7 @@ function EndChapterView({
           <div style={CASS_B}>
             {hasIncompleteTasks
               ? `${incompleteTasks.length} task${incompleteTasks.length === 1 ? "" : "s"} still open. What should happen to ${incompleteTasks.length === 1 ? "it" : "them"}?`
-              : "All tasks are done. Ready to write this chapter\u2019s story?"}
+              : "All tasks are done. Ready to write this track\u2019s story?"}
           </div>
         </div>
 
@@ -748,8 +749,8 @@ function EndChapterView({
                 {choice === "carry_over" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b" }} />}
               </div>
               <div>
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Carry over to the next chapter</p>
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Open tasks move into the next chapter&apos;s backlog</p>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Carry over to the next track</p>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Open tasks move into the next track&apos;s backlog</p>
               </div>
             </button>
 
@@ -772,8 +773,8 @@ function EndChapterView({
                 {choice === "delete" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#f87171" }} />}
               </div>
               <div>
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: choice === "delete" ? "#fca5a5" : "#d4cec4", margin: 0, lineHeight: "1.3" }}>Remove them — this chapter is done</p>
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Incomplete tasks are deleted. The chapter closes clean.</p>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: choice === "delete" ? "#fca5a5" : "#d4cec4", margin: 0, lineHeight: "1.3" }}>Remove them — this track is done</p>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Incomplete tasks are deleted. The track closes clean.</p>
               </div>
             </button>
           </>
@@ -823,10 +824,17 @@ export function CassBoardDrawer({
   allChaptersCount,
   breakupTask,
   completedChapterMode,
+  retroNudge = false,
+  onStartRetro,
+  initialMode,
+  chapterNumber = 1,
+  isPrefilled = false,
   onNavigateToLatest,
   onPlanChapters,
   onRefocus,
   onEndChapterConfirmed,
+  onKickoffComplete,
+  onRetroComplete,
   onClose,
   onTasksAdded,
   onTaskDeleted,
@@ -841,10 +849,17 @@ export function CassBoardDrawer({
   allChaptersCount: number;
   breakupTask?: Task | null;
   completedChapterMode?: boolean;
+  retroNudge?: boolean;
+  onStartRetro?: () => void;
+  initialMode?: "kickoff" | "retro";
+  chapterNumber?: number;
+  isPrefilled?: boolean;
   onNavigateToLatest?: () => void;
   onPlanChapters?: () => void;
   onRefocus?: () => void;
   onEndChapterConfirmed?: (nextChapterId: string | null) => void;
+  onKickoffComplete?: () => void;
+  onRetroComplete?: (data: { chapterStory: string; pullQuote: string; headline?: string; subheadline?: string; chapterType?: string }) => void;
   onClose: () => void;
   onTasksAdded: () => void;
   onTaskDeleted?: () => void;
@@ -880,7 +895,7 @@ export function CassBoardDrawer({
     border: `1px solid ${borderGoldDim}`,
     borderRadius: "12px 12px 12px 2px",
     padding: "12px 16px",
-    fontFamily: "'Special Elite', cursive",
+    fontFamily: "'Literata', Georgia, serif",
     fontSize: "16px",
     lineHeight: "1.7",
     color: textPrimary,
@@ -960,6 +975,31 @@ export function CassBoardDrawer({
     setRfTriageMap({});
     setRfError(null);
     setRfDoneCount(null);
+
+    // If forced into kickoff or retro mode, skip straight to that experience
+    if (initialMode === "kickoff") {
+      setMode("kickoff");
+      setMenuDisplayed("");
+      setOptionsReady(false);
+      setMenuSelected(null);
+      return;
+    }
+    if (initialMode === "retro") {
+      setMode("retro");
+      setMenuDisplayed("");
+      setOptionsReady(false);
+      setMenuSelected(null);
+      return;
+    }
+
+    // All tasks done but retro not yet started — nudge toward the retro
+    if (retroNudge) {
+      setMode("retro_nudge");
+      setMenuDisplayed("");
+      setOptionsReady(false);
+      setMenuSelected(null);
+      return;
+    }
 
     // If this is a completed chapter, show the "what's next?" screen
     if (completedChapterMode) {
@@ -1305,6 +1345,7 @@ export function CassBoardDrawer({
     mode === "refocus" && rfPhase === "retro"  ? 80 :
     mode === "menu" ? 15 :
     mode === "completed" ? 100 :
+    mode === "retro_nudge" ? 85 :
     savedOk ? 90 :
     aiStatus === "ready_for_review" ? 72 :
     55;
@@ -1337,10 +1378,10 @@ export function CassBoardDrawer({
         }}
         aria-hidden={!open}
       >
-        <CassProgressBar percent={progressPercent} />
+        {mode !== "kickoff" && mode !== "retro" && <CassProgressBar percent={progressPercent} />}
 
-        {/* ── Header — hidden during refocus retro (CassRetroChat owns the stage) ── */}
-        {!(mode === "refocus" && rfPhase === "retro") && (
+        {/* ── Header — hidden during retro/kickoff (those components own the stage) ── */}
+        {!(mode === "refocus" && rfPhase === "retro") && mode !== "kickoff" && mode !== "retro" && (
         <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px", position: "relative" }}>
           {(mode === "chat" && !savedOk) && (
             <button
@@ -1403,8 +1444,8 @@ export function CassBoardDrawer({
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(251,146,60,0.6)", background: "transparent" }} />
                     <div>
-                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: "rgba(251,180,80,0.9)", margin: 0, lineHeight: "1.3" }}>We need to refocus this chapter.</p>
-                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(251,146,60,0.5)", margin: "3px 0 0" }}>Let&apos;s see how we can wrap things up together</p>
+                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "rgba(251,180,80,0.9)", margin: 0, lineHeight: "1.3" }}>We need to refocus this track.</p>
+                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(251,146,60,0.5)", margin: "3px 0 0" }}>Let&apos;s see how we can wrap things up together</p>
                     </div>
                   </button>
                 ) : (
@@ -1418,8 +1459,8 @@ export function CassBoardDrawer({
                       >
                         <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                         <div>
-                          <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
-                          {opt.sub && <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>}
+                          <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
+                          {opt.sub && <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>}
                         </div>
                       </button>
                     ))}
@@ -1437,8 +1478,8 @@ export function CassBoardDrawer({
                         >
                           <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
                           <div>
-                            <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>End this chapter early</p>
-                            <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the chapter and write the story</p>
+                            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>End this track early</p>
+                            <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the track and write the story</p>
                           </div>
                         </button>
                       </>
@@ -1454,6 +1495,36 @@ export function CassBoardDrawer({
             )}
           </div>
         )}
+
+        {/* ── Kickoff mode ── */}
+        {mode === "kickoff" && (
+          <CassChapterKickoff
+            project={project}
+            board={board}
+            columns={columns}
+            chapterNumber={chapterNumber}
+            isPrefilled={isPrefilled}
+            onComplete={() => { onKickoffComplete?.(); onClose(); }}
+            onDismiss={onClose}
+          />
+        )}
+
+        {/* ── Retro mode (initiated from end-chapter or all-done) ── */}
+        {mode === "retro" && (() => {
+          const doneColId = columns.find((c) => c.name.toLowerCase() === "done")?.id;
+          const completedTasksForRetro = doneColId ? tasks.filter((t) => t.columnId === doneColId) : [];
+          const remainingTasksForRetro = doneColId ? tasks.filter((t) => t.columnId !== doneColId) : tasks;
+          return (
+            <CassRetroChat
+              project={project}
+              board={board}
+              completedTasks={completedTasksForRetro}
+              remainingTasks={remainingTasksForRetro}
+              onComplete={(data) => { onRetroComplete?.(data); onTasksAdded(); setTimeout(onClose, 800); }}
+              onDismiss={onClose}
+            />
+          );
+        })()}
 
         {/* ── Refocus mode ── */}
         {mode === "refocus" && rfPhase === "retro" && (() => {
@@ -1479,7 +1550,7 @@ export function CassBoardDrawer({
             <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
               <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
               <div style={CASS_B}>
-                For each task below, choose: keep it in this chapter, move it to the next one, or cut it entirely.
+                For each task below, choose: keep it in this track, move it to the next one, or cut it entirely.
               </div>
             </div>
 
@@ -1493,7 +1564,7 @@ export function CassBoardDrawer({
                   {colName && <p style={{ fontFamily: "var(--font-cass)", fontSize: "10px", color: "rgba(200,168,107,0.5)", margin: 0, letterSpacing: "1px", textTransform: "uppercase" }}>{colName}</p>}
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     {(["keep", "move", "delete"] as TriageDecision[]).map((opt) => {
-                      const labels = { keep: "✓ Keep", move: "→ Next chapter", delete: "✕ Cut it" };
+                      const labels = { keep: "✓ Keep", move: "→ Next track", delete: "✕ Cut it" };
                       const activeColors = { keep: "rgba(110,231,183,0.2)", move: "rgba(200,168,107,0.2)", delete: "rgba(248,113,113,0.2)" };
                       const activeBorders = { keep: "rgba(110,231,183,0.5)", move: "rgba(200,168,107,0.5)", delete: "rgba(248,113,113,0.5)" };
                       const activeText = { keep: "#6ee7b7", move: "#c8a86b", delete: "#f87171" };
@@ -1554,7 +1625,7 @@ export function CassBoardDrawer({
                 placeholder="What's been getting in the way…"
                 rows={2}
                 disabled={rfIsPending}
-                style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
+                style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "var(--font-cass)", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
               />
               <button
                 type="button" onClick={sendRfMessage} disabled={!rfDraft.trim() || rfIsPending}
@@ -1580,7 +1651,7 @@ export function CassBoardDrawer({
               <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
                   <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-                  <div style={CASS_B}>You have completed this chapter. What should we do next?</div>
+                  <div style={CASS_B}>You have completed this track. What should we do next?</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <button
@@ -1592,8 +1663,8 @@ export function CassBoardDrawer({
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                     <div>
-                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Take me to the latest chapter</p>
-                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Jump to where the work is happening</p>
+                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Take me to the latest track</p>
+                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Jump to where the work is happening</p>
                     </div>
                   </button>
                   {onPlanChapters && (
@@ -1606,8 +1677,8 @@ export function CassBoardDrawer({
                     >
                       <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                       <div>
-                        <p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Plan new chapters</p>
-                        <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Write the next act of the story</p>
+                        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Plan new tracks</p>
+                        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Write the next act of the story</p>
                       </div>
                     </button>
                   )}
@@ -1622,7 +1693,7 @@ export function CassBoardDrawer({
               <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
                   <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-                  <div style={CASS_B}>Now that you&apos;ve completed this chapter, I&apos;d love to record how things went. Got a second?</div>
+                  <div style={CASS_B}>Now that you&apos;ve completed this track, I&apos;d love to record how things went. Got a second?</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <button
@@ -1633,7 +1704,7 @@ export function CassBoardDrawer({
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
-                    <div><p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
+                    <div><p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
                   </button>
                   <button
                     type="button"
@@ -1643,7 +1714,7 @@ export function CassBoardDrawer({
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
-                    <div><p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
+                    <div><p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
                   </button>
                 </div>
               </div>
@@ -1667,7 +1738,7 @@ export function CassBoardDrawer({
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
-                    <div><p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
+                    <div><p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Yes</p></div>
                   </button>
                 )}
                 <button
@@ -1678,12 +1749,52 @@ export function CassBoardDrawer({
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
                 >
                   <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
-                  <div><p style={{ fontFamily: "var(--font-cass)", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
+                  <div><p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Not right now</p></div>
                 </button>
               </div>
             </div>
           );
         })()}
+
+        {/* ── Retro nudge mode ── */}
+        {mode === "retro_nudge" && (
+          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
+              <div style={CASS_B}>Everything&apos;s in the done column. Time to reflect on the work and write this track&apos;s story.</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <button
+                type="button"
+                onClick={() => { onStartRetro?.(); onClose(); }}
+                style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
+              >
+                <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                <div>
+                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Start the retro</p>
+                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Reflect on the work and write this track&apos;s story</p>
+                </div>
+              </button>
+              {onNavigateToLatest && (
+                <button
+                  type="button"
+                  onClick={() => { onNavigateToLatest(); onClose(); }}
+                  style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "100ms", opacity: 0 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
+                >
+                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
+                  <div>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Go to current track</p>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: textMuted, margin: "3px 0 0" }}>Jump to where the active work is happening</p>
+                  </div>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Chat mode ── */}
         {mode === "chat" && (
@@ -1695,7 +1806,7 @@ export function CassBoardDrawer({
                 boardId={board.id}
                 tasks={tasks}
                 columns={columns}
-                onConfirm={(nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); onClose(); }}
+                onConfirm={(nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); setMode("retro"); }}
                 onClose={onClose}
               />
             ) : isMoveMode ? (
@@ -1775,7 +1886,7 @@ export function CassBoardDrawer({
                       <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(110,231,183,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Check size={14} style={{ color: "#6ee7b7" }} />
                       </div>
-                      <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "14px", color: "#d4cec4", margin: 0 }}>
+                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "#d4cec4", margin: 0 }}>
                         {isBreakupMode
                           ? `Broken into ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""}. Original card removed.`
                           : `${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} added to the board.`}
@@ -1786,7 +1897,7 @@ export function CassBoardDrawer({
                         <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                           <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginTop: "6px" }} />
                           <div>
-                            <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#d4cec4", margin: "0 0 4px", lineHeight: "1.6" }}>
+                            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "#d4cec4", margin: "0 0 4px", lineHeight: "1.6" }}>
                               This looks like something you'd run again. Want me to save it as a workflow?
                             </p>
                             <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: 0 }}>
@@ -1839,7 +1950,7 @@ export function CassBoardDrawer({
                       placeholder="What needs to get done…"
                       rows={2}
                       disabled={isPending || isSaving}
-                      style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Special Elite', cursive", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
+                      style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "var(--font-cass)", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
                     />
                     <button
                       type="button" onClick={sendMessage} disabled={!draft.trim() || isPending || isSaving}

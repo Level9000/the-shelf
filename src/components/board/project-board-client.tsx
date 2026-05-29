@@ -30,7 +30,7 @@ import { normalizeTaskOrder } from "@/lib/board-utils";
 import { cn, formatDate } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Modal } from "@/components/ui/modal";
 import type { Chapter } from "@/types";
 import { BoardColumnView } from "@/components/board/board-column";
@@ -210,6 +210,12 @@ export function ProjectBoardClient({
   futureChapters = [],
   allChaptersCount = 0,
   onNavigateToStory,
+  initialDrawerMode,
+  chapterNumber = 1,
+  retroNudge = false,
+  onStartRetro,
+  onKickoffComplete,
+  onRetroComplete,
 }: {
   snapshot: BoardSnapshot;
   chapterProjectId: string;
@@ -219,6 +225,12 @@ export function ProjectBoardClient({
   futureChapters?: Chapter[];
   allChaptersCount?: number;
   onNavigateToStory?: () => void;
+  initialDrawerMode?: "kickoff" | "retro";
+  chapterNumber?: number;
+  retroNudge?: boolean;
+  onStartRetro?: () => void;
+  onKickoffComplete?: () => void;
+  onRetroComplete?: (data: { chapterStory: string; pullQuote: string; headline?: string; subheadline?: string; chapterType?: string }) => void;
 }) {
   const router = useRouter();
   const sensors = useSensors(
@@ -245,9 +257,20 @@ export function ProjectBoardClient({
   }, [snapshot.tasks]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
-  const [cassOpen, setCassOpen] = useState(false);
+  // When a modal opens during a drag, mark it cancelled so handleDragEnd skips the move
+  const cancelDragRef = useRef(false);
+  const [cassOpen, setCassOpen] = useState(() => !!initialDrawerMode);
   const [cassBreakupTaskId, setCassBreakupTaskId] = useState<string | null>(null);
   const [cassCompletedMode, setCassCompletedMode] = useState(false);
+
+  // Re-open drawer when a forced mode is set from outside (e.g., "all done" → retro)
+  useEffect(() => {
+    if (initialDrawerMode) {
+      setCassBreakupTaskId(null);
+      setCassCompletedMode(false);
+      setCassOpen(true);
+    }
+  }, [initialDrawerMode]);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -334,13 +357,30 @@ export function ProjectBoardClient({
   function handleDragStart(event: DragStartEvent) {
     if (snapshot.board.retroCompletedAt) {
       setCompletedAlertOpen(true);
+      cancelDragRef.current = true;
       return;
     }
+    if (retroNudge) {
+      // Cards are already disabled via boardCompleted prop; guard here as a safety net
+      cancelDragRef.current = true;
+      return;
+    }
+    cancelDragRef.current = false;
     setDragTaskId(String(event.active.id));
+  }
+
+  function handleDragCancel() {
+    setDragTaskId(null);
+    cancelDragRef.current = false;
   }
 
   function handleDragEnd(event: DragEndEvent) {
     setDragTaskId(null);
+    // A modal opened during this drag — discard the move and let dnd-kit snap the card back
+    if (cancelDragRef.current) {
+      cancelDragRef.current = false;
+      return;
+    }
     const activeId = String(event.active.id);
     const overId = event.over ? String(event.over.id) : null;
 
@@ -450,6 +490,7 @@ export function ProjectBoardClient({
       setCompletedAlertOpen(true);
       return;
     }
+    if (retroNudge) return;
     const activeTask = tasks.find((t) => t.id === taskId);
     if (!activeTask || activeTask.columnId === destinationColumnId) return;
 
@@ -502,6 +543,9 @@ export function ProjectBoardClient({
     });
   }
 
+  // True whenever any overlay/modal is visible — board drag is locked out while this is true
+  const anyModalOpen = Boolean(selectedTask) || manualOpen || reviewOpen || completedAlertOpen;
+
   // ── Banner state → FAB teaser ────────────────────────────────────────────────
   const bannerState = resolveBannerState(snapshot.board, tasks, snapshot.columns);
 
@@ -511,7 +555,7 @@ export function ProjectBoardClient({
 
   const fabTeaserText: string | undefined =
     bannerState.kind === "running_long"
-      ? `${bannerState.ageDays} days in. Time to wrap up this chapter.`
+      ? `${bannerState.ageDays} days in. Time to wrap up this track.`
     : bannerState.kind === "closing_stretch"
       ? `${bannerState.completedCount} of ${bannerState.totalCount} done. Almost there.`
     : bannerState.kind === "on_pace"
@@ -540,7 +584,7 @@ export function ProjectBoardClient({
               <Badge className="mb-4">Saving changes...</Badge>
             </div>
           ) : null}
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", pointerEvents: anyModalOpen ? "none" : "auto" }}>
             <DndContext
               id="board-dnd-context"
               sensors={sensors}
@@ -548,6 +592,7 @@ export function ProjectBoardClient({
               modifiers={[restrictSameColumnToVertical]}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
             >
               {/* Mobile: one column at a time with swipe pagination */}
               <div className="p-4 sm:p-5 lg:hidden">
@@ -594,13 +639,13 @@ export function ProjectBoardClient({
                         column={column}
                         tasks={getColumnTasks(tasks, column.id)}
                         onOpenTask={setSelectedTaskId}
-                        onCreateTask={openManualTask}
+                        onCreateTask={retroNudge ? undefined : openManualTask}
                         dragInProgress={!!dragTaskId}
                         allColumns={snapshot.columns}
-                        onMoveToColumn={handleMoveToColumn}
-                        boardCompleted={!!snapshot.board.retroCompletedAt}
+                        onMoveToColumn={retroNudge ? undefined : handleMoveToColumn}
+                        boardCompleted={!!snapshot.board.retroCompletedAt || retroNudge}
                         onOpenCass={
-                          !snapshot.board.retroCompletedAt &&
+                          !snapshot.board.retroCompletedAt && !retroNudge &&
                           (column.name === "Do This Week" || column.name === "Do Today")
                             ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }
                             : undefined
@@ -619,12 +664,13 @@ export function ProjectBoardClient({
                     column={column}
                     tasks={getColumnTasks(tasks, column.id)}
                     onOpenTask={setSelectedTaskId}
-                    onCreateTask={openManualTask}
+                    onCreateTask={retroNudge ? undefined : openManualTask}
                     dragInProgress={!!dragTaskId}
                     allColumns={snapshot.columns}
-                    onMoveToColumn={handleMoveToColumn}
+                    onMoveToColumn={retroNudge ? undefined : handleMoveToColumn}
+                    boardCompleted={!!snapshot.board.retroCompletedAt || retroNudge}
                     onOpenCass={
-                      !snapshot.board.retroCompletedAt &&
+                      !snapshot.board.retroCompletedAt && !retroNudge &&
                       (column.name === "Do This Week" || column.name === "Do Today")
                         ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }
                         : undefined
@@ -726,33 +772,39 @@ export function ProjectBoardClient({
 
       <Modal
         open={completedAlertOpen}
-        title="Chapter complete"
+        title="Track complete"
         onClose={() => setCompletedAlertOpen(false)}
       >
         <p className="text-sm leading-6 text-[var(--muted)]">
-          This chapter was completed on{" "}
+          This track was completed on{" "}
           <span className="font-medium text-[var(--ink)]">
             {formatDate(snapshot.board.retroCompletedAt)}
           </span>
-          . Head over to your current chapter if you need to add new tasks.
+          . Head over to your current track if you need to add new tasks.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Button variant="secondary" onClick={() => setCompletedAlertOpen(false)}>
+          <TapeButton variant="secondary" size="sm" onClick={() => setCompletedAlertOpen(false)}>
             Dismiss
-          </Button>
+          </TapeButton>
           {activeChapterUrl && (
-            <Button onClick={() => router.push(activeChapterUrl)}>
-              Go to current chapter
-            </Button>
+            <TapeButton variant="primary" size="sm" onClick={() => router.push(activeChapterUrl)}>
+              Go to current track
+            </TapeButton>
           )}
         </div>
       </Modal>
 
-      {/* Cass FAB — active chapter vs. completed chapter */}
-      {snapshot.board.retroCompletedAt ? (
+      {/* Cass FAB — retro nudge / completed chapter / active chapter */}
+      {retroNudge ? (
+        <CassBoardFab
+          onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }}
+          hoverText="Everything's done — write the retro"
+          ringColor="green"
+        />
+      ) : snapshot.board.retroCompletedAt ? (
         <CassBoardFab
           onClick={() => { setCassCompletedMode(true); setCassBreakupTaskId(null); setCassOpen(true); }}
-          hoverText="This chapter is complete, need something new?"
+          hoverText="This track is complete, need something new?"
           expandedWidth="336px"
           teaserText={fabTeaserText}
           teaserExpandedWidth={fabTeaserWidth}
@@ -779,10 +831,17 @@ export function ProjectBoardClient({
         allChaptersCount={allChaptersCount}
         breakupTask={cassBreakupTaskId ? (tasks.find((t) => t.id === cassBreakupTaskId) ?? null) : null}
         completedChapterMode={cassCompletedMode}
+        retroNudge={retroNudge}
+        onStartRetro={onStartRetro}
+        initialMode={!cassCompletedMode && !cassBreakupTaskId ? initialDrawerMode : undefined}
+        chapterNumber={chapterNumber}
+        isPrefilled={!!snapshot.board.kickoffPrefilledAt}
         onNavigateToLatest={activeChapterUrl ? () => router.push(activeChapterUrl) : undefined}
         onPlanChapters={() => router.push(`/projects/${chapterProjectId}?plan=true`)}
         onRefocus={bannerState.kind === "running_long" ? () => {} : undefined}
         onEndChapterConfirmed={!snapshot.board.retroCompletedAt ? (nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); refreshData(); } : undefined}
+        onKickoffComplete={() => { onKickoffComplete?.(); refreshData(); }}
+        onRetroComplete={(data) => { onRetroComplete?.(data); refreshData(); }}
         onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); setCassCompletedMode(false); }}
         onTasksAdded={refreshData}
         onTaskDeleted={refreshData}

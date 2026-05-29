@@ -4,9 +4,9 @@ import { AuthForm } from "@/components/auth/auth-form";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
 
   return (
     <AuthForm
@@ -18,6 +18,7 @@ export default async function LoginPage({
       secondaryPrompt="New to Authored By?"
       action={loginAction}
       nextPath={next}
+      oauthError={error}
     />
   );
 }

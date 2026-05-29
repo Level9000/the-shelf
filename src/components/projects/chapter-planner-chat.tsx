@@ -40,12 +40,12 @@ function buildOpeningMessage(project: ProjectWithChapters): DialogueMessage {
       : "";
     return {
       role: "assistant",
-      content: `${hint ? hint + " " : ""}What are you hoping to tackle next? Tell me what's on your mind and we'll shape it into chapters together.`,
+      content: `${hint ? hint + " " : ""}What are you hoping to tackle next? Tell me what's on your mind and we'll shape it into tracks together.`,
     };
   }
   return {
     role: "assistant",
-    content: `Let's plan out your first chapter${project.northStar ? ` for "${project.northStar}"` : ""}. What's the first big bet you want to make?`,
+    content: `Let's plan out your first track${project.northStar ? ` for "${project.northStar}"` : ""}. What's the first big bet you want to make?`,
   };
 }
 
@@ -65,7 +65,7 @@ function ProposedChapterCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-            Chapter {index + 1}
+            Track {index + 1}
           </span>
           <p className="mt-0.5 font-semibold text-[var(--ink)]">{chapter.name}</p>
           {chapter.goal && (
@@ -79,7 +79,7 @@ function ProposedChapterCard({
           type="button"
           onClick={onRemove}
           className="flex size-6 shrink-0 items-center justify-center rounded-full text-[var(--muted)] opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
-          aria-label="Remove chapter"
+          aria-label="Remove track"
         >
           <X className="size-3.5" />
         </button>
@@ -204,10 +204,10 @@ export function ChapterPlannerChat({
         </div>
         <div className="max-w-sm text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-            Chapters planned
+            Tracks planned
           </p>
           <p className="mt-3 text-2xl font-semibold tracking-tight text-[var(--ink)]">
-            {createdCount} {createdCount === 1 ? "chapter" : "chapters"} added to your story
+            {createdCount} {createdCount === 1 ? "track" : "tracks"} added to your story
           </p>
           <p className="mt-2 text-sm text-[var(--muted)]">
             Each one is ready to kick off whenever you are.
@@ -245,7 +245,7 @@ export function ChapterPlannerChat({
               </div>
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">
-                  Your chapter plan
+                  Your track plan
                 </h1>
                 <p className="mt-1 text-sm text-[var(--muted)]">
                   Remove any you don&apos;t need — you can always plan more later.
@@ -253,7 +253,7 @@ export function ChapterPlannerChat({
               </div>
             </div>
             <div className="rounded-full bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white">
-              {remaining.length} {remaining.length === 1 ? "chapter" : "chapters"}
+              {remaining.length} {remaining.length === 1 ? "track" : "tracks"}
             </div>
           </div>
         </section>
@@ -296,8 +296,8 @@ export function ChapterPlannerChat({
                 <Check className="size-4" />
               )}
               {isSaving
-                ? "Adding chapters..."
-                : `Add ${remaining.length} ${remaining.length === 1 ? "chapter" : "chapters"} to story`}
+                ? "Adding tracks..."
+                : `Add ${remaining.length} ${remaining.length === 1 ? "track" : "tracks"} to story`}
             </Button>
           </div>
         </div>
@@ -325,10 +325,10 @@ export function ChapterPlannerChat({
             </div>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">
-                Plan chapters
+                Plan tracks
               </h1>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Talk through what&apos;s ahead — we&apos;ll turn it into a chapter plan.
+                Talk through what&apos;s ahead — we&apos;ll turn it into a track plan.
               </p>
             </div>
           </div>
@@ -348,7 +348,7 @@ export function ChapterPlannerChat({
         {/* ── Chat panel ── */}
         <section className="surface hairline flex min-h-0 flex-col overflow-hidden rounded-[2rem]">
           <div className="border-b border-black/6 px-5 py-4">
-            <p className="text-sm font-semibold text-[var(--ink)]">Chapter planning</p>
+            <p className="text-sm font-semibold text-[var(--ink)]">Track planning</p>
             <p className="mt-1 text-sm text-[var(--muted)]">
               Answer naturally — describe what you want to get done next.
             </p>
@@ -440,7 +440,7 @@ export function ChapterPlannerChat({
             <div className="border-b border-black/6 px-5 py-4 shrink-0">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                  Chapters taking shape
+                  Tracks taking shape
                 </p>
                 {liveChapters.length > 0 && (
                   <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
@@ -454,7 +454,7 @@ export function ChapterPlannerChat({
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
                   <Sparkles className="size-6 text-[var(--muted)] opacity-30" />
                   <p className="text-[12px] leading-5 text-[var(--muted)] opacity-60">
-                    Chapters will appear here as we talk
+                    Tracks will appear here as we talk
                   </p>
                 </div>
               ) : (
@@ -465,7 +465,7 @@ export function ChapterPlannerChat({
                       className="rounded-[1.25rem] bg-white/70 px-3.5 py-3 ring-1 ring-black/6"
                     >
                       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
-                        Chapter {project.chapters.length + i + 1}
+                        Track {project.chapters.length + i + 1}
                       </p>
                       <p className="mt-0.5 text-[13px] font-semibold text-[var(--ink)]">{ch.name}</p>
                       {ch.goal && (

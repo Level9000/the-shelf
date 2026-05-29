@@ -73,7 +73,7 @@ export function CassStoryPlayer({
   onShareThis: () => void;
   onClose: () => void;
 }) {
-  const raw = chapterStory.trim() || "Your chapter story is being written.";
+  const raw = chapterStory.trim() || "Your track story is being written.";
   const paragraphs = raw
     .split(/\n\n+/)
     .map((p) => p.trim())

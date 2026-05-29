@@ -90,6 +90,8 @@ function mapBoard(row: Record<string, unknown>): Board {
     shareSlug: (row.share_slug as string | null) ?? null,
     position: Number(row.position ?? 1000),
     createdAt: String(row.created_at),
+    confirmedThesis: (row.confirmed_thesis as string | null) ?? null,
+    kickoffBeats: (row.kickoff_beats as Record<string, unknown> | null) ?? null,
   };
 }
 
@@ -285,7 +287,7 @@ export async function getProjectAccessSnapshot(projectId: string): Promise<{
     await Promise.all([
       supabase
         .from("project_members")
-        .select("id, project_id, user_id, invited_by, created_at")
+        .select("id, project_id, user_id, invited_by, role, created_at")
         .eq("project_id", projectId)
         .order("created_at", { ascending: true }),
       supabase
@@ -351,7 +353,7 @@ export async function getProjectAccessSnapshot(projectId: string): Promise<{
           ...row,
           email: profileByUserId.get(String(row.user_id))?.email ?? "",
           display_name: profileByUserId.get(String(row.user_id))?.displayName ?? null,
-          role: "editor",
+          role: (row.role as "author" | "contributor") ?? "contributor",
         }),
       ),
     ],
@@ -414,7 +416,7 @@ export async function getProjectBoardSnapshot(
         .order("updated_at", { ascending: false }),
       supabase
         .from("project_members")
-        .select("id, project_id, user_id, invited_by, created_at")
+        .select("id, project_id, user_id, invited_by, role, created_at")
         .eq("project_id", projectId)
         .order("created_at", { ascending: true }),
       supabase
@@ -486,7 +488,7 @@ export async function getProjectBoardSnapshot(
         ...row,
         email: profileByUserId.get(String(row.user_id))?.email ?? "",
         display_name: profileByUserId.get(String(row.user_id))?.displayName ?? null,
-        role: "editor",
+        role: (row.role as "author" | "contributor") ?? "contributor",
       }),
     ),
   ];

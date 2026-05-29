@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import type { BoardColumn, ProjectMember, Task } from "@/types";
 import { deleteTaskAction, updateTaskAction } from "@/lib/actions/task-actions";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Modal } from "@/components/ui/modal";
 import { TaskFormFields } from "@/components/tasks/task-form-fields";
 import { CassRecorder } from "@/components/cass/CassRecorder";
@@ -172,16 +172,16 @@ export function TaskDetailModal({
       ) : null}
       <div className="sticky bottom-0 mt-6 flex items-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
         <div className="flex flex-1 flex-wrap justify-center gap-3">
-          <Button variant="ghost" onClick={handleDelete} disabled={isPending}>
-            <Trash2 className="mr-2 size-4" />
+          <TapeButton variant="danger" size="sm" onClick={handleDelete} disabled={isPending}>
+            <Trash2 className="size-4" />
             Delete task
-          </Button>
-          <Button variant="secondary" onClick={onClose}>
+          </TapeButton>
+          <TapeButton variant="secondary" size="sm" onClick={onClose}>
             Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={isPending}>
+          </TapeButton>
+          <TapeButton variant="primary" size="sm" onClick={handleSave} disabled={isPending}>
             {isPending ? "Saving..." : "Save changes"}
-          </Button>
+          </TapeButton>
         </div>
         {onOpenCass && (
           <button

@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Mail, ShieldCheck, UserMinus, UserPlus, Users } from "lucide-react";
+import { ShieldCheck, UserMinus, UserPlus, Users } from "lucide-react";
 import type { AppUser, Project, ProjectMember } from "@/types";
 import {
   inviteProjectMemberAction,
   revokeProjectMemberAction,
 } from "@/lib/actions/project-actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 
@@ -24,6 +24,7 @@ export function ProjectAccessManager({
   onUpdated: () => void;
 }) {
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"author" | "contributor">("author");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -53,6 +54,7 @@ export function ProjectAccessManager({
         await inviteProjectMemberAction({
           projectId: project.id,
           email,
+          role,
         });
         setEmail("");
         onUpdated();
@@ -111,22 +113,22 @@ export function ProjectAccessManager({
                       {member.email}
                     </p>
                     <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
-                      {member.userId === currentUser.id ? "You" : "Member"}
+                      {member.userId === currentUser.id ? "You" : null}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge>{member.role}</Badge>
                   {isOwner && member.role !== "owner" ? (
-                    <Button
-                      variant="ghost"
-                      className="h-9 px-3 py-0 text-xs"
+                    <TapeButton
+                      variant="danger"
+                      size="sm"
                       onClick={() => handleRevoke(member)}
                       disabled={isPending}
                     >
-                      <UserMinus className="mr-1.5 size-3.5" />
+                      <UserMinus className="size-3.5" />
                       Remove
-                    </Button>
+                    </TapeButton>
                   ) : null}
                 </div>
               </div>
@@ -141,8 +143,8 @@ export function ProjectAccessManager({
           Access controls
         </div>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Everyone listed here can open the project, create chapters, add tasks,
-          and work from the same backlog.
+          <span className="font-semibold text-[var(--ink)]">Authors</span> can run chapter kickoffs, retros, and story planning.{" "}
+          <span className="font-semibold text-[var(--ink)]">Contributors</span> can create, move, and delete tasks only.
         </p>
 
         {owner ? (
@@ -162,15 +164,38 @@ export function ProjectAccessManager({
               onChange={(event) => setEmail(event.target.value)}
               placeholder="coworker@company.com"
             />
-            <Button
+            <div className="flex gap-2">
+              {(["author", "contributor"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={`flex-1 rounded-[1rem] px-3 py-2 text-sm font-medium ring-1 transition ${
+                    role === r
+                      ? "bg-[var(--accent-soft)] ring-[var(--accent)]/40 text-[var(--accent)]"
+                      : "bg-white/60 ring-black/10 text-[var(--muted)] hover:bg-white"
+                  }`}
+                >
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs leading-5 text-[var(--muted)]">
+              {role === "author"
+                ? "Authors can run kickoffs, retros, and chapter planning — full story authorship."
+                : "Contributors can manage tasks (create, move, delete) but cannot run authorship sessions."}
+            </p>
+            <TapeButton
+              variant="primary"
+              size="sm"
               onClick={handleInvite}
               disabled={isPending || email.trim().length === 0}
             >
-              <UserPlus className="mr-2 size-4" />
-              {isPending ? "Granting access..." : "Grant access"}
-            </Button>
+              <UserPlus className="size-4" />
+              {isPending ? "Granting access..." : `Grant ${role} access`}
+            </TapeButton>
             <p className="text-xs leading-5 text-[var(--muted)]">
-              The user must already have a Shelf account. This is a direct share, not an email invite flow.
+              The user must already have an Authored By account.
             </p>
           </div>
         ) : (
@@ -219,10 +244,9 @@ export function ProjectAccessModal({
         onUpdated={onUpdated}
       />
       <div className="sticky bottom-0 mt-6 flex justify-center border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
-        <Button variant="secondary" onClick={onClose}>
-          <Mail className="mr-2 size-4" />
+        <TapeButton variant="secondary" size="sm" onClick={onClose}>
           Close
-        </Button>
+        </TapeButton>
       </div>
     </Modal>
   );

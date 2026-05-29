@@ -132,6 +132,7 @@ export function TaskCard({
     useSortable({
       id: task.id,
       data: { type: "task", taskId: task.id, columnId: task.columnId },
+      disabled: boardCompleted,
     });
 
   function handlePointerDown(event: React.PointerEvent<HTMLElement>) {
@@ -167,7 +168,7 @@ export function TaskCard({
       <NoteBody task={task} columnName={columnName} />
 
       {/* Mobile-only: quick-tap column move buttons */}
-      {allColumns && onMoveToColumn && (
+      {!boardCompleted && allColumns && onMoveToColumn && (
         <div className="lg:hidden">
           <p className="px-3 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-black/30">
             Move to

@@ -54,7 +54,7 @@ export function Modal({
       />
       <div
         className={cn(
-          "surface-card hairline relative z-10 mx-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] p-6",
+          "surface-card hairline relative z-10 mx-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-lg flex-col overflow-hidden rounded-[2rem] p-6",
           fullScreen &&
             "flex min-h-full max-w-none flex-col overflow-hidden rounded-none p-5 sm:p-6",
           fullScreenOnMobile &&
@@ -77,8 +77,8 @@ export function Modal({
         >
           <X className="size-4" />
         </button>
-        <div className="pr-10">
-          <h2 className="text-xl font-semibold">{title}</h2>
+        <div className="pr-10 text-center">
+          <h1 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-cass)" }}>{title}</h1>
           {description ? (
             <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
           ) : null}

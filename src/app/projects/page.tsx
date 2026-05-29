@@ -8,7 +8,16 @@ export default async function ProjectsPage() {
     getCurrentUserProfile(),
   ]);
 
-  // Send user directly to the first board they have access to
+  // Send user to the active chapter board (most recently updated project first,
+  // then the first chapter that hasn't had its retro completed yet).
+  for (const project of projects) {
+    const activeChapter = project.chapters.find((c) => !c.retroCompletedAt);
+    if (activeChapter) {
+      redirect(`/projects/${project.id}/chapters/${activeChapter.id}/board`);
+    }
+  }
+
+  // All chapters are wrapped up — fall back to the first available chapter
   const projectWithChapter = projects.find((p) => p.chapters.length > 0);
   if (projectWithChapter) {
     redirect(

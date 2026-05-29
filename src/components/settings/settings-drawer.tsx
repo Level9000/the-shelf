@@ -104,7 +104,7 @@ export function SettingsContent({
         router.push(`/projects/${currentProjectId}`);
         router.refresh();
       } catch (err) {
-        setDeleteError(err instanceof Error ? err.message : "Failed to delete the chapter.");
+        setDeleteError(err instanceof Error ? err.message : "Failed to delete the track.");
       }
     });
   }
@@ -117,16 +117,6 @@ export function SettingsContent({
       {/* ── Appearance ── */}
       <DrawerSection label="Appearance">
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
-          <span style={{
-            fontFamily: "var(--font-cass)",
-            fontSize: "7.5px",
-            letterSpacing: "0.18em",
-            color: themeLabelColor,
-            textTransform: "uppercase",
-            userSelect: "none",
-          }}>
-            theme
-          </span>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {/* LIGHT tape label */}
             <span
@@ -234,26 +224,26 @@ export function SettingsContent({
             {currentChapterId && (
               <div>
                 <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Chapter
+                  Track
                 </p>
                 <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
-                  <span style={{ color: strongColor, fontWeight: 600 }}>{currentChapterName ?? "Untitled chapter"}</span>
+                  <span style={{ color: strongColor, fontWeight: 600 }}>{currentChapterName ?? "Untitled track"}</span>
                   {" "}— removes its board, columns, and all tasks permanently.
                 </p>
                 {confirmingDelete ? (
                   <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
-                    <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 4px" }}>Delete this chapter?</p>
+                    <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 4px" }}>Delete this track?</p>
                     <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "rgba(248,113,113,0.65)", margin: "0 0 12px" }}>This action cannot be undone.</p>
                     {deleteError && (
                       <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteError}</p>
                     )}
                     <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                      <TapeButton variant="secondary" size="sm" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>Keep chapter</TapeButton>
-                      <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting}>{isDeleting ? "Deleting…" : "Delete chapter"}</TapeButton>
+                      <TapeButton variant="secondary" size="sm" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>Keep track</TapeButton>
+                      <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting}>{isDeleting ? "Deleting…" : "Delete track"}</TapeButton>
                     </div>
                   </div>
                 ) : (
-                  <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDelete(true)}>Delete chapter</TapeButton>
+                  <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDelete(true)}>Delete track</TapeButton>
                 )}
               </div>
             )}
@@ -267,7 +257,7 @@ export function SettingsContent({
                 </p>
                 <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
                   <span style={{ color: strongColor, fontWeight: 600 }}>{currentProjectName}</span>
-                  {" "}— permanently deletes all chapters, boards, and tasks.
+                  {" "}— permanently deletes all tracks, boards, and tasks.
                 </p>
                 {confirmingDeleteProject ? (
                   <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>

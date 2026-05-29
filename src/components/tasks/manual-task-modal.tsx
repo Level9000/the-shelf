@@ -17,7 +17,7 @@ import {
 } from "@/lib/actions/task-actions";
 import { getChapterAgeDays } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Modal } from "@/components/ui/modal";
 import { TaskFormFields } from "@/components/tasks/task-form-fields";
 import { StrategicTextDialogueModal } from "@/components/voice/strategic-text-dialogue-modal";
@@ -293,15 +293,15 @@ export function ManualTaskModal({
               onChange={handleChange}
             />
             <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
-              <Button variant="secondary" onClick={() => setMode("chooser")}>
+              <TapeButton variant="secondary" size="sm" onClick={() => setMode("chooser")}>
                 Back
-              </Button>
-              <Button variant="secondary" onClick={onClose}>
+              </TapeButton>
+              <TapeButton variant="secondary" size="sm" onClick={onClose}>
                 Cancel
-              </Button>
-              <Button onClick={handleCreate} disabled={isPending}>
+              </TapeButton>
+              <TapeButton variant="primary" size="sm" onClick={handleCreate} disabled={isPending}>
                 {isPending ? "Creating..." : "Create task"}
-              </Button>
+              </TapeButton>
             </div>
           </>
         ) : null}
@@ -437,26 +437,28 @@ export function ManualTaskModal({
 
         {mode === "chooser" ? (
           <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
-            <Button variant="secondary" onClick={onClose}>
+            <TapeButton variant="secondary" size="sm" onClick={onClose}>
               Cancel
-            </Button>
+            </TapeButton>
           </div>
         ) : null}
 
         {mode === "template" ? (
           <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
-            <Button variant="secondary" onClick={() => setMode("chooser")}>
+            <TapeButton variant="secondary" size="sm" onClick={() => setMode("chooser")}>
               Back
-            </Button>
-            <Button variant="secondary" onClick={onClose}>
+            </TapeButton>
+            <TapeButton variant="secondary" size="sm" onClick={onClose}>
               Cancel
-            </Button>
-            <Button
+            </TapeButton>
+            <TapeButton
+              variant="primary"
+              size="sm"
               onClick={handleApplyTemplate}
               disabled={isPending || !selectedTemplate}
             >
               {isPending ? "Adding..." : "Add template to backlog"}
-            </Button>
+            </TapeButton>
           </div>
         ) : null}
       </Modal>

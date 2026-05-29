@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import type { AIKickoffDialogue, KickoffProposedTask } from "@/lib/ai/schema";
 import type { Board, BoardColumn, Project } from "@/types";
 import { completeChapterKickoffAction } from "@/lib/actions/project-actions";
+import { PaywallModal } from "@/components/paywall/paywall-modal";
 import { Button } from "@/components/ui/button";
 import { ChatProgressBar } from "@/components/ui/chat-progress-bar";
 import { Textarea } from "@/components/ui/textarea";
@@ -296,6 +297,7 @@ export function ChapterKickoffChat({
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [readyToReview, setReadyToReview] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
+  const [showPaywall, setShowPaywall] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isSaving, startSaveTransition] = useTransition();
 
@@ -391,6 +393,21 @@ export function ChapterKickoffChat({
     });
   }
 
+  async function checkPaywallAfterKickoff() {
+    // Only relevant from the 2nd track onwards
+    if (board.position < 2) return;
+    try {
+      const res = await fetch("/api/subscription/status");
+      if (!res.ok) return;
+      const data = await res.json() as { status: string };
+      if (data.status === "trial_ended") {
+        setShowPaywall(true);
+      }
+    } catch {
+      // Non-critical — don't block the user if this fails
+    }
+  }
+
   function toggleTask(index: number) {
     setSelectedTasks((current) => {
       const next = new Set(current);
@@ -427,6 +444,7 @@ export function ChapterKickoffChat({
         });
         setStage("done");
         router.refresh();
+        await checkPaywallAfterKickoff();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to save kickoff.");
       }
@@ -466,6 +484,7 @@ export function ChapterKickoffChat({
         setReviewModalOpen(false);
         setStage("done");
         router.refresh();
+        await checkPaywallAfterKickoff();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to save kickoff.");
       }
@@ -475,6 +494,8 @@ export function ChapterKickoffChat({
   // ─── Stage: Done ─────────────────────────────────────────────────────────────
   if (stage === "done" && chapterData) {
     return (
+      <>
+      <PaywallModal open={showPaywall} onClose={() => setShowPaywall(false)} />
       <div className="flex h-full min-h-0 flex-col gap-5">
       <ChatProgressBar step={3} total={3} />
       <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 py-12">
@@ -507,6 +528,7 @@ export function ChapterKickoffChat({
         </Button>
       </div>
       </div>
+      </>
     );
   }
 
@@ -691,7 +713,7 @@ export function ChapterKickoffChat({
         {/* ── Left: chat ── */}
         <section className="surface hairline flex min-h-0 flex-col rounded-[2rem] overflow-hidden">
           <div className="border-b border-black/6 px-5 py-4">
-            <p className="text-sm font-semibold text-[var(--ink)]">Chapter kickoff</p>
+            <p className="text-sm font-semibold text-[var(--ink)]">Track kickoff</p>
             <p className="mt-1 text-sm text-[var(--muted)]">
               Answer naturally — this is a conversation, not a form.
             </p>

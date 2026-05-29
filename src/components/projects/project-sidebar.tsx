@@ -170,7 +170,7 @@ function OpenBook({
         {project.chapters.map((chapter, i) => (
           <Link
             key={chapter.id}
-            href={`/projects/${project.id}/chapters/${chapter.id}`}
+            href={`/projects/${project.id}/chapters/${chapter.id}/board`}
             onClick={onNavigate}
             className={cn(
               "flex items-center gap-2.5 px-4 py-2.5 text-[12.5px] font-medium transition border-t border-black/[0.05]",

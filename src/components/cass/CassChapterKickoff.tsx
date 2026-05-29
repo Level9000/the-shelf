@@ -221,7 +221,7 @@ export function CassChapterKickoff({
               textTransform: "uppercase",
             }}
           >
-            ◉ Chapter {chapterNumber} Kickoff
+            ◉ Track {chapterNumber} Kickoff
           </span>
           {onDismiss && (
             <button

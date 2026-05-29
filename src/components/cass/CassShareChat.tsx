@@ -23,7 +23,7 @@ const REFINEMENTS: Record<
     { q: "Anything specific you want to make sure comes through?", chips: ["The win", "What we learned", "What's coming next"] },
   ],
   blog: [
-    { q: "What should readers take away from this chapter?", chips: ["The win", "What I learned", "The honest struggle"] },
+    { q: "What should readers take away from this track?", chips: ["The win", "What I learned", "The honest struggle"] },
     { q: "What tone are you going for?", chips: ["Reflective", "Energizing", "Vulnerable"] },
   ],
   social: [
@@ -108,7 +108,7 @@ function CassBubble({
           border: "1px solid rgba(200,168,107,0.22)",
           borderRadius: "12px 12px 12px 2px",
           padding: "12px 16px",
-          fontFamily: "'Special Elite', cursive",
+          fontFamily: "'Literata', Georgia, serif",
           fontSize: "15px",
           lineHeight: "1.65",
           color: "#d4cec4",

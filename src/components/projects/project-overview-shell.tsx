@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ArrowUp, Check, ChevronRight, LoaderCircle, MessageCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -205,7 +204,7 @@ const CASSB_STYLE = {
   border: "1px solid rgba(200,168,107,0.22)",
   borderRadius: "12px 12px 12px 2px",
   padding: "12px 16px",
-  fontFamily: "'Special Elite', cursive",
+  fontFamily: "'Literata', Georgia, serif",
   fontSize: "16px",
   lineHeight: "1.65",
   color: "#d4cec4",
@@ -239,9 +238,9 @@ const CHRONICLE_QUESTION = "What do you want to do?";
 function buildPlanOpening(project: ProjectWithChapters): string {
   const active = project.chapters.find((ch) => ch.kickoffCompletedAt && !ch.retroCompletedAt);
   if (project.chapters.length > 0) {
-    return `${active ? `You're currently working on "${active.name}". ` : ""}What are you hoping to tackle next? Tell me what's on your mind and we'll shape it into chapters together.`;
+    return `${active ? `You're currently working on "${active.name}". ` : ""}What are you hoping to tackle next? Tell me what's on your mind and we'll shape it into tracks together.`;
   }
-  return `Let's plan out your first chapter${project.northStar ? ` for "${project.northStar}"` : ""}. What's the first big bet you want to make?`;
+  return `Let's plan out your first track${project.northStar ? ` for "${project.northStar}"` : ""}. What's the first big bet you want to make?`;
 }
 
 function CassChronicleDrawer({
@@ -377,7 +376,7 @@ function CassChronicleDrawer({
         setMode("done");
         router.refresh();
       } catch (err) {
-        setPlanError(err instanceof Error ? err.message : "Failed to save chapters.");
+        setPlanError(err instanceof Error ? err.message : "Failed to save tracks.");
       }
     });
   }
@@ -385,7 +384,7 @@ function CassChronicleDrawer({
   const menuOptions = [
     {
       key: "plan",
-      label: "Plan chapters",
+      label: "Plan tracks",
       sub: "Map out what's coming next",
       disabled: false,
       onSelect: () => {
@@ -497,7 +496,7 @@ function CassChronicleDrawer({
                     disabled={disabled}
                     style={{
                       background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)",
-                      borderRadius: "12px", padding: "13px 16px",
+                      borderRadius: "12px", padding: "14px 16px",
                       display: "flex", alignItems: "center", gap: "14px",
                       cursor: disabled ? "not-allowed" : "pointer",
                       textAlign: "left", width: "100%",
@@ -511,8 +510,8 @@ function CassChronicleDrawer({
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                     <div>
-                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>{label}</p>
-                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "3px 0 0", lineHeight: "1.4" }}>{sub}</p>
+                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>{label}</p>
+                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{sub}</p>
                     </div>
                   </button>
                 ))}
@@ -559,7 +558,7 @@ function CassChronicleDrawer({
             {liveChapters.length > 0 && (
               <div style={{ flexShrink: 0, padding: "6px 20px", borderTop: "1px solid rgba(200,168,107,0.08)" }}>
                 <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
-                  {liveChapters.length} chapter{liveChapters.length !== 1 ? "s" : ""} taking shape…
+                  {liveChapters.length} track{liveChapters.length !== 1 ? "s" : ""} taking shape…
                 </p>
               </div>
             )}
@@ -629,7 +628,7 @@ function CassChronicleDrawer({
                     }}
                   >
                     <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 4px" }}>
-                      Chapter {project.chapters.length + i - [...removedIndices].filter((r) => r < i).length + 1}
+                      Track {project.chapters.length + i - [...removedIndices].filter((r) => r < i).length + 1}
                     </p>
                     <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#d4cec4", margin: 0 }}>{ch.name}</p>
                     {ch.goal && (
@@ -668,7 +667,7 @@ function CassChronicleDrawer({
                 onClick={handleConfirm}
                 disabled={isSaving || proposedChapters.filter((_, i) => !removedIndices.has(i)).length === 0}
               >
-                {isSaving ? "Saving…" : `Add ${proposedChapters.filter((_, i) => !removedIndices.has(i)).length} chapter${proposedChapters.filter((_, i) => !removedIndices.has(i)).length !== 1 ? "s" : ""} to story`}
+                {isSaving ? "Saving…" : `Add ${proposedChapters.filter((_, i) => !removedIndices.has(i)).length} track${proposedChapters.filter((_, i) => !removedIndices.has(i)).length !== 1 ? "s" : ""} to story`}
               </TapeButton>
             </div>
           </>
@@ -680,10 +679,10 @@ function CassChronicleDrawer({
             <CassRecorder animState="idle" size="sm" />
             <div style={{ textAlign: "center" }}>
               <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "3px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 10px" }}>
-                Chapters planned
+                Tracks planned
               </p>
               <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "22px", color: "#d4cec4", margin: 0, lineHeight: 1.3 }}>
-                {savedCount} {savedCount === 1 ? "chapter" : "chapters"} added to your story
+                {savedCount} {savedCount === 1 ? "track" : "tracks"} added to your story
               </p>
               <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "10px 0 0", lineHeight: 1.6 }}>
                 Each one is ready to kick off whenever you are.
@@ -745,7 +744,7 @@ function ChapterEntry({
   if (chapter.kickoffConversation && chapter.kickoffCompletedAt) {
     threads.push({
       id: `kickoff-${chapter.id}`,
-      label: "Chapter Kickoff",
+      label: "Track Kickoff",
       completedAt: chapter.kickoffCompletedAt,
       messages: chapter.kickoffConversation,
     });
@@ -761,7 +760,7 @@ function ChapterEntry({
   if (chapter.retroConversation && chapter.retroCompletedAt) {
     threads.push({
       id: `retro-${chapter.id}`,
-      label: "Chapter Retro",
+      label: "Track Retro",
       completedAt: chapter.retroCompletedAt,
       messages: chapter.retroConversation,
     });
@@ -781,24 +780,19 @@ function ChapterEntry({
       )}
 
       <div style={{ opacity: status === "planned" ? 0.4 : 1, transition: "opacity 0.2s" }}>
-        {/* Chapter name — links to the chapter page */}
-        <Link
-          href={`/projects/${projectId}/chapters/${chapter.id}`}
-          style={{ textDecoration: "none" }}
-        >
-          <h2 style={{ fontFamily: "var(--font-cass)", fontSize: "26px", margin: 0, lineHeight: 1.3 }}>
-            <span style={{
-              display: "inline-block",
-              background: "#e8dfc0",
-              color: "#1a0e00",
-              padding: "3px 14px 5px",
-              clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
-              boxShadow: "2px 2px 5px rgba(0,0,0,0.3)",
-            }}>
-              {chapter.name}
-            </span>
-          </h2>
-        </Link>
+        {/* Chapter name */}
+        <h2 style={{ fontFamily: "var(--font-cass)", fontSize: "26px", margin: 0, lineHeight: 1.3 }}>
+          <span style={{
+            display: "inline-block",
+            background: "#e8dfc0",
+            color: "#1a0e00",
+            padding: "3px 14px 5px",
+            clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
+            boxShadow: "2px 2px 5px rgba(0,0,0,0.3)",
+          }}>
+            {chapter.name}
+          </span>
+        </h2>
 
         {/* Completed: pull quote */}
         {status === "completed" && chapter.openingLine && (
@@ -866,7 +860,7 @@ function ChapterEntry({
                 fontStyle: "italic",
               }}
             >
-              {chapter.goal || "This chapter is being written…"}
+              {chapter.confirmedThesis || chapter.goal || "This track is being written…"}
             </p>
           </div>
         )}
@@ -952,6 +946,26 @@ function ChapterEntry({
   );
 }
 
+// ── Margin decoration items ───────────────────────────────────────────────────
+
+type DecoItem = {
+  side: "left" | "right";
+  src: string | null; // null = render CassRecorder
+  w: number;
+  rotation: number;
+  tx: string;
+  top: number;
+  key: number;
+};
+
+/** Cycles every 4 items. null src = CassRecorder. */
+const DECO_PATTERN: Omit<DecoItem, "top" | "key">[] = [
+  { side: "left",  src: "/icons/authored_by_transparent.png", w: 293, rotation: -11, tx: "-30%" },
+  { side: "right", src: "/images/stickies.png",               w: 372, rotation:   7, tx:  "30%" },
+  { side: "left",  src: null,                                  w: 114, rotation:  -4, tx: "-25%" },
+  { side: "right", src: "/images/black_marker.png",           w: 198, rotation:   9, tx:  "33%" },
+];
+
 // ── Main shell ────────────────────────────────────────────────────────────────
 
 export function ProjectOverviewShell({
@@ -976,6 +990,9 @@ export function ProjectOverviewShell({
   const [startInPlanMode, setStartInPlanMode] = useState(initialPlanning);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyThread, setHistoryThread] = useState<ChatThread | null>(null);
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [decoItems, setDecoItems] = useState<DecoItem[]>([]);
 
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -1008,6 +1025,35 @@ export function ProjectOverviewShell({
     return () => clearTimeout(t);
   }, [lastChapterId]);
 
+  // Compute margin decoration positions based on total content height
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    function recalc() {
+      if (!el) return;
+      const h = el.scrollHeight;
+      const SPACING = 620;
+      const START = 240;
+      const built: DecoItem[] = [];
+      let pos = START;
+      let i = 0;
+      while (pos < h - 160) {
+        const p = DECO_PATTERN[i % DECO_PATTERN.length];
+        built.push({ ...p, top: pos, key: i });
+        pos += SPACING;
+        i++;
+      }
+      setDecoItems(built);
+    }
+
+    recalc();
+    const ro = new ResizeObserver(recalc);
+    ro.observe(el);
+    return () => ro.disconnect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function openDrawerForPlanning() {
     setStartInPlanMode(true);
     setCassDrawerOpen(true);
@@ -1032,10 +1078,12 @@ export function ProjectOverviewShell({
         ) : (
           /* ── The Story So Far ── */
           <div
+            ref={wrapperRef}
             className="-mx-4 flex-1 lg:mx-0"
             style={{
               backgroundImage: "radial-gradient(ellipse at 50% 0%, rgba(200,168,107,0.04) 0%, transparent 65%)",
               paddingBottom: "120px",
+              position: "relative",
             }}
           >
             <style>{`
@@ -1044,6 +1092,43 @@ export function ProjectOverviewShell({
                 50% { opacity: 1; transform: scale(1.15); }
               }
             `}</style>
+
+            {/* ── Margin decorations (desktop only) ── */}
+            <div className="pointer-events-none hidden select-none lg:block" aria-hidden="true">
+              {decoItems.map((item) => (
+                <div
+                  key={item.key}
+                  style={{
+                    position: "absolute",
+                    top: `${item.top}px`,
+                    // Left items: hang off the left edge via translateX
+                    // Right items: anchor at the right margin's centre (calc(75% + 165px))
+                    //   and use translateX(-50%) to centre the image on that point
+                    ...(item.side === "left"
+                      ? { left: 0, transform: `translateX(${item.tx}) rotate(${item.rotation}deg)` }
+                      : { left: "calc(75% + 165px)", transform: `translateX(-50%) rotate(${item.rotation}deg)` }
+                    ),
+                    zIndex: 0,
+                    opacity: 0.72,
+                    filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.55))",
+                  }}
+                >
+                  {item.src ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.src}
+                      alt=""
+                      width={item.w}
+                      style={{ display: "block" }}
+                    />
+                  ) : (
+                    <div style={{ transform: "scale(1.5)", transformOrigin: "top left" }}>
+                      <CassRecorder animState="playing" size="sm" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
 
             {/* Reading column */}
             <div
@@ -1109,7 +1194,7 @@ export function ProjectOverviewShell({
                 project.planningConversations.forEach((session, i) => {
                   projectThreads.push({
                     id: `planning-${i}`,
-                    label: "Chapter Planning",
+                    label: "Track Planning",
                     completedAt: session.completedAt,
                     messages: session.messages,
                   });
@@ -1203,7 +1288,7 @@ export function ProjectOverviewShell({
                       lineHeight: 1.7,
                     }}
                   >
-                    The first chapter hasn&apos;t started yet.
+                    The first track hasn&apos;t started yet.
                     <br />
                     Use the button below to plan it.
                   </p>
@@ -1218,7 +1303,7 @@ export function ProjectOverviewShell({
         {!refining && (
           <CassFab
             onClick={() => setCassDrawerOpen(true)}
-            hoverText="Plan your next chapter"
+            hoverText="Plan your next track"
             teaserText="I can help you map out what comes next."
             expandedWidth="268px"
           />
