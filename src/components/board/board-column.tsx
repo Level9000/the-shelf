@@ -34,7 +34,7 @@ export function BoardColumnView({
   column: BoardColumn;
   tasks: Task[];
   onOpenTask: (taskId: string) => void;
-  onCreateTask: (columnId: string) => void;
+  onCreateTask?: (columnId: string) => void;
   showAddButton?: boolean;
   onPlanWeek?: () => void;
   onOpenCass?: () => void;
@@ -165,7 +165,7 @@ export function BoardColumnView({
 
         {/* Mobile: full-width add button */}
         {showAddButton && (
-          <TapeButton variant="primary" size="sm" onClick={() => onCreateTask(column.id)} className="w-full lg:hidden">
+          <TapeButton variant="primary" size="sm" onClick={() => onCreateTask?.(column.id)} className="w-full lg:hidden">
             Add task
           </TapeButton>
         )}

@@ -3,16 +3,16 @@ import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-context";
 
 export const metadata: Metadata = {
-  title: "Shelf",
-  description: "Voice-first AI kanban for spoken thoughts and clean execution.",
+  title: "Authored By",
+  description: "AI-guided storytelling for your work, one track at a time.",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/icons/authored_by_icon_512.png",
+    icon: "/icons/authored_by_icon_512.jpg",
+    shortcut: "/icons/authored_by_icon_512.jpg",
+    apple: "/icons/authored_by_icon_512.jpg",
     other: [
       {
         rel: "apple-touch-icon-precomposed",
-        url: "/icons/authored_by_icon_512.png",
+        url: "/icons/authored_by_icon_512.jpg",
       },
     ],
   },
