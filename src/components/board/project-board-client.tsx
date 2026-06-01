@@ -35,6 +35,7 @@ import { Modal } from "@/components/ui/modal";
 import type { Chapter } from "@/types";
 import { BoardColumnView } from "@/components/board/board-column";
 import { CassBoardDrawer, CassBoardFab } from "@/components/board/cass-board-drawer";
+import { MobileFab } from "@/components/ui/MobileFab";
 import { resolveBannerState } from "@/components/board/chapter-progress-banner";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
@@ -800,30 +801,37 @@ export function ProjectBoardClient({
       </Modal>
 
       {/* Cass FAB — retro nudge / completed chapter / active chapter */}
-      {retroNudge ? (
-        <CassBoardFab
-          onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
-          hoverText="Everything's done — write the retro"
-          ringColor="green"
-        />
-      ) : snapshot.board.retroCompletedAt ? (
-        <CassBoardFab
-          onClick={() => { setCassCompletedMode(true); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
-          hoverText="This chapter is complete, need something new?"
-          expandedWidth="336px"
-          teaserText={fabTeaserText}
-          teaserExpandedWidth={fabTeaserWidth}
-          ringColor={fabRingColor}
-        />
-      ) : (
-        <CassBoardFab
-          onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
-          hoverText="What needs to get done?"
-          teaserText={fabTeaserText}
-          teaserExpandedWidth={fabTeaserWidth}
-          ringColor={fabRingColor}
-        />
-      )}
+      {/* Mobile: plain + button */}
+      <div className="md:hidden">
+        <MobileFab onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }} />
+      </div>
+      {/* Desktop: animated Cass avatar */}
+      <div className="hidden md:block">
+        {retroNudge ? (
+          <CassBoardFab
+            onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
+            hoverText="Everything's done — write the retro"
+            ringColor="green"
+          />
+        ) : snapshot.board.retroCompletedAt ? (
+          <CassBoardFab
+            onClick={() => { setCassCompletedMode(true); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
+            hoverText="This chapter is complete, need something new?"
+            expandedWidth="336px"
+            teaserText={fabTeaserText}
+            teaserExpandedWidth={fabTeaserWidth}
+            ringColor={fabRingColor}
+          />
+        ) : (
+          <CassBoardFab
+            onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
+            hoverText="What needs to get done?"
+            teaserText={fabTeaserText}
+            teaserExpandedWidth={fabTeaserWidth}
+            ringColor={fabRingColor}
+          />
+        )}
+      </div>
 
       <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
 

@@ -84,8 +84,8 @@ function CharacterPopout() {
   const avatar = AVATAR_SEQUENCE[avatarIndex];
   const meta   = AVATAR_META[avatar];
 
-  // Off-screen: fully to the right (110%). On-screen: peek in from right edge.
-  const offX = "110%";
+  // Off-screen: well past right edge (160%). On-screen: peek in from right edge.
+  const offX = "160%";
   const onX  = meta.peekX;
 
   return (

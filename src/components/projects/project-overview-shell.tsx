@@ -17,6 +17,7 @@ import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
 import { TyFab } from "@/components/ui/TyFab";
 import { PressFab } from "@/components/ui/PressFab";
+import { MobileFab } from "@/components/ui/MobileFab";
 import { createPlannedChaptersAction } from "@/lib/actions/project-actions";
 import { renderParagraphs } from "@/lib/render-paragraphs";
 import { useTheme } from "@/lib/theme-context";
@@ -1924,23 +1925,46 @@ export function ProjectOverviewShell({
 
         {/* ── FAB — Press (after first chapter completed) or Ty ── */}
         {!refining && hasCompletedChapter && (
-          <PressFab
-            onClick={() => {
-              if (needsPaywall) { setPaywallOpen(true); return; }
-              setStartInPlanMode(false);
-              setStartInPressIntroMode(true);
-              setCassDrawerOpen(true);
-            }}
-            hoverText="Publish your story"
-            teaserText="I've been reading everything. Let's publish something."
-          />
+          <>
+            {/* Mobile: plain + button */}
+            <div className="md:hidden">
+              <MobileFab onClick={() => {
+                if (needsPaywall) { setPaywallOpen(true); return; }
+                setStartInPlanMode(false);
+                setStartInPressIntroMode(true);
+                setCassDrawerOpen(true);
+              }} />
+            </div>
+            {/* Desktop: animated Press avatar */}
+            <div className="hidden md:block">
+              <PressFab
+                onClick={() => {
+                  if (needsPaywall) { setPaywallOpen(true); return; }
+                  setStartInPlanMode(false);
+                  setStartInPressIntroMode(true);
+                  setCassDrawerOpen(true);
+                }}
+                hoverText="Publish your story"
+                teaserText="I've been reading everything. Let's publish something."
+              />
+            </div>
+          </>
         )}
         {!refining && !hasCompletedChapter && (
-          <TyFab
-            onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)}
-            hoverText="Plan your next chapter"
-            teaserText="I can help you map out what comes next."
-          />
+          <>
+            {/* Mobile: plain + button */}
+            <div className="md:hidden">
+              <MobileFab onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)} />
+            </div>
+            {/* Desktop: animated Ty avatar */}
+            <div className="hidden md:block">
+              <TyFab
+                onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)}
+                hoverText="Plan your next chapter"
+                teaserText="I can help you map out what comes next."
+              />
+            </div>
+          </>
         )}
 
       </ProjectShellFrame>

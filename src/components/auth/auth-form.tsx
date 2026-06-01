@@ -70,13 +70,13 @@ export function AuthForm({
               <label className="mb-1.5 block text-sm font-medium text-zinc-900">
                 Email
               </label>
-              <Input name="email" type="email" placeholder="you@company.com" required className="text-zinc-900" />
+              <Input name="email" type="email" placeholder="you@company.com" required className="bg-white text-zinc-900 border-zinc-200 placeholder:text-zinc-400" />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-zinc-900">
                 Password
               </label>
-              <Input name="password" type="password" placeholder="At least 8 characters" required className="text-zinc-900" />
+              <Input name="password" type="password" placeholder="At least 8 characters" required className="bg-white text-zinc-900 border-zinc-200 placeholder:text-zinc-400" />
             </div>
             {(state.error || oauthError) && (
               <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
