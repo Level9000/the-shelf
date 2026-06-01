@@ -1,18 +1,26 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-context";
+import { AvatarProvider } from "@/lib/avatar-context";
 
 export const metadata: Metadata = {
   title: "Authored By",
-  description: "AI-guided storytelling for your work, one track at a time.",
+  description: "AI-guided storytelling for your work, one chapter at a time.",
+  openGraph: {
+    title: "Authored By",
+    description: "AI-guided storytelling for your work, one chapter at a time.",
+    images: [{ url: "/icons/authored_by_app_icon.png" }],
+  },
   icons: {
-    icon: "/icons/authored_by_icon_512.jpg",
-    shortcut: "/icons/authored_by_icon_512.jpg",
-    apple: "/icons/authored_by_icon_512.jpg",
+    icon: [
+      { url: "/icons/authored_by_app_icon.png", type: "image/png" },
+    ],
+    shortcut: "/icons/authored_by_app_icon.png",
+    apple: "/icons/authored_by_app_icon.png",
     other: [
       {
         rel: "apple-touch-icon-precomposed",
-        url: "/icons/authored_by_icon_512.jpg",
+        url: "/icons/authored_by_app_icon.png",
       },
     ],
   },
@@ -36,7 +44,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full bg-[var(--app-bg)] text-[var(--ink)] antialiased">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <AvatarProvider>{children}</AvatarProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

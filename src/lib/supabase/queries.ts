@@ -62,6 +62,8 @@ function mapUserProfile(row: Record<string, unknown>): UserProfile {
     email: String(row.email),
     displayName: (row.display_name as string | null) ?? null,
     updatedAt: String(row.updated_at),
+    termsAcceptedAt: (row.terms_accepted_at as string | null) ?? null,
+    termsVersion: (row.terms_version as string | null) ?? null,
   };
 }
 
@@ -201,7 +203,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
   const { supabase, user } = await getAuthenticatedUser();
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("id, email, display_name, updated_at")
+    .select("id, email, display_name, updated_at, terms_accepted_at, terms_version")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -215,6 +217,8 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
       email: user.email ?? "",
       displayName: null,
       updatedAt: new Date(0).toISOString(),
+      termsAcceptedAt: null,
+      termsVersion: null,
     };
   }
 
@@ -528,4 +532,20 @@ export async function getLatestChapterId(projectId: string) {
   }
 
   return data?.id ?? null;
+}
+
+
+export async function getTasksForProject(projectId: string): Promise<Task[]> {
+  const { supabase } = await getAuthenticatedUser();
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("position", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(mapTask);
 }

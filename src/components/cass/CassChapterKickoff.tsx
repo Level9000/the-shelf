@@ -5,11 +5,12 @@ import type { CassAnimState } from "./cassVoice";
 import type { CassEnhancedKickoffDialogue } from "@/lib/ai/schema";
 import type { Board, BoardColumn, Project } from "@/types";
 import { CassProgressBar } from "./CassProgressBar";
-import { CassRecorder } from "./CassRecorder";
+import { AvatarRecorder } from "@/components/ui/AvatarRecorder";
 import { CassSpeechBubble } from "./CassSpeechBubble";
 import { CassInput } from "./CassInput";
 import { completeChapterKickoffAction } from "@/lib/actions/project-actions";
 import { CASS_ERROR_LINES } from "./cassVoice";
+import { useAvatar } from "@/lib/avatar-context";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
 
@@ -34,6 +35,8 @@ export function CassChapterKickoff({
   onDismiss?: () => void;
   isPrefilled: boolean;
 }) {
+  const { activeAvatar } = useAvatar();
+
   // Start in loading state — opener is fetched from the API on mount
   const [messages, setMessages] = useState<DialogueMessage[]>([OPENER_TRIGGER]);
   const [currentReply, setCurrentReply] = useState("");
@@ -56,6 +59,7 @@ export function CassChapterKickoff({
             messages: [],          // empty = opener request
             projectId: project.id,
             chapterId: board.id,
+            avatar: activeAvatar,
           }),
         });
 
@@ -100,6 +104,7 @@ export function CassChapterKickoff({
             messages: next,
             projectId: project.id,
             chapterId: board.id,
+            avatar: activeAvatar,
           }),
         });
 
@@ -221,7 +226,7 @@ export function CassChapterKickoff({
               textTransform: "uppercase",
             }}
           >
-            ◉ Track {chapterNumber} Kickoff
+            ◉ Chapter {chapterNumber} Kickoff
           </span>
           {onDismiss && (
             <button
@@ -268,7 +273,7 @@ export function CassChapterKickoff({
               maxWidth: "480px",
             }}
           >
-            <CassRecorder animState={animState} size="md" />
+            <AvatarRecorder animState={animState} size="md" />
 
             {/* Speech area */}
             <div

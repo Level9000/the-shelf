@@ -1,19 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowUp, Check, ChevronRight, LoaderCircle, MessageCircle, X } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, LoaderCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { AppUser, Chapter, ProjectMember, ProjectWithChapters, UserProfile } from "@/types";
+import type { AppUser, Chapter, ProjectMember, ProjectWithChapters, Task, UserProfile } from "@/types";
+import { useAvatar } from "@/lib/avatar-context";
+import { PRESS_TEMPLATES } from "@/lib/press/templates";
+import type { PressTemplate } from "@/lib/press/templates";
 import { ProjectArcRefiner } from "@/components/projects/project-arc-refiner";
 import { ProjectOverviewSettingsDrawer } from "@/components/projects/project-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 import { CassProgressBar } from "@/components/cass/CassProgressBar";
+import { AvatarRecorder, useAvatarName } from "@/components/ui/AvatarRecorder";
 import { CassRecorder } from "@/components/cass/CassRecorder";
-import { CassFab } from "@/components/cass/CassFab";
+import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
+import { PressMonitor } from "@/components/ui/PressMonitor";
+import { TyFab } from "@/components/ui/TyFab";
+import { PressFab } from "@/components/ui/PressFab";
 import { createPlannedChaptersAction } from "@/lib/actions/project-actions";
 import { renderParagraphs } from "@/lib/render-paragraphs";
 import { useTheme } from "@/lib/theme-context";
 import { TapeButton } from "@/components/ui/tape-button";
+import { PaywallModal } from "@/components/paywall/paywall-modal";
+import type { SubscriptionStatus } from "@/lib/subscription";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -30,6 +39,7 @@ type ChatThread = {
   label: string;
   completedAt: string;
   messages: Array<{ role: string; content: string }>;
+  tasks?: Task[];
 };
 
 /** Pull the human-readable reply out of a message.
@@ -115,8 +125,9 @@ function ChatHistoryDrawer({
               Cass · Archived
             </p>
             <p style={{
-              fontFamily: "'Special Elite', cursive",
-              fontSize: "21px", color: "#d4cec4", lineHeight: 1.2,
+              fontFamily: "'Literata', Georgia, serif",
+              fontSize: "21px", fontWeight: 700, letterSpacing: "-0.02em",
+              color: "#d4cec4", lineHeight: 1.2,
             }}>
               {thread?.label ?? ""}
             </p>
@@ -139,8 +150,8 @@ function ChatHistoryDrawer({
           borderBottom: "1px solid rgba(74,222,128,0.1)",
         }}>
           <p style={{
-            fontFamily: "var(--font-cass)",
-            fontSize: "11px", letterSpacing: "0.8px",
+            fontFamily: "'Literata', Georgia, serif",
+            fontSize: "14px",
             color: "rgba(74,222,128,0.75)", margin: 0,
           }}>
             ✓&nbsp; this conversation completed on {completedDate}
@@ -164,8 +175,8 @@ function ChatHistoryDrawer({
                   border: `1px solid ${isUser ? "rgba(200,168,107,0.14)" : "rgba(255,255,255,0.06)"}`,
                   borderRadius: isUser ? "16px 16px 4px 16px" : "4px 16px 16px 16px",
                   padding: "10px 14px",
-                  fontFamily: "var(--font-cass)",
-                  fontSize: "12.5px", lineHeight: 1.65,
+                  fontFamily: "'Literata', Georgia, serif",
+                  fontSize: "14px", lineHeight: 1.7,
                   color: isUser ? "#c8a86b" : "rgba(232,224,208,0.88)",
                   whiteSpace: "pre-wrap",
                 }}>
@@ -174,6 +185,71 @@ function ChatHistoryDrawer({
               </div>
             );
           })}
+
+          {/* Task cards created during this conversation */}
+          {thread?.tasks && thread.tasks.length > 0 && (
+            <div style={{ marginTop: "8px" }}>
+              <p style={{
+                fontFamily: "'Literata', Georgia, serif",
+                fontSize: "13px", fontWeight: 700, letterSpacing: "-0.01em",
+                color: "rgba(200,168,107,0.55)", margin: "0 0 10px",
+              }}>
+                Cards created
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {thread.tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(200,168,107,0.1)",
+                      borderRadius: "10px",
+                      padding: "10px 14px",
+                    }}
+                  >
+                    <p style={{
+                      fontFamily: "'Literata', Georgia, serif",
+                      fontSize: "13px", fontWeight: 600, lineHeight: 1.4,
+                      color: "rgba(232,224,208,0.85)", margin: 0,
+                    }}>
+                      {task.title}
+                    </p>
+                    {task.description && (
+                      <p style={{
+                        fontFamily: "'Literata', Georgia, serif",
+                        fontSize: "12px", lineHeight: 1.55,
+                        color: "rgba(232,224,208,0.45)", margin: "4px 0 0",
+                      }}>
+                        {task.description}
+                      </p>
+                    )}
+                    <div style={{ display: "flex", gap: "8px", marginTop: "6px", flexWrap: "wrap" }}>
+                      {task.assigneeName && (
+                        <span style={{
+                          fontFamily: "'Literata', Georgia, serif",
+                          fontSize: "11px", color: "rgba(200,168,107,0.5)",
+                        }}>
+                          {task.assigneeName}
+                        </span>
+                      )}
+                      {task.priority && (
+                        <span style={{
+                          fontFamily: "'Literata', Georgia, serif",
+                          fontSize: "11px",
+                          color: task.priority === "high" ? "rgba(248,113,113,0.65)"
+                            : task.priority === "medium" ? "rgba(251,191,36,0.55)"
+                            : "rgba(200,168,107,0.4)",
+                          textTransform: "capitalize",
+                        }}>
+                          {task.priority}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Disabled input area */}
@@ -222,41 +298,56 @@ const USER_BUBBLE_STYLE = {
   maxWidth: "80%",
 } as const;
 
-function CassDot() {
+function CassDot({ color = "#c8a86b" }: { color?: string } = {}) {
   return (
-    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
+    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: color, flexShrink: 0, marginBottom: "10px" }} />
+  );
+}
+
+// ── Avatar name badge (reads from context) ────────────────────────────────────
+function AvatarNameBadge() {
+  const name = useAvatarName();
+  return (
+    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>
+      {name}
+    </p>
   );
 }
 
 // ── Cass Chronicle drawer ─────────────────────────────────────────────────────
 
-type DrawerMode = "menu" | "planning" | "proposal" | "done";
+type DrawerMode = "menu" | "planning" | "proposal" | "done" | "press_pick" | "press" | "press_intro";
 type PlanMessage = { role: "user" | "assistant"; content: string };
+
 
 const CHRONICLE_QUESTION = "What do you want to do?";
 
 function buildPlanOpening(project: ProjectWithChapters): string {
   const active = project.chapters.find((ch) => ch.kickoffCompletedAt && !ch.retroCompletedAt);
   if (project.chapters.length > 0) {
-    return `${active ? `You're currently working on "${active.name}". ` : ""}What are you hoping to tackle next? Tell me what's on your mind and we'll shape it into tracks together.`;
+    return `${active ? `You're currently working on "${active.name}". ` : ""}What are you hoping to tackle next? Tell me what's on your mind and we'll shape it into chapters together.`;
   }
-  return `Let's plan out your first track${project.northStar ? ` for "${project.northStar}"` : ""}. What's the first big bet you want to make?`;
+  return `Let's plan out your first chapter${project.northStar ? ` for "${project.northStar}"` : ""}. What's the first big bet you want to make?`;
 }
 
 function CassChronicleDrawer({
   open,
   startInPlanMode = false,
+  startInPressIntroMode = false,
   project,
   onClose,
   onRefine,
 }: {
   open: boolean;
   startInPlanMode?: boolean;
+  startInPressIntroMode?: boolean;
   project: ProjectWithChapters;
   onClose: () => void;
   onRefine: () => void;
 }) {
   const router = useRouter();
+  const { setActiveAvatar } = useAvatar();
+
   // ── Menu state ──
   const [menuDisplayed, setMenuDisplayed] = useState("");
   const [optionsReady, setOptionsReady] = useState(false);
@@ -264,6 +355,175 @@ function CassChronicleDrawer({
 
   // ── Mode ──
   const [mode, setMode] = useState<DrawerMode>("menu");
+
+  // ── Press state ──
+  const [pressTemplate, setPressTemplate] = useState<PressTemplate | null>(null);
+  const [pressMessages, setPressMessages] = useState<PlanMessage[]>([]);
+  const [pressDraft, setPressDraft] = useState("");
+  const [pressError, setPressError] = useState<string | null>(null);
+  const [pressReadyToGenerate, setPressReadyToGenerate] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isPressLoading, startPressTransition] = useTransition();
+  const pressEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll to bottom when press messages update
+  useEffect(() => {
+    queueMicrotask(() => pressEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
+  }, [pressMessages, isPressLoading]);
+
+  function enterPressMode(template: PressTemplate) {
+    setPressTemplate(template);
+    setPressMessages([]);
+    setPressDraft("");
+    setPressError(null);
+    setPressReadyToGenerate(false);
+    setIsGenerating(false);
+    setActiveAvatar("press");
+    setMode("press");
+    // Press opens with a gap analysis
+    const opener: PlanMessage = { role: "user", content: `__press_open__:${template.label}` };
+    startPressTransition(async () => {
+      try {
+        const res = await fetch("/api/chat/press-gap-analysis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: project.id, outputType: template.label, messages: [opener] }),
+        });
+        const data = await res.json() as { reply?: string; ready_to_generate?: boolean; error?: string };
+        if (!res.ok) throw new Error(data.error ?? "Press couldn't load.");
+        const reply = data.reply?.trim() ?? "";
+        if (!reply) throw new Error("Press returned nothing.");
+        setPressMessages([{ role: "assistant", content: reply }]);
+        if (data.ready_to_generate) setPressReadyToGenerate(true);
+      } catch (err) {
+        setPressError(err instanceof Error ? err.message : "Signal lost. Stand by.");
+      }
+    });
+  }
+
+  function handlePressSend() {
+    const content = pressDraft.trim();
+    if (!content || isPressLoading || !pressTemplate) return;
+    const next: PlanMessage[] = [...pressMessages, { role: "user", content }];
+    setPressMessages(next);
+    setPressDraft("");
+    setPressError(null);
+    startPressTransition(async () => {
+      try {
+        const res = await fetch("/api/chat/press-gap-analysis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: project.id, outputType: pressTemplate.label, messages: next }),
+        });
+        const data = await res.json() as { reply?: string; ready_to_generate?: boolean; error?: string };
+        if (!res.ok) throw new Error(data.error ?? "Press failed.");
+        const reply = data.reply?.trim() ?? "";
+        setPressMessages((m) => [...m, { role: "assistant", content: reply }]);
+        if (data.ready_to_generate) setPressReadyToGenerate(true);
+      } catch (err) {
+        setPressError(err instanceof Error ? err.message : "Signal lost. Stand by.");
+      }
+    });
+  }
+
+  async function handleGenerate() {
+    if (!pressTemplate || isGenerating) return;
+    setIsGenerating(true);
+    setPressError(null);
+    try {
+      const res = await fetch("/api/press/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: project.id,
+          templateId: pressTemplate.id,
+          conversation: pressMessages,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error ?? "Generation failed.");
+      }
+      // Trigger download
+      const blob = await res.blob();
+      const ext  = pressTemplate.format;
+      const name = `${project.name.toLowerCase().replace(/\s+/g, "-")}-${pressTemplate.id}.${ext}`;
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setPressError(err instanceof Error ? err.message : "Generation failed.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function exitPressMode() {
+    setActiveAvatar("ty");
+    setMode("menu");
+    setPressMessages([]);
+    setPressTemplate(null);
+    setPressReadyToGenerate(false);
+    setIsGenerating(false);
+  }
+
+  function enterPressIntroMode() {
+    setIntroMessages([]);
+    setIntroDraft("");
+    setIntroError(null);
+    setActiveAvatar("press");
+    setMode("press_intro");
+    const opener: PlanMessage = { role: "user", content: "__press_intro__" };
+    startIntroTransition(async () => {
+      try {
+        const res = await fetch("/api/chat/press-intro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: project.id, messages: [opener] }),
+        });
+        const data = await res.json() as { reply?: string; ready_for_press?: boolean; error?: string };
+        if (!res.ok) throw new Error(data.error ?? "Press couldn't connect.");
+        const reply = data.reply?.trim() ?? "";
+        if (!reply) throw new Error("No response from Press.");
+        setIntroMessages([{ role: "assistant", content: reply }]);
+        if (data.ready_for_press) {
+          setTimeout(() => setMode("press_pick"), 800);
+        }
+      } catch (err) {
+        setIntroError(err instanceof Error ? err.message : "Signal lost. Stand by.");
+      }
+    });
+  }
+
+  function handleIntroSend() {
+    const content = introDraft.trim();
+    if (!content || isIntroLoading) return;
+    const next: PlanMessage[] = [...introMessages, { role: "user", content }];
+    setIntroMessages(next);
+    setIntroDraft("");
+    setIntroError(null);
+    startIntroTransition(async () => {
+      try {
+        const res = await fetch("/api/chat/press-intro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: project.id, messages: next }),
+        });
+        const data = await res.json() as { reply?: string; ready_for_press?: boolean; error?: string };
+        if (!res.ok) throw new Error(data.error ?? "Press failed.");
+        const reply = data.reply?.trim() ?? "";
+        setIntroMessages((m) => [...m, { role: "assistant", content: reply }]);
+        if (data.ready_for_press) {
+          setTimeout(() => setMode("press_pick"), 800);
+        }
+      } catch (err) {
+        setIntroError(err instanceof Error ? err.message : "Signal lost. Stand by.");
+      }
+    });
+  }
 
   // ── Planning state ──
   const [planMessages, setPlanMessages] = useState<PlanMessage[]>([]);
@@ -277,8 +537,22 @@ function CassChronicleDrawer({
   const [isSaving, startSaveTransition] = useTransition();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // ── Press intro state ──
+  const [introMessages, setIntroMessages] = useState<PlanMessage[]>([]);
+  const [introDraft, setIntroDraft] = useState("");
+  const [introError, setIntroError] = useState<string | null>(null);
+  const [isIntroLoading, startIntroTransition] = useTransition();
+  const introEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    queueMicrotask(() => introEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
+  }, [introMessages, isIntroLoading]);
+
   const startInPlanModeRef = useRef(startInPlanMode);
   useEffect(() => { startInPlanModeRef.current = startInPlanMode; }, [startInPlanMode]);
+
+  const startInPressIntroModeRef = useRef(startInPressIntroMode);
+  useEffect(() => { startInPressIntroModeRef.current = startInPressIntroMode; }, [startInPressIntroMode]);
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -308,6 +582,21 @@ function CassChronicleDrawer({
     setDraft("");
     setPlanError(null);
     setLiveChapters([]);
+    setPressMessages([]);
+    setPressDraft("");
+    setPressTemplate(null);
+    setPressReadyToGenerate(false);
+    setIsGenerating(false);
+    setIntroMessages([]);
+    setIntroDraft("");
+    setIntroError(null);
+
+    if (startInPressIntroModeRef.current) {
+      enterPressIntroMode();
+      return;
+    }
+
+    setActiveAvatar("ty");
 
     if (startInPlanModeRef.current) {
       // Skip menu, go straight to planning
@@ -344,7 +633,7 @@ function CassChronicleDrawer({
         const res = await fetch("/api/chat/plan-chapters", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, messages: next }),
+          body: JSON.stringify({ projectId: project.id, messages: next, avatar: "ty" }),
         });
         const payload = await res.json();
         if (!res.ok) throw new Error(payload.error ?? "Planning failed.");
@@ -376,7 +665,7 @@ function CassChronicleDrawer({
         setMode("done");
         router.refresh();
       } catch (err) {
-        setPlanError(err instanceof Error ? err.message : "Failed to save tracks.");
+        setPlanError(err instanceof Error ? err.message : "Failed to save chapters.");
       }
     });
   }
@@ -384,7 +673,7 @@ function CassChronicleDrawer({
   const menuOptions = [
     {
       key: "plan",
-      label: "Plan tracks",
+      label: "Plan chapters",
       sub: "Map out what's coming next",
       disabled: false,
       onSelect: () => {
@@ -402,12 +691,25 @@ function CassChronicleDrawer({
         setTimeout(() => { onClose(); onRefine(); }, 380);
       },
     },
+    {
+      key: "press",
+      label: "Generate something with Press",
+      sub: "Turn your story into a pitch, post, or update",
+      disabled: false,
+      onSelect: () => {
+        setMenuSelected("press");
+        setTimeout(() => setMode("press_pick"), 380);
+      },
+    },
   ];
 
   const chronicleProgressPercent =
     mode === "done" ? 100 :
     mode === "proposal" ? 80 :
     mode === "planning" ? 50 :
+    mode === "press" && pressReadyToGenerate ? 90 :
+    mode === "press" ? 60 :
+    mode === "press_pick" ? 30 :
     15;
 
   return (
@@ -439,10 +741,15 @@ function CassChronicleDrawer({
 
         {/* Header — consistent across all modes */}
         <div style={{ flexShrink: 0, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px" }}>
-          {/* Back button — only in planning/proposal */}
-          {(mode === "planning" || mode === "proposal") && (
+          {/* Back button — planning/proposal/press modes */}
+          {(mode === "planning" || mode === "proposal" || mode === "press_pick") && (
             <div style={{ position: "absolute", top: "14px", left: "16px" }}>
               <TapeButton variant="ghost" size="sm" onClick={() => setMode("menu")}>← back</TapeButton>
+            </div>
+          )}
+          {(mode === "press" || mode === "press_intro") && (
+            <div style={{ position: "absolute", top: "14px", left: "16px" }}>
+              <TapeButton variant="ghost" size="sm" onClick={exitPressMode}>← back</TapeButton>
             </div>
           )}
           <button
@@ -463,11 +770,9 @@ function CassChronicleDrawer({
             <X size={14} />
           </button>
 
-          {/* Cass recorder */}
-          <CassRecorder animState={isPending ? "playing" : "idle"} size="sm" />
-          <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>
-            Cass
-          </p>
+          {/* Avatar */}
+          <AvatarRecorder animState={isPending ? "playing" : "idle"} size="sm" />
+          <AvatarNameBadge />
         </div>
 
         <div style={{ height: "1px", background: "rgba(200,168,107,0.08)", flexShrink: 0 }} />
@@ -558,7 +863,7 @@ function CassChronicleDrawer({
             {liveChapters.length > 0 && (
               <div style={{ flexShrink: 0, padding: "6px 20px", borderTop: "1px solid rgba(200,168,107,0.08)" }}>
                 <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
-                  {liveChapters.length} track{liveChapters.length !== 1 ? "s" : ""} taking shape…
+                  {liveChapters.length} chapter{liveChapters.length !== 1 ? "s" : ""} taking shape…
                 </p>
               </div>
             )}
@@ -628,7 +933,7 @@ function CassChronicleDrawer({
                     }}
                   >
                     <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 4px" }}>
-                      Track {project.chapters.length + i - [...removedIndices].filter((r) => r < i).length + 1}
+                      Chapter {project.chapters.length + i - [...removedIndices].filter((r) => r < i).length + 1}
                     </p>
                     <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#d4cec4", margin: 0 }}>{ch.name}</p>
                     {ch.goal && (
@@ -667,7 +972,7 @@ function CassChronicleDrawer({
                 onClick={handleConfirm}
                 disabled={isSaving || proposedChapters.filter((_, i) => !removedIndices.has(i)).length === 0}
               >
-                {isSaving ? "Saving…" : `Add ${proposedChapters.filter((_, i) => !removedIndices.has(i)).length} track${proposedChapters.filter((_, i) => !removedIndices.has(i)).length !== 1 ? "s" : ""} to story`}
+                {isSaving ? "Saving…" : `Add ${proposedChapters.filter((_, i) => !removedIndices.has(i)).length} chapter${proposedChapters.filter((_, i) => !removedIndices.has(i)).length !== 1 ? "s" : ""} to story`}
               </TapeButton>
             </div>
           </>
@@ -676,13 +981,13 @@ function CassChronicleDrawer({
         {/* ── Done mode ── */}
         {mode === "done" && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 28px", gap: "24px" }}>
-            <CassRecorder animState="idle" size="sm" />
+            <AvatarRecorder animState="idle" size="sm" />
             <div style={{ textAlign: "center" }}>
               <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "3px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 10px" }}>
-                Tracks planned
+                Chapters planned
               </p>
               <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "22px", color: "#d4cec4", margin: 0, lineHeight: 1.3 }}>
-                {savedCount} {savedCount === 1 ? "track" : "tracks"} added to your story
+                {savedCount} {savedCount === 1 ? "chapter" : "chapters"} added to your story
               </p>
               <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "10px 0 0", lineHeight: 1.6 }}>
                 Each one is ready to kick off whenever you are.
@@ -690,6 +995,279 @@ function CassChronicleDrawer({
             </div>
             <TapeButton variant="primary" size="md" onClick={onClose}>Done</TapeButton>
           </div>
+        )}
+
+        {/* ── Press: introduction ── */}
+        {mode === "press_intro" && (
+          <>
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 16px", display: "flex", flexDirection: "column", gap: "14px" }}>
+
+              {/* Loading opener */}
+              {isIntroLoading && introMessages.length === 0 && (
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
+                  <CassDot />
+                  <div style={{ ...CASSB_STYLE, display: "flex", gap: "5px", alignItems: "center" }}>
+                    {[0, 1, 2].map((d) => (
+                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#F59E0B", opacity: 0.5, animation: `cassCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Intro messages */}
+              {introMessages.map((msg, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: "10px" }}>
+                  {msg.role === "assistant" && <CassDot color="#F59E0B" />}
+                  <div style={msg.role === "assistant"
+                    ? { ...CASSB_STYLE, maxWidth: "92%", borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }
+                    : USER_BUBBLE_STYLE}>
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+
+              {isIntroLoading && introMessages.length > 0 && (
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
+                  <CassDot color="#F59E0B" />
+                  <div style={{ ...CASSB_STYLE, display: "flex", gap: "5px", alignItems: "center" }}>
+                    {[0, 1, 2].map((d) => (
+                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#F59E0B", opacity: 0.5, animation: `cassCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {introError && (
+                <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{introError}</p>
+              )}
+
+              {/* CTA to generate — shown once Press has introduced herself */}
+              {introMessages.length > 0 && !isIntroLoading && (
+                <div style={{ marginTop: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setMode("press_pick")}
+                    style={{
+                      width: "100%", padding: "14px 16px", borderRadius: "12px",
+                      background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)",
+                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
+                      transition: "background 0.15s, border-color 0.15s",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.14)"; e.currentTarget.style.borderColor = "rgba(245,158,11,0.5)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; e.currentTarget.style.borderColor = "rgba(245,158,11,0.3)"; }}
+                  >
+                    <span style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#F59E0B" }}>
+                      Let's publish something →
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              <div ref={introEndRef} />
+            </div>
+
+            {/* Reply input */}
+            {introMessages.length > 0 && (
+              <div style={{ flexShrink: 0, borderTop: "1px solid rgba(245,158,11,0.1)", padding: "12px 16px 16px", display: "flex", gap: "10px", alignItems: "flex-end" }}>
+                <textarea
+                  value={introDraft}
+                  onChange={(e) => setIntroDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleIntroSend(); } }}
+                  placeholder="Say something to Press…"
+                  rows={2}
+                  style={{
+                    flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(245,158,11,0.15)",
+                    borderRadius: "10px", padding: "10px 14px", color: "#d4cec4",
+                    fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.5",
+                    resize: "none", outline: "none", transition: "border-color 0.15s",
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = "rgba(245,158,11,0.4)"; }}
+                  onBlur={(e) => { e.target.style.borderColor = "rgba(245,158,11,0.15)"; }}
+                  disabled={isIntroLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleIntroSend}
+                  disabled={!introDraft.trim() || isIntroLoading}
+                  style={{
+                    width: "38px", height: "38px", borderRadius: "50%",
+                    background: introDraft.trim() ? "#F59E0B" : "rgba(245,158,11,0.15)",
+                    border: "none", cursor: introDraft.trim() ? "pointer" : "not-allowed",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "background 0.15s", flexShrink: 0,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 12V2M7 2L2 7M7 2L12 7" stroke={introDraft.trim() ? "#0a0a0a" : "rgba(245,158,11,0.4)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Press: output type picker ── */}
+        {mode === "press_pick" && (
+          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
+              <CassDot />
+              <div style={CASSB_STYLE}>
+                What are we publishing?
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingTop: "4px" }}>
+              {PRESS_TEMPLATES.map((tmpl, i) => (
+                <button
+                  key={tmpl.id}
+                  type="button"
+                  onClick={() => enterPressMode(tmpl)}
+                  style={{
+                    background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)",
+                    borderRadius: "12px", padding: "14px 16px",
+                    display: "flex", alignItems: "center", gap: "14px",
+                    cursor: "pointer", textAlign: "left", width: "100%",
+                    transition: "border-color 0.15s, background 0.15s",
+                    animation: "cassOptionIn 0.28s ease forwards",
+                    animationDelay: `${i * 110}ms`,
+                    opacity: 0,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                >
+                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                  <div>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>{tmpl.label}</p>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{tmpl.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Press: gap analysis chat ── */}
+        {mode === "press" && (
+          <>
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 16px", display: "flex", flexDirection: "column", gap: "14px" }}>
+              {/* Output type label */}
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <span style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(200,168,107,0.4)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "999px", padding: "3px 12px" }}>
+                  {pressTemplate?.label ?? ""}
+                </span>
+              </div>
+
+              {/* Loading opener */}
+              {isPressLoading && pressMessages.length === 0 && (
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
+                  <CassDot />
+                  <div style={{ ...CASSB_STYLE, display: "flex", gap: "5px", alignItems: "center" }}>
+                    {[0, 1, 2].map((d) => (
+                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#c8a86b", opacity: 0.4, animation: `cassCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Press messages */}
+              {pressMessages.map((msg, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: "10px" }}>
+                  {msg.role === "assistant" && <CassDot />}
+                  <div style={msg.role === "assistant" ? { ...CASSB_STYLE, maxWidth: "92%" } : USER_BUBBLE_STYLE}>
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+
+              {isPressLoading && pressMessages.length > 0 && (
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
+                  <CassDot />
+                  <div style={{ ...CASSB_STYLE, display: "flex", gap: "5px", alignItems: "center" }}>
+                    {[0, 1, 2].map((d) => (
+                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#c8a86b", opacity: 0.4, animation: `cassCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {pressError && (
+                <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{pressError}</p>
+              )}
+
+              {pressReadyToGenerate && (
+                <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
+                  <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.25)", borderRadius: "12px", padding: "20px 24px", textAlign: "center", maxWidth: "320px" }}>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "#c8a86b", margin: "0 0 4px", fontWeight: 600 }}>
+                      Ready to generate
+                    </p>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.55)", margin: "0 0 16px", lineHeight: 1.5 }}>
+                      Press will build your {pressTemplate?.label.toLowerCase()} and download it as a .{pressTemplate?.format} file.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={isGenerating}
+                      style={{
+                        background: isGenerating ? "rgba(200,168,107,0.3)" : "#c8a86b",
+                        color: "#0a0a0a", border: "none", borderRadius: "10px",
+                        padding: "10px 22px", cursor: isGenerating ? "not-allowed" : "pointer",
+                        fontFamily: "'Literata', Georgia, serif", fontSize: "14px", fontWeight: 700,
+                        transition: "background 0.15s", display: "flex", alignItems: "center", gap: "8px", margin: "0 auto",
+                      }}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <span style={{ display: "inline-block", width: "14px", height: "14px", border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#0a0a0a", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                          Generating…
+                        </>
+                      ) : (
+                        `Download .${pressTemplate?.format ?? "file"}`
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div ref={pressEndRef} />
+            </div>
+
+            {/* Press input */}
+            {!pressReadyToGenerate && (
+              <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.08)", padding: "12px 16px 16px", display: "flex", gap: "10px", alignItems: "flex-end" }}>
+                <textarea
+                  value={pressDraft}
+                  onChange={(e) => setPressDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePressSend(); } }}
+                  placeholder="Fill in the gaps…"
+                  rows={2}
+                  style={{
+                    flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.15)",
+                    borderRadius: "10px", padding: "10px 14px", color: "#d4cec4",
+                    fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.5",
+                    resize: "none", outline: "none", transition: "border-color 0.15s",
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = "rgba(200,168,107,0.4)"; }}
+                  onBlur={(e) => { e.target.style.borderColor = "rgba(200,168,107,0.15)"; }}
+                  disabled={isPressLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handlePressSend}
+                  disabled={!pressDraft.trim() || isPressLoading}
+                  style={{
+                    width: "38px", height: "38px", borderRadius: "50%",
+                    background: pressDraft.trim() ? "#c8a86b" : "rgba(200,168,107,0.15)",
+                    border: "none", cursor: pressDraft.trim() ? "pointer" : "not-allowed",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "background 0.15s", flexShrink: 0,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 12V2M7 2L2 7M7 2L12 7" stroke={pressDraft.trim() ? "#0a0a0a" : "rgba(200,168,107,0.4)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         <style>{`
@@ -710,12 +1288,14 @@ function ChapterEntry({
   projectId,
   isLast,
   onOpenThread,
+  chapterTasks = [],
 }: {
   chapter: Chapter;
   index: number;
   projectId: string;
   isLast: boolean;
   onOpenThread: (t: ChatThread) => void;
+  chapterTasks?: Task[];
 }) {
   const status = chapterStatus(chapter);
   const { theme } = useTheme();
@@ -744,9 +1324,10 @@ function ChapterEntry({
   if (chapter.kickoffConversation && chapter.kickoffCompletedAt) {
     threads.push({
       id: `kickoff-${chapter.id}`,
-      label: "Track Kickoff",
+      label: "Chapter Kickoff",
       completedAt: chapter.kickoffCompletedAt,
       messages: chapter.kickoffConversation,
+      tasks: chapterTasks,
     });
   }
   chapter.boardConversations.forEach((conv, i) => {
@@ -755,12 +1336,13 @@ function ChapterEntry({
       label: conv.label,
       completedAt: conv.completedAt,
       messages: conv.messages,
+      tasks: chapterTasks,
     });
   });
   if (chapter.retroConversation && chapter.retroCompletedAt) {
     threads.push({
       id: `retro-${chapter.id}`,
-      label: "Track Retro",
+      label: "Chapter Retro",
       completedAt: chapter.retroCompletedAt,
       messages: chapter.retroConversation,
     });
@@ -781,17 +1363,16 @@ function ChapterEntry({
 
       <div style={{ opacity: status === "planned" ? 0.4 : 1, transition: "opacity 0.2s" }}>
         {/* Chapter name */}
-        <h2 style={{ fontFamily: "var(--font-cass)", fontSize: "26px", margin: 0, lineHeight: 1.3 }}>
-          <span style={{
-            display: "inline-block",
-            background: "#e8dfc0",
-            color: "#1a0e00",
-            padding: "3px 14px 5px",
-            clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
-            boxShadow: "2px 2px 5px rgba(0,0,0,0.3)",
-          }}>
-            {chapter.name}
-          </span>
+        <h2 style={{
+          fontFamily: "'Literata', Georgia, serif",
+          fontSize: "clamp(22px, 4vw, 30px)",
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          lineHeight: 1.2,
+          margin: 0,
+          color: isDark ? "rgba(232,224,208,0.92)" : "rgba(22,19,15,0.88)",
+        }}>
+          {chapter.name}
         </h2>
 
         {/* Completed: pull quote */}
@@ -860,7 +1441,7 @@ function ChapterEntry({
                 fontStyle: "italic",
               }}
             >
-              {chapter.confirmedThesis || chapter.goal || "This track is being written…"}
+              {chapter.confirmedThesis || chapter.goal || "This chapter is being written…"}
             </p>
           </div>
         )}
@@ -884,10 +1465,12 @@ function ChapterEntry({
         {threads.length > 0 && (
           <div style={{ marginTop: "36px" }}>
             <p style={{
-              fontFamily: "var(--font-cass)",
-              fontSize: "11px", letterSpacing: "3px",
-              color: faintColor,
-              textTransform: "uppercase", margin: "0 0 10px",
+              fontFamily: "'Literata', Georgia, serif",
+              fontSize: "13px",
+              fontWeight: 700,
+              letterSpacing: "-0.01em",
+              color: isDark ? "rgba(232,224,208,0.5)" : "rgba(22,19,15,0.45)",
+              margin: "0 0 10px",
             }}>
               Conversations
             </p>
@@ -917,10 +1500,12 @@ function ChapterEntry({
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <MessageCircle size={13} style={{ color: iconColor, flexShrink: 0 }} />
                     <span style={{
-                      fontFamily: "var(--font-cass)",
-                      fontSize: "12px", color: threadLabelColor,
+                      fontFamily: "'Literata', Georgia, serif",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      letterSpacing: "-0.01em",
+                      color: threadLabelColor,
                     }}>
                       {t.label}
                     </span>
@@ -948,22 +1533,29 @@ function ChapterEntry({
 
 // ── Margin decoration items ───────────────────────────────────────────────────
 
+type DecoAvatar = "cass" | "ty" | "press";
+
 type DecoItem = {
   side: "left" | "right";
-  src: string | null; // null = render CassRecorder
-  w: number;
+  src: string | DecoAvatar; // string = image path, DecoAvatar = render that avatar
+  w: number;          // used for images; avatars use a fixed scale
   rotation: number;
   tx: string;
   top: number;
   key: number;
 };
 
-/** Cycles every 4 items. null src = CassRecorder. */
+/**
+ * Cycles right → left → right → left…
+ * 4 items: tape/sticky image, Cass, Ty, Press
+ */
 const DECO_PATTERN: Omit<DecoItem, "top" | "key">[] = [
-  { side: "left",  src: "/icons/authored_by_transparent.png", w: 293, rotation: -11, tx: "-30%" },
-  { side: "right", src: "/images/stickies.png",               w: 372, rotation:   7, tx:  "30%" },
-  { side: "left",  src: null,                                  w: 114, rotation:  -4, tx: "-25%" },
-  { side: "right", src: "/images/black_marker.png",           w: 198, rotation:   9, tx:  "33%" },
+  { side: "right", src: "ty",    w: 0, rotation:  6, tx:  "28%" },
+  { side: "left",  src: "cass",  w: 0, rotation: -5, tx: "-20%" },
+  { side: "right", src: "press", w: 0, rotation:  4, tx:  "28%" },
+  { side: "left",  src: "ty",    w: 0, rotation: -6, tx: "-20%" },
+  { side: "right", src: "cass",  w: 0, rotation:  5, tx:  "28%" },
+  { side: "left",  src: "press", w: 0, rotation: -4, tx: "-18%" },
 ];
 
 // ── Main shell ────────────────────────────────────────────────────────────────
@@ -976,6 +1568,8 @@ export function ProjectOverviewShell({
   projectMembers,
   lastChapterId,
   initialPlanning = false,
+  subscriptionStatus,
+  projectTasks = [],
 }: {
   project: ProjectWithChapters;
   projects: ProjectWithChapters[];
@@ -984,10 +1578,18 @@ export function ProjectOverviewShell({
   projectMembers: ProjectMember[];
   lastChapterId?: string | null;
   initialPlanning?: boolean;
+  subscriptionStatus?: SubscriptionStatus;
+  projectTasks?: Task[];
 }) {
+  const needsPaywall = subscriptionStatus === "trial_ended" || subscriptionStatus === "expired";
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const [refining, setRefining] = useState(false);
-  const [cassDrawerOpen, setCassDrawerOpen] = useState(initialPlanning);
-  const [startInPlanMode, setStartInPlanMode] = useState(initialPlanning);
+  const [cassDrawerOpen, setCassDrawerOpen] = useState(initialPlanning && !needsPaywall);
+  const [startInPlanMode, setStartInPlanMode] = useState(initialPlanning && !needsPaywall);
+  const [startInPressIntroMode, setStartInPressIntroMode] = useState(false);
+
+  // Show PressFab once at least one chapter has been fully completed (retro done)
+  const hasCompletedChapter = project.chapters.some((ch) => ch.retroCompletedAt);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyThread, setHistoryThread] = useState<ChatThread | null>(null);
 
@@ -1013,6 +1615,10 @@ export function ProjectOverviewShell({
   const projDateColor       = isDark ? "rgba(200,168,107,0.45)"  : "rgba(0,0,0,0.35)";
   const projChevronColor    = isDark ? "rgba(200,168,107,0.35)"  : "rgba(0,0,0,0.25)";
   const emptyStateColor     = isDark ? "rgba(232,224,208,0.3)"   : "rgba(22,19,15,0.28)";
+
+  // RT-02: Story tab → Ty
+  const { setActiveAvatar } = useAvatar();
+  useEffect(() => { setActiveAvatar("ty"); }, [setActiveAvatar]);
 
   // Scroll to the selected chapter whenever lastChapterId changes
   useEffect(() => {
@@ -1055,8 +1661,12 @@ export function ProjectOverviewShell({
   }, []);
 
   function openDrawerForPlanning() {
-    setStartInPlanMode(true);
-    setCassDrawerOpen(true);
+    if (needsPaywall) {
+      setPaywallOpen(true);
+    } else {
+      setStartInPlanMode(true);
+      setCassDrawerOpen(true);
+    }
   }
 
   return (
@@ -1113,18 +1723,26 @@ export function ProjectOverviewShell({
                     filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.55))",
                   }}
                 >
-                  {item.src ? (
+                  {item.src === "cass" ? (
+                    <div style={{ transform: "scale(1.8)", transformOrigin: "center center" }}>
+                      <CassRecorder animState="idle" size="sm" />
+                    </div>
+                  ) : item.src === "ty" ? (
+                    <div style={{ transform: "scale(1.4)", transformOrigin: "center center" }}>
+                      <TypewriterRecorder animState="idle" size="sm" />
+                    </div>
+                  ) : item.src === "press" ? (
+                    <div style={{ transform: "scale(1.6)", transformOrigin: "center center" }}>
+                      <PressMonitor animState="idle" size="sm" />
+                    </div>
+                  ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={item.src}
                       alt=""
                       width={item.w}
-                      style={{ display: "block" }}
+                      style={{ display: "block", width: `${item.w}px`, height: "auto" }}
                     />
-                  ) : (
-                    <div style={{ transform: "scale(1.5)", transformOrigin: "top left" }}>
-                      <CassRecorder animState="playing" size="sm" />
-                    </div>
                   )}
                 </div>
               ))}
@@ -1194,7 +1812,7 @@ export function ProjectOverviewShell({
                 project.planningConversations.forEach((session, i) => {
                   projectThreads.push({
                     id: `planning-${i}`,
-                    label: "Track Planning",
+                    label: "Chapter Planning",
                     completedAt: session.completedAt,
                     messages: session.messages,
                   });
@@ -1203,10 +1821,12 @@ export function ProjectOverviewShell({
                 return (
                   <div style={{ marginBottom: "52px" }}>
                     <p style={{
-                      fontFamily: "var(--font-cass)",
-                      fontSize: "11px", letterSpacing: "3px",
+                      fontFamily: "'Literata', Georgia, serif",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      letterSpacing: "-0.01em",
                       color: projThreadFaintColor,
-                      textTransform: "uppercase", margin: "0 0 10px",
+                      margin: "0 0 10px",
                     }}>
                       Project Conversations
                     </p>
@@ -1236,10 +1856,12 @@ export function ProjectOverviewShell({
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <MessageCircle size={13} style={{ color: projIconColor, flexShrink: 0 }} />
                             <span style={{
-                              fontFamily: "var(--font-cass)",
-                              fontSize: "12px", color: projLabelColor,
+                              fontFamily: "'Literata', Georgia, serif",
+                              fontSize: "13px",
+                              fontWeight: 600,
+                              letterSpacing: "-0.01em",
+                              color: projLabelColor,
                             }}>
                               {t.label}
                             </span>
@@ -1273,6 +1895,7 @@ export function ProjectOverviewShell({
                       projectId={project.id}
                       isLast={i === project.chapters.length - 1}
                       onOpenThread={setHistoryThread}
+                      chapterTasks={projectTasks.filter((t) => t.boardId === chapter.id)}
                     />
                   ))}
                 </div>
@@ -1288,7 +1911,7 @@ export function ProjectOverviewShell({
                       lineHeight: 1.7,
                     }}
                   >
-                    The first track hasn&apos;t started yet.
+                    The first chapter hasn&apos;t started yet.
                     <br />
                     Use the button below to plan it.
                   </p>
@@ -1299,17 +1922,30 @@ export function ProjectOverviewShell({
           </div>
         )}
 
-        {/* ── FAB — Cass circle avatar ── */}
-        {!refining && (
-          <CassFab
-            onClick={() => setCassDrawerOpen(true)}
-            hoverText="Plan your next track"
+        {/* ── FAB — Press (after first chapter completed) or Ty ── */}
+        {!refining && hasCompletedChapter && (
+          <PressFab
+            onClick={() => {
+              if (needsPaywall) { setPaywallOpen(true); return; }
+              setStartInPlanMode(false);
+              setStartInPressIntroMode(true);
+              setCassDrawerOpen(true);
+            }}
+            hoverText="Publish your story"
+            teaserText="I've been reading everything. Let's publish something."
+          />
+        )}
+        {!refining && !hasCompletedChapter && (
+          <TyFab
+            onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)}
+            hoverText="Plan your next chapter"
             teaserText="I can help you map out what comes next."
-            expandedWidth="268px"
           />
         )}
 
       </ProjectShellFrame>
+
+      <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
 
       {/* ── Chat history drawer ── */}
       <ChatHistoryDrawer
@@ -1321,8 +1957,9 @@ export function ProjectOverviewShell({
       <CassChronicleDrawer
         open={cassDrawerOpen}
         startInPlanMode={startInPlanMode}
+        startInPressIntroMode={startInPressIntroMode}
         project={project}
-        onClose={() => { setCassDrawerOpen(false); setStartInPlanMode(false); }}
+        onClose={() => { setCassDrawerOpen(false); setStartInPlanMode(false); setStartInPressIntroMode(false); }}
         onRefine={() => setRefining(true)}
       />
 

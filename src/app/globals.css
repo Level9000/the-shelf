@@ -35,15 +35,15 @@
 
 [data-theme="dark"] {
   --app-bg: #0d0d0d;
-  --surface: rgba(255, 255, 255, 0.05);
-  --surface-strong: rgba(255, 255, 255, 0.08);
-  --surface-muted: rgba(255, 255, 255, 0.03);
-  --field-bg: rgba(255, 255, 255, 0.10);
+  --surface: #1a1a1a;
+  --surface-strong: #212121;
+  --surface-muted: #161616;
+  --field-bg: #2a2a2a;
   --stroke: rgba(255, 255, 255, 0.08);
   --ink: #d4cec4;
   --muted: rgba(212, 206, 196, 0.45);
   --accent: #d4cec4;
-  --accent-soft: rgba(212, 206, 196, 0.08);
+  --accent-soft: #2a2a2a;
   --danger: #f87171;
   --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.5);
   --shadow-card: 0 18px 46px rgba(0, 0, 0, 0.4);
@@ -118,8 +118,11 @@ pre,
 
 .surface {
   background: var(--surface);
-  backdrop-filter: blur(20px);
   box-shadow: var(--shadow-soft);
+}
+
+[data-theme="dark"] .surface {
+  backdrop-filter: none;
 }
 
 .surface-card {

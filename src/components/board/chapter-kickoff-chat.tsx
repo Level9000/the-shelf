@@ -713,7 +713,7 @@ export function ChapterKickoffChat({
         {/* ── Left: chat ── */}
         <section className="surface hairline flex min-h-0 flex-col rounded-[2rem] overflow-hidden">
           <div className="border-b border-black/6 px-5 py-4">
-            <p className="text-sm font-semibold text-[var(--ink)]">Track kickoff</p>
+            <p className="text-sm font-semibold text-[var(--ink)]">Chapter kickoff</p>
             <p className="mt-1 text-sm text-[var(--muted)]">
               Answer naturally — this is a conversation, not a form.
             </p>

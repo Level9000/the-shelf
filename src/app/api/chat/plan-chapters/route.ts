@@ -18,9 +18,11 @@ export async function POST(request: Request) {
   const payload = (await request.json()) as {
     messages?: Array<{ role?: string; content?: string }>;
     projectId?: string;
+    avatar?: string;
   };
 
   const projectId = String(payload.projectId ?? "");
+  const avatar = payload.avatar ?? "cass";
   const messages = Array.isArray(payload.messages)
     ? payload.messages
         .map((m) => strategicDialogueMessageSchema.safeParse(m))
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
       northStar: (project.north_star as string | null) ?? null,
       accumulativeStory: (project.accumulative_story as string | null) ?? null,
       existingChapters,
+      avatar,
     });
 
     return NextResponse.json(result);

@@ -1,5 +1,9 @@
 import type { Priority } from "@/types";
 
+/** Bump this date string whenever you publish updated Terms or Privacy Policy.
+ *  Users whose stored terms_version differs will be re-prompted on next login. */
+export const CURRENT_TERMS_VERSION = "2026-05-30";
+
 export const DEFAULT_COLUMNS = [
   "Do This Week",
   "Do Today",

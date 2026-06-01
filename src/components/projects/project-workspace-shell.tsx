@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useAvatar } from "@/lib/avatar-context";
 import { useRouter } from "next/navigation";
 import type { BoardSnapshot, ProjectWithChapters, UserProfile } from "@/types";
 import type { SubscriptionStatus } from "@/lib/subscription";
@@ -42,6 +43,11 @@ export function ProjectWorkspaceShell({
   subscriptionStatus?: SubscriptionStatus;
 }) {
   const router = useRouter();
+  const { setActiveAvatar } = useAvatar();
+
+  // RT-02: Board tab → Cass
+  useEffect(() => { setActiveAvatar("cass"); }, [setActiveAvatar]);
+
   const [retroOpen, setRetroOpen] = useState(false);
   const [allDoneDismissed, setAllDoneDismissed] = useState(false);
 
@@ -100,6 +106,7 @@ export function ProjectWorkspaceShell({
     <ProjectShellFrame
       projects={projects}
       profile={profile}
+      hasActiveSubscription={subscriptionStatus === "active" || subscriptionStatus === "grace_period"}
       currentProjectId={currentProjectId}
       currentChapterId={currentChapterId}
       mobileEyebrow={snapshot.board.name}
@@ -149,6 +156,7 @@ export function ProjectWorkspaceShell({
               .filter((c) => !c.retroCompletedAt);
           })()}
           allChaptersCount={currentProject?.chapters.length ?? 0}
+          subscriptionStatus={subscriptionStatus}
         />
       </div>
     </ProjectShellFrame>

@@ -260,7 +260,7 @@ function HubView({
               What&apos;s next?
             </p>
             <p className="mt-1 font-semibold text-[var(--ink)]">
-              Plan your next track
+              Plan your next chapter
             </p>
             <p className="mt-0.5 text-sm text-[var(--muted)]">
               Head to the Story tab to map out what comes next.
@@ -548,7 +548,7 @@ function LockedView({
           Your story is almost ready
         </h2>
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-          Complete the track retro and your story will unlock here — ready to
+          Complete the chapter retro and your story will unlock here — ready to
           share with your team, investors, or the world.
         </p>
         {retroAvailable && onEndChapter && (
@@ -558,12 +558,12 @@ function LockedView({
             className="mt-6 inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-black"
           >
             <BookOpen className="size-4" />
-            End track &amp; write the story
+            End chapter &amp; write the story
           </button>
         )}
         {!board.kickoffCompletedAt && (
           <p className="mt-4 text-xs text-[var(--muted)]">
-            Complete the track kickoff first to unlock the retro.
+            Complete the chapter kickoff first to unlock the retro.
           </p>
         )}
       </div>

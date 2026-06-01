@@ -25,6 +25,11 @@ import {
   buildCassOnboardingPrompt,
   buildCassRetroPrompt,
   buildCassStoryShareRefinementPrompt,
+  buildTyChapterKickoffPrompt,
+  buildTyRetroPrompt,
+  buildTyChroniclePrompt,
+  buildPressGapAnalysisPrompt,
+  buildPressIntroPrompt,
   buildChapterKickoffPrompt,
   buildChapterOverviewDialoguePrompt,
   buildChapterPlannerPrompt,
@@ -793,9 +798,21 @@ export async function runChapterPlannerDialogue(input: {
     goal?: string | null;
     status: "completed" | "working_on_it" | "planned";
   }>;
+  avatar?: string | null;
 }) {
+  const normalizedChapters = input.existingChapters.map((ch) => ({
+    name:   ch.name,
+    goal:   ch.goal ?? null,
+    status: ch.status,
+  }));
+
+  const systemPrompt =
+    input.avatar === "ty"
+      ? buildTyChroniclePrompt({ ...input, existingChapters: normalizedChapters })
+      : buildChapterPlannerPrompt(input);
+
   return runJsonDialogue(
-    buildChapterPlannerPrompt(input),
+    systemPrompt,
     input.messages,
     (text) => aiChapterPlannerDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
     2048,
@@ -948,9 +965,13 @@ export async function runCassChapterKickoffDialogue(input: {
     measure?: string | null;
     done?: string | null;
   } | null;
+  avatar?: string | null;
 }) {
   const apiKey = requireAnthropicKey();
-  const systemPrompt = buildCassChapterKickoffPrompt(input);
+  const systemPrompt =
+    input.avatar === "ty"
+      ? buildTyChapterKickoffPrompt(input)
+      : buildCassChapterKickoffPrompt(input);
 
   const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
     method: "POST",
@@ -1010,9 +1031,13 @@ export async function runCassRetroDialogue(input: {
   completedTasks: Array<{ title: string; context?: string | null }>;
   incompleteTasks: Array<{ title: string }>;
   recenteringType?: string | null;
+  avatar?: string | null;
 }) {
   const apiKey = requireAnthropicKey();
-  const systemPrompt = buildCassRetroPrompt(input);
+  const systemPrompt =
+    input.avatar === "ty"
+      ? buildTyRetroPrompt(input)
+      : buildCassRetroPrompt(input);
 
   const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
     method: "POST",
@@ -1224,4 +1249,73 @@ export async function runCassStoryShareRefinement(input: {
   if (!refined) throw new Error("Story refinement returned no content.");
 
   return refined;
+}
+
+// ── Press gap analysis ────────────────────────────────────────────────────────
+
+export async function runPressGapAnalysis(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  northStar?: string | null;
+  outputType: string;
+  chapters: Array<{
+    name: string;
+    goal: string | null;
+    story: string | null;
+    status: string;
+  }>;
+}) {
+  return runJsonDialogue(
+    buildPressGapAnalysisPrompt(input),
+    input.messages,
+    (text) => {
+      const parsed = safeJsonParse(extractJsonObject(text)) as {
+        reply?: string;
+        done?: boolean;
+        has_sufficient_data?: boolean;
+        gaps?: string[];
+        ready_to_generate?: boolean;
+      };
+      return {
+        reply:               parsed.reply ?? "",
+        done:                parsed.done ?? false,
+        has_sufficient_data: parsed.has_sufficient_data ?? false,
+        gaps:                parsed.gaps ?? [],
+        ready_to_generate:   parsed.ready_to_generate ?? false,
+      };
+    },
+    1024,
+  );
+}
+
+// ── Press introduction ────────────────────────────────────────────────────────
+
+export async function runPressIntroDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  northStar?: string | null;
+  completedChapters: Array<{
+    name: string;
+    goal: string | null;
+    story: string | null;
+  }>;
+  totalChapters: number;
+}) {
+  return runJsonDialogue(
+    buildPressIntroPrompt(input),
+    input.messages,
+    (text) => {
+      const parsed = safeJsonParse(extractJsonObject(text)) as {
+        reply?: string;
+        done?: boolean;
+        ready_for_press?: boolean;
+      };
+      return {
+        reply:           parsed.reply ?? "",
+        done:            parsed.done ?? false,
+        ready_for_press: parsed.ready_for_press ?? false,
+      };
+    },
+    1024,
+  );
 }

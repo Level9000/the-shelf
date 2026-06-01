@@ -40,6 +40,8 @@ import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import type { VoiceProcessingResult } from "@/components/voice/voice-capture-panel";
 import { ReviewTasksModal } from "@/components/voice/review-tasks-modal";
+import { PaywallModal } from "@/components/paywall/paywall-modal";
+import type { SubscriptionStatus } from "@/lib/subscription";
 
 type ReviewState = {
   captureId: string | null;
@@ -216,6 +218,7 @@ export function ProjectBoardClient({
   onStartRetro,
   onKickoffComplete,
   onRetroComplete,
+  subscriptionStatus,
 }: {
   snapshot: BoardSnapshot;
   chapterProjectId: string;
@@ -231,6 +234,7 @@ export function ProjectBoardClient({
   onStartRetro?: () => void;
   onKickoffComplete?: () => void;
   onRetroComplete?: (data: { chapterStory: string; pullQuote: string; headline?: string; subheadline?: string; chapterType?: string }) => void;
+  subscriptionStatus?: SubscriptionStatus;
 }) {
   const router = useRouter();
   const sensors = useSensors(
@@ -247,6 +251,9 @@ export function ProjectBoardClient({
     }),
   );
 
+  const needsPaywall = subscriptionStatus === "trial_ended" || subscriptionStatus === "expired";
+  const [paywallOpen, setPaywallOpen] = useState(false);
+
   const [tasks, setTasks] = useState<Task[]>(() => sortTasks(snapshot.tasks));
 
   // Sync local task state when the server sends a fresh snapshot (after router.refresh())
@@ -259,7 +266,7 @@ export function ProjectBoardClient({
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   // When a modal opens during a drag, mark it cancelled so handleDragEnd skips the move
   const cancelDragRef = useRef(false);
-  const [cassOpen, setCassOpen] = useState(() => !!initialDrawerMode);
+  const [cassOpen, setCassOpen] = useState(() => !!initialDrawerMode && !needsPaywall);
   const [cassBreakupTaskId, setCassBreakupTaskId] = useState<string | null>(null);
   const [cassCompletedMode, setCassCompletedMode] = useState(false);
 
@@ -268,9 +275,13 @@ export function ProjectBoardClient({
     if (initialDrawerMode) {
       setCassBreakupTaskId(null);
       setCassCompletedMode(false);
-      setCassOpen(true);
+      if (needsPaywall) {
+        setPaywallOpen(true);
+      } else {
+        setCassOpen(true);
+      }
     }
-  }, [initialDrawerMode]);
+  }, [initialDrawerMode, needsPaywall]);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -555,7 +566,7 @@ export function ProjectBoardClient({
 
   const fabTeaserText: string | undefined =
     bannerState.kind === "running_long"
-      ? `${bannerState.ageDays} days in. Time to wrap up this track.`
+      ? `${bannerState.ageDays} days in. Time to wrap up this chapter.`
     : bannerState.kind === "closing_stretch"
       ? `${bannerState.completedCount} of ${bannerState.totalCount} done. Almost there.`
     : bannerState.kind === "on_pace"
@@ -647,7 +658,7 @@ export function ProjectBoardClient({
                         onOpenCass={
                           !snapshot.board.retroCompletedAt && !retroNudge &&
                           (column.name === "Do This Week" || column.name === "Do Today")
-                            ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }
+                            ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }
                             : undefined
                         }
                       />
@@ -672,7 +683,7 @@ export function ProjectBoardClient({
                     onOpenCass={
                       !snapshot.board.retroCompletedAt && !retroNudge &&
                       (column.name === "Do This Week" || column.name === "Do Today")
-                        ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }
+                        ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }
                         : undefined
                     }
                   />
@@ -729,12 +740,6 @@ export function ProjectBoardClient({
         onClose={() => setSelectedTaskId(null)}
         onSaved={refreshData}
         onDeleted={refreshData}
-        onOpenCass={() => {
-          const taskId = selectedTaskId;
-          setSelectedTaskId(null);
-          setCassBreakupTaskId(taskId);
-          setCassOpen(true);
-        }}
       />
 
       <ManualTaskModal
@@ -772,15 +777,15 @@ export function ProjectBoardClient({
 
       <Modal
         open={completedAlertOpen}
-        title="Track complete"
+        title="Chapter complete"
         onClose={() => setCompletedAlertOpen(false)}
       >
         <p className="text-sm leading-6 text-[var(--muted)]">
-          This track was completed on{" "}
+          This chapter was completed on{" "}
           <span className="font-medium text-[var(--ink)]">
             {formatDate(snapshot.board.retroCompletedAt)}
           </span>
-          . Head over to your current track if you need to add new tasks.
+          . Head over to your current chapter if you need to add new tasks.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <TapeButton variant="secondary" size="sm" onClick={() => setCompletedAlertOpen(false)}>
@@ -788,7 +793,7 @@ export function ProjectBoardClient({
           </TapeButton>
           {activeChapterUrl && (
             <TapeButton variant="primary" size="sm" onClick={() => router.push(activeChapterUrl)}>
-              Go to current track
+              Go to current chapter
             </TapeButton>
           )}
         </div>
@@ -797,14 +802,14 @@ export function ProjectBoardClient({
       {/* Cass FAB — retro nudge / completed chapter / active chapter */}
       {retroNudge ? (
         <CassBoardFab
-          onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }}
+          onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
           hoverText="Everything's done — write the retro"
           ringColor="green"
         />
       ) : snapshot.board.retroCompletedAt ? (
         <CassBoardFab
-          onClick={() => { setCassCompletedMode(true); setCassBreakupTaskId(null); setCassOpen(true); }}
-          hoverText="This track is complete, need something new?"
+          onClick={() => { setCassCompletedMode(true); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
+          hoverText="This chapter is complete, need something new?"
           expandedWidth="336px"
           teaserText={fabTeaserText}
           teaserExpandedWidth={fabTeaserWidth}
@@ -812,13 +817,15 @@ export function ProjectBoardClient({
         />
       ) : (
         <CassBoardFab
-          onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); setCassOpen(true); }}
+          onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
           hoverText="What needs to get done?"
           teaserText={fabTeaserText}
           teaserExpandedWidth={fabTeaserWidth}
           ringColor={fabRingColor}
         />
       )}
+
+      <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
 
       <CassBoardDrawer
         open={cassOpen}

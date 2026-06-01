@@ -17,6 +17,8 @@ export type UserProfile = {
   email: string;
   displayName: string | null;
   updatedAt: string;
+  termsAcceptedAt: string | null;
+  termsVersion: string | null;
 };
 
 export type Project = {

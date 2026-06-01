@@ -3,6 +3,21 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { CURRENT_TERMS_VERSION } from "@/lib/constants";
+
+/** Write terms acceptance to user_profiles. Safe to call multiple times —
+ *  only updates if the row doesn't already have this version recorded. */
+async function recordTermsAcceptance(userId: string) {
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from("user_profiles")
+    .update({
+      terms_accepted_at: new Date().toISOString(),
+      terms_version: CURRENT_TERMS_VERSION,
+    })
+    .eq("id", userId)
+    .neq("terms_version", CURRENT_TERMS_VERSION); // skip if already on current version
+}
 
 async function getOrigin() {
   const h = await headers();
@@ -75,10 +90,14 @@ export async function signupAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
     return { error: error.message };
+  }
+
+  if (data.user) {
+    await recordTermsAcceptance(data.user.id);
   }
 
   redirect("/projects");

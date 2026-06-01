@@ -12,9 +12,11 @@ import { ProjectList } from "@/components/projects/project-list";
 export function DashboardShell({
   projects,
   profile,
+  hasActiveSubscription,
 }: {
   projects: Project[];
   profile: UserProfile;
+  hasActiveSubscription?: boolean;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -84,6 +86,7 @@ export function DashboardShell({
       <SettingsDrawer
         open={settingsOpen}
         profile={profile}
+        hasActiveSubscription={hasActiveSubscription}
         onClose={() => setSettingsOpen(false)}
       />
     </>

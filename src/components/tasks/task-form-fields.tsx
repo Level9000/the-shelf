@@ -145,23 +145,35 @@ export function TaskFormFields({
 
   return (
     <div className="space-y-4">
+      {/* Title */}
       <div>
         <label className="mb-2 block text-sm font-medium">Title</label>
-        <Input
+        <Textarea
           value={title}
           onChange={(event) => onChange("title", event.target.value)}
           placeholder="Rewrite homepage headline"
+          className="min-h-[46px] max-h-[96px] resize-none overflow-y-auto"
+          rows={1}
+          onInput={(e) => {
+            const el = e.currentTarget;
+            el.style.height = "auto";
+            el.style.height = Math.min(el.scrollHeight, 96) + "px";
+          }}
         />
       </div>
+
+      {/* Description */}
       <div>
         <label className="mb-2 block text-sm font-medium">Description</label>
         <Textarea
           value={description}
           onChange={(event) => onChange("description", event.target.value)}
           placeholder="Add context, references, or the next step."
-          className="min-h-[140px]"
+          className="min-h-[100px]"
         />
       </div>
+
+      {/* Assigned to */}
       <div>
         <label className="mb-2 block text-sm font-medium">Assigned to</label>
         {memberOptions.length > 0 ? (
@@ -178,13 +190,23 @@ export function TaskFormFields({
           />
         )}
       </div>
+
+      {/* Due date / Column / Priority */}
       <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label className="mb-2 block text-sm font-medium">Due date</label>
+          <Input
+            type="date"
+            value={dueDate}
+            onChange={(event) => onChange("dueDate", event.target.value)}
+          />
+        </div>
         <div>
           <label className="mb-2 block text-sm font-medium">Column</label>
           <select
             value={columnId}
             onChange={(event) => onChange("columnId", event.target.value)}
-            className="w-full rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+            className="h-[46px] w-full rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
           >
             {columns.map((column) => (
               <option key={column.id} value={column.id}>
@@ -198,7 +220,7 @@ export function TaskFormFields({
           <select
             value={priority ?? ""}
             onChange={(event) => onChange("priority", event.target.value)}
-            className="w-full rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+            className="h-[46px] w-full rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
           >
             <option value="">None</option>
             {PRIORITY_OPTIONS.map((option) => (
@@ -207,14 +229,6 @@ export function TaskFormFields({
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium">Due date</label>
-          <Input
-            type="date"
-            value={dueDate}
-            onChange={(event) => onChange("dueDate", event.target.value)}
-          />
         </div>
       </div>
     </div>

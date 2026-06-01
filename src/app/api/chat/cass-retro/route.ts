@@ -20,10 +20,12 @@ export async function POST(request: Request) {
     messages?: Array<{ role?: string; content?: string }>;
     projectId?: string;
     chapterId?: string;
+    avatar?: string;
   };
 
   const projectId = String(payload.projectId ?? "");
   const chapterId = String(payload.chapterId ?? "");
+  const avatar = payload.avatar ?? "cass";
   const messages = Array.isArray(payload.messages)
     ? payload.messages
         .map((m) => strategicDialogueMessageSchema.safeParse(m))
@@ -118,6 +120,7 @@ export async function POST(request: Request) {
       projectName:    String(project.name),
       northStar:      (project.north_star as string | null) ?? null,
       accumulativeStory: (project.accumulative_story as string | null) ?? null,
+      avatar,
       chapter: {
         number:           1, // API route omitted; number derived from position
         name:             String(board.name),

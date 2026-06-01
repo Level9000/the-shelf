@@ -1,7 +1,10 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
+import { stripe } from "@/lib/stripe";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function updateUserProfileAction(input: { displayName: string }) {
   const displayName = input.displayName.trim();
@@ -29,4 +32,34 @@ export async function updateUserProfileAction(input: { displayName: string }) {
 
   revalidatePath("/settings");
   revalidatePath("/projects");
+}
+
+export async function deleteAccountAction() {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  // Cancel active Stripe subscription if one exists
+  const { data: sub } = await supabase
+    .from("user_subscriptions")
+    .select("platform_subscription_id, platform, status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (sub?.platform === "stripe" && sub?.platform_subscription_id && sub.status === "active") {
+    try {
+      await stripe.subscriptions.cancel(sub.platform_subscription_id);
+    } catch (err) {
+      console.error("[deleteAccount] Stripe cancel failed:", err);
+      // Don't block deletion if Stripe cancel fails — webhook will clean up
+    }
+  }
+
+  // Delete from auth.users — cascades to user_profiles and all user data via FK constraints
+  const adminSupabase = await createSupabaseServerClient();
+  const { error } = await adminSupabase.auth.admin.deleteUser(user.id);
+
+  if (error) {
+    throw new Error("Failed to delete account: " + error.message);
+  }
+
+  redirect("/login");
 }

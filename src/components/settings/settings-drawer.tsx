@@ -2,43 +2,161 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { UserProfile } from "@/types";
 import { deleteChapterAction, deleteProjectAction } from "@/lib/actions/project-actions";
+import { deleteAccountAction } from "@/lib/actions/profile-actions";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { SideDrawer } from "@/components/ui/side-drawer";
 import { useTheme } from "@/lib/theme-context";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { TapeButton } from "@/components/ui/tape-button";
 
-// ── Tape clip ─────────────────────────────────────────────────────────────────
-
-// Flat left edge, torn right edge — flush against the left wall of the drawer
-const TAPE_CLIP = "polygon(0% 0%, calc(100% - 2px) 0%, 100% 20%, calc(100% - 4px) 48%, 100% 72%, calc(100% - 2px) 100%, 0% 100%)";
-
 // ── Section wrapper ───────────────────────────────────────────────────────────
 
-function DrawerSection({ label, children }: { label: string; children: React.ReactNode }) {
+function DrawerSection({ label, children, danger = false }: { label: string; children: React.ReactNode; danger?: boolean }) {
   return (
     <div>
-      <div style={{ padding: "10px 0 8px" }}>
+      <div style={{ padding: "18px 16px 6px" }}>
         <span style={{
-          display: "inline-block",
-          fontFamily: "var(--font-cass)",
-          fontSize: "11px",
-          letterSpacing: "0.15em",
-          color: "#1a0e00",
-          background: "#e8dfc0",
-          padding: "4px 22px 5px 14px",
-          clipPath: TAPE_CLIP,
-          boxShadow: "3px 1px 5px rgba(0,0,0,0.35)",
-          textTransform: "uppercase",
+          fontFamily: "'Literata', Georgia, serif",
+          fontSize: "17px",
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          color: danger ? "var(--danger, #9f3f38)" : "var(--ink)",
         }}>
           {label}
         </span>
       </div>
-      <div style={{ padding: "14px 16px" }}>
+      <div style={{ padding: "10px 16px 14px" }}>
         {children}
       </div>
+    </div>
+  );
+}
+
+// ── Plan data (mirrors paywall-modal) ────────────────────────────────────────
+
+const PLANS = [
+  {
+    id: "builderMonthly" as const,
+    label: "Builder Monthly",
+    price: "$12",
+    period: "/month",
+    description: "Full access, billed monthly.",
+  },
+  {
+    id: "builderAnnual" as const,
+    label: "Builder Annual",
+    price: "$99",
+    period: "/year",
+    description: "Save 30% — billed once a year.",
+    highlight: true,
+  },
+];
+
+// Tape-flag "Best value" clip — matches paywall modal
+const BEST_VALUE_CLIP = "polygon(4px 0%, calc(100% - 4px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 4px) 100%, 4px 100%, 0% 72%, 3px 48%, 0% 22%)";
+
+function SubscribePicker() {
+  const [selectedPlan, setSelectedPlan] = useState<"builderMonthly" | "builderAnnual">("builderAnnual");
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function handleSubscribe() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: selectedPlan }),
+        });
+        const data = await res.json() as { url?: string; error?: string };
+        if (!res.ok || !data.url) {
+          setError(data.error ?? "Something went wrong. Please try again.");
+          return;
+        }
+        window.location.href = data.url;
+      } catch {
+        setError("Something went wrong. Please try again.");
+      }
+    });
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <p style={{
+        fontFamily: "Verdana, Geneva, sans-serif",
+        fontSize: "13px",
+        color: "rgba(26,14,0,0.6)",
+        margin: 0,
+        lineHeight: 1.55,
+      }}>
+        Unlock unlimited chapters, Cass AI, voice capture, and more.
+      </p>
+
+      {/* Plan selector */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {PLANS.map((plan) => (
+          <button
+            key={plan.id}
+            type="button"
+            onClick={() => setSelectedPlan(plan.id)}
+            style={{
+              position: "relative",
+              borderRadius: "14px",
+              padding: "10px 14px",
+              textAlign: "left",
+              border: `1px solid ${selectedPlan === plan.id ? "rgba(200,168,107,0.5)" : "rgba(26,14,0,0.1)"}`,
+              background: selectedPlan === plan.id ? "var(--accent-soft, #f5f0e4)" : "rgba(255,255,255,0.6)",
+              cursor: "pointer",
+              overflow: "hidden",
+              transition: "border-color 0.15s, background 0.15s",
+              width: "100%",
+            }}
+          >
+            {plan.highlight && (
+              <span style={{
+                position: "absolute",
+                top: "14px",
+                right: "-14px",
+                whiteSpace: "nowrap",
+                padding: "2px 18px",
+                fontSize: "9px",
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+                color: "#3a2a0a",
+                background: "#e8dfc0",
+                transform: "rotate(45deg)",
+                clipPath: BEST_VALUE_CLIP,
+                fontFamily: "var(--font-cass)",
+                fontWeight: 700,
+              }}>
+                Best value
+              </span>
+            )}
+            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", fontWeight: 700, color: "rgba(26,14,0,0.88)", margin: "0 0 2px" }}>
+              {plan.label}
+            </p>
+            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "15px", fontWeight: 700, color: "rgba(26,14,0,0.88)", margin: "0 0 2px" }}>
+              {plan.price}
+              <span style={{ fontSize: "12px", fontWeight: 400, color: "rgba(26,14,0,0.45)" }}>{plan.period}</span>
+            </p>
+            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "11px", color: "rgba(26,14,0,0.45)", margin: 0 }}>
+              {plan.description}
+            </p>
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{error}</p>
+      )}
+
+      <TapeButton variant="primary" size="sm" onClick={handleSubscribe} disabled={isPending} className="w-full justify-center">
+        {isPending ? "Redirecting…" : `Start ${selectedPlan === "builderAnnual" ? "Annual" : "Monthly"} Subscription`}
+      </TapeButton>
     </div>
   );
 }
@@ -47,6 +165,7 @@ function DrawerSection({ label, children }: { label: string; children: React.Rea
 
 export function SettingsContent({
   profile,
+  hasActiveSubscription,
   currentProjectId,
   currentProjectName,
   currentChapterId,
@@ -54,6 +173,7 @@ export function SettingsContent({
   onClose,
 }: {
   profile: UserProfile;
+  hasActiveSubscription?: boolean;
   currentProjectId?: string | null;
   currentProjectName?: string | null;
   currentChapterId?: string | null;
@@ -70,6 +190,42 @@ export function SettingsContent({
   const [deleteProjectInput, setDeleteProjectInput] = useState("");
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [isDeletingProject, startDeleteProjectTransition] = useTransition();
+
+  // Subscription management
+  const [isOpeningPortal, startPortalTransition] = useTransition();
+  const [portalError, setPortalError] = useState<string | null>(null);
+
+  // Account deletion
+  const [confirmingDeleteAccount, setConfirmingDeleteAccount] = useState(false);
+  const [isDeletingAccount, startDeleteAccountTransition] = useTransition();
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
+
+  function handleOpenPortal() {
+    setPortalError(null);
+    startPortalTransition(async () => {
+      try {
+        const res = await fetch("/api/stripe/portal", { method: "POST" });
+        const data = await res.json() as { url?: string; error?: string };
+        if (!res.ok || !data.url) {
+          setPortalError(data.error ?? "Could not open billing portal.");
+          return;
+        }
+        window.location.href = data.url;
+      } catch {
+        setPortalError("Something went wrong. Please try again.");
+      }
+    });
+  }
+
+  function handleDeleteAccount() {
+    startDeleteAccountTransition(async () => {
+      try {
+        await deleteAccountAction();
+      } catch (err) {
+        setDeleteAccountError(err instanceof Error ? err.message : "Failed to delete account.");
+      }
+    });
+  }
 
   // Theme-aware colors
   const labelColor = isDark ? "rgba(232,223,192,0.38)" : "rgba(26,14,0,0.38)";
@@ -104,7 +260,7 @@ export function SettingsContent({
         router.push(`/projects/${currentProjectId}`);
         router.refresh();
       } catch (err) {
-        setDeleteError(err instanceof Error ? err.message : "Failed to delete the track.");
+        setDeleteError(err instanceof Error ? err.message : "Failed to delete the chapter.");
       }
     });
   }
@@ -198,52 +354,115 @@ export function SettingsContent({
       {/* ── Profile ── */}
       <SettingsForm profile={profile} />
 
+      {/* ── Legal ── */}
+      <DrawerSection label="Legal">
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <Link
+              href="/terms"
+              target="_blank"
+              style={{
+                fontFamily: "Verdana, Geneva, sans-serif",
+                fontSize: "13px",
+                color: isDark ? "rgba(232,223,192,0.75)" : "rgba(26,14,0,0.75)",
+                textDecoration: "underline",
+                textUnderlineOffset: "3px",
+              }}
+            >
+              Terms of Service ↗
+            </Link>
+            <Link
+              href="/privacy"
+              target="_blank"
+              style={{
+                fontFamily: "Verdana, Geneva, sans-serif",
+                fontSize: "13px",
+                color: isDark ? "rgba(232,223,192,0.75)" : "rgba(26,14,0,0.75)",
+                textDecoration: "underline",
+                textUnderlineOffset: "3px",
+              }}
+            >
+              Privacy Policy ↗
+            </Link>
+          </div>
+          {profile.termsAcceptedAt && (
+            <p style={{
+              fontFamily: "Verdana, Geneva, sans-serif",
+              fontSize: "11px",
+              color: isDark ? "rgba(232,223,192,0.35)" : "rgba(26,14,0,0.35)",
+              margin: 0,
+            }}>
+              Accepted on {new Date(profile.termsAcceptedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+            </p>
+          )}
+        </div>
+      </DrawerSection>
+
+      {/* ── Subscription ── */}
+      <DrawerSection label="Subscription">
+        {hasActiveSubscription ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <p style={{
+              fontFamily: "Verdana, Geneva, sans-serif",
+              fontSize: "13px",
+              color: isDark ? "rgba(232,223,192,0.65)" : "rgba(26,14,0,0.65)",
+              margin: 0,
+              lineHeight: 1.55,
+            }}>
+              Manage your billing, update your payment method, or cancel your subscription.
+            </p>
+            {portalError && (
+              <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{portalError}</p>
+            )}
+            <TapeButton variant="secondary" size="sm" onClick={handleOpenPortal} disabled={isOpeningPortal}>
+              {isOpeningPortal ? "Opening portal…" : "Manage subscription"}
+            </TapeButton>
+          </div>
+        ) : (
+          <SubscribePicker />
+        )}
+      </DrawerSection>
+
       {/* ── Danger zone ── */}
       {hasDangerZone && (
         <div>
-          {/* Red tape label for danger — same flat-left/torn-right style */}
-          <div style={{ padding: "10px 0 8px" }}>
+          <div style={{ padding: "18px 16px 6px" }}>
             <span style={{
-              display: "inline-block",
-              fontFamily: "var(--font-cass)",
-              fontSize: "11px",
-              letterSpacing: "0.15em",
-              color: "#fff0f0",
-              background: "#7a1f1f",
-              padding: "4px 22px 5px 14px",
-              clipPath: TAPE_CLIP,
-              boxShadow: "3px 1px 5px rgba(0,0,0,0.5)",
-              textTransform: "uppercase",
+              fontFamily: "'Literata', Georgia, serif",
+              fontSize: "17px",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "var(--danger, #9f3f38)",
             }}>
               Danger Zone
             </span>
           </div>
-          <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "20px" }}>
 
             {/* Delete chapter */}
             {currentChapterId && (
               <div>
                 <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Track
+                  Chapter
                 </p>
                 <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
-                  <span style={{ color: strongColor, fontWeight: 600 }}>{currentChapterName ?? "Untitled track"}</span>
+                  <span style={{ color: strongColor, fontWeight: 600 }}>{currentChapterName ?? "Untitled chapter"}</span>
                   {" "}— removes its board, columns, and all tasks permanently.
                 </p>
                 {confirmingDelete ? (
                   <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
-                    <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 4px" }}>Delete this track?</p>
+                    <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 4px" }}>Delete this chapter?</p>
                     <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "rgba(248,113,113,0.65)", margin: "0 0 12px" }}>This action cannot be undone.</p>
                     {deleteError && (
                       <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteError}</p>
                     )}
                     <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                      <TapeButton variant="secondary" size="sm" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>Keep track</TapeButton>
-                      <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting}>{isDeleting ? "Deleting…" : "Delete track"}</TapeButton>
+                      <TapeButton variant="secondary" size="sm" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>Keep chapter</TapeButton>
+                      <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting}>{isDeleting ? "Deleting…" : "Delete chapter"}</TapeButton>
                     </div>
                   </div>
                 ) : (
-                  <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDelete(true)}>Delete track</TapeButton>
+                  <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDelete(true)} className="w-full justify-center">Delete chapter</TapeButton>
                 )}
               </div>
             )}
@@ -257,7 +476,7 @@ export function SettingsContent({
                 </p>
                 <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
                   <span style={{ color: strongColor, fontWeight: 600 }}>{currentProjectName}</span>
-                  {" "}— permanently deletes all tracks, boards, and tasks.
+                  {" "}— permanently deletes all chapters, boards, and tasks.
                 </p>
                 {confirmingDeleteProject ? (
                   <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
@@ -291,13 +510,69 @@ export function SettingsContent({
                     </div>
                   </div>
                 ) : (
-                  <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDeleteProject(true)}>Delete project</TapeButton>
+                  <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDeleteProject(true)} className="w-full justify-center">Delete project</TapeButton>
                 )}
               </div>
             )}
           </div>
         </div>
       )}
+
+      {/* ── Delete account — always shown in danger zone ── */}
+      <div>
+        <div style={{ padding: "18px 16px 6px" }}>
+          <span style={{
+            fontFamily: "'Literata', Georgia, serif",
+            fontSize: "17px",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            color: "var(--danger, #9f3f38)",
+          }}>
+            Account
+          </span>
+        </div>
+        <div style={{ padding: "10px 16px 14px" }}>
+          {confirmingDeleteAccount ? (
+            <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
+              <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 6px" }}>
+                Delete your account?
+              </p>
+              {hasActiveSubscription && (
+                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "rgba(248,113,113,0.75)", margin: "0 0 10px", lineHeight: 1.55 }}>
+                  Your active subscription will be cancelled immediately and your account and all data will be permanently deleted.
+                </p>
+              )}
+              {!hasActiveSubscription && (
+                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "rgba(248,113,113,0.65)", margin: "0 0 10px", lineHeight: 1.55 }}>
+                  All your projects, chapters, and data will be permanently deleted. This cannot be undone.
+                </p>
+              )}
+              {deleteAccountError && (
+                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteAccountError}</p>
+              )}
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <TapeButton variant="secondary" size="sm" onClick={() => { setConfirmingDeleteAccount(false); setDeleteAccountError(null); }} disabled={isDeletingAccount}>
+                  Cancel
+                </TapeButton>
+                <TapeButton variant="danger" size="sm" onClick={handleDeleteAccount} disabled={isDeletingAccount}>
+                  {isDeletingAccount ? "Deleting…" : "Delete my account"}
+                </TapeButton>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: isDark ? "rgba(232,223,192,0.55)" : "rgba(26,14,0,0.55)", margin: 0, lineHeight: 1.55 }}>
+                {hasActiveSubscription
+                  ? "Permanently delete your account and cancel your subscription."
+                  : "Permanently delete your account and all your data."}
+              </p>
+              <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDeleteAccount(true)}>
+                Delete account
+              </TapeButton>
+            </div>
+          )}
+        </div>
+      </div>
 
     </div>
   );
@@ -318,6 +593,7 @@ function SignOutButton() {
 export function SettingsDrawer({
   open,
   profile,
+  hasActiveSubscription,
   onClose,
   currentProjectId,
   currentProjectName,
@@ -326,6 +602,7 @@ export function SettingsDrawer({
 }: {
   open: boolean;
   profile: UserProfile;
+  hasActiveSubscription?: boolean;
   onClose: () => void;
   currentProjectId?: string | null;
   currentProjectName?: string | null;
@@ -336,6 +613,7 @@ export function SettingsDrawer({
     <SideDrawer open={open} title="" onClose={onClose} side="right" footer={<SignOutButton />}>
       <SettingsContent
         profile={profile}
+        hasActiveSubscription={hasActiveSubscription}
         currentProjectId={currentProjectId}
         currentProjectName={currentProjectName}
         currentChapterId={currentChapterId}

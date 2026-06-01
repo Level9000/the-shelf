@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 export function ProjectShellFrame({
   projects,
   profile,
+  hasActiveSubscription,
   currentProjectId,
   currentChapterId = null,
   lastChapterId = null,
@@ -25,6 +26,7 @@ export function ProjectShellFrame({
 }: {
   projects: ProjectWithChapters[];
   profile: UserProfile;
+  hasActiveSubscription?: boolean;
   currentProjectId: string;
   currentChapterId?: string | null;
   /** The chapter to return to when navigating to the Story overview */
@@ -107,22 +109,26 @@ export function ProjectShellFrame({
               <p
                 className="mt-0.5 leading-tight"
                 style={{
-                  fontFamily: "var(--font-cass)",
+                  fontFamily: "'Literata', Georgia, serif",
                   fontSize: "14px",
-                  letterSpacing: "0.06em",
-                  color: theme === "dark" ? "rgba(232,223,192,0.5)" : "rgba(26,14,0,0.42)",
+                  fontWeight: 600,
+                  letterSpacing: "-0.01em",
+                  color: theme === "dark" ? "rgba(232,223,192,0.55)" : "rgba(26,14,0,0.45)",
                 }}
               >
                 {currentProject.name}: Track {chapterIndex + 1}
               </p>
             ) : (
-              /* Story tab — keep the chapter name as before */
+              /* Story tab — Literata heading */
               <p
-                className={cn(
-                  "mt-0.5 text-xl font-bold leading-tight",
-                  "text-white",
-                )}
-                style={{ fontFamily: "'Special Elite', cursive" }}
+                className="mt-0.5 leading-tight"
+                style={{
+                  fontFamily: "'Literata', Georgia, serif",
+                  fontSize: "18px",
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                  color: theme === "dark" ? "rgba(232,224,208,0.92)" : "rgba(22,19,15,0.88)",
+                }}
               >
                 {mobileEyebrow}
               </p>
@@ -145,6 +151,7 @@ export function ProjectShellFrame({
       <SettingsDrawer
         open={settingsOpen}
         profile={profile}
+        hasActiveSubscription={hasActiveSubscription}
         onClose={() => setSettingsOpen(false)}
         currentProjectId={currentProjectId}
         currentProjectName={currentProjectName}

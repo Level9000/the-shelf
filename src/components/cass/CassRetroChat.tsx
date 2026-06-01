@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import type { CassAnimState } from "./cassVoice";
 import type { Board, Task } from "@/types";
 import { CassProgressBar } from "./CassProgressBar";
-import { CassRecorder } from "./CassRecorder";
+import { AvatarRecorder } from "@/components/ui/AvatarRecorder";
 import { CassSpeechBubble } from "./CassSpeechBubble";
 import { CassInput } from "./CassInput";
 import {
@@ -12,6 +12,7 @@ import {
   updateChapterStoryAfterGenerationAction,
 } from "@/lib/actions/project-actions";
 import { CASS_ERROR_LINES } from "./cassVoice";
+import { useAvatar } from "@/lib/avatar-context";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
 
@@ -55,15 +56,25 @@ function buildOpeningMessage(
   chapterGoal: string | null,
   completedCount: number,
   incompleteCount: number,
+  avatar: string = "cass",
 ): DialogueMessage {
   const total = completedCount + incompleteCount;
-  const text = [
-    `Alright. Track ${chapterNumber} is done.`,
-    "",
-    `You said you wanted to ${chapterGoal?.toLowerCase() ?? "get something done"}. Let's see what actually happened.`,
-    "",
-    `You completed ${completedCount} of ${total} cards. On a scale of 1–5, how would you rate this track overall?`,
-  ].join("\n");
+
+  const text = avatar === "ty"
+    ? [
+        `Chapter ${chapterNumber} is behind us now.`,
+        "",
+        `You set out to ${chapterGoal?.toLowerCase() ?? "build something worth building"}. Let's find out what the chapter actually became.`,
+        "",
+        `${completedCount} of ${total} cards made it across. What's the real story of how this chapter went?`,
+      ].join("\n")
+    : [
+        `Alright. Chapter ${chapterNumber} is done.`,
+        "",
+        `You said you wanted to ${chapterGoal?.toLowerCase() ?? "get something done"}. Let's see what actually happened.`,
+        "",
+        `You completed ${completedCount} of ${total} cards. On a scale of 1–5, how would you rate this chapter overall?`,
+      ].join("\n");
 
   return { role: "assistant", content: text };
 }
@@ -88,12 +99,14 @@ export function CassRetroChat({
   onDismiss?: () => void;
 }) {
   const chapterNumber = 1; // API calculates the real number; this is display-only
+  const { activeAvatar } = useAvatar();
 
   const openingMsg = buildOpeningMessage(
     chapterNumber,
     board.goal,
     completedTasks.length,
     remainingTasks.length,
+    activeAvatar,
   );
 
   const [messages,      setMessages]      = useState<DialogueMessage[]>([openingMsg]);
@@ -142,6 +155,7 @@ export function CassRetroChat({
             messages: next,
             projectId: project.id,
             chapterId: board.id,
+            avatar: activeAvatar,
           }),
         });
 
@@ -204,7 +218,7 @@ export function CassRetroChat({
         setPhase("generating");
 
         // Show "writing your track" message
-        setCurrentReply("Give me a moment. Writing this track now.");
+        setCurrentReply("Give me a moment. Writing this chapter now.");
         setAnimState("talking");
 
         // Step 2: Trigger narrative engine (Pass 1 + Pass 2)
@@ -220,7 +234,7 @@ export function CassRetroChat({
         const generated = (await genResponse.json()) as GeneratedStoryPayload;
 
         if (!genResponse.ok) {
-          throw new Error(generated.error ?? "Track generation failed.");
+          throw new Error(generated.error ?? "Chapter generation failed.");
         }
 
         setGeneratedStory(generated);
@@ -339,7 +353,7 @@ export function CassRetroChat({
               animation: saved ? "cass-celebration 1.8s ease-in-out" : "none",
             }}
           >
-            <CassRecorder animState={animState} size="md" />
+            <AvatarRecorder animState={animState} size="md" />
           </div>
 
           {/* Phase label */}
@@ -354,7 +368,7 @@ export function CassRetroChat({
                 textTransform: "uppercase",
               }}
             >
-              ◉ Writing your track...
+              ◉ Writing your chapter...
             </div>
           )}
 
@@ -399,7 +413,7 @@ export function CassRetroChat({
                   }}
                 >
                   {phase === "generating"
-                    ? "◉ writing your track..."
+                    ? "◉ writing your chapter..."
                     : phase === "saving"
                     ? "◉ saving..."
                     : "◉ rolling..."}

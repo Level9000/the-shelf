@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { FormState } from "@/lib/actions/auth-actions";
 import { signInWithGoogleAction, signInWithAppleAction } from "@/lib/actions/auth-actions";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ export function AuthForm({
   action,
   nextPath,
   oauthError,
+  showTerms,
 }: {
   title: string;
   subtitle: string;
@@ -30,8 +31,18 @@ export function AuthForm({
   action: (state: FormState, formData: FormData) => Promise<FormState>;
   nextPath?: string;
   oauthError?: string;
+  showTerms?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState(false);
+
+  function requireTerms(e: React.FormEvent) {
+    if (!termsAccepted) {
+      e.preventDefault();
+      setTermsError(true);
+    }
+  }
 
   return (
     <div className="flex min-h-screen items-start justify-center bg-white px-6 pt-12 pb-16">
@@ -53,7 +64,7 @@ export function AuthForm({
 
         {/* Email / password form */}
         <div className="w-full">
-          <form action={formAction} className="space-y-4">
+          <form action={formAction} className="space-y-4" onSubmit={showTerms ? requireTerms : undefined}>
             <input type="hidden" name="next" value={nextPath ?? "/projects"} />
             <div>
               <label className="mb-1.5 block text-sm font-medium text-zinc-900">
@@ -72,7 +83,37 @@ export function AuthForm({
                 {state.error ?? oauthError}
               </p>
             )}
-            <TapeButton variant="primary" size="md" type="submit" disabled={pending} className="w-full">
+            {showTerms && (
+              <div className="space-y-1">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => {
+                      setTermsAccepted(e.target.checked);
+                      if (e.target.checked) setTermsError(false);
+                    }}
+                    className="mt-0.5 size-4 shrink-0 rounded border-zinc-300 accent-zinc-900"
+                  />
+                  <span className="text-xs leading-snug text-zinc-500">
+                    I agree to the{" "}
+                    <Link href="/terms" target="_blank" className="font-medium text-zinc-900 underline underline-offset-2">
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" target="_blank" className="font-medium text-zinc-900 underline underline-offset-2">
+                      Privacy Policy
+                    </Link>
+                  </span>
+                </label>
+                {termsError && (
+                  <p className="text-xs text-rose-600 pl-6">
+                    Please agree to the terms before continuing.
+                  </p>
+                )}
+              </div>
+            )}
+            <TapeButton variant="primary" size="md" type="submit" disabled={pending || (showTerms ? !termsAccepted : false)} className="w-full">
               {pending ? "Working..." : submitLabel}
             </TapeButton>
           </form>
@@ -86,7 +127,7 @@ export function AuthForm({
             <div className="h-px flex-1 bg-black/10" />
           </div>
           <div className="flex flex-col gap-3">
-            <form action={signInWithGoogleAction}>
+            <form action={signInWithGoogleAction} onSubmit={showTerms ? requireTerms : undefined}>
               <button
                 type="submit"
                 className="flex w-full items-center justify-center gap-3 rounded-xl border border-black/12 bg-white px-4 py-3 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50 active:bg-zinc-100"
@@ -101,7 +142,7 @@ export function AuthForm({
               </button>
             </form>
 
-            <form action={signInWithAppleAction}>
+            <form action={signInWithAppleAction} onSubmit={showTerms ? requireTerms : undefined}>
               <button
                 type="submit"
                 className="flex w-full items-center justify-center gap-3 rounded-xl border border-black/12 bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-zinc-800 active:bg-zinc-700"

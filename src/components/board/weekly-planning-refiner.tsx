@@ -211,13 +211,13 @@ export function WeeklyPlanningRefiner({
 
             <div className="border-b border-black/6 bg-[var(--surface-muted)]/65 px-5 py-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                Track context
+                Chapter context
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-xs font-semibold text-[var(--ink)]">Track goal</p>
+                  <p className="text-xs font-semibold text-[var(--ink)]">Chapter goal</p>
                   <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                    {snapshot.board.goal ?? "Not set yet on the track overview."}
+                    {snapshot.board.goal ?? "Not set yet on the chapter overview."}
                   </p>
                 </div>
                 <div>
@@ -226,7 +226,7 @@ export function WeeklyPlanningRefiner({
                   </p>
                   <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
                     {snapshot.board.successLooksLike ??
-                      "Not set yet on the track overview."}
+                      "Not set yet on the chapter overview."}
                   </p>
                 </div>
               </div>

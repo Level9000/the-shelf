@@ -14,6 +14,8 @@ export function Modal({
   fullScreenOnMobile = false,
   fullScreen = false,
   progress,
+  hideHeader = false,
+  growWithContent = false,
 }: {
   open: boolean;
   title: string;
@@ -25,6 +27,10 @@ export function Modal({
   fullScreen?: boolean;
   /** 0–1 progress value. When set, shows a thin bar at the top of the modal panel. */
   progress?: number;
+  /** When true, hides the title/description header so content starts immediately. */
+  hideHeader?: boolean;
+  /** When true, removes the fixed max-height so the modal grows with its content. */
+  growWithContent?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -54,7 +60,9 @@ export function Modal({
       />
       <div
         className={cn(
-          "surface-card hairline relative z-10 mx-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-lg flex-col overflow-hidden rounded-[2rem] p-6",
+          "surface-card hairline relative z-10 mx-auto flex w-full max-w-lg flex-col overflow-hidden rounded-[2rem]",
+          !growWithContent && "max-h-[calc(100dvh-3rem)]",
+          hideHeader ? "p-0" : "p-6",
           fullScreen &&
             "flex min-h-full max-w-none flex-col overflow-hidden rounded-none p-5 sm:p-6",
           fullScreenOnMobile &&
@@ -77,15 +85,18 @@ export function Modal({
         >
           <X className="size-4" />
         </button>
-        <div className="pr-10 text-center">
-          <h1 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-cass)" }}>{title}</h1>
-          {description ? (
-            <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
-          ) : null}
-        </div>
+        {!hideHeader && (
+          <div className="pr-10 text-center">
+            <h1 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-cass)" }}>{title}</h1>
+            {description ? (
+              <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
+            ) : null}
+          </div>
+        )}
         <div
           className={cn(
-            "mt-5 min-h-0 flex-1 overflow-y-auto",
+            "min-h-0 flex-1 overflow-y-auto",
+            !hideHeader && "mt-5",
             fullScreen && "flex min-h-0 flex-1 flex-col overflow-hidden",
           )}
         >

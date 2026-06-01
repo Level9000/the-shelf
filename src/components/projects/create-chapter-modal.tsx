@@ -47,7 +47,7 @@ export function CreateChapterModal({
         setError(
           createError instanceof Error
             ? createError.message
-            : "Failed to create track.",
+            : "Failed to create chapter.",
         );
       }
     });
@@ -57,8 +57,8 @@ export function CreateChapterModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={`New track for ${currentProject.name}`}
-      description="Each track is its own sprint board inside the same project."
+      title={`New chapter for ${currentProject.name}`}
+      description="Each chapter is its own sprint board inside the same project."
     >
       <div className="space-y-4">
         <div>
@@ -66,7 +66,7 @@ export function CreateChapterModal({
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder={`Track ${currentProject.chapters.length + 1}`}
+            placeholder={`Chapter ${currentProject.chapters.length + 1}`}
           />
         </div>
         <label className="flex items-start gap-3 rounded-[1.25rem] bg-[var(--surface-muted)] p-4">
@@ -81,7 +81,7 @@ export function CreateChapterModal({
               Carry incomplete tasks forward
             </p>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Move unfinished tasks from the previous track into this new one.
+              Move unfinished tasks from the previous chapter into this new one.
             </p>
           </div>
         </label>

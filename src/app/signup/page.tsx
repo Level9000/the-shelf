@@ -11,6 +11,7 @@ export default function SignupPage() {
       secondaryLabel="Sign in"
       secondaryPrompt="Already have an account?"
       action={signupAction}
+      showTerms
     />
   );
 }

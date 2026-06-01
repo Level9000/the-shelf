@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Check, X } from "lucide-react";
 import { TapeButton } from "@/components/ui/tape-button";
 import { CassRecorder } from "@/components/cass/CassRecorder";
+import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 
 const PLANS = [
   {
@@ -24,7 +25,7 @@ const PLANS = [
 ];
 
 const FEATURES = [
-  "Unlimited tracks and projects",
+  "Unlimited chapters and projects",
   "Chapter kickoffs and retros",
   "Cass — your AI story guide",
   "Voice capture and brain dump",
@@ -32,20 +33,31 @@ const FEATURES = [
   "Invite authors and contributors",
 ];
 
-// ── Cass pop-out animation ────────────────────────────────────────────────────
+// ── Alternating Cass / Ty pop-out ────────────────────────────────────────────
 
-function CassPopout() {
-  const [visible, setVisible] = useState(false);
+function CharacterPopout() {
+  const [visible, setVisible]     = useState(false);
+  const [isCass,  setIsCass]      = useState(true); // Cass goes first
 
   useEffect(() => {
-    function cycle() {
-      // Slide in
-      const slideIn = setTimeout(() => {
-        setVisible(true);
+    let currentIsCass = true;
 
-        // Linger 3s then slide out
+    function cycle() {
+      const slideIn = setTimeout(() => {
+        // Step 1: mount the new character off-screen (visible=false)
+        setIsCass(currentIsCass);
+
+        // Step 2: after one frame, trigger the entry transition
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setVisible(true);
+          });
+        });
+
         const slideOut = setTimeout(() => {
           setVisible(false);
+          // Flip for next cycle after slide-out completes
+          currentIsCass = !currentIsCass;
         }, 3000);
 
         return slideOut;
@@ -54,7 +66,6 @@ function CassPopout() {
       return slideIn;
     }
 
-    // Run immediately then repeat every 8s
     const first = cycle();
     const interval = setInterval(cycle, 15000);
 
@@ -64,21 +75,41 @@ function CassPopout() {
     };
   }, []);
 
+  if (isCass) {
+    return (
+      <div
+        className="absolute right-0 pointer-events-none"
+        style={{
+          top: "28%",
+          marginTop: "-78px",
+          transform: visible
+            ? "translateX(30%) rotate(-30deg)"
+            : "translateX(160%) rotate(-30deg)",
+          transformOrigin: "bottom right",
+          transition: "transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)",
+          filter: "drop-shadow(0 0 14px rgba(200,168,107,0.55))",
+        }}
+      >
+        <CassRecorder animState={visible ? "talking" : "idle"} size="sm" />
+      </div>
+    );
+  }
+
   return (
     <div
-      className="absolute right-0 pointer-events-none"
+      className="absolute left-0 pointer-events-none"
       style={{
         top: "28%",
-        marginTop: "-78px",
+        marginTop: "-60px",
         transform: visible
-          ? "translateX(30%) rotate(-30deg)"
-          : "translateX(150%) rotate(-30deg)",
-        transformOrigin: "bottom right",
+          ? "translateX(-30%) rotate(25deg)"
+          : "translateX(-160%) rotate(25deg)",
+        transformOrigin: "bottom left",
         transition: "transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)",
-        filter: "drop-shadow(0 0 14px rgba(200,168,107,0.55))",
+        filter: "drop-shadow(0 0 14px rgba(206,199,187,0.60))",
       }}
     >
-      <CassRecorder animState={visible ? "talking" : "idle"} size="sm" />
+      <TypewriterRecorder animState={visible ? "typing" : "idle"} size="sm" />
     </div>
   );
 }
@@ -127,12 +158,12 @@ export function PaywallModal({
       {/* Modal */}
       <div className="relative z-10 w-full max-w-lg rounded-[2rem] bg-[var(--surface)] shadow-2xl ring-1 ring-black/8 overflow-hidden">
 
-        {/* Cass pop-out */}
-        <CassPopout />
+        {/* Alternating Cass / Ty pop-out */}
+        <CharacterPopout />
 
         {/* Header */}
         <div className="bg-[var(--accent-soft)] px-7 pt-8 pb-6 text-center rounded-t-[2rem]">
-          <h2 className="text-xl font-bold text-[var(--ink)] font-literata">Your free trial is complete</h2>
+          <h2 className="text-2xl font-bold text-[var(--ink)] font-literata">Your free trial is complete</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
             You&apos;ve experienced the full Authored By story loop. To continue writing new content, select from one of our subscription offerings.
           </p>
@@ -178,14 +209,14 @@ export function PaywallModal({
                     Best value
                   </span>
                 ) : null}
-                <p className="text-base font-bold text-[var(--ink)] font-literata">
+                <p className={`text-base font-bold font-literata ${selectedPlan === plan.id ? "text-[var(--ink)]" : "text-[#1a1a1a]"}`}>
                   {plan.label}
                 </p>
-                <p className="mt-1 text-2xl font-bold text-[var(--ink)]">
+                <p className={`mt-1 text-2xl font-bold ${selectedPlan === plan.id ? "text-[var(--ink)]" : "text-[#1a1a1a]"}`}>
                   {plan.price}
-                  <span className="text-sm font-normal text-[var(--muted)]">{plan.period}</span>
+                  <span className={`text-sm font-normal ${selectedPlan === plan.id ? "text-[var(--muted)]" : "text-[#555]"}`}>{plan.period}</span>
                 </p>
-                <p className="mt-1 text-xs text-[var(--muted)]">{plan.description}</p>
+                <p className={`mt-1 text-xs ${selectedPlan === plan.id ? "text-[var(--muted)]" : "text-[#555]"}`}>{plan.description}</p>
               </button>
             ))}
           </div>

@@ -6,8 +6,6 @@ import type { UserProfile } from "@/types";
 import { updateUserProfileAction } from "@/lib/actions/profile-actions";
 import { useTheme } from "@/lib/theme-context";
 
-// Flat left edge, torn right edge — flush against the left wall of the drawer
-const TAPE_CLIP = "polygon(0% 0%, calc(100% - 2px) 0%, 100% 20%, calc(100% - 4px) 48%, 100% 72%, calc(100% - 2px) 100%, 0% 100%)";
 
 export function SettingsForm({ profile }: { profile: UserProfile }) {
   const { theme } = useTheme();
@@ -55,25 +53,20 @@ export function SettingsForm({ profile }: { profile: UserProfile }) {
 
   return (
     <div>
-      {/* Profile tape label */}
-      <div style={{ padding: "10px 0 8px" }}>
+      {/* Profile section heading */}
+      <div style={{ padding: "18px 16px 6px" }}>
         <span style={{
-          display: "inline-block",
-          fontFamily: "var(--font-cass)",
-          fontSize: "11px",
-          letterSpacing: "0.15em",
-          color: "#1a0e00",
-          background: "#e8dfc0",
-          padding: "4px 22px 5px 14px",
-          clipPath: TAPE_CLIP,
-          boxShadow: "3px 1px 5px rgba(0,0,0,0.35)",
-          textTransform: "uppercase",
+          fontFamily: "'Literata', Georgia, serif",
+          fontSize: "17px",
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          color: "var(--ink)",
         }}>
-          Profile Settings
+          Profile
         </span>
       </div>
 
-      <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+      <div style={{ padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
         {/* Display name with inline save button */}
         <div>
           <label style={labelStyle}>Display name</label>

@@ -63,11 +63,11 @@ export function EndChapterModal({
   return (
     <Modal
       open={open}
-      title={hasIncompleteTasks ? "End track early" : "Close this track"}
+      title={hasIncompleteTasks ? "End chapter early" : "Close this chapter"}
       description={
         hasIncompleteTasks
           ? `${incompleteCount} task${incompleteCount === 1 ? "" : "s"} still in progress. What should happen to ${incompleteCount === 1 ? "it" : "them"}?`
-          : "All tasks are done. Ready to write this track's story?"
+          : "All tasks are done. Ready to write this chapter's story?"
       }
       onClose={handleClose}
     >
@@ -113,10 +113,10 @@ export function EndChapterModal({
             </div>
             <div>
               <p className="font-semibold text-[var(--ink)]">
-                Carry over to the next track
+                Carry over to the next chapter
               </p>
               <p className="mt-0.5 text-sm text-[var(--muted)]">
-                A new track is created with these tasks already in the
+                A new chapter is created with these tasks already in the
                 backlog.
               </p>
             </div>
@@ -144,10 +144,10 @@ export function EndChapterModal({
             </div>
             <div>
               <p className="font-semibold text-[var(--ink)]">
-                Remove them — this track is done
+                Remove them — this chapter is done
               </p>
               <p className="mt-0.5 text-sm text-[var(--muted)]">
-                Incomplete tasks are deleted. The track closes clean.
+                Incomplete tasks are deleted. The chapter closes clean.
               </p>
             </div>
           </button>
@@ -155,7 +155,7 @@ export function EndChapterModal({
       ) : (
         <p className="text-sm leading-6 text-[var(--muted)]">
           You&apos;ve completed all tasks. Click below to start the retro and
-          write this track&apos;s story.
+          write this chapter&apos;s story.
         </p>
       )}
 

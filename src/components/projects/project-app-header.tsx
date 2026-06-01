@@ -74,18 +74,13 @@ const DRAWER_TAPE_CLIP = "polygon(0% 0%, calc(100% - 2px) 0%, 100% 20%, calc(100
 
 function LedMenuHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ padding: "14px 0 6px" }}>
+    <div style={{ padding: "18px 16px 6px" }}>
       <span style={{
-        display: "inline-block",
-        fontFamily: "var(--font-cass)",
-        fontSize: "11px",
-        letterSpacing: "0.15em",
-        color: "#1a0e00",
-        background: "#e8dfc0",
-        padding: "4px 22px 5px 14px",
-        clipPath: DRAWER_TAPE_CLIP,
-        boxShadow: "3px 1px 5px rgba(0,0,0,0.35)",
-        textTransform: "uppercase",
+        fontFamily: "'Literata', Georgia, serif",
+        fontSize: "17px",
+        fontWeight: 700,
+        letterSpacing: "-0.02em",
+        color: "var(--ink)",
       }}>
         {children}
       </span>
@@ -327,16 +322,17 @@ export function ProjectAppHeader({
         {currentProject && (
           <div className="hidden lg:block" style={{ zIndex: 1, minWidth: 0 }}>
             <span style={{
-              fontFamily: "var(--font-cass)",
+              fontFamily: "'Literata', Georgia, serif",
               fontSize: "14px",
-              letterSpacing: "0.06em",
-              color: isDark ? "rgba(232,223,192,0.45)" : "rgba(26,14,0,0.38)",
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
+              color: isDark ? "rgba(232,223,192,0.55)" : "rgba(26,14,0,0.45)",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
               display: "block",
             }}>
-              {currentProject.name}{chapterNumber ? `: Track ${chapterNumber}` : ""}
+              {currentProject.name}{chapterNumber ? `: Chapter ${chapterNumber}` : ""}
             </span>
           </div>
         )}
@@ -452,7 +448,7 @@ export function ProjectAppHeader({
 
           {/* Track section — shows pending project's tracks while waiting for step 2 */}
           <LedMenuHeader>
-            {pendingProject ? `Tracks — ${pendingProject.name}` : "Select Track"}
+            {pendingProject ? `Chapters — ${pendingProject.name}` : "Select Chapter"}
           </LedMenuHeader>
           {pendingProject && (
             <div style={{
@@ -462,7 +458,7 @@ export function ProjectAppHeader({
               letterSpacing: "0.1em",
               color: isDark ? "rgba(200,168,107,0.55)" : "rgba(26,14,0,0.42)",
             }}>
-              Pick a track to open ↓
+              Pick a chapter to open ↓
             </div>
           )}
           {displayedProject?.chapters.map((ch, i) => (
@@ -471,12 +467,12 @@ export function ProjectAppHeader({
               active={!pendingProject && ch.id === (currentChapterId ?? navChapterId)}
               onClick={() => handleSelectChapter(ch)}
             >
-              Track {i + 1}
+              Chapter {i + 1}
             </LedItem>
           ))}
           {!pendingProject && onPlanChapters && (
             <LedItem muted onClick={() => { onPlanChapters?.(); closeDrawer(); }}>
-              + Plan new tracks
+              + Plan new chapters
             </LedItem>
           )}
         </div>

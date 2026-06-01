@@ -4,7 +4,11 @@ import {
   getCurrentUserProfile,
   getProjectAccessSnapshot,
   getProjectsWithChapters,
+  getTasksForProject,
+  getAuthenticatedUser,
 } from "@/lib/supabase/queries";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getUserSubscription } from "@/lib/subscription";
 
 export default async function ProjectPage({
   params,
@@ -14,11 +18,16 @@ export default async function ProjectPage({
   searchParams: Promise<{ chapter?: string; plan?: string }>;
 }) {
   const [{ projectId }, { chapter, plan }] = await Promise.all([params, searchParams]);
-  const [projects, profile, access] = await Promise.all([
+  const [projects, profile, access, { user }, projectTasks] = await Promise.all([
     getProjectsWithChapters(),
     getCurrentUserProfile(),
     getProjectAccessSnapshot(projectId),
+    getAuthenticatedUser(),
+    getTasksForProject(projectId),
   ]);
+
+  const supabase = await createSupabaseServerClient();
+  const subscription = await getUserSubscription(supabase, user.id);
   const project = projects.find((item) => item.id === projectId) ?? null;
 
   if (!project) {
@@ -39,6 +48,8 @@ export default async function ProjectPage({
         projectMembers={access.projectMembers}
         lastChapterId={lastChapterId}
         initialPlanning={plan === "true"}
+        subscriptionStatus={subscription.status}
+        projectTasks={projectTasks}
       />
     </main>
   );
