@@ -136,13 +136,13 @@ export function PressFab({
   const pillText   = isDark ? "rgba(10,5,0,0.9)"       : "#F59E0B";
   const pillBorder = isDark ? "rgba(10,5,0,0.15)"      : "rgba(245,158,11,0.4)";
 
-  const glowWeak   = "rgba(245,158,11,0.28)";
-  const glowStrong = "rgba(245,158,11,0.60)";
+  const glowWeak   = "rgba(200,160,80,0.18)";
+  const glowStrong = "rgba(200,160,80,0.32)";
 
   const glowKeyframes = `
     @keyframes pressFabGlowPulse {
-      0%, 100% { filter: drop-shadow(0 0 8px ${glowWeak}); }
-      50%       { filter: drop-shadow(0 0 24px ${glowStrong}); }
+      0%, 100% { filter: drop-shadow(0 0 6px ${glowWeak}); }
+      50%       { filter: drop-shadow(0 0 14px ${glowStrong}); }
     }
   `;
 
@@ -164,7 +164,7 @@ export function PressFab({
     setHovered(true);
     if (btnRef.current) {
       btnRef.current.style.animation = "none";
-      btnRef.current.style.filter    = `drop-shadow(0 0 18px ${glowStrong})`;
+      btnRef.current.style.filter    = `drop-shadow(0 0 12px ${glowStrong})`;
     }
     delayRef.current = setTimeout(() => {
       delayRef.current = null;
@@ -218,8 +218,8 @@ export function PressFab({
               color: pillText,
               wordBreak: "break-word",
               boxShadow: isDark
-                ? "0 4px 14px rgba(0,0,0,0.15)"
-                : "0 4px 20px rgba(0,0,0,0.5)",
+                ? "0 2px 12px rgba(0,0,0,0.12)"
+                : "0 2px 16px rgba(0,0,0,0.10)",
             }}
           >
             {labelText}

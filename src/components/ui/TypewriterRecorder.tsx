@@ -8,11 +8,12 @@ export type TypewriterSize = "sm" | "md" | "lg";
 const SIZE_MAP: Record<TypewriterSize, number> = { sm: 160, md: 280, lg: 400 };
 
 // Key layout rows: [count, startX, y, keyW]
+// Rows start at y=147, 16px apart — keyboard bed starts at y=138
 const KEY_ROWS = [
-  { count: 13, startX: 17, y: 155, keyW: 17 },
-  { count: 12, startX: 21, y: 176, keyW: 17 },
-  { count: 11, startX: 26, y: 197, keyW: 17 },
-  { count: 10, startX: 30, y: 218, keyW: 17 },
+  { count: 13, startX: 17, y: 147, keyW: 17 },
+  { count: 12, startX: 21, y: 163, keyW: 17 },
+  { count: 11, startX: 26, y: 179, keyW: 17 },
+  { count: 10, startX: 30, y: 195, keyW: 17 },
 ];
 const KEY_GAP = 2;
 const TOTAL_KEYS = KEY_ROWS.reduce((sum, r) => sum + r.count, 0); // 46
@@ -61,7 +62,7 @@ export function TypewriterRecorder({
 
   const px = SIZE_MAP[size];
   const vw = 280;
-  const vh = 248;
+  const vh = 256;
   const scale = px / vw;
   const isActive = animState === "typing" || animState === "thinking";
 
@@ -137,39 +138,30 @@ export function TypewriterRecorder({
           <rect x="14" y="46" width="14"  height="34" rx="7" fill={c.platenEnd} />
           <rect x="252" y="46" width="14" height="34" rx="7" fill={c.platenEnd} />
 
-          {/* Paper — clips in behind platen */}
-          <rect x="82" y="4" width="116" height="60" rx="2" fill={c.paper} />
-          {/* Paper horizontal rules */}
-          {[14, 22, 30, 38, 46, 54].map((ly) => (
-            <line key={ly} x1="90" y1={ly} x2="190" y2={ly}
-              stroke={c.paperLine} strokeWidth="0.6" />
-          ))}
-          {/* Paper left margin rule */}
-          <line x1="96" y1="8" x2="96" y2="62" stroke="#e0c8c0" strokeWidth="0.5" opacity="0.6" />
 
         </g>
 
-        {/* ── Platen knobs (fixed, outside platen body) ── */}
-        {/* Left knob */}
-        <circle cx="20" cy="63" r="13" fill={c.knob} stroke={c.bodyShadow} strokeWidth="1" />
-        <circle cx="20" cy="63" r="8"  fill={c.knobCenter} />
+        {/* ── Platen knobs — moved inward, well within pill ── */}
+        {/* Left knob: cx=40, right edge=53, clearly inside platen left zone */}
+        <circle cx="40" cy="63" r="13" fill={c.knob} stroke={c.bodyShadow} strokeWidth="1" />
+        <circle cx="40" cy="63" r="8"  fill={c.knobCenter} />
         {[0, 60, 120, 180, 240, 300].map((a) => (
           <line key={a}
-            x1={20 + 5 * Math.cos((a * Math.PI) / 180)}
+            x1={40 + 5 * Math.cos((a * Math.PI) / 180)}
             y1={63 + 5 * Math.sin((a * Math.PI) / 180)}
-            x2={20 + 10 * Math.cos((a * Math.PI) / 180)}
+            x2={40 + 10 * Math.cos((a * Math.PI) / 180)}
             y2={63 + 10 * Math.sin((a * Math.PI) / 180)}
             stroke={c.bodyShadow} strokeWidth="1.5"
           />
         ))}
-        {/* Right knob */}
-        <circle cx="260" cy="63" r="13" fill={c.knob} stroke={c.bodyShadow} strokeWidth="1" />
-        <circle cx="260" cy="63" r="8"  fill={c.knobCenter} />
+        {/* Right knob: cx=240, left edge=227, clearly inside platen right zone */}
+        <circle cx="240" cy="63" r="13" fill={c.knob} stroke={c.bodyShadow} strokeWidth="1" />
+        <circle cx="240" cy="63" r="8"  fill={c.knobCenter} />
         {[0, 60, 120, 180, 240, 300].map((a) => (
           <line key={a}
-            x1={260 + 5 * Math.cos((a * Math.PI) / 180)}
+            x1={240 + 5 * Math.cos((a * Math.PI) / 180)}
             y1={63 + 5 * Math.sin((a * Math.PI) / 180)}
-            x2={260 + 10 * Math.cos((a * Math.PI) / 180)}
+            x2={240 + 10 * Math.cos((a * Math.PI) / 180)}
             y2={63 + 10 * Math.sin((a * Math.PI) / 180)}
             stroke={c.bodyShadow} strokeWidth="1.5"
           />
@@ -183,13 +175,13 @@ export function TypewriterRecorder({
         <rect x="55" y="82" width="4" height="11" rx="1" fill={c.lever} />
         <rect x="210" y="82" width="4" height="11" rx="1" fill={c.lever} />
 
-        {/* ── Keyboard bed ── */}
+        {/* ── Keyboard bed — y=138, height=86 → bottom y=224, inside body (y=236) ── */}
         {/* Shadow underneath */}
-        <rect x="12" y="150" width="256" height="92" rx="12" fill={c.keyBedShadow} />
+        <rect x="12" y="140" width="256" height="88" rx="12" fill={c.keyBedShadow} />
         {/* Main key bed */}
-        <rect x="12" y="148" width="256" height="90" rx="12" fill={c.keyBed} />
+        <rect x="12" y="138" width="256" height="86" rx="12" fill={c.keyBed} />
         {/* Top edge highlight */}
-        <rect x="12" y="148" width="256" height="4" rx="2" fill={c.lever} opacity="0.4" />
+        <rect x="12" y="138" width="256" height="4" rx="2" fill={c.lever} opacity="0.4" />
 
         {/* ── Keys ── */}
         {allKeys.map((key) => {
@@ -236,21 +228,21 @@ export function TypewriterRecorder({
             transition: "transform 0.05s ease-out",
           }}
         >
-          <rect x="74" y={237} width="132" height="11" rx="3" fill={c.keyBottom} />
+          <rect x="74" y={215} width="132" height="11" rx="3" fill={c.keyBottom} />
           <rect
-            x="74" y={235}
+            x="74" y={213}
             width="132" height={10}
             rx="3"
             fill={pressedKeys.has(SPACE_IDX) ? c.keyPressed : c.keyFill}
             stroke={c.keyStroke}
             strokeWidth="0.5"
           />
-          <rect x="76" y={236} width="128" height="3" rx="1.5" fill={c.keyTop} opacity="0.5" />
+          <rect x="76" y={214} width="128" height="3" rx="1.5" fill={c.keyTop} opacity="0.5" />
         </g>
 
         {/* ── Status label on body ── */}
         <text
-          x="140" y="138"
+          x="140" y="128"
           fontFamily="var(--font-cass)"
           fontSize="6"
           fill={c.bodyEdge}
@@ -262,9 +254,9 @@ export function TypewriterRecorder({
         </text>
 
         {/* ── Decorative brand plate ── */}
-        <rect x="104" y="126" width="72" height="10" rx="2" fill={c.guide} opacity="0.25" />
+        <rect x="104" y="116" width="72" height="10" rx="2" fill={c.guide} opacity="0.25" />
         <text
-          x="140" y="134"
+          x="140" y="124"
           fontFamily="var(--font-cass)"
           fontSize="6"
           fill={c.chromeShine}

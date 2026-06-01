@@ -5,6 +5,7 @@ import { Check, X } from "lucide-react";
 import { TapeButton } from "@/components/ui/tape-button";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
+import { PressMonitor } from "@/components/ui/PressMonitor";
 
 const PLANS = [
   {
@@ -33,31 +34,36 @@ const FEATURES = [
   "Invite authors and contributors",
 ];
 
-// ── Alternating Cass / Ty pop-out ────────────────────────────────────────────
+// ── Alternating Cass / Ty / Press pop-out ────────────────────────────────────
+// Each avatar slides in from the right edge, freezes, then slides back out right.
+
+const AVATAR_SEQUENCE = ["cass", "ty", "press"] as const;
+type PopoutAvatar = (typeof AVATAR_SEQUENCE)[number];
+
+const AVATAR_META: Record<PopoutAvatar, { marginTop: string; peekX: string; rotation: number; glow: string }> = {
+  cass:  { marginTop: "-78px", peekX: "18%",  rotation: -18, glow: "drop-shadow(0 0 14px rgba(200,168,107,0.60))" },
+  ty:    { marginTop: "-60px", peekX: "22%",  rotation:  12, glow: "drop-shadow(0 0 14px rgba(206,199,187,0.60))" },
+  press: { marginTop: "-68px", peekX: "20%",  rotation: -14, glow: "drop-shadow(0 0 14px rgba(245,158,11,0.55))"  },
+};
 
 function CharacterPopout() {
-  const [visible, setVisible]     = useState(false);
-  const [isCass,  setIsCass]      = useState(true); // Cass goes first
+  const [visible,      setVisible]      = useState(false);
+  const [avatarIndex,  setAvatarIndex]  = useState(0);
 
   useEffect(() => {
-    let currentIsCass = true;
+    let idx = 0;
 
     function cycle() {
       const slideIn = setTimeout(() => {
-        // Step 1: mount the new character off-screen (visible=false)
-        setIsCass(currentIsCass);
-
-        // Step 2: after one frame, trigger the entry transition
+        // Swap avatar while off-screen, then trigger entry
+        setAvatarIndex(idx);
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setVisible(true);
-          });
+          requestAnimationFrame(() => setVisible(true));
         });
 
         const slideOut = setTimeout(() => {
           setVisible(false);
-          // Flip for next cycle after slide-out completes
-          currentIsCass = !currentIsCass;
+          idx = (idx + 1) % AVATAR_SEQUENCE.length;
         }, 3000);
 
         return slideOut;
@@ -75,41 +81,32 @@ function CharacterPopout() {
     };
   }, []);
 
-  if (isCass) {
-    return (
-      <div
-        className="absolute right-0 pointer-events-none"
-        style={{
-          top: "28%",
-          marginTop: "-78px",
-          transform: visible
-            ? "translateX(30%) rotate(-30deg)"
-            : "translateX(160%) rotate(-30deg)",
-          transformOrigin: "bottom right",
-          transition: "transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)",
-          filter: "drop-shadow(0 0 14px rgba(200,168,107,0.55))",
-        }}
-      >
-        <CassRecorder animState={visible ? "talking" : "idle"} size="sm" />
-      </div>
-    );
-  }
+  const avatar = AVATAR_SEQUENCE[avatarIndex];
+  const meta   = AVATAR_META[avatar];
+
+  // Off-screen: fully to the right (110%). On-screen: peek in from right edge.
+  const offX = "110%";
+  const onX  = meta.peekX;
 
   return (
     <div
-      className="absolute left-0 pointer-events-none"
+      className="absolute right-0 pointer-events-none"
       style={{
         top: "28%",
-        marginTop: "-60px",
+        marginTop: meta.marginTop,
         transform: visible
-          ? "translateX(-30%) rotate(25deg)"
-          : "translateX(-160%) rotate(25deg)",
-        transformOrigin: "bottom left",
-        transition: "transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)",
-        filter: "drop-shadow(0 0 14px rgba(206,199,187,0.60))",
+          ? `translateX(${onX}) rotate(${meta.rotation}deg)`
+          : `translateX(${offX}) rotate(${meta.rotation}deg)`,
+        transformOrigin: "bottom right",
+        transition: visible
+          ? "transform 0.50s cubic-bezier(0.32, 0.72, 0, 1)"
+          : "transform 0.42s cubic-bezier(0.55, 0, 1, 0.45)",
+        filter: meta.glow,
       }}
     >
-      <TypewriterRecorder animState={visible ? "typing" : "idle"} size="sm" />
+      {avatar === "cass"  && <CassRecorder       animState={visible ? "talking" : "idle"} size="sm" />}
+      {avatar === "ty"    && <TypewriterRecorder  animState={visible ? "typing"  : "idle"} size="sm" />}
+      {avatar === "press" && <PressMonitor        animState={visible ? "talking" : "idle"} size="sm" />}
     </div>
   );
 }

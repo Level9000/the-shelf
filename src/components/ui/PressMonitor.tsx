@@ -202,31 +202,32 @@ export function PressMonitor({
         {/* Screen corner glare */}
         <ellipse cx="44" cy="40" rx="10" ry="6" fill="white" opacity="0.04" />
 
-        {/* ── Right-side controls ── */}
-        {/* Brightness / contrast knobs */}
-        {[0, 1].map((i) => (
-          <g key={i}>
-            <circle cx="183" cy={50 + i * 18} r="5" fill={c.knob} stroke={c.bodyEdge} strokeWidth="0.5" />
-            <line
-              x1="183" y1={50 + i * 18 - 3}
-              x2="183" y2={50 + i * 18 + 3}
-              stroke={c.bodyEdge} strokeWidth="1"
-            />
-          </g>
-        ))}
+        {/* ── Bottom control strip (between bezel bottom and stand neck) ── */}
 
-        {/* Power LED */}
-        <circle cx="183" cy="96" r="3.5" fill={c.led}>
+        {/* Power LED — bottom left */}
+        <circle cx="30" cy="170" r="3.5" fill={c.led}>
           {isActive && (
             <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
           )}
         </circle>
         {/* LED glow */}
         {isActive && (
-          <circle cx="183" cy="96" r="6" fill={phosphor} opacity="0.2">
+          <circle cx="30" cy="170" r="6" fill={phosphor} opacity="0.2">
             <animate attributeName="opacity" values="0.2;0.05;0.2" dur="2s" repeatCount="indefinite" />
           </circle>
         )}
+
+        {/* Brightness / contrast knobs — bottom right */}
+        {[0, 1].map((i) => (
+          <g key={i}>
+            <circle cx={155 + i * 16} cy="170" r="5.5" fill={c.knob} stroke={c.bodyEdge} strokeWidth="0.5" />
+            <line
+              x1={155 + i * 16} y1="167"
+              x2={155 + i * 16} y2="173"
+              stroke={c.bodyEdge} strokeWidth="1"
+            />
+          </g>
+        ))}
 
         {/* ── Vent slots — bottom right of bezel ── */}
         {[0, 1, 2, 3].map((i) => (
