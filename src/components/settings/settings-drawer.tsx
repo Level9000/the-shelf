@@ -89,7 +89,7 @@ function SubscribePicker() {
       <p style={{
         fontFamily: "Verdana, Geneva, sans-serif",
         fontSize: "13px",
-        color: "rgba(26,14,0,0.6)",
+        color: "var(--muted)",
         margin: 0,
         lineHeight: 1.55,
       }}>
@@ -108,8 +108,8 @@ function SubscribePicker() {
               borderRadius: "14px",
               padding: "10px 14px",
               textAlign: "left",
-              border: `1px solid ${selectedPlan === plan.id ? "rgba(200,168,107,0.5)" : "rgba(26,14,0,0.1)"}`,
-              background: selectedPlan === plan.id ? "var(--accent-soft, #f5f0e4)" : "rgba(255,255,255,0.6)",
+              border: `1px solid ${selectedPlan === plan.id ? "var(--accent)" : "var(--border, rgba(128,128,128,0.2))"}`,
+              background: selectedPlan === plan.id ? "var(--accent-soft)" : "var(--surface-raised, var(--surface))",
               cursor: "pointer",
               overflow: "hidden",
               transition: "border-color 0.15s, background 0.15s",
@@ -136,14 +136,14 @@ function SubscribePicker() {
                 Best value
               </span>
             )}
-            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", fontWeight: 700, color: "rgba(26,14,0,0.88)", margin: "0 0 2px" }}>
+            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", fontWeight: 700, color: "var(--ink)", margin: "0 0 2px" }}>
               {plan.label}
             </p>
-            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "15px", fontWeight: 700, color: "rgba(26,14,0,0.88)", margin: "0 0 2px" }}>
+            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "15px", fontWeight: 700, color: "var(--ink)", margin: "0 0 2px" }}>
               {plan.price}
-              <span style={{ fontSize: "12px", fontWeight: 400, color: "rgba(26,14,0,0.45)" }}>{plan.period}</span>
+              <span style={{ fontSize: "12px", fontWeight: 400, color: "var(--muted)" }}>{plan.period}</span>
             </p>
-            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "11px", color: "rgba(26,14,0,0.45)", margin: 0 }}>
+            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "11px", color: "var(--muted)", margin: 0 }}>
               {plan.description}
             </p>
           </button>

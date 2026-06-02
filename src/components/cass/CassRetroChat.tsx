@@ -13,6 +13,7 @@ import {
 } from "@/lib/actions/project-actions";
 import { CASS_ERROR_LINES } from "./cassVoice";
 import { useAvatar } from "@/lib/avatar-context";
+import { ConversationTracker, RETRO_STEPS } from "./ConversationTracker";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
 
@@ -115,6 +116,7 @@ export function CassRetroChat({
   const [inputValue,    setInputValue]    = useState("");
   const [phase,         setPhase]         = useState<RetroPhase>("conversation");
   const [retroData,     setRetroData]     = useState<EnhancedRetroPayload | null>(null);
+  const [currentBeat,   setCurrentBeat]   = useState<string | null>(null);
   const [shareSlug,     setShareSlug]     = useState<string>("");
   const [generatedStory, setGeneratedStory] = useState<GeneratedStoryPayload | null>(null);
   const [error,         setError]         = useState<string | null>(null);
@@ -175,6 +177,7 @@ export function CassRetroChat({
         setMessages(withReply);
         setCurrentReply(reply);
         setAnimState("talking");
+        if (data.currentBeat) setCurrentBeat(data.currentBeat);
 
         // If retro beats collected and bridge confirmed, store payload for saving
         if (data.done) {
@@ -355,6 +358,14 @@ export function CassRetroChat({
           >
             <AvatarRecorder animState={animState} size="md" />
           </div>
+
+          {/* Step tracker — visible during conversation only */}
+          {currentBeat && phase === "conversation" && !retroData && (
+            <ConversationTracker
+              steps={RETRO_STEPS}
+              currentStepId={currentBeat}
+            />
+          )}
 
           {/* Phase label */}
           {phase === "generating" && (

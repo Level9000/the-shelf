@@ -11,6 +11,7 @@ import { CassInput } from "./CassInput";
 import { completeChapterKickoffAction } from "@/lib/actions/project-actions";
 import { CASS_ERROR_LINES } from "./cassVoice";
 import { useAvatar } from "@/lib/avatar-context";
+import { ConversationTracker, KICKOFF_STEPS } from "./ConversationTracker";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
 
@@ -43,6 +44,7 @@ export function CassChapterKickoff({
   const [animState, setAnimState] = useState<CassAnimState>("recording");
   const [inputValue, setInputValue] = useState("");
   const [kickoffData, setKickoffData] = useState<CassEnhancedKickoffDialogue | null>(null);
+  const [currentBeat, setCurrentBeat] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isSaving, startSaveTransition] = useTransition();
@@ -72,6 +74,7 @@ export function CassChapterKickoff({
         setMessages([OPENER_TRIGGER, { role: "assistant", content: reply }]);
         setCurrentReply(reply);
         setAnimState("talking");
+        if (data.currentBeat) setCurrentBeat(data.currentBeat);
       } catch (err) {
         setError(err instanceof Error ? err.message : CASS_ERROR_LINES[0]);
         setAnimState("listening");
@@ -126,6 +129,7 @@ export function CassChapterKickoff({
         setMessages(withReply);
         setCurrentReply(reply);
         setAnimState("talking");
+        if (data.currentBeat) setCurrentBeat(data.currentBeat);
 
         if (data.done) {
           setKickoffData(data);
@@ -274,6 +278,14 @@ export function CassChapterKickoff({
             }}
           >
             <AvatarRecorder animState={animState} size="md" />
+
+            {/* Step tracker — only shown once the conversation is underway */}
+            {currentBeat && !kickoffData && (
+              <ConversationTracker
+                steps={KICKOFF_STEPS}
+                currentStepId={currentBeat}
+              />
+            )}
 
             {/* Speech area */}
             <div

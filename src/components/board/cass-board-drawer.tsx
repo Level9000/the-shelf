@@ -91,8 +91,8 @@ const CASS_B: React.CSSProperties = {
 const USER_B: React.CSSProperties = {
   background: "rgba(200,168,107,0.1)", border: "1px solid rgba(200,168,107,0.22)",
   borderRadius: "12px 12px 2px 12px", padding: "10px 16px",
-  fontFamily: "var(--font-cass)", fontSize: "14px",
-  lineHeight: "1.5", color: "#c8a86b", maxWidth: "80%",
+  fontFamily: "'Literata', Georgia, serif", fontSize: "14px",
+  lineHeight: "1.6", color: "#c8a86b", maxWidth: "80%",
 };
 const PRIORITY_COLORS: Record<NonNullable<Priority>, string> = {
   high: "#f87171", medium: "#fbbf24", low: "#6ee7b7",
@@ -922,9 +922,9 @@ export function CassBoardDrawer({
     border: `1px solid ${borderGoldDim}`,
     borderRadius: "12px 12px 2px 12px",
     padding: "10px 16px",
-    fontFamily: "var(--font-cass)",
+    fontFamily: "'Literata', Georgia, serif",
     fontSize: "14px",
-    lineHeight: "1.5",
+    lineHeight: "1.6",
     color: isDark ? "#c8a86b" : "#8a6a20",
     maxWidth: "80%",
   };
@@ -1643,7 +1643,7 @@ export function CassBoardDrawer({
                 placeholder="What's been getting in the way…"
                 rows={2}
                 disabled={rfIsPending}
-                style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "var(--font-cass)", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
+                style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
               />
               <button
                 type="button" onClick={sendRfMessage} disabled={!rfDraft.trim() || rfIsPending}
@@ -1968,7 +1968,7 @@ export function CassBoardDrawer({
                       placeholder="What needs to get done…"
                       rows={2}
                       disabled={isPending || isSaving}
-                      style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "var(--font-cass)", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
+                      style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
                     />
                     <button
                       type="button" onClick={sendMessage} disabled={!draft.trim() || isPending || isSaving}

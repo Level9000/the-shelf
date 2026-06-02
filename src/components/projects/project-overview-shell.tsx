@@ -292,9 +292,9 @@ const USER_BUBBLE_STYLE = {
   border: "1px solid rgba(200,168,107,0.22)",
   borderRadius: "12px 12px 2px 12px",
   padding: "10px 16px",
-  fontFamily: "var(--font-cass)",
+  fontFamily: "'Literata', Georgia, serif",
   fontSize: "14px",
-  lineHeight: "1.5",
+  lineHeight: "1.6",
   color: "#c8a86b",
   maxWidth: "80%",
 } as const;
