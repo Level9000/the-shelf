@@ -46,6 +46,7 @@ export function CassChapterKickoff({
   const [kickoffData, setKickoffData] = useState<CassEnhancedKickoffDialogue | null>(null);
   const [currentBeat, setCurrentBeat] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryMessages, setRetryMessages] = useState<DialogueMessage[] | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isSaving, startSaveTransition] = useTransition();
 
@@ -84,6 +85,28 @@ export function CassChapterKickoff({
 
   const isListening = animState === "listening" && !isPending;
 
+  async function callKickoffApi(msgs: DialogueMessage[], attempt = 1): Promise<CassEnhancedKickoffDialogue & { error?: string }> {
+    const response = await fetch("/api/chat/cass-chapter-kickoff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: msgs,
+        projectId: project.id,
+        chapterId: board.id,
+        avatar: activeAvatar,
+      }),
+    });
+    const data = (await response.json()) as CassEnhancedKickoffDialogue & { error?: string };
+    if (!response.ok) {
+      if (attempt === 1) {
+        console.warn("[kickoff] first attempt failed, retrying…");
+        return callKickoffApi(msgs, 2);
+      }
+      throw new Error(data.error ?? CASS_ERROR_LINES[0]);
+    }
+    return data;
+  }
+
   function handleSend() {
     const trimmed = inputValue.trim();
     if (!trimmed || isPending) return;
@@ -97,44 +120,48 @@ export function CassChapterKickoff({
     setAnimState("recording");
     setCurrentReply("");
     setError(null);
+    setRetryMessages(null);
 
     startTransition(async () => {
       try {
-        const response = await fetch("/api/chat/cass-chapter-kickoff", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: next,
-            projectId: project.id,
-            chapterId: board.id,
-            avatar: activeAvatar,
-          }),
-        });
-
-        const data = (await response.json()) as CassEnhancedKickoffDialogue & {
-          error?: string;
-        };
-
-        if (!response.ok) {
-          throw new Error(data.error ?? CASS_ERROR_LINES[0]);
-        }
-
+        const data = await callKickoffApi(next);
         const reply = data.reply?.trim();
         if (!reply) throw new Error(CASS_ERROR_LINES[1]);
 
-        const withReply: DialogueMessage[] = [
-          ...next,
-          { role: "assistant", content: reply },
-        ];
+        const withReply: DialogueMessage[] = [...next, { role: "assistant", content: reply }];
         setMessages(withReply);
         setCurrentReply(reply);
         setAnimState("talking");
         if (data.currentBeat) setCurrentBeat(data.currentBeat);
 
-        if (data.done) {
-          setKickoffData(data);
-          // Save it automatically after closing line is shown
-        }
+        if (data.done) setKickoffData(data);
+      } catch (err) {
+        setRetryMessages(next);
+        setError(err instanceof Error ? err.message : CASS_ERROR_LINES[0]);
+        setAnimState("listening");
+      }
+    });
+  }
+
+  function handleRetry() {
+    if (!retryMessages || isPending) return;
+    setError(null);
+    setAnimState("recording");
+    setCurrentReply("");
+
+    startTransition(async () => {
+      try {
+        const data = await callKickoffApi(retryMessages, 1);
+        const reply = data.reply?.trim();
+        if (!reply) throw new Error(CASS_ERROR_LINES[1]);
+
+        const withReply: DialogueMessage[] = [...retryMessages, { role: "assistant", content: reply }];
+        setMessages(withReply);
+        setCurrentReply(reply);
+        setAnimState("talking");
+        setRetryMessages(null);
+        if (data.currentBeat) setCurrentBeat(data.currentBeat);
+        if (data.done) setKickoffData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : CASS_ERROR_LINES[0]);
         setAnimState("listening");
@@ -333,17 +360,33 @@ export function CassChapterKickoff({
               )}
 
               {error && (
-                <p
-                  style={{
-                    color: "#ff3b30",
-                    fontFamily: "var(--font-cass)",
-                    fontSize: "13px",
-                    textAlign: "center",
-                    width: "100%",
-                  }}
-                >
-                  {error}
-                </p>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%" }}>
+                  <p style={{ color: "#ff6b5b", fontFamily: "'Literata', Georgia, serif", fontSize: "13px", textAlign: "center", margin: 0, lineHeight: 1.5 }}>
+                    Something went wrong — your conversation is still here.
+                  </p>
+                  {retryMessages && (
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      disabled={isPending}
+                      style={{
+                        background: "rgba(200,168,107,0.12)",
+                        border: "1px solid rgba(200,168,107,0.35)",
+                        borderRadius: "20px",
+                        padding: "8px 20px",
+                        fontFamily: "var(--font-cass)",
+                        fontSize: "11px",
+                        letterSpacing: "1.5px",
+                        textTransform: "uppercase",
+                        color: "#c8a86b",
+                        cursor: isPending ? "not-allowed" : "pointer",
+                        opacity: isPending ? 0.5 : 1,
+                      }}
+                    >
+                      {isPending ? "◉ retrying..." : "↺ Try again"}
+                    </button>
+                  )}
+                </div>
               )}
 
               {isListening && (

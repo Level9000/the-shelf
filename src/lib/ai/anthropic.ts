@@ -1003,14 +1003,27 @@ export async function runCassChapterKickoffDialogue(input: {
     (block) => block.type === "tool_use" && block.name === "kickoff_response",
   );
 
+  // Fallback: if no tool call, try to extract plain text reply so the
+  // conversation can continue rather than hard-failing.
   if (!toolUse?.input) {
+    const fallbackText = payload.content?.find((b) => b.type === "text")?.text?.trim();
+    if (fallbackText) {
+      console.warn("[kickoff] tool call missing — returning raw text fallback");
+      return { reply: fallbackText, done: false, goal: "", whyItMatters: "", successLooksLike: "", doneDefinition: "", openingLine: "", proposedTasks: [], currentBeat: "context" as const };
+    }
     throw new Error("Cass chapter kickoff did not return a tool call.");
   }
 
   // Try enhanced schema first (includes beats + thesis), fall back to standard
   const enhanced = cassEnhancedKickoffDialogueSchema.safeParse(toolUse.input);
   if (enhanced.success) return enhanced.data;
-  return aiKickoffDialogueSchema.parse(toolUse.input);
+  const standard = aiKickoffDialogueSchema.safeParse(toolUse.input);
+  if (standard.success) return standard.data;
+
+  // Both schemas failed — return minimal safe response rather than crashing
+  console.warn("[kickoff] schema parse failed — returning partial fallback");
+  const raw = toolUse.input as Record<string, unknown>;
+  return { reply: String(raw.reply ?? "Let's keep going — what were you saying?"), done: false, goal: "", whyItMatters: "", successLooksLike: "", doneDefinition: "", openingLine: "", proposedTasks: [], currentBeat: "context" as const };
 }
 
 export async function runCassRetroDialogue(input: {
@@ -1071,7 +1084,18 @@ export async function runCassRetroDialogue(input: {
     safeJsonParse(extractJsonObject(rawText)),
   );
   if (enhanced.success) return enhanced.data;
-  return cassRetroDialogueSchema.parse(safeJsonParse(extractJsonObject(rawText)));
+
+  const legacy = cassRetroDialogueSchema.safeParse(
+    safeJsonParse(extractJsonObject(rawText)),
+  );
+  if (legacy.success) return legacy.data;
+
+  // Both schemas failed — AI returned malformed/missing JSON.
+  // Return the raw text as a reply so the conversation can continue
+  // rather than crashing the session and losing everything.
+  console.warn("[retro] JSON parse failed — returning raw text fallback");
+  const cleanText = rawText.replace(/<retro_data>[\s\S]*?<\/retro_data>/g, "").trim();
+  return { reply: cleanText.slice(0, 4000) || "Sorry, I lost my train of thought. What were you saying?", done: false, currentBeat: "accounting" as const };
 }
 
 // ── Narrative Engine ──────────────────────────────────────────────────────────

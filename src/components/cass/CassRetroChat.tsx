@@ -120,6 +120,7 @@ export function CassRetroChat({
   const [shareSlug,     setShareSlug]     = useState<string>("");
   const [generatedStory, setGeneratedStory] = useState<GeneratedStoryPayload | null>(null);
   const [error,         setError]         = useState<string | null>(null);
+  const [retryMessages, setRetryMessages] = useState<DialogueMessage[] | null>(null);
   const [isPending,     startTransition]  = useTransition();
   const [isSaving,      startSaveTransition] = useTransition();
 
@@ -132,6 +133,29 @@ export function CassRetroChat({
     if (phase === "saving")     return 55;
     if (retroData)              return 50;
     return 30;
+  }
+
+  async function callRetroApi(msgs: DialogueMessage[], attempt = 1): Promise<EnhancedRetroPayload> {
+    const response = await fetch("/api/chat/cass-retro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: msgs,
+        projectId: project.id,
+        chapterId: board.id,
+        avatar: activeAvatar,
+      }),
+    });
+    const data = (await response.json()) as EnhancedRetroPayload;
+    if (!response.ok) {
+      // Auto-retry once on server errors (transient JSON parse failures etc.)
+      if (attempt === 1) {
+        console.warn("[retro] first attempt failed, retrying…");
+        return callRetroApi(msgs, 2);
+      }
+      throw new Error(data.error ?? CASS_ERROR_LINES[0]);
+    }
+    return data;
   }
 
   function handleSend() {
@@ -147,26 +171,11 @@ export function CassRetroChat({
     setAnimState("recording");
     setCurrentReply("");
     setError(null);
+    setRetryMessages(null);
 
     startTransition(async () => {
       try {
-        const response = await fetch("/api/chat/cass-retro", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: next,
-            projectId: project.id,
-            chapterId: board.id,
-            avatar: activeAvatar,
-          }),
-        });
-
-        const data = (await response.json()) as EnhancedRetroPayload;
-
-        if (!response.ok) {
-          throw new Error(data.error ?? CASS_ERROR_LINES[0]);
-        }
-
+        const data = await callRetroApi(next);
         const reply = data.reply?.trim();
         if (!reply) throw new Error(CASS_ERROR_LINES[1]);
 
@@ -179,10 +188,38 @@ export function CassRetroChat({
         setAnimState("talking");
         if (data.currentBeat) setCurrentBeat(data.currentBeat);
 
-        // If retro beats collected and bridge confirmed, store payload for saving
-        if (data.done) {
-          setRetroData(data);
-        }
+        if (data.done) setRetroData(data);
+      } catch (err) {
+        // Preserve the messages-up-to-this-point so the user can retry
+        setRetryMessages(next);
+        setError(err instanceof Error ? err.message : CASS_ERROR_LINES[0]);
+        setAnimState("listening");
+      }
+    });
+  }
+
+  function handleRetry() {
+    if (!retryMessages || isPending) return;
+    setError(null);
+    setAnimState("recording");
+    setCurrentReply("");
+
+    startTransition(async () => {
+      try {
+        const data = await callRetroApi(retryMessages, 1);
+        const reply = data.reply?.trim();
+        if (!reply) throw new Error(CASS_ERROR_LINES[1]);
+
+        const withReply: DialogueMessage[] = [
+          ...retryMessages,
+          { role: "assistant", content: reply },
+        ];
+        setMessages(withReply);
+        setCurrentReply(reply);
+        setAnimState("talking");
+        setRetryMessages(null);
+        if (data.currentBeat) setCurrentBeat(data.currentBeat);
+        if (data.done) setRetroData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : CASS_ERROR_LINES[0]);
         setAnimState("listening");
@@ -433,17 +470,33 @@ export function CassRetroChat({
             )}
 
             {error && (
-              <p
-                style={{
-                  color: "#ff3b30",
-                  fontFamily: "var(--font-cass)",
-                  fontSize: "13px",
-                  textAlign: "center",
-                  width: "100%",
-                }}
-              >
-                {error}
-              </p>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%" }}>
+                <p style={{ color: "#ff6b5b", fontFamily: "'Literata', Georgia, serif", fontSize: "13px", textAlign: "center", margin: 0, lineHeight: 1.5 }}>
+                  Something went wrong — your conversation is still here.
+                </p>
+                {retryMessages && (
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    disabled={isPending}
+                    style={{
+                      background: "rgba(200,168,107,0.12)",
+                      border: "1px solid rgba(200,168,107,0.35)",
+                      borderRadius: "20px",
+                      padding: "8px 20px",
+                      fontFamily: "var(--font-cass)",
+                      fontSize: "11px",
+                      letterSpacing: "1.5px",
+                      textTransform: "uppercase",
+                      color: "#c8a86b",
+                      cursor: isPending ? "not-allowed" : "pointer",
+                      opacity: isPending ? 0.5 : 1,
+                    }}
+                  >
+                    {isPending ? "◉ retrying..." : "↺ Try again"}
+                  </button>
+                )}
+              </div>
             )}
 
             {isListening && !saved && (
