@@ -88,9 +88,8 @@ export function CassRecorder({
     isTalking   ? "▶ PLAYBACK"  :
     isPlaying   ? "▶ PLAYING"   : "■ STANDBY";
 
-  // Dark mode: lighter grays so the recorder pops against a dark background.
-  // Light mode: current dark/black colors so the recorder pops against a light background.
-  const c = isDark ? {
+  // Same palette in both light and dark — the lighter gray looks great everywhere.
+  const c = {
     body:         "#787878",
     bodyStroke:   "#999999",
     ridge:        "#8a8a8a",
@@ -112,29 +111,6 @@ export function CassRecorder({
       outer: "#5a5a5a", outerStroke: "#7a7a7a",
       inner: "#686868", innerStroke: "#888888",
       center: "#7a7a7a", spoke: "#8a8a8a",
-    },
-  } : {
-    body:         "#1a1a1a",
-    bodyStroke:   "#333333",
-    ridge:        "#222222",
-    labelBg:      "#111111",
-    windowBg:     "#0d0d0d",
-    windowStroke: "#2a2a2a",
-    buttonRow:    "#111111",
-    buttonFill:   "#1c1c1c",
-    buttonStroke: "#2a2a2a",
-    buttonText:   "#555555",
-    speakerBox:   "#111111",
-    speakerOn:    "#333333",
-    speakerOff:   "#222222",
-    meterBox:     "#111111",
-    meterLabel:   "#444444",
-    recOff:       "#3a2020",
-    recTextOff:   "#444444",
-    reel: {
-      outer: "#161616", outerStroke: "#2e2e2e",
-      inner: "#1e1e1e", innerStroke: "#333333",
-      center: "#2a2a2a", spoke: "#333333",
     },
   };
 

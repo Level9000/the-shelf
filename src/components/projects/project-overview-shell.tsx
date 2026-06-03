@@ -1945,7 +1945,7 @@ export function ProjectOverviewShell({
                   setCassDrawerOpen(true);
                 }}
                 hoverText="Publish your story"
-                teaserText="I've been reading everything. Let's publish something."
+                teaserText="We've captured a great story together. Want help sharing it?"
               />
             </div>
           </>
@@ -1961,7 +1961,7 @@ export function ProjectOverviewShell({
               <TyFab
                 onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)}
                 hoverText="Plan your next chapter"
-                teaserText="I can help you map out what comes next."
+                teaserText="Need help planning what comes next?"
               />
             </div>
           </>

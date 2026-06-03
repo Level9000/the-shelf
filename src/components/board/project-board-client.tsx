@@ -571,7 +571,7 @@ export function ProjectBoardClient({
     : bannerState.kind === "closing_stretch"
       ? `${bannerState.completedCount} of ${bannerState.totalCount} done. Almost there.`
     : bannerState.kind === "on_pace"
-      ? `${bannerState.completedCount} done in ${bannerState.ageDays} days — on pace.`
+      ? `${bannerState.completedCount} done in ${bannerState.ageDays} days. Keep up the great work.`
     : bannerState.kind === "completed"
       ? `Done ${new Date(bannerState.retroCompletedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.`
     : undefined;
@@ -810,7 +810,7 @@ export function ProjectBoardClient({
         {retroNudge ? (
           <CassBoardFab
             onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
-            hoverText="Everything's done — write the retro"
+            hoverText="Looks like the work is done. Let's write the end of this chapter together"
             ringColor="green"
           />
         ) : snapshot.board.retroCompletedAt ? (
