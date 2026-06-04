@@ -272,7 +272,7 @@ export function SettingsContent({
 
       {/* ── Appearance ── */}
       <DrawerSection label="Appearance">
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "5px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {/* LIGHT tape label */}
             <span
@@ -369,7 +369,7 @@ export function SettingsContent({
                 textUnderlineOffset: "3px",
               }}
             >
-              Terms of Service ↗
+              Terms of Service
             </Link>
             <Link
               href="/privacy"
@@ -382,7 +382,7 @@ export function SettingsContent({
                 textUnderlineOffset: "3px",
               }}
             >
-              Privacy Policy ↗
+              Privacy Policy
             </Link>
           </div>
           {profile.termsAcceptedAt && (

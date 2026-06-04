@@ -1,4 +1,3 @@
-import { loginAction } from "@/lib/actions/auth-actions";
 import { AuthForm } from "@/components/auth/auth-form";
 
 export default async function LoginPage({
@@ -6,19 +5,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const { error } = await searchParams;
 
-  return (
-    <AuthForm
-      title="Welcome Back"
-      subtitle="Sign in to continue making progress on your founders story."
-      submitLabel="Sign in"
-      secondaryHref="/signup"
-      secondaryLabel="Create an account"
-      secondaryPrompt="New to Authored By?"
-      action={loginAction}
-      nextPath={next}
-      oauthError={error}
-    />
-  );
+  return <AuthForm oauthError={error} />;
 }
