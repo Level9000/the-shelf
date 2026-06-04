@@ -11,6 +11,7 @@ import { CassInput } from "./CassInput";
 import { completeChapterKickoffAction } from "@/lib/actions/project-actions";
 import { CASS_ERROR_LINES } from "./cassVoice";
 import { useAvatar } from "@/lib/avatar-context";
+import { useTheme } from "@/lib/theme-context";
 import { ConversationTracker, KICKOFF_STEPS } from "./ConversationTracker";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
@@ -37,6 +38,8 @@ export function CassChapterKickoff({
   isPrefilled: boolean;
 }) {
   const { activeAvatar } = useAvatar();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   // Start in loading state — opener is fetched from the API on mount
   const [messages, setMessages] = useState<DialogueMessage[]>([OPENER_TRIGGER]);
@@ -228,11 +231,12 @@ export function CassChapterKickoff({
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          background: "#0a0a0a",
-          backgroundImage:
-            "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)",
+          background: isDark ? "#0a0a0a" : "var(--surface)",
+          backgroundImage: isDark
+            ? "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)"
+            : "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.06) 0%, transparent 60%)",
           fontFamily: "var(--font-cass)",
-          color: "#c8c8c8",
+          color: isDark ? "#c8c8c8" : "var(--ink)",
         }}
       >
         {/* Progress bar — flush at the very top */}
@@ -336,7 +340,7 @@ export function CassChapterKickoff({
               {(isPending || isSaving) && !currentReply && (
                 <div
                   style={{
-                    background: "rgba(255,255,255,0.03)",
+                    background: isDark ? "rgba(255,255,255,0.03)" : "var(--surface-muted, rgba(0,0,0,0.04))",
                     border: "1px solid rgba(200,168,107,0.15)",
                     borderRadius: "12px",
                     padding: "20px 24px",
@@ -350,7 +354,7 @@ export function CassChapterKickoff({
                     style={{
                       fontFamily: "var(--font-cass)",
                       fontSize: "13px",
-                      color: "#555",
+                      color: "var(--muted)",
                       letterSpacing: "1px",
                     }}
                   >

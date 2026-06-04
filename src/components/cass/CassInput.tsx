@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useTheme } from "@/lib/theme-context";
 
 export function CassInput({
   value,
@@ -19,7 +20,11 @@ export function CassInput({
   disabled?: boolean;
   autoFocus?: boolean;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const ref = useRef<HTMLTextAreaElement>(null);
+
+  const isDisabled = disabled || !value.trim();
 
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -38,13 +43,13 @@ export function CassInput({
         }}
         style={{
           width: "100%",
-          background: "rgba(255,255,255,0.04)",
+          background: isDark ? "rgba(255,255,255,0.05)" : "var(--surface-muted, rgba(0,0,0,0.04))",
           border: "1px solid rgba(200,168,107,0.25)",
           borderRadius: "8px",
           padding: "14px 16px",
-          fontFamily: "var(--font-cass)",
+          fontFamily: "'Literata', Georgia, serif",
           fontSize: "14px",
-          color: "#d4cec4",
+          color: isDark ? "#d4cec4" : "var(--ink)",
           outline: "none",
           resize: "none",
           minHeight: "70px",
@@ -62,25 +67,29 @@ export function CassInput({
       <button
         type="button"
         onClick={onSubmit}
-        disabled={disabled || !value.trim()}
+        disabled={isDisabled}
         style={{
           alignSelf: "flex-end",
-          background: disabled || !value.trim() ? "#333" : "#c8a86b",
-          color: disabled || !value.trim() ? "#555" : "#0a0a0a",
+          background: isDisabled
+            ? (isDark ? "#333" : "rgba(0,0,0,0.10)")
+            : "#c8a86b",
+          color: isDisabled
+            ? "var(--muted)"
+            : "#0a0a0a",
           border: "none",
           borderRadius: "6px",
           padding: "10px 22px",
           fontFamily: "var(--font-cass)",
           fontSize: "13px",
           letterSpacing: "1px",
-          cursor: disabled || !value.trim() ? "default" : "pointer",
+          cursor: isDisabled ? "default" : "pointer",
           transition: "background 0.2s, transform 0.1s",
         }}
         onMouseEnter={(e) => {
-          if (!disabled && value.trim()) e.currentTarget.style.background = "#d9bb7e";
+          if (!isDisabled) e.currentTarget.style.background = "#d9bb7e";
         }}
         onMouseLeave={(e) => {
-          if (!disabled && value.trim()) e.currentTarget.style.background = "#c8a86b";
+          if (!isDisabled) e.currentTarget.style.background = "#c8a86b";
         }}
         onMouseDown={(e) => {
           if (!disabled && value.trim()) e.currentTarget.style.transform = "scale(0.97)";

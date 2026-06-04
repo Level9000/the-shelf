@@ -68,7 +68,7 @@ const SECTIONS: SectionConfig[] = [
     title: "What will we have to show?",
     shortTitle: "Proof point",
     prompt:
-      "What tangible thing will exist at the end? This is the proof point the retro will hold you to.",
+      "What tangible thing will exist at the end? This is the proof point the recap will hold you to.",
     icon: CheckCircle2,
   },
 ];

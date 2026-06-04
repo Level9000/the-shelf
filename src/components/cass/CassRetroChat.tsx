@@ -13,6 +13,7 @@ import {
 } from "@/lib/actions/project-actions";
 import { CASS_ERROR_LINES } from "./cassVoice";
 import { useAvatar } from "@/lib/avatar-context";
+import { useTheme } from "@/lib/theme-context";
 import { ConversationTracker, RETRO_STEPS } from "./ConversationTracker";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
@@ -87,6 +88,7 @@ export function CassRetroChat({
   remainingTasks,
   onComplete,
   onDismiss,
+  chapterNumber = 1,
 }: {
   project: {
     id:                string;
@@ -98,9 +100,11 @@ export function CassRetroChat({
   remainingTasks: Task[];
   onComplete: (data: { chapterStory: string; pullQuote: string; headline?: string; subheadline?: string; chapterType?: string }) => void;
   onDismiss?: () => void;
+  chapterNumber?: number;
 }) {
-  const chapterNumber = 1; // API calculates the real number; this is display-only
   const { activeAvatar } = useAvatar();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const openingMsg = buildOpeningMessage(
     chapterNumber,
@@ -336,12 +340,13 @@ export function CassRetroChat({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0a0a0a",
-          backgroundImage:
-            "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)",
+          background: isDark ? "#0a0a0a" : "var(--surface)",
+          backgroundImage: isDark
+            ? "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%)"
+            : "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.06) 0%, transparent 60%)",
           padding: "24px 16px",
           fontFamily: "var(--font-cass)",
-          color: "#c8c8c8",
+          color: isDark ? "#c8c8c8" : "var(--ink)",
           overflowY: "auto",
           position: "relative",
         }}
@@ -412,7 +417,7 @@ export function CassRetroChat({
                 fontFamily: "var(--font-cass)",
                 fontSize: "11px",
                 letterSpacing: "2px",
-                color: "rgba(200,168,107,0.6)",
+                color: "rgba(200,168,107,0.75)",
                 textTransform: "uppercase",
               }}
             >
@@ -442,7 +447,7 @@ export function CassRetroChat({
             {(isPending || isSaving) && !currentReply && (
               <div
                 style={{
-                  background: "rgba(255,255,255,0.03)",
+                  background: isDark ? "rgba(255,255,255,0.03)" : "var(--surface-muted, rgba(0,0,0,0.04))",
                   border: "1px solid rgba(200,168,107,0.15)",
                   borderRadius: "12px",
                   padding: "20px 24px",
@@ -456,7 +461,7 @@ export function CassRetroChat({
                   style={{
                     fontFamily: "var(--font-cass)",
                     fontSize: "13px",
-                    color: "#555",
+                    color: "var(--muted)",
                     letterSpacing: "1px",
                   }}
                 >

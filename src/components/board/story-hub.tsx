@@ -548,7 +548,7 @@ function LockedView({
           Your story is almost ready
         </h2>
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-          Complete the chapter retro and your story will unlock here — ready to
+          Complete the chapter recap and your story will unlock here — ready to
           share with your team, investors, or the world.
         </p>
         {retroAvailable && onEndChapter && (
@@ -563,7 +563,7 @@ function LockedView({
         )}
         {!board.kickoffCompletedAt && (
           <p className="mt-4 text-xs text-[var(--muted)]">
-            Complete the chapter kickoff first to unlock the retro.
+            Complete the chapter kickoff first to unlock the recap.
           </p>
         )}
       </div>

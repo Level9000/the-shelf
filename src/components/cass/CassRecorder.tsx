@@ -124,7 +124,7 @@ export function CassRecorder({
         width={px}
         height={px * (260 / 200)}
         xmlns="http://www.w3.org/2000/svg"
-        style={{ filter: `drop-shadow(0px ${12 * scale}px ${32 * scale}px rgba(0,0,0,0.45))` }}
+        style={{ filter: `drop-shadow(0px ${12 * scale}px ${32 * scale}px rgba(0,0,0,${isDark ? 0.45 : 0.12}))` }}
         aria-label={`Cass recorder — ${statusLabel}`}
       >
         {/* Body */}

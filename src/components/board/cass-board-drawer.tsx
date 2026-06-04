@@ -105,7 +105,7 @@ const COLUMN_LABELS: Record<string, string> = {
 
 function buildRfOpener(board: Board, incompleteTasks: Task[], ageDays: number): string {
   if (incompleteTasks.length === 0) {
-    return `Your backlog for ${board.name} is clear. If you're ready to close this chapter, let's write the retro.`;
+    return `Your backlog for ${board.name} is clear. If you're ready to close this chapter, let's write the recap.`;
   }
   const openingLine = board.openingLine ? `You started this chapter with: "${board.openingLine}." ` : "";
   const named = incompleteTasks.slice(0, 2).map((t) => `"${t.title}"`).join(" and ");
@@ -819,7 +819,7 @@ function EndChapterView({
           {isPending
             ? <LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} />
             : <ArrowRight size={14} />}
-          {isPending ? "Working…" : "Start the retro"}
+          {isPending ? "Working…" : "Start the recap"}
         </button>
       </div>
     </>
@@ -1538,6 +1538,7 @@ export function CassBoardDrawer({
               board={board}
               completedTasks={completedTasksForRetro}
               remainingTasks={remainingTasksForRetro}
+              chapterNumber={chapterNumber}
               onComplete={(data) => { onRetroComplete?.(data); onTasksAdded(); setTimeout(onClose, 800); }}
               onDismiss={onClose}
             />
@@ -1556,6 +1557,7 @@ export function CassBoardDrawer({
               board={board}
               completedTasks={completedTasksForRetro}
               remainingTasks={remainingTasksForRetro}
+              chapterNumber={chapterNumber}
               onComplete={() => { onTasksAdded(); setTimeout(onClose, 800); }}
               onDismiss={onClose}
             />
@@ -1611,7 +1613,7 @@ export function CassBoardDrawer({
             >
               {rfIsSaving
                 ? <><LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> Saving…</>
-                : "Lock it in → Write the retro"}
+                : "Lock it in → Write the recap"}
             </button>
           </div>
         )}
@@ -1791,7 +1793,7 @@ export function CassBoardDrawer({
               >
                 <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
                 <div>
-                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Start the retro</p>
+                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Start the recap</p>
                   <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Reflect on the work and write this chapter&apos;s story</p>
                 </div>
               </button>

@@ -143,7 +143,7 @@ export function ProjectAccessManager({
           Access controls
         </div>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          <span className="font-semibold text-[var(--ink)]">Authors</span> can run chapter kickoffs, retros, and story planning.{" "}
+          <span className="font-semibold text-[var(--ink)]">Authors</span> can run chapter kickoffs, recaps, and story planning.{" "}
           <span className="font-semibold text-[var(--ink)]">Contributors</span> can create, move, and delete tasks only.
         </p>
 
@@ -182,7 +182,7 @@ export function ProjectAccessManager({
             </div>
             <p className="text-xs leading-5 text-[var(--muted)]">
               {role === "author"
-                ? "Authors can run kickoffs, retros, and chapter planning — full story authorship."
+                ? "Authors can run kickoffs, recaps, and chapter planning — full story authorship."
                 : "Contributors can manage tasks (create, move, delete) but cannot run authorship sessions."}
             </p>
             <TapeButton

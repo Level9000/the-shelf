@@ -268,7 +268,7 @@ export function ChapterRetroChat({
     const payload = (await response.json()) as { reply?: string; error?: string };
 
     if (!response.ok) {
-      throw new Error(payload.error ?? "Retro dialogue failed.");
+      throw new Error(payload.error ?? "Recap dialogue failed.");
     }
 
     const reply = payload.reply?.trim();
@@ -382,7 +382,7 @@ export function ChapterRetroChat({
             </div>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">
-                Chapter retro
+                Chapter recap
               </h1>
               <p className="mt-1 text-sm text-[var(--muted)]">
                 Let&apos;s look back at {board.name} and write the story.

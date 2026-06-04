@@ -27,7 +27,7 @@ const PLANS = [
 
 const FEATURES = [
   "Unlimited chapters and projects",
-  "Chapter kickoffs and retros",
+  "Chapter kickoffs and recaps",
   "Cass — your AI story guide",
   "Voice capture and brain dump",
   "Your full story, always accessible",

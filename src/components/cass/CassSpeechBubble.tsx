@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "@/lib/theme-context";
 
 // ── TypewriterText ─────────────────────────────────────────────────────────────
 
@@ -72,11 +73,14 @@ export function CassSpeechBubble({
   speed?: number;
   animate?: boolean;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <div
       style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(200,168,107,0.15)",
+        background: isDark ? "rgba(255,255,255,0.04)" : "var(--surface-muted, rgba(0,0,0,0.04))",
+        border: "1px solid rgba(200,168,107,0.2)",
         borderRadius: "12px",
         padding: "20px 24px",
         width: "100%",
@@ -95,10 +99,10 @@ export function CassSpeechBubble({
           transform: "translateX(-50%)",
           width: "14px",
           height: "8px",
-          background: "#0a0a0a",
-          borderLeft: "1px solid rgba(200,168,107,0.15)",
-          borderRight: "1px solid rgba(200,168,107,0.15)",
-          borderTop: "1px solid rgba(200,168,107,0.15)",
+          background: isDark ? "#0a0a0a" : "var(--surface)",
+          borderLeft: "1px solid rgba(200,168,107,0.2)",
+          borderRight: "1px solid rgba(200,168,107,0.2)",
+          borderTop: "1px solid rgba(200,168,107,0.2)",
           clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
         }}
       />
@@ -107,7 +111,7 @@ export function CassSpeechBubble({
           fontFamily: "'Literata', Georgia, serif",
           fontSize: "17px",
           lineHeight: "1.55",
-          color: "#d4cec4",
+          color: isDark ? "#d4cec4" : "var(--ink)",
           letterSpacing: "0.01em",
           margin: 0,
         }}

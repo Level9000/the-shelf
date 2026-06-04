@@ -810,7 +810,7 @@ export function ProjectBoardClient({
         {retroNudge ? (
           <CassBoardFab
             onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
-            hoverText="Looks like the work is done. Let's write the end of this chapter together"
+            hoverText="Looks like the work is done. Let's recap this chapter together"
             ringColor="green"
           />
         ) : snapshot.board.retroCompletedAt ? (
