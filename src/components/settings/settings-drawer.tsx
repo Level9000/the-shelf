@@ -456,9 +456,9 @@ export function SettingsContent({
                     {deleteError && (
                       <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteError}</p>
                     )}
-                    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                      <TapeButton variant="secondary" size="sm" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>Keep chapter</TapeButton>
-                      <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting}>{isDeleting ? "Deleting…" : "Delete chapter"}</TapeButton>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+                      <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting} className="w-full justify-center">{isDeleting ? "Deleting…" : "Delete chapter"}</TapeButton>
+                      <button type="button" onClick={() => setConfirmingDelete(false)} disabled={isDeleting} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "var(--muted)", fontFamily: "'Literata', Georgia, serif" }}>Cancel</button>
                     </div>
                   </div>
                 ) : (
@@ -481,7 +481,7 @@ export function SettingsContent({
                 {confirmingDeleteProject ? (
                   <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
                     <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 2px" }}>Type the project name to confirm:</p>
-                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(248,113,113,0.6)", margin: "0 0 10px" }}>{currentProjectName}</p>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(248,113,113,0.7)", margin: "0 0 10px" }}>{currentProjectName}</p>
                     <input
                       type="text"
                       value={deleteProjectInput}
@@ -504,9 +504,9 @@ export function SettingsContent({
                     {deleteProjectError && (
                       <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteProjectError}</p>
                     )}
-                    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                      <TapeButton variant="secondary" size="sm" onClick={() => { setConfirmingDeleteProject(false); setDeleteProjectInput(""); setDeleteProjectError(null); }} disabled={isDeletingProject}>Cancel</TapeButton>
-                      <TapeButton variant="danger" size="sm" onClick={handleDeleteProject} disabled={isDeletingProject || deleteProjectInput !== currentProjectName}>{isDeletingProject ? "Deleting…" : "Delete project"}</TapeButton>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+                      <TapeButton variant="danger" size="sm" onClick={handleDeleteProject} disabled={isDeletingProject || deleteProjectInput !== currentProjectName} className="w-full justify-center">{isDeletingProject ? "Deleting…" : "Delete project"}</TapeButton>
+                      <button type="button" onClick={() => { setConfirmingDeleteProject(false); setDeleteProjectInput(""); setDeleteProjectError(null); }} disabled={isDeletingProject} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "var(--muted)", fontFamily: "'Literata', Georgia, serif" }}>Cancel</button>
                     </div>
                   </div>
                 ) : (

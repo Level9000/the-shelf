@@ -9,6 +9,8 @@ import { CassProgressBar } from "./CassProgressBar";
 import { CassRecorder } from "./CassRecorder";
 import { CassSpeechBubble } from "./CassSpeechBubble";
 import { CassInput } from "./CassInput";
+import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
+import { PressMonitor } from "@/components/ui/PressMonitor";
 import { WorkplanProposal } from "@/components/projects/workplan-proposal";
 import { completeProjectKickoffAction } from "@/lib/actions/project-actions";
 
@@ -16,30 +18,9 @@ import { completeProjectKickoffAction } from "@/lib/actions/project-actions";
 
 const INTRO_SCRIPT = [
   {
-    id: "intro",
-    state: "idle" as CassAnimState,
-    text: "Oh — hey. You're here.",
-    pause: 900,
-    isQuestion: false,
-  },
-  {
-    id: "intro2",
-    state: "talking" as CassAnimState,
-    text: "I'm Cass. I live here now. My whole job is to make sure nothing you build goes undocumented.",
-    pause: 1200,
-    isQuestion: false,
-  },
-  {
-    id: "intro3",
-    state: "talking" as CassAnimState,
-    text: "Founders forget things. Great things. The real reason they built something. The 2am pivot. The moment it clicked.",
-    pause: 1100,
-    isQuestion: false,
-  },
-  {
-    id: "intro4",
+    id: "tape",
     state: "recording" as CassAnimState,
-    text: "I don't let that happen. Every project you start, I'm rolling tape.",
+    text: "Alright. Tape's rolling.",
     pause: 900,
     isQuestion: false,
   },
@@ -57,7 +38,173 @@ type IntroStep = (typeof INTRO_SCRIPT)[number];
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
 
-type Phase = "start" | "scripted" | "chatting" | "workplan" | "saving";
+type Phase = "intro" | "start" | "scripted" | "chatting" | "workplan" | "saving";
+
+// ── Character intro cards ─────────────────────────────────────────────────────
+
+const INTRO_CARDS = [
+  {
+    id: "cass",
+    name: "Cass",
+    role: "Story Guide",
+    description: "I keep the tape rolling. Every project you start, I make sure the real story — the decisions, the pivots, the moments that mattered — never gets lost.",
+    accentColor: "#c8a86b",
+  },
+  {
+    id: "ty",
+    name: "Ty",
+    role: "Narrative Writer",
+    description: "When you're ready to share what you've built, I help you write the story that lands — announcements, press releases, the narrative behind the work.",
+    accentColor: "#cec9c0",
+  },
+  {
+    id: "press",
+    name: "Press",
+    role: "Reach Tracker",
+    description: "I watch how your story moves in the world — tracking coverage, mentions, and audience reach as it spreads.",
+    accentColor: "#e8a830",
+  },
+] as const;
+
+type IntroCardId = (typeof INTRO_CARDS)[number]["id"];
+
+function IntroScreen({ onComplete }: { onComplete: () => void }) {
+  const [cardIndex, setCardIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  const card = INTRO_CARDS[cardIndex];
+  const isLast = cardIndex === INTRO_CARDS.length - 1;
+
+  function advance() {
+    setVisible(false);
+    setTimeout(() => {
+      if (isLast) {
+        onComplete();
+      } else {
+        setCardIndex((i) => i + 1);
+        setVisible(true);
+      }
+    }, 280);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "480px", gap: "32px" }}>
+
+      {/* Step dots */}
+      <div style={{ display: "flex", gap: "8px" }}>
+        {INTRO_CARDS.map((c, i) => (
+          <div
+            key={c.id}
+            style={{
+              width: i === cardIndex ? "20px" : "6px",
+              height: "6px",
+              borderRadius: "3px",
+              background: i === cardIndex ? "#c8a86b" : "rgba(200,168,107,0.2)",
+              transition: "all 0.3s ease",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Character card */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "20px",
+          width: "100%",
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(8px)",
+          transition: "opacity 0.28s ease, transform 0.28s ease",
+        }}
+      >
+        {/* Avatar */}
+        {card.id === "cass"  && <CassRecorder animState="talking" size="md" />}
+        {card.id === "ty"    && <TypewriterRecorder animState="typing" size="md" />}
+        {card.id === "press" && <PressMonitor animState="talking" size="md" />}
+
+        {/* Name + role */}
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "26px", color: card.accentColor, fontWeight: 700 }}>
+            {card.name}
+          </div>
+          <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "3px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", marginTop: "4px" }}>
+            {card.role}
+          </div>
+        </div>
+
+        {/* Description */}
+        <div
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(200,168,107,0.15)",
+            borderRadius: "12px",
+            padding: "20px 24px",
+            width: "100%",
+          }}
+        >
+          <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
+            {card.description}
+          </p>
+        </div>
+
+        {/* Next / closing CTA */}
+        {isLast ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", width: "100%" }}>
+            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "rgba(200,168,107,0.7)", textAlign: "center", margin: 0, lineHeight: 1.6 }}>
+              Together we track your work and tell your story.
+            </p>
+            <button
+              type="button"
+              onClick={advance}
+              style={{
+                background: "#c8a86b",
+                border: "none",
+                color: "#0a0a0a",
+                borderRadius: "6px",
+                padding: "13px 36px",
+                fontFamily: "var(--font-cass)",
+                fontSize: "13px",
+                letterSpacing: "2px",
+                cursor: "pointer",
+                fontWeight: 700,
+                transition: "background 0.2s",
+                width: "100%",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#d9bb7e"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#c8a86b"; }}
+            >
+              LET'S GET STARTED →
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={advance}
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(200,168,107,0.35)",
+              color: "#c8a86b",
+              borderRadius: "6px",
+              padding: "11px 32px",
+              fontFamily: "var(--font-cass)",
+              fontSize: "12px",
+              letterSpacing: "2px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              alignSelf: "center",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.08)"; e.currentTarget.style.borderColor = "#c8a86b"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; }}
+          >
+            NEXT →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── Cass stage layout ─────────────────────────────────────────────────────────
 
@@ -229,7 +376,7 @@ export function CassOnboardingChat({
 }) {
   const router = useRouter();
 
-  const [phase, setPhase] = useState<Phase>("start");
+  const [phase, setPhase] = useState<Phase>(hasExistingProjects ? "start" : "intro");
   const [step, setStep] = useState(0);
   const [animState, setAnimState] = useState<CassAnimState>("idle");
   const [inputValue, setInputValue] = useState("");
@@ -509,7 +656,8 @@ export function CassOnboardingChat({
         {/* Progress bar — absolute at top of screen */}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
           <CassProgressBar percent={
-            phase === "start" ? 5 :
+            phase === "intro" ? 5 :
+            phase === "start" ? 10 :
             phase === "scripted" ? 25 :
             phase === "chatting" ? 55 :
             phase === "workplan" ? 80 :
@@ -541,6 +689,9 @@ export function CassOnboardingChat({
             ✕
           </button>
         )}
+
+        {/* ── Character intro ───────────────────────────────────────────────── */}
+        {phase === "intro" && <IntroScreen onComplete={handleStart} />}
 
         {/* ── Start screen ──────────────────────────────────────────────────── */}
         {phase === "start" && <StartScreen onStart={handleStart} />}
