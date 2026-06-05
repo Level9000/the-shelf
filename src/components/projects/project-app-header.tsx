@@ -303,6 +303,7 @@ export function ProjectAppHeader({
           type="button"
           onClick={() => setDrawerOpen(true)}
           style={{
+            fontFamily: "'Literata', Georgia, serif",
             width: "34px", height: "34px",
             borderRadius: "6px",
             background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
@@ -365,6 +366,7 @@ export function ProjectAppHeader({
             onClick={onOpenSettings}
             title="Settings"
             style={{
+              fontFamily: "'Literata', Georgia, serif",
               width: "30px", height: "30px",
               borderRadius: "50%",
               background: "transparent",
@@ -422,9 +424,15 @@ export function ProjectAppHeader({
               type="button"
               onClick={closeDrawer}
               style={{
-                background: "none", border: "none", cursor: "pointer",
-                color: drawerCloseColor, padding: "4px",
-                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "'Literata', Georgia, serif",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: drawerCloseColor,
+                padding: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <X size={15} />

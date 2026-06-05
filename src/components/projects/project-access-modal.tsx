@@ -166,18 +166,16 @@ export function ProjectAccessManager({
             />
             <div className="flex gap-2">
               {(["author", "contributor"] as const).map((r) => (
-                <button
+                <TapeButton
                   key={r}
                   type="button"
+                  variant={role === r ? "primary" : "secondary"}
+                  size="sm"
                   onClick={() => setRole(r)}
-                  className={`flex-1 rounded-[1rem] px-3 py-2 text-sm font-medium ring-1 transition ${
-                    role === r
-                      ? "bg-[var(--accent-soft)] ring-[var(--accent)]/40 text-[var(--accent)]"
-                      : "bg-white/60 ring-black/10 text-[var(--muted)] hover:bg-white"
-                  }`}
+                  className="flex-1 justify-center"
                 >
                   {r.charAt(0).toUpperCase() + r.slice(1)}
-                </button>
+                </TapeButton>
               ))}
             </div>
             <p className="text-xs leading-5 text-[var(--muted)]">

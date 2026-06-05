@@ -12,6 +12,7 @@ import {
   PlusCircle,
   Settings,
 } from "lucide-react";
+import { TapeButton } from "@/components/ui/tape-button";
 import type { ProjectWithChapters } from "@/types";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { Modal } from "@/components/ui/modal";
@@ -91,6 +92,7 @@ function NewStoryBook({ onClick }: { onClick: () => void }) {
           "linear-gradient(105deg, #c4a87a 0%, #d4b88a 40%, #c0a070 100%)",
         boxShadow:
           "0 4px 18px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.20)",
+        fontFamily: "'Literata', Georgia, serif",
       }}
     >
       <div className="flex items-center gap-3 px-3.5 py-3.5">
@@ -184,14 +186,16 @@ function OpenBook({
         ))}
 
         {/* Add chapter */}
-        <button
+        <TapeButton
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onAddChapter}
-          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-[11.5px] font-medium text-[#9C7A50] transition hover:text-[#5C4030] hover:bg-black/5 border-t border-black/[0.05]"
+          className="flex w-full items-center gap-2.5 px-4 py-2.5 border-t border-black/[0.05]"
         >
           <PlusCircle className="size-3 shrink-0" />
           New chapter
-        </button>
+        </TapeButton>
       </div>
     </div>
   );
@@ -283,6 +287,7 @@ export function ProjectSidebar({
           className="absolute right-0 top-5 z-20 hidden h-9 w-7 items-center justify-center rounded-l-xl text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)] lg:flex"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          style={{ fontFamily: "'Literata', Georgia, serif" }}
         >
           {collapsed ? (
             <ChevronRight className="size-3.5" />
@@ -347,6 +352,7 @@ export function ProjectSidebar({
                 style={{
                   background: "#c4a87a",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.30)",
+                  fontFamily: "'Literata', Georgia, serif",
                 }}
               >
                 <Plus className="size-4 text-[#6B4820]" />
@@ -397,6 +403,7 @@ export function ProjectSidebar({
               "flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] font-medium text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]",
               collapsed ? "justify-center" : "flex-1",
             )}
+            style={{ fontFamily: "'Literata', Georgia, serif" }}
           >
             <Settings className="size-3.5 shrink-0" />
             {!collapsed && "Settings"}
@@ -409,6 +416,7 @@ export function ProjectSidebar({
                 "flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] font-medium text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]",
                 collapsed ? "justify-center" : "flex-1",
               )}
+              style={{ fontFamily: "'Literata', Georgia, serif" }}
             >
               <LogOut className="size-3.5 shrink-0" />
               {!collapsed && "Sign out"}

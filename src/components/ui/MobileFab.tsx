@@ -25,6 +25,7 @@ export function MobileFab({ onClick }: { onClick: () => void }) {
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
+        fontFamily: "'Literata', Georgia, serif",
         WebkitTapHighlightColor: "transparent",
         touchAction: "manipulation",
         transition: "transform 0.12s ease, box-shadow 0.12s ease",

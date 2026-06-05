@@ -327,6 +327,7 @@ export function CassFab({
             transition: "transform 0.42s cubic-bezier(0.32, 0.72, 0, 1)",
             animation: isPulsing ? "cassFabGlowPulse 1.6s ease-in-out infinite" : "none",
             filter: `drop-shadow(0 0 10px ${glowColor(ringColor, false)})`,
+            fontFamily: "'Literata', Georgia, serif",
           }}
         >
           <CassRecorder

@@ -5,6 +5,7 @@ import { Check, CheckCircle2, Copy, ExternalLink } from "lucide-react";
 import type { Board } from "@/types";
 import type { RetroData } from "@/lib/ai/schema";
 import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 
 function ShareButton({
   label,
@@ -125,18 +126,14 @@ export function ChapterShareCard({
       <div className="flex flex-wrap items-center justify-center gap-3">
         <ShareButton label="Share on X" href={twitterUrl} />
         <ShareButton label="Share on LinkedIn" href={linkedInUrl} />
-        <button
-          type="button"
-          onClick={copyLink}
-          className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-[var(--ink)] ring-1 ring-black/12 transition hover:bg-[var(--surface-muted)]"
-        >
+        <TapeButton variant="secondary" size="sm" onClick={copyLink}>
           {copied ? (
             <Check className="size-3.5 text-green-600" />
           ) : (
             <Copy className="size-3.5" />
           )}
           {copied ? "Copied!" : "Copy link"}
-        </button>
+        </TapeButton>
       </div>
 
       <p className="text-center text-xs text-[var(--muted)]">

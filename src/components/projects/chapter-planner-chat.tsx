@@ -19,6 +19,7 @@ import type { ProjectWithChapters } from "@/types";
 import { createPlannedChaptersAction } from "@/lib/actions/project-actions";
 import { Button } from "@/components/ui/button";
 import { ChatProgressBar } from "@/components/ui/chat-progress-bar";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -78,6 +79,7 @@ function ProposedChapterCard({
         <button
           type="button"
           onClick={onRemove}
+          style={{ fontFamily: "'Literata', Georgia, serif" }}
           className="flex size-6 shrink-0 items-center justify-center rounded-full text-[var(--muted)] opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
           aria-label="Remove chapter"
         >
@@ -278,13 +280,13 @@ export function ChapterPlannerChat({
             <p className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
           )}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
+            <TapeButton
+              variant="ghost"
+              size="sm"
               onClick={() => setStage("chatting")}
-              className="text-sm text-[var(--muted)] transition hover:text-[var(--ink)]"
             >
               Back to chat
-            </button>
+            </TapeButton>
             <Button
               onClick={handleConfirm}
               disabled={isSaving || remaining.length === 0}
@@ -335,6 +337,7 @@ export function ChapterPlannerChat({
           <button
             type="button"
             onClick={onClose}
+            style={{ fontFamily: "'Literata', Georgia, serif" }}
             className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
             aria-label="Close"
           >

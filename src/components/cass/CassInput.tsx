@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useTheme } from "@/lib/theme-context";
+import { TapeButton } from "@/components/ui/tape-button";
 
 export function CassInput({
   value,
@@ -64,42 +65,15 @@ export function CassInput({
           e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)";
         }}
       />
-      <button
-        type="button"
+      <TapeButton
+        variant="primary"
+        size="sm"
         onClick={onSubmit}
         disabled={isDisabled}
-        style={{
-          alignSelf: "flex-end",
-          background: isDisabled
-            ? (isDark ? "#333" : "rgba(0,0,0,0.10)")
-            : "#c8a86b",
-          color: isDisabled
-            ? "var(--muted)"
-            : "#0a0a0a",
-          border: "none",
-          borderRadius: "6px",
-          padding: "10px 22px",
-          fontFamily: "var(--font-cass)",
-          fontSize: "13px",
-          letterSpacing: "1px",
-          cursor: isDisabled ? "default" : "pointer",
-          transition: "background 0.2s, transform 0.1s",
-        }}
-        onMouseEnter={(e) => {
-          if (!isDisabled) e.currentTarget.style.background = "#d9bb7e";
-        }}
-        onMouseLeave={(e) => {
-          if (!isDisabled) e.currentTarget.style.background = "#c8a86b";
-        }}
-        onMouseDown={(e) => {
-          if (!disabled && value.trim()) e.currentTarget.style.transform = "scale(0.97)";
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = "scale(1)";
-        }}
+        className="self-end"
       >
         {submitLabel}
-      </button>
+      </TapeButton>
     </div>
   );
 }

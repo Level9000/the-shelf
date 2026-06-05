@@ -91,6 +91,7 @@ export function BoardColumnView({
                 justifyContent: "center",
                 color: "#1a0e00",
                 flexShrink: 0,
+                fontFamily: "'Literata', Georgia, serif",
               }}
             >
               <Plus size={14} />
@@ -147,6 +148,7 @@ export function BoardColumnView({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  fontFamily: "'Literata', Georgia, serif",
                   color: "#1a0e00",
                   flexShrink: 0,
                 }}

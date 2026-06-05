@@ -1,32 +1,37 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { TapeButton } from "./tape-button";
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+
+type ButtonProps = {
+  variant?: ButtonVariant;
+  size?: "sm" | "md" | "lg";
+  type?: "button" | "submit";
+  disabled?: boolean;
+  onClick?: () => void;
+  className?: string;
+  children: React.ReactNode;
 };
 
 export function Button({
-  className,
   variant = "primary",
+  size = "md",
   type = "button",
-  ...props
+  disabled,
+  onClick,
+  className,
+  children,
 }: ButtonProps) {
   return (
-    <button
+    <TapeButton
+      variant={variant}
+      size={size}
       type={type}
-      className={cn(
-        "inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold transition duration-200 disabled:cursor-not-allowed disabled:opacity-60",
-        variant === "primary" &&
-          "bg-[#16130f] text-white shadow-lg shadow-black/10 hover:-translate-y-0.5 hover:bg-black",
-        variant === "secondary" &&
-          "bg-white/80 text-[#16130f] ring-1 ring-black/8 hover:bg-white",
-        variant === "ghost" &&
-          "bg-transparent text-[var(--muted)] hover:bg-black/8 hover:text-[var(--ink)]",
-        variant === "danger" &&
-          "bg-[var(--danger)] text-white hover:bg-[#8b372f]",
-        className,
-      )}
-      {...props}
-    />
+      disabled={disabled}
+      onClick={onClick}
+      className={className}
+    >
+      {children}
+    </TapeButton>
   );
 }

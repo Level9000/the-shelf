@@ -12,7 +12,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { cn } from "@/lib/utils";
 
 export type WorkplanChapter = {
@@ -192,22 +192,24 @@ export function WorkplanProposal({
                           placeholder="One-sentence goal"
                         />
                         <div className="flex gap-2">
-                          <button
+                          <TapeButton
                             type="button"
+                            variant="primary"
+                            size="sm"
                             onClick={commitEdit}
-                            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
                           >
                             <Check className="size-3.5" />
                             Done
-                          </button>
-                          <button
+                          </TapeButton>
+                          <TapeButton
                             type="button"
+                            variant="secondary"
+                            size="sm"
                             onClick={cancelEdit}
-                            className="flex items-center gap-1.5 rounded-lg bg-black/8 px-3 py-1.5 text-xs font-semibold text-[var(--muted)] transition hover:bg-black/12"
                           >
                             <X className="size-3.5" />
                             Cancel
-                          </button>
+                          </TapeButton>
                         </div>
                       </div>
                     ) : (
@@ -215,6 +217,7 @@ export function WorkplanProposal({
                         type="button"
                         onClick={() => startEdit(index)}
                         className="group w-full text-left"
+                        style={{ fontFamily: "'Literata', Georgia, serif" }}
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-[var(--ink)]">
@@ -245,6 +248,7 @@ export function WorkplanProposal({
                         disabled={index === 0}
                         className="flex size-7 items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-black/8 disabled:opacity-25"
                         title="Move up"
+                        style={{ fontFamily: "'Literata', Georgia, serif" }}
                       >
                         <ArrowUp className="size-3.5" />
                       </button>
@@ -254,6 +258,7 @@ export function WorkplanProposal({
                         disabled={index === chapters.length - 1}
                         className="flex size-7 items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-black/8 disabled:opacity-25"
                         title="Move down"
+                        style={{ fontFamily: "'Literata', Georgia, serif" }}
                       >
                         <ArrowDown className="size-3.5" />
                       </button>
@@ -263,6 +268,7 @@ export function WorkplanProposal({
                         disabled={chapters.length <= 1}
                         className="flex size-7 items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-25"
                         title="Remove chapter"
+                        style={{ fontFamily: "'Literata', Georgia, serif" }}
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -274,14 +280,15 @@ export function WorkplanProposal({
           </div>
 
           <div className="border-t border-black/6 px-6 py-4">
-            <button
+            <TapeButton
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={addChapter}
-              className="flex items-center gap-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--ink)]"
             >
               <Plus className="size-4" />
               Add a chapter
-            </button>
+            </TapeButton>
           </div>
         </div>
 
@@ -304,10 +311,11 @@ export function WorkplanProposal({
 
         {/* CTA */}
         <div className="mt-6 flex justify-center">
-          <Button
+          <TapeButton
+            variant="primary"
+            size="md"
             onClick={() => onAccept(chapters)}
             disabled={isSaving || chapters.length === 0}
-            className="gap-2 rounded-full px-8 py-3 text-base"
           >
             {isSaving ? (
               <LoaderCircle className="size-5 animate-spin" />
@@ -315,7 +323,7 @@ export function WorkplanProposal({
               <Check className="size-5" />
             )}
             {isSaving ? "Setting up your project..." : "Let's go →"}
-          </Button>
+          </TapeButton>
         </div>
       </div>
     </div>

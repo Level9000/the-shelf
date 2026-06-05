@@ -297,6 +297,7 @@ export function TaskChunkingChat({
               type="button"
               onClick={sendMessage}
               disabled={!input.trim() || isChatPending}
+              style={{ fontFamily: "'Literata', Georgia, serif" }}
               className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-white transition hover:opacity-80 disabled:opacity-30"
             >
               <ArrowUp className="size-4" />

@@ -198,7 +198,7 @@ export function ReviewTasksModal({
                   <button
                     type="button"
                     onClick={() => removeItem(item.id)}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(180,40,40,0.65)", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px" }}
+                    style={{ fontFamily: "'Literata', Georgia, serif", background: "none", border: "none", cursor: "pointer", color: "rgba(180,40,40,0.65)", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px" }}
                   >
                     <Trash2 className="size-4" />
                   </button>

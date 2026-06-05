@@ -30,11 +30,11 @@ export function PressMonitor({
   const isActive   = isThinking || isTalking;
   const isDone     = animState === "done";
 
-  // Phosphor color — warm amber for Press (editorial, warm, authoritative)
-  const phosphor      = "#e8a020";
-  const phosphorDim   = "#7a4a08";
-  const phosphorFaint = "#2a1a04";
-  const screenBg      = "#0c0800";
+  // Phosphor color — muted warm amber for Press (editorial, softened to match Cass/Ty palette)
+  const phosphor      = "#c8a86b";
+  const phosphorDim   = "#7a6240";
+  const phosphorFaint = "#2a1e0c";
+  const screenBg      = "#0c0a06";
   const scanlineColor = "rgba(0,0,0,0.18)";
 
   // Body palette — warm off-white, like an early-80s publishing terminal
@@ -46,7 +46,7 @@ export function PressMonitor({
     bezelEdge:  "#2e2c28",
     vents:      "#5a5550",
     knob:       "#4a4540",
-    led:        isActive ? "#e8a020" : "#3a2a08",
+    led:        isActive ? "#c8a86b" : "#3a2a08",
     brand:      "#8a8278",
     standTop:   "#5a5550",
     standBase:  "#4a4540",
@@ -58,7 +58,7 @@ export function PressMonitor({
     bezelEdge:  "#2e2c28",
     vents:      "#c4beb4",
     knob:       "#a8a29a",
-    led:        isActive ? "#e8a020" : "#3a2a08",
+    led:        isActive ? "#c8a86b" : "#3a2a08",
     brand:      "#888078",
     standTop:   "#c0bab0",
     standBase:  "#b0aaa0",

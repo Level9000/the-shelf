@@ -265,6 +265,7 @@ export function TyFab({
             position: "absolute",
             bottom: `${FAB_MARGIN}px`,
             right: `${FAB_MARGIN}px`,
+            fontFamily: "'Literata', Georgia, serif",
             background: "none",
             border: "none",
             padding: 0,

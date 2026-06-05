@@ -19,6 +19,7 @@ import { completeChapterRetroAction } from "@/lib/actions/project-actions";
 import { Button } from "@/components/ui/button";
 import { ChatProgressBar } from "@/components/ui/chat-progress-bar";
 import { Modal } from "@/components/ui/modal";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Textarea } from "@/components/ui/textarea";
 import { ChapterStoryDraft } from "@/components/board/chapter-story-draft";
 import { cn } from "@/lib/utils";
@@ -193,10 +194,11 @@ function RetroCompletionModal({
               Share on LinkedIn
             </a>
           )}
-          <button
+          <TapeButton
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={copyLink}
-            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-[var(--ink)] ring-1 ring-black/12 transition hover:bg-[var(--surface-muted)]"
           >
             {copied ? (
               <Check className="size-3 text-green-600" />
@@ -204,7 +206,7 @@ function RetroCompletionModal({
               <Copy className="size-3" />
             )}
             {copied ? "Copied!" : "Copy link"}
-          </button>
+          </TapeButton>
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { CassRecorder } from "./CassRecorder";
 import { CassInput } from "./CassInput";
 import { updateChapterStoryAction } from "@/lib/actions/project-actions";
+import { TapeButton } from "@/components/ui/tape-button";
 import { CASS_ERROR_LINES } from "./cassVoice";
 
 // ── Share card ────────────────────────────────────────────────────────────────
@@ -215,6 +216,7 @@ export function CassStoryPlayer({
             lineHeight: 1,
             padding: "4px",
             transition: "color 0.2s",
+            fontFamily: "'Literata', Georgia, serif",
           }}
           onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; }}
@@ -412,25 +414,16 @@ export function CassStoryPlayer({
                     />
                   )}
                   {!isRefining && (
-                    <button
-                      type="button"
+                    <TapeButton
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setRefineOpen(false);
                         setError(null);
                       }}
-                      style={{
-                        alignSelf: "flex-start",
-                        background: "transparent",
-                        border: "none",
-                        color: "#555",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        letterSpacing: "1px",
-                        padding: 0,
-                      }}
                     >
                       ← cancel
-                    </button>
+                    </TapeButton>
                   )}
                 </div>
               ) : (
@@ -457,63 +450,20 @@ export function CassStoryPlayer({
                       ● STORY UPDATED
                     </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={onShareThis}
-                    style={{
-                      width: "100%",
-                      background: "#c8a86b",
-                      color: "#0a0a0a",
-                      border: "none",
-                      borderRadius: "8px",
-                      padding: "14px",
-                      fontFamily: "var(--font-cass)",
-                      fontSize: "13px",
-                      letterSpacing: "2px",
-                      cursor: "pointer",
-                      transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#d9bb7e";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#c8a86b";
-                    }}
-                  >
+                  <TapeButton variant="primary" size="md" onClick={onShareThis} className="w-full justify-center">
                     SHARE THIS
-                  </button>
-                  <button
-                    type="button"
+                  </TapeButton>
+                  <TapeButton
+                    variant="secondary"
+                    size="sm"
                     onClick={() => {
                       setRefineOpen(true);
                       setError(null);
                     }}
-                    style={{
-                      width: "100%",
-                      background: "transparent",
-                      color: "#666",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: "8px",
-                      padding: "12px",
-                      fontFamily: "var(--font-cass)",
-                      fontSize: "12px",
-                      letterSpacing: "1px",
-                      cursor: "pointer",
-                      transition: "border-color 0.15s, color 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "#999";
-                      e.currentTarget.style.borderColor =
-                        "rgba(255,255,255,0.2)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "#666";
-                      e.currentTarget.style.borderColor =
-                        "rgba(255,255,255,0.08)";
-                    }}
+                    className="w-full justify-center"
                   >
                     let&apos;s refine
-                  </button>
+                  </TapeButton>
                 </div>
               )}
             </>

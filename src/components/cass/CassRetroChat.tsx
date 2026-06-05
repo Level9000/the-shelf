@@ -15,6 +15,7 @@ import { CASS_ERROR_LINES } from "./cassVoice";
 import { useAvatar } from "@/lib/avatar-context";
 import { useTheme } from "@/lib/theme-context";
 import { ConversationTracker, RETRO_STEPS } from "./ConversationTracker";
+import { TapeButton } from "@/components/ui/tape-button";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
 
@@ -374,6 +375,7 @@ export function CassRetroChat({
               lineHeight: 1,
               padding: "4px",
               transition: "color 0.2s",
+              fontFamily: "'Literata', Georgia, serif",
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; }}
@@ -480,26 +482,14 @@ export function CassRetroChat({
                   Something went wrong — your conversation is still here.
                 </p>
                 {retryMessages && (
-                  <button
-                    type="button"
+                  <TapeButton
+                    variant="secondary"
+                    size="sm"
                     onClick={handleRetry}
                     disabled={isPending}
-                    style={{
-                      background: "rgba(200,168,107,0.12)",
-                      border: "1px solid rgba(200,168,107,0.35)",
-                      borderRadius: "20px",
-                      padding: "8px 20px",
-                      fontFamily: "var(--font-cass)",
-                      fontSize: "11px",
-                      letterSpacing: "1.5px",
-                      textTransform: "uppercase",
-                      color: "#c8a86b",
-                      cursor: isPending ? "not-allowed" : "pointer",
-                      opacity: isPending ? 0.5 : 1,
-                    }}
                   >
                     {isPending ? "◉ retrying..." : "↺ Try again"}
-                  </button>
+                  </TapeButton>
                 )}
               </div>
             )}

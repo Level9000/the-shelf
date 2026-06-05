@@ -236,14 +236,15 @@ export function PaywallModal({
           </div>
 
           {/* View-only escape hatch */}
-          <button
-            type="button"
+          <TapeButton
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="flex w-full items-center justify-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--ink)] transition"
+            className="flex w-full items-center justify-center gap-1.5"
           >
             <X className="size-3" />
             View completed work only
-          </button>
+          </TapeButton>
         </div>
       </div>
     </div>

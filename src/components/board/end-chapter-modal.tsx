@@ -84,6 +84,7 @@ export function EndChapterModal({
             type="button"
             onClick={handleClose}
             aria-label="Close"
+            style={{ fontFamily: "'Literata', Georgia, serif" }}
             className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-black/8 hover:text-[var(--ink)]"
           >
             <X className="size-4" />
@@ -201,15 +202,16 @@ export function EndChapterModal({
           </div>
 
           {/* Cancel escape hatch */}
-          <button
-            type="button"
+          <TapeButton
+            variant="ghost"
+            size="sm"
             onClick={handleClose}
             disabled={isPending}
-            className="flex w-full items-center justify-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--ink)] transition"
+            className="flex w-full items-center justify-center gap-1.5"
           >
             <X className="size-3" />
             Cancel
-          </button>
+          </TapeButton>
         </div>
       </div>
     </div>

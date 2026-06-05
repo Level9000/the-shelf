@@ -120,6 +120,7 @@ export function SideDrawer({
               type="button"
               onClick={onClose}
               style={{
+                fontFamily: "'Literata', Georgia, serif",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
@@ -144,6 +145,7 @@ export function SideDrawer({
               type="button"
               onClick={onClose}
               style={{
+                fontFamily: "'Literata', Georgia, serif",
                 background: "none",
                 border: "none",
                 cursor: "pointer",

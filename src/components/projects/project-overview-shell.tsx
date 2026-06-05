@@ -138,6 +138,7 @@ function ChatHistoryDrawer({
             style={{
               padding: "4px", background: "none", border: "none",
               cursor: "pointer", color: "rgba(200,168,107,0.5)", flexShrink: 0, marginTop: "2px",
+              fontFamily: "'Literata', Georgia, serif",
             }}
           >
             <X size={16} />
@@ -764,6 +765,7 @@ function CassChronicleDrawer({
               borderRadius: "50%", background: "rgba(255,255,255,0.06)",
               color: "#888", border: "none", cursor: "pointer",
               transition: "background 0.15s, color 0.15s",
+              fontFamily: "'Literata', Georgia, serif",
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
@@ -810,6 +812,7 @@ function CassChronicleDrawer({
                       opacity: disabled ? 0.35 : 1,
                       animation: "cassOptionIn 0.28s ease forwards",
                       animationDelay: `${i * 110}ms`,
+                      fontFamily: "'Literata', Georgia, serif",
                     }}
                     onMouseEnter={(e) => { if (!disabled) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; } }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
@@ -898,6 +901,7 @@ function CassChronicleDrawer({
                     background: draft.trim() && !isPending ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     transition: "background 0.15s",
+                    fontFamily: "'Literata', Georgia, serif",
                   }}
                 >
                   {isPending
@@ -950,6 +954,7 @@ function CassChronicleDrawer({
                         background: "transparent", border: "none", cursor: "pointer",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         color: "rgba(200,168,107,0.3)", transition: "background 0.15s, color 0.15s",
+                        fontFamily: "'Literata', Georgia, serif",
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.12)"; e.currentTarget.style.color = "#f87171"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(200,168,107,0.3)"; }}
@@ -1045,22 +1050,16 @@ function CassChronicleDrawer({
               {/* CTA to generate — shown once Press has introduced herself */}
               {introMessages.length > 0 && !isIntroLoading && (
                 <div style={{ marginTop: "8px" }}>
-                  <button
-                    type="button"
-                    onClick={() => setMode("press_pick")}
-                    style={{
-                      width: "100%", padding: "14px 16px", borderRadius: "12px",
-                      background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)",
-                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
-                      transition: "background 0.15s, border-color 0.15s",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.14)"; e.currentTarget.style.borderColor = "rgba(245,158,11,0.5)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; e.currentTarget.style.borderColor = "rgba(245,158,11,0.3)"; }}
-                  >
-                    <span style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#F59E0B" }}>
-                      Let's publish something →
-                    </span>
-                  </button>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <TapeButton
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setMode("press_pick")}
+                    >
+                      Let&apos;s publish something →
+                    </TapeButton>
+                  </div>
                 </div>
               )}
 
@@ -1096,6 +1095,7 @@ function CassChronicleDrawer({
                     border: "none", cursor: introDraft.trim() ? "pointer" : "not-allowed",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     transition: "background 0.15s", flexShrink: 0,
+                    fontFamily: "'Literata', Georgia, serif",
                   }}
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -1131,6 +1131,7 @@ function CassChronicleDrawer({
                     animation: "cassOptionIn 0.28s ease forwards",
                     animationDelay: `${i * 110}ms`,
                     opacity: 0,
+                    fontFamily: "'Literata', Georgia, serif",
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
@@ -1203,17 +1204,12 @@ function CassChronicleDrawer({
                     <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.55)", margin: "0 0 16px", lineHeight: 1.5 }}>
                       Press will build your {pressTemplate?.label.toLowerCase()} and download it as a .{pressTemplate?.format} file.
                     </p>
-                    <button
+                    <TapeButton
                       type="button"
+                      variant="primary"
+                      size="sm"
                       onClick={handleGenerate}
                       disabled={isGenerating}
-                      style={{
-                        background: isGenerating ? "rgba(200,168,107,0.3)" : "#c8a86b",
-                        color: "#0a0a0a", border: "none", borderRadius: "10px",
-                        padding: "10px 22px", cursor: isGenerating ? "not-allowed" : "pointer",
-                        fontFamily: "'Literata', Georgia, serif", fontSize: "14px", fontWeight: 700,
-                        transition: "background 0.15s", display: "flex", alignItems: "center", gap: "8px", margin: "0 auto",
-                      }}
                     >
                       {isGenerating ? (
                         <>
@@ -1223,7 +1219,7 @@ function CassChronicleDrawer({
                       ) : (
                         `Download .${pressTemplate?.format ?? "file"}`
                       )}
-                    </button>
+                    </TapeButton>
                   </div>
                 </div>
               )}
@@ -1260,6 +1256,7 @@ function CassChronicleDrawer({
                     border: "none", cursor: pressDraft.trim() ? "pointer" : "not-allowed",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     transition: "background 0.15s", flexShrink: 0,
+                    fontFamily: "'Literata', Georgia, serif",
                   }}
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -1490,6 +1487,7 @@ function ChapterEntry({
                     padding: "10px 14px",
                     cursor: "pointer", width: "100%", textAlign: "left",
                     transition: "background 0.15s, border-color 0.15s",
+                    fontFamily: "'Literata', Georgia, serif",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = threadHoverBg;
@@ -1846,6 +1844,7 @@ export function ProjectOverviewShell({
                             padding: "10px 14px",
                             cursor: "pointer", width: "100%", textAlign: "left",
                             transition: "background 0.15s, border-color 0.15s",
+                            fontFamily: "'Literata', Georgia, serif",
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.background = projThreadHoverBg;

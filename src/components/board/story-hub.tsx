@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { Board, Task } from "@/types";
-import { Button } from "@/components/ui/button";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { CassRecorder } from "@/components/cass/CassRecorder";
@@ -380,6 +380,7 @@ function FormatEditor({
           <button
             type="button"
             onClick={onBack}
+            style={{ fontFamily: "'Literata', Georgia, serif" }}
             className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
           >
             <ArrowLeft className="size-4" />
@@ -399,19 +400,15 @@ function FormatEditor({
         {meta.audienceOptions && (
           <div className="mt-4 flex flex-wrap gap-2">
             {meta.audienceOptions.map((opt) => (
-              <button
+              <TapeButton
                 key={opt.value}
                 type="button"
+                size="sm"
+                variant={audienceType === opt.value ? "primary" : "secondary"}
                 onClick={() => setAudienceType(opt.value)}
-                className={cn(
-                  "rounded-full px-3.5 py-1.5 text-xs font-semibold transition",
-                  audienceType === opt.value
-                    ? "bg-[var(--ink)] text-white"
-                    : "bg-black/5 text-[var(--muted)] hover:bg-black/10 hover:text-[var(--ink)]",
-                )}
               >
                 {opt.label}
-              </button>
+              </TapeButton>
             ))}
           </div>
         )}
@@ -424,10 +421,10 @@ function FormatEditor({
             <p className="text-sm text-[var(--muted)]">
               Ready to generate your {meta.label.toLowerCase()}.
             </p>
-            <Button onClick={generate} className="gap-2">
+            <TapeButton onClick={generate} variant="primary">
               <Sparkles className="size-4" />
               Generate
-            </Button>
+            </TapeButton>
           </div>
         ) : isGenerating ? (
           <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3">
@@ -443,19 +440,21 @@ function FormatEditor({
                 Draft
               </p>
               <div className="flex items-center gap-1">
-                <button
+                <TapeButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={generate}
                   disabled={isPending}
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)] disabled:opacity-40"
                 >
                   <RefreshCw className="size-3" />
                   Regenerate
-                </button>
-                <button
+                </TapeButton>
+                <TapeButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={copyContent}
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
                 >
                   {copied ? (
                     <Check className="size-3.5 text-green-600" />
@@ -463,7 +462,7 @@ function FormatEditor({
                     <Copy className="size-3.5" />
                   )}
                   {copied ? "Copied!" : "Copy"}
-                </button>
+                </TapeButton>
               </div>
             </div>
 
@@ -506,10 +505,11 @@ function FormatEditor({
               <p className="text-xs text-[var(--muted)]">
                 Enter sends · Shift+Enter for new line
               </p>
-              <Button
+              <TapeButton
                 onClick={refine}
                 disabled={!refineInput.trim() || isPending}
-                className="gap-2 px-3 py-2 text-xs"
+                size="sm"
+                variant="primary"
               >
                 {isRefining ? (
                   <Sparkles className="size-3.5 animate-pulse" />
@@ -517,7 +517,7 @@ function FormatEditor({
                   <ArrowUp className="size-3.5" />
                 )}
                 {isRefining ? "Refining..." : "Refine"}
-              </Button>
+              </TapeButton>
             </div>
           </div>
         </section>
@@ -552,14 +552,16 @@ function LockedView({
           share with your team, investors, or the world.
         </p>
         {retroAvailable && onEndChapter && (
-          <button
-            type="button"
-            onClick={onEndChapter}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-black"
-          >
-            <BookOpen className="size-4" />
-            End chapter &amp; write the story
-          </button>
+          <div className="mt-6 flex justify-center">
+            <TapeButton
+              type="button"
+              onClick={onEndChapter}
+              variant="primary"
+            >
+              <BookOpen className="size-4" />
+              End chapter &amp; write the story
+            </TapeButton>
+          </div>
         )}
         {!board.kickoffCompletedAt && (
           <p className="mt-4 text-xs text-[var(--muted)]">

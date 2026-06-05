@@ -124,6 +124,7 @@ export function TaskDetailModal({
           type="button"
           onClick={handleDelete}
           disabled={isPending}
+          style={{ fontFamily: "'Literata', Georgia, serif" }}
           className="absolute left-4 top-4 inline-flex size-10 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-rose-100 hover:text-rose-600"
           aria-label="Delete task"
         >

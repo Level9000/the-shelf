@@ -615,6 +615,8 @@ export function ProjectBoardClient({
                       key={column.id}
                       onClick={() => scrollToPage(i)}
                       aria-label={`Go to ${column.name}`}
+                      type="button"
+                      style={{ fontFamily: "'Literata', Georgia, serif" }}
                       className={cn(
                         "h-2 rounded-full transition-all duration-200",
                         i === activePage

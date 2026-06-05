@@ -5,6 +5,7 @@ import { LoaderCircle } from "lucide-react";
 import type { UserProfile } from "@/types";
 import { updateUserProfileAction } from "@/lib/actions/profile-actions";
 import { useTheme } from "@/lib/theme-context";
+import { TapeButton } from "@/components/ui/tape-button";
 
 
 export function SettingsForm({ profile }: { profile: UserProfile }) {
@@ -99,36 +100,18 @@ export function SettingsForm({ profile }: { profile: UserProfile }) {
               }}
             />
             {(isDirty || isPending) && (
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isPending}
-                aria-label="Save display name"
-                style={{
-                  position: "absolute",
-                  right: "6px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  padding: "4px 10px",
-                  borderRadius: "6px",
-                  background: "linear-gradient(135deg, #f5c84a, #d4a820)",
-                  border: "none",
-                  cursor: isPending ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  fontFamily: "Verdana, Geneva, sans-serif",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: "#1a0e00",
-                  whiteSpace: "nowrap",
-                  transition: "opacity 0.15s",
-                  opacity: isPending ? 0.6 : 1,
-                }}
-              >
-                {isPending ? <LoaderCircle size={11} style={{ animation: "spin 1s linear infinite" }} /> : null}
-                {isPending ? "Saving…" : "Save"}
-              </button>
+              <div style={{ position: "absolute", right: "6px", top: "50%", transform: "translateY(-50%)" }}>
+                <TapeButton
+                  variant="primary"
+                  size="sm"
+                  type="button"
+                  onClick={handleSave}
+                  disabled={isPending}
+                >
+                  {isPending ? <LoaderCircle size={11} style={{ animation: "spin 1s linear infinite" }} /> : null}
+                  {isPending ? "Saving…" : "Save"}
+                </TapeButton>
+              </div>
             )}
           </div>
         </div>

@@ -190,6 +190,7 @@ export function ManualTaskModal({
                   setMode("manual");
                 }}
                 className="w-full bg-white/85 p-5 text-left transition hover:bg-white"
+                style={{ fontFamily: "'Literata', Georgia, serif" }}
               >
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
@@ -211,6 +212,7 @@ export function ManualTaskModal({
                   setMode("template");
                 }}
                 className="w-full bg-white/85 p-5 text-left transition hover:bg-white"
+                style={{ fontFamily: "'Literata', Georgia, serif" }}
               >
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
@@ -235,6 +237,7 @@ export function ManualTaskModal({
                   aiLauncherRef.current?.openAudioToBacklog();
                 }}
                 className="w-full bg-white/85 p-5 text-left transition hover:bg-white"
+                style={{ fontFamily: "'Literata', Georgia, serif" }}
               >
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
@@ -259,6 +262,7 @@ export function ManualTaskModal({
                   aiLauncherRef.current?.openPlanWithAi();
                 }}
                 className="w-full bg-white/85 p-5 text-left transition hover:bg-white"
+                style={{ fontFamily: "'Literata', Georgia, serif" }}
               >
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
@@ -326,6 +330,7 @@ export function ManualTaskModal({
                     type="button"
                     onClick={() => setStrategyDialogueOpen(true)}
                     className="flex w-full items-center gap-3 rounded-[1.5rem] bg-white p-4 text-left ring-1 ring-[var(--accent)]/20 transition hover:shadow-md hover:shadow-black/5"
+                    style={{ fontFamily: "'Literata', Georgia, serif" }}
                   >
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
                       <Wand2 className="size-4" />
@@ -348,6 +353,7 @@ export function ManualTaskModal({
                           ? "bg-white shadow-sm ring-2 ring-[var(--accent)]/30"
                           : "bg-white/75 ring-1 ring-black/6 hover:bg-white"
                       }`}
+                      style={{ fontFamily: "'Literata', Georgia, serif" }}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-semibold text-[var(--ink)]">
@@ -369,6 +375,7 @@ export function ManualTaskModal({
                     type="button"
                     onClick={() => setStrategyDialogueOpen(true)}
                     className="flex w-full items-center gap-3 rounded-[1.5rem] border border-dashed border-[var(--accent)]/30 bg-white/60 p-4 text-left transition hover:bg-white hover:shadow-sm"
+                    style={{ fontFamily: "'Literata', Georgia, serif" }}
                   >
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
                       <Wand2 className="size-4" />

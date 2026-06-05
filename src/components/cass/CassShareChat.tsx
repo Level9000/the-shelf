@@ -418,6 +418,7 @@ function ChipRow({
               cursor: freeformValue.trim() ? "pointer" : "default",
               transition: "all 0.15s",
               flexShrink: 0,
+              fontFamily: "'Literata', Georgia, serif",
             }}
           >
             <Send size={11} />

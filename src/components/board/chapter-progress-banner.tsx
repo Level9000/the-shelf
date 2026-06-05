@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight, X } from "lucide-react";
+import { TapeButton } from "@/components/ui/tape-button";
 import Link from "next/link";
 import type { Board, BoardColumn, Task } from "@/types";
 import { getChapterAgeDays } from "@/lib/utils";
@@ -105,6 +106,7 @@ function OnPaceBanner({
       <button
         type="button"
         onClick={onDismiss}
+        style={{ fontFamily: "'Literata', Georgia, serif" }}
         className="flex shrink-0 size-7 items-center justify-center rounded-full text-green-600 transition hover:bg-green-100"
         aria-label="Dismiss"
       >
@@ -139,6 +141,7 @@ function ClosingStretchBanner({
       <button
         type="button"
         onClick={onDismiss}
+        style={{ fontFamily: "'Literata', Georgia, serif" }}
         className="flex shrink-0 size-7 items-center justify-center rounded-full text-emerald-600 transition hover:bg-emerald-100"
         aria-label="Dismiss"
       >
@@ -173,16 +176,13 @@ function RunningLongBanner({
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <button
-          type="button"
-          onClick={onRefocus}
-          className="rounded-xl bg-amber-900 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-800"
-        >
+        <TapeButton variant="primary" size="sm" onClick={onRefocus}>
           Refocus
-        </button>
+        </TapeButton>
         <button
           type="button"
           onClick={onDismiss}
+          style={{ fontFamily: "'Literata', Georgia, serif" }}
           className="flex size-7 items-center justify-center rounded-full text-amber-600 transition hover:bg-amber-100"
           aria-label="Dismiss"
         >

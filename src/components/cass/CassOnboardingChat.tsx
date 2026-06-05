@@ -13,6 +13,7 @@ import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
 import { WorkplanProposal } from "@/components/projects/workplan-proposal";
 import { completeProjectKickoffAction } from "@/lib/actions/project-actions";
+import { TapeButton } from "@/components/ui/tape-button";
 
 // ── Scripted intro lines ──────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ const INTRO_CARDS = [
     id: "cass",
     name: "Cass",
     role: "Story Guide",
-    description: "I keep the tape rolling. Every project you start, I make sure the real story — the decisions, the pivots, the moments that mattered — never gets lost.",
+    description: "Hey, I'm Cass — your story guide. Every project you kick off, I keep the tape rolling so the real story never gets lost. The decisions, the pivots, the moments that actually mattered.",
     accentColor: "#c8a86b",
   },
   {
@@ -124,15 +125,32 @@ function IntroScreen({ onComplete }: { onComplete: () => void }) {
         {card.id === "ty"    && <TypewriterRecorder animState="typing" size="md" />}
         {card.id === "press" && <PressMonitor animState="talking" size="md" />}
 
-        {/* Name + role */}
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "26px", color: card.accentColor, fontWeight: 700 }}>
-            {card.name}
+        {/* Welcome header — only on Cass's card */}
+        {card.id === "cass" && (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "4px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", marginBottom: "8px" }}>
+              Welcome to
+            </div>
+            <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "28px", color: "#d4cec4", fontWeight: 700, lineHeight: 1.2 }}>
+              Authored By
+            </div>
+            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "rgba(212,206,196,0.55)", margin: "8px 0 0", lineHeight: 1.5 }}>
+              The founder's story engine. We help you capture what you build — and tell the world about it.
+            </p>
           </div>
-          <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "3px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", marginTop: "4px" }}>
-            {card.role}
+        )}
+
+        {/* Name + role — hidden on Cass's card since welcome header takes its place */}
+        {card.id !== "cass" && (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "26px", color: card.accentColor, fontWeight: 700 }}>
+              {card.name}
+            </div>
+            <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "3px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", marginTop: "4px" }}>
+              {card.role}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Description */}
         <div
@@ -149,57 +167,34 @@ function IntroScreen({ onComplete }: { onComplete: () => void }) {
           </p>
         </div>
 
+        {/* Back button */}
+        {cardIndex > 0 && (
+          <TapeButton
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setVisible(false);
+              setTimeout(() => { setCardIndex((i) => i - 1); setVisible(true); }, 280);
+            }}
+          >
+            ← BACK
+          </TapeButton>
+        )}
+
         {/* Next / closing CTA */}
         {isLast ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", width: "100%" }}>
             <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "rgba(200,168,107,0.7)", textAlign: "center", margin: 0, lineHeight: 1.6 }}>
               Together we track your work and tell your story.
             </p>
-            <button
-              type="button"
-              onClick={advance}
-              style={{
-                background: "#c8a86b",
-                border: "none",
-                color: "#0a0a0a",
-                borderRadius: "6px",
-                padding: "13px 36px",
-                fontFamily: "var(--font-cass)",
-                fontSize: "13px",
-                letterSpacing: "2px",
-                cursor: "pointer",
-                fontWeight: 700,
-                transition: "background 0.2s",
-                width: "100%",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#d9bb7e"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#c8a86b"; }}
-            >
-              LET'S GET STARTED →
-            </button>
+            <TapeButton variant="primary" size="md" onClick={advance} className="w-full justify-center">
+              LET&apos;S GET STARTED →
+            </TapeButton>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={advance}
-            style={{
-              background: "transparent",
-              border: "1px solid rgba(200,168,107,0.35)",
-              color: "#c8a86b",
-              borderRadius: "6px",
-              padding: "11px 32px",
-              fontFamily: "var(--font-cass)",
-              fontSize: "12px",
-              letterSpacing: "2px",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              alignSelf: "center",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.08)"; e.currentTarget.style.borderColor = "#c8a86b"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; }}
-          >
+          <TapeButton variant="secondary" size="sm" onClick={advance}>
             NEXT →
-          </button>
+          </TapeButton>
         )}
       </div>
     </div>
@@ -317,32 +312,9 @@ function StartScreen({ onStart }: { onStart: () => void }) {
         Never loses what you say.
       </div>
 
-      <button
-        type="button"
-        onClick={onStart}
-        style={{
-          background: "transparent",
-          border: "1px solid rgba(200,168,107,0.4)",
-          color: "#c8a86b",
-          borderRadius: "6px",
-          padding: "12px 32px",
-          fontFamily: "var(--font-cass)",
-          fontSize: "13px",
-          letterSpacing: "2px",
-          cursor: "pointer",
-          transition: "all 0.2s",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "rgba(200,168,107,0.08)";
-          e.currentTarget.style.borderColor = "#c8a86b";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.borderColor = "rgba(200,168,107,0.4)";
-        }}
-      >
+      <TapeButton variant="secondary" size="md" onClick={onStart}>
         PRESS PLAY
-      </button>
+      </TapeButton>
     </div>
   );
 }
@@ -682,6 +654,7 @@ export function CassOnboardingChat({
               lineHeight: 1,
               padding: "4px",
               transition: "color 0.2s",
+              fontFamily: "'Literata', Georgia, serif",
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; }}

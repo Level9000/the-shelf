@@ -80,6 +80,7 @@ export function Modal({
         )}
         <button
           onClick={onClose}
+          style={{ fontFamily: "'Literata', Georgia, serif" }}
           className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-black/8 hover:text-[var(--ink)]"
           aria-label="Close modal"
         >

@@ -130,6 +130,7 @@ export function ProjectWorkspaceShell({
                 type="button"
                 onClick={() => setAllDoneDismissed(true)}
                 aria-label="Close"
+                style={{ fontFamily: "'Literata', Georgia, serif" }}
                 className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-black/8 hover:text-[var(--ink)]"
               >
                 <X className="size-4" />
@@ -147,14 +148,15 @@ export function ProjectWorkspaceShell({
                   Start the recap
                 </TapeButton>
               </div>
-              <button
-                type="button"
+              <TapeButton
+                variant="ghost"
+                size="sm"
                 onClick={() => setAllDoneDismissed(true)}
-                className="flex w-full items-center justify-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--ink)] transition"
+                className="flex w-full items-center justify-center gap-1.5"
               >
                 <X className="size-3" />
                 Not right now
-              </button>
+              </TapeButton>
             </div>
           </div>
         </div>

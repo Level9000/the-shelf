@@ -23,6 +23,7 @@ import { updateProjectArcFieldAction } from "@/lib/actions/project-actions";
 import type { AIArcDialogue } from "@/lib/ai/schema";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { TapeButton } from "@/components/ui/tape-button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -392,14 +393,10 @@ export function ProjectArcRefiner({
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                     Shareable copy
                   </p>
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-80"
-                  >
+                  <TapeButton variant="secondary" size="sm" onClick={handleCopy}>
                     {copied ? <Check className="size-3" /> : <ClipboardCopy className="size-3" />}
                     {copied ? "Copied!" : "Copy"}
-                  </button>
+                  </TapeButton>
                 </div>
                 <p className="px-4 py-4 text-sm leading-7 text-[var(--ink)] whitespace-pre-wrap">
                   {shareContent}

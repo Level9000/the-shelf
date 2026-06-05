@@ -458,7 +458,7 @@ export function SettingsContent({
                     )}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
                       <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting} className="w-full justify-center">{isDeleting ? "Deleting…" : "Delete chapter"}</TapeButton>
-                      <button type="button" onClick={() => setConfirmingDelete(false)} disabled={isDeleting} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "var(--muted)", fontFamily: "'Literata', Georgia, serif" }}>Cancel</button>
+                      <TapeButton variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>Cancel</TapeButton>
                     </div>
                   </div>
                 ) : (
@@ -506,7 +506,7 @@ export function SettingsContent({
                     )}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
                       <TapeButton variant="danger" size="sm" onClick={handleDeleteProject} disabled={isDeletingProject || deleteProjectInput !== currentProjectName} className="w-full justify-center">{isDeletingProject ? "Deleting…" : "Delete project"}</TapeButton>
-                      <button type="button" onClick={() => { setConfirmingDeleteProject(false); setDeleteProjectInput(""); setDeleteProjectError(null); }} disabled={isDeletingProject} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "var(--muted)", fontFamily: "'Literata', Georgia, serif" }}>Cancel</button>
+                      <TapeButton variant="ghost" size="sm" onClick={() => { setConfirmingDeleteProject(false); setDeleteProjectInput(""); setDeleteProjectError(null); }} disabled={isDeletingProject}>Cancel</TapeButton>
                     </div>
                   </div>
                 ) : (

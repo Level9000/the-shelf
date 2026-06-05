@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { ArrowRight, ArrowUp, Check, LoaderCircle, Trash2, X } from "lucide-react";
+import { TapeButton } from "@/components/ui/tape-button";
 import type { AICassBoardDialogue } from "@/lib/ai/schema";
 import type { Board, BoardColumn, BoardConversationEntry, Chapter, Priority, Project, ProposedTask, Task, WorkflowTemplate } from "@/types";
 import { createBrainDumpCardsAction, createNextChapterForDeferAction, deleteTaskAction, moveTasksToChapterAction, saveBoardConversationAction, saveWorkflowTemplateAction } from "@/lib/actions/task-actions";
@@ -135,7 +136,7 @@ function ProposalCard({
         </p>
         <button
           type="button" onClick={onRemove}
-          style={{ width: "22px", height: "22px", flexShrink: 0, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#666", transition: "background 0.15s, color 0.15s" }}
+          style={{ width: "22px", height: "22px", flexShrink: 0, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#666", transition: "background 0.15s, color 0.15s", fontFamily: "'Literata', Georgia, serif" }}
           onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; e.currentTarget.style.color = "#f87171"; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#666"; }}
         ><Trash2 size={10} /></button>
@@ -356,6 +357,7 @@ function BrainDumpRecorderView({
               : "0 0 0 8px rgba(200,168,107,0.12), 0 8px 24px rgba(200,168,107,0.25)",
             transition: "transform 0.15s ease, box-shadow 0.15s ease",
             animation: dumpState === "recording" ? "cassBoardRecordPulse 1.5s ease-in-out infinite" : "none",
+            fontFamily: "'Literata', Georgia, serif",
           }}
           onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -478,7 +480,7 @@ function MoveToChapterView({
           <Check size={20} style={{ color: "#6ee7b7" }} />
         </div>
         <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "#d4cec4", margin: 0, textAlign: "center" }}>Done. Those tasks are out of your way.</p>
-        <button type="button" onClick={onClose} style={{ marginTop: "8px", padding: "10px 24px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "var(--font-cass)", fontSize: "11px", cursor: "pointer" }}>Close</button>
+        <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Close</TapeButton>
       </div>
     );
   }
@@ -549,24 +551,16 @@ function MoveToChapterView({
         )}
 
         <div style={{ marginTop: "4px", paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <button
+          <TapeButton
             type="button"
             disabled={isPending}
             onClick={handleDelete}
-            style={{
-              display: "flex", alignItems: "center", gap: "8px",
-              padding: "10px 14px", borderRadius: "999px",
-              background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.18)",
-              cursor: isPending ? "not-allowed" : "pointer",
-              fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171",
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => { if (!isPending) e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.06)"; }}
+            variant="danger"
+            size="sm"
           >
             <Trash2 size={12} />
             Delete {selectedCount === 1 ? "this task" : `these ${selectedCount} tasks`} instead
-          </button>
+          </TapeButton>
         </div>
 
         {error && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
@@ -593,13 +587,14 @@ function MoveToChapterView({
               <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
                 {selectedCount} selected
               </p>
-              <button
+              <TapeButton
                 type="button"
                 onClick={selectedCount === movableTasks.length ? () => setSelectedIds(new Set()) : selectAll}
-                style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.5)", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.5px", padding: "2px 4px" }}
+                variant="ghost"
+                size="sm"
               >
                 {selectedCount === movableTasks.length ? "Deselect all" : "Select all"}
-              </button>
+              </TapeButton>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               {movableTasks.map((task) => {
@@ -644,24 +639,17 @@ function MoveToChapterView({
 
       {/* Footer */}
       {movableTasks.length > 0 && (
-        <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px" }}>
-          <button
+        <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px", display: "flex" }}>
+          <TapeButton
             type="button"
             disabled={selectedCount === 0}
             onClick={() => setPhase("destination")}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-              padding: "12px", width: "100%", borderRadius: "12px",
-              background: selectedCount > 0 ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.06)",
-              border: "none", cursor: selectedCount > 0 ? "pointer" : "not-allowed",
-              fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 700,
-              color: selectedCount > 0 ? "#0a0a0a" : "#555",
-              transition: "background 0.2s", letterSpacing: "0.5px",
-            }}
+            variant="primary"
+            className="w-full"
           >
             <ArrowRight size={14} />
             {selectedCount === 0 ? "Select tasks to move" : `Move ${selectedCount} task${selectedCount !== 1 ? "s" : ""} →`}
-          </button>
+          </TapeButton>
         </div>
       )}
     </>
@@ -799,28 +787,19 @@ function EndChapterView({
       </div>
 
       {/* Footer */}
-      <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px" }}>
-        <button
+      <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px", display: "flex" }}>
+        <TapeButton
           type="button"
           onClick={handleConfirm}
           disabled={isPending || (hasIncompleteTasks && !choice)}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-            padding: "12px", width: "100%", borderRadius: "12px",
-            background: (!isPending && (!hasIncompleteTasks || choice)) ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.06)",
-            border: "none",
-            cursor: (isPending || (hasIncompleteTasks && !choice)) ? "not-allowed" : "pointer",
-            fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 700,
-            color: (!isPending && (!hasIncompleteTasks || choice)) ? "#0a0a0a" : "#555",
-            opacity: isPending ? 0.7 : 1,
-            transition: "background 0.2s", letterSpacing: "0.5px",
-          }}
+          variant="primary"
+          className="w-full"
         >
           {isPending
             ? <LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} />
             : <ArrowRight size={14} />}
           {isPending ? "Working…" : "Start the recap"}
-        </button>
+        </TapeButton>
       </div>
     </>
   );
@@ -1399,26 +1378,28 @@ export function CassBoardDrawer({
         {!(mode === "refocus" && rfPhase === "retro") && mode !== "kickoff" && mode !== "retro" && (
         <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px", position: "relative" }}>
           {(mode === "chat" && !savedOk) && (
-            <button
-              type="button"
-              onClick={isBreakupMode ? onClose : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); }}
-              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: btnBg, color: btnColor, border: "none", cursor: "pointer", fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
-            >{isBreakupMode ? "✕ cancel" : "← back"}</button>
+            <div style={{ position: "absolute", top: "14px", left: "16px" }}>
+              <TapeButton
+                type="button"
+                onClick={isBreakupMode ? onClose : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); }}
+                variant="ghost"
+                size="sm"
+              >{isBreakupMode ? "✕ cancel" : "← back"}</TapeButton>
+            </div>
           )}
           {mode === "refocus" && rfPhase === "chat" && (
-            <button
-              type="button"
-              onClick={() => { setMode("menu"); setMenuSelected(null); }}
-              style={{ position: "absolute", top: "14px", left: "16px", height: "32px", padding: "0 12px", display: "flex", alignItems: "center", gap: "6px", borderRadius: "999px", background: btnBg, color: btnColor, border: "none", cursor: "pointer", fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "0.5px", transition: "background 0.15s, color 0.15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
-            >← back</button>
+            <div style={{ position: "absolute", top: "14px", left: "16px" }}>
+              <TapeButton
+                type="button"
+                onClick={() => { setMode("menu"); setMenuSelected(null); }}
+                variant="ghost"
+                size="sm"
+              >← back</TapeButton>
+            </div>
           )}
           <button
             type="button" onClick={onClose} aria-label="Close"
-            style={{ position: "absolute", top: "14px", right: "16px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: btnBg, color: btnColor, border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
+            style={{ position: "absolute", top: "14px", right: "16px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: btnBg, color: btnColor, border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s", fontFamily: "'Literata', Georgia, serif" }}
             onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
           ><X size={14} /></button>
@@ -1607,14 +1588,17 @@ export function CassBoardDrawer({
             )}
 
             {/* Confirm */}
-            <button
-              type="button" onClick={handleRfConfirm} disabled={rfIsSaving}
-              style={{ marginTop: "8px", padding: "13px", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: rfIsSaving ? "not-allowed" : "pointer", fontFamily: "var(--font-cass)", fontSize: "13px", fontWeight: 700, color: "#0a0a0a", letterSpacing: "0.5px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: rfIsSaving ? 0.7 : 1 }}
+            <TapeButton
+              type="button"
+              onClick={handleRfConfirm}
+              disabled={rfIsSaving}
+              variant="primary"
+              className="mt-2 w-full"
             >
               {rfIsSaving
                 ? <><LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> Saving…</>
                 : "Lock it in → Write the recap"}
-            </button>
+            </TapeButton>
           </div>
         )}
 
@@ -1649,7 +1633,7 @@ export function CassBoardDrawer({
               />
               <button
                 type="button" onClick={sendRfMessage} disabled={!rfDraft.trim() || rfIsPending}
-                style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%", border: "none", cursor: rfDraft.trim() && !rfIsPending ? "pointer" : "not-allowed", background: rfDraft.trim() && !rfIsPending ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
+                style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%", border: "none", cursor: rfDraft.trim() && !rfIsPending ? "pointer" : "not-allowed", background: rfDraft.trim() && !rfIsPending ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s", fontFamily: "'Literata', Georgia, serif" }}
               >
                 {rfIsPending
                   ? <LoaderCircle size={16} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite" }} />
@@ -1927,16 +1911,16 @@ export function CassBoardDrawer({
                         </div>
                         {templateError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{templateError}</p>}
                         <div style={{ display: "flex", gap: "8px" }}>
-                          <button type="button" onClick={() => setSuggestSaveAsTemplate(false)} disabled={templateSaving} style={{ flex: 1, padding: "9px 14px", borderRadius: "999px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "var(--font-cass)", fontSize: "11px", cursor: "pointer" }}>Not now</button>
-                          <button type="button" onClick={handleSaveTemplate} disabled={templateSaving} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "9px 14px", borderRadius: "999px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: templateSaving ? "not-allowed" : "pointer", fontFamily: "var(--font-cass)", fontSize: "11px", fontWeight: 600, color: "#0a0a0a", opacity: templateSaving ? 0.7 : 1 }}>
+                          <TapeButton type="button" onClick={() => setSuggestSaveAsTemplate(false)} disabled={templateSaving} variant="secondary" size="sm">Not now</TapeButton>
+                          <TapeButton type="button" onClick={handleSaveTemplate} disabled={templateSaving} variant="primary" size="sm">
                             {templateSaving ? <LoaderCircle size={11} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={11} />}
                             {templateSaving ? "Saving…" : "Save workflow"}
-                          </button>
+                          </TapeButton>
                         </div>
                       </div>
                     )}
                     {templateSaved && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#6ee7b7", margin: 0, letterSpacing: "0.5px" }}>✓ Workflow saved — Cass will suggest it next time.</p>}
-                    <button type="button" onClick={onClose} style={{ padding: "10px 16px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#888", fontFamily: "var(--font-cass)", fontSize: "11px", cursor: "pointer", marginTop: "4px" }}>Done</button>
+                    <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Done</TapeButton>
                   </div>
                 )}
 
@@ -1949,9 +1933,12 @@ export function CassBoardDrawer({
             {!isBrainDump && !isMoveMode && !isEndChapterMode && !savedOk && (
               <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
                 {hasProposals && reviewTasks.length > 0 && (
-                  <button
-                    type="button" onClick={handleAddTasks} disabled={isSaving}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: isSaving ? "not-allowed" : "pointer", fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 700, color: "#0a0a0a", opacity: isSaving ? 0.7 : 1, letterSpacing: "0.5px" }}
+                  <TapeButton
+                    type="button"
+                    onClick={handleAddTasks}
+                    disabled={isSaving}
+                    variant="primary"
+                    className="w-full"
                   >
                     {isSaving ? <LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={14} />}
                     {isSaving
@@ -1959,7 +1946,7 @@ export function CassBoardDrawer({
                       : isBreakupMode
                         ? `Break into ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""}`
                         : `Add ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} to board`}
-                  </button>
+                  </TapeButton>
                 )}
                 {aiStatus === "chatting" && (
                   <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
@@ -1974,7 +1961,7 @@ export function CassBoardDrawer({
                     />
                     <button
                       type="button" onClick={sendMessage} disabled={!draft.trim() || isPending || isSaving}
-                      style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%", border: "none", cursor: draft.trim() && !isPending ? "pointer" : "not-allowed", background: draft.trim() && !isPending && !isSaving ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
+                      style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%", border: "none", cursor: draft.trim() && !isPending ? "pointer" : "not-allowed", background: draft.trim() && !isPending && !isSaving ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s", fontFamily: "'Literata', Georgia, serif" }}
                     >
                       {isPending
                         ? <LoaderCircle size={16} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite" }} />
@@ -1987,14 +1974,17 @@ export function CassBoardDrawer({
 
             {/* Brain dump: Add tasks bar appears after cards come back from voice */}
             {isBrainDump && hasProposals && !savedOk && (
-              <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px" }}>
-                <button
-                  type="button" onClick={handleAddTasks} disabled={isSaving || reviewTasks.length === 0}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px", width: "100%", borderRadius: "12px", background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", cursor: (isSaving || reviewTasks.length === 0) ? "not-allowed" : "pointer", fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 700, color: "#0a0a0a", opacity: (isSaving || reviewTasks.length === 0) ? 0.7 : 1, letterSpacing: "0.5px" }}
+              <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex" }}>
+                <TapeButton
+                  type="button"
+                  onClick={handleAddTasks}
+                  disabled={isSaving || reviewTasks.length === 0}
+                  variant="primary"
+                  className="w-full"
                 >
                   {isSaving ? <LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={14} />}
                   {isSaving ? "Adding…" : `Add ${reviewTasks.length} card${reviewTasks.length !== 1 ? "s" : ""} to board`}
-                </button>
+                </TapeButton>
               </div>
             )}
           </>

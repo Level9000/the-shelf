@@ -5,6 +5,7 @@ import { Check, LoaderCircle, PencilLine, Quote, X } from "lucide-react";
 import type { RetroData } from "@/lib/ai/schema";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { TapeButton } from "@/components/ui/tape-button";
 
 export function ChapterStoryDraft({
   retroData,
@@ -47,25 +48,15 @@ export function ChapterStoryDraft({
           <div className="flex items-center justify-between border-b border-black/6 px-5 py-4">
             <p className="text-sm font-semibold text-[var(--ink)]">Story</p>
             {!editing ? (
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--muted)] ring-1 ring-black/8 transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
-              >
+              <TapeButton variant="ghost" size="sm" onClick={() => setEditing(true)}>
                 <PencilLine className="size-3" />
                 Edit
-              </button>
+              </TapeButton>
             ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditing(false)}
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--muted)] ring-1 ring-black/8 transition hover:bg-[var(--surface-muted)]"
-                >
-                  <X className="size-3" />
-                  Done
-                </button>
-              </div>
+              <TapeButton variant="ghost" size="sm" onClick={() => setEditing(false)}>
+                <X className="size-3" />
+                Done
+              </TapeButton>
             )}
           </div>
 

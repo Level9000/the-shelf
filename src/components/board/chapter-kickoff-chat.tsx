@@ -166,6 +166,7 @@ function BacklogReviewModal({
               type="button"
               onClick={onClose}
               className="flex size-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--ink)]"
+              style={{ fontFamily: "'Literata', Georgia, serif" }}
             >
               <X className="size-4" />
             </button>
@@ -223,6 +224,7 @@ function BacklogReviewModal({
                       disabled={isExiting}
                       className="flex size-7 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-rose-50 hover:text-rose-500 disabled:pointer-events-none disabled:opacity-0"
                       aria-label="Remove"
+                      style={{ fontFamily: "'Literata', Georgia, serif" }}
                     >
                       <X className="size-3.5" />
                     </button>
@@ -919,6 +921,7 @@ export function ChapterKickoffChat({
                         }
                         className="flex size-5 shrink-0 items-center justify-center rounded-full text-[var(--muted)] opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
                         aria-label="Remove suggestion"
+                        style={{ fontFamily: "'Literata', Georgia, serif" }}
                       >
                         <X className="size-3" />
                       </button>
