@@ -167,34 +167,32 @@ function IntroScreen({ onComplete }: { onComplete: () => void }) {
           </p>
         </div>
 
-        {/* Back button */}
-        {cardIndex > 0 && (
-          <TapeButton
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setVisible(false);
-              setTimeout(() => { setCardIndex((i) => i - 1); setVisible(true); }, 280);
-            }}
-          >
-            ← BACK
-          </TapeButton>
-        )}
-
-        {/* Next / closing CTA */}
+        {/* Next / closing CTA + Back stacked below */}
         {isLast ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", width: "100%" }}>
             <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "rgba(200,168,107,0.7)", textAlign: "center", margin: 0, lineHeight: 1.6 }}>
               Together we track your work and tell your story.
             </p>
             <TapeButton variant="primary" size="md" onClick={advance} className="w-full justify-center">
-              LET&apos;S GET STARTED →
+              Let&apos;s get started →
             </TapeButton>
+            {cardIndex > 0 && (
+              <TapeButton variant="ghost" size="sm" onClick={() => { setVisible(false); setTimeout(() => { setCardIndex((i) => i - 1); setVisible(true); }, 280); }}>
+                ← Back
+              </TapeButton>
+            )}
           </div>
         ) : (
-          <TapeButton variant="secondary" size="sm" onClick={advance}>
-            NEXT →
-          </TapeButton>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+            <TapeButton variant="secondary" size="sm" onClick={advance}>
+              Next →
+            </TapeButton>
+            {cardIndex > 0 && (
+              <TapeButton variant="ghost" size="sm" onClick={() => { setVisible(false); setTimeout(() => { setCardIndex((i) => i - 1); setVisible(true); }, 280); }}>
+                ← Back
+              </TapeButton>
+            )}
+          </div>
         )}
       </div>
     </div>

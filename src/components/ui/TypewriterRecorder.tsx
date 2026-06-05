@@ -141,28 +141,28 @@ export function TypewriterRecorder({
 
         </g>
 
-        {/* ── Platen knobs — moved inward, well within pill ── */}
-        {/* Left knob: cx=40, right edge=53, clearly inside platen left zone */}
-        <circle cx="40" cy="63" r="13" fill={c.knob} stroke={c.bodyShadow} strokeWidth="1" />
-        <circle cx="40" cy="63" r="8"  fill={c.knobCenter} />
+        {/* ── Platen knobs — repositioned into body gray area above keyboard ── */}
+        {/* Left knob */}
+        <circle cx="46" cy="115" r="13" fill={c.knob} stroke={c.bodyShadow} strokeWidth="1" />
+        <circle cx="46" cy="115" r="8"  fill={c.knobCenter} />
         {[0, 60, 120, 180, 240, 300].map((a) => (
           <line key={a}
-            x1={40 + 5 * Math.cos((a * Math.PI) / 180)}
-            y1={63 + 5 * Math.sin((a * Math.PI) / 180)}
-            x2={40 + 10 * Math.cos((a * Math.PI) / 180)}
-            y2={63 + 10 * Math.sin((a * Math.PI) / 180)}
+            x1={46 + 5 * Math.cos((a * Math.PI) / 180)}
+            y1={115 + 5 * Math.sin((a * Math.PI) / 180)}
+            x2={46 + 10 * Math.cos((a * Math.PI) / 180)}
+            y2={115 + 10 * Math.sin((a * Math.PI) / 180)}
             stroke={c.bodyShadow} strokeWidth="1.5"
           />
         ))}
-        {/* Right knob: cx=240, left edge=227, clearly inside platen right zone */}
-        <circle cx="240" cy="63" r="13" fill={c.knob} stroke={c.bodyShadow} strokeWidth="1" />
-        <circle cx="240" cy="63" r="8"  fill={c.knobCenter} />
+        {/* Right knob */}
+        <circle cx="234" cy="115" r="13" fill={c.knob} stroke={c.bodyShadow} strokeWidth="1" />
+        <circle cx="234" cy="115" r="8"  fill={c.knobCenter} />
         {[0, 60, 120, 180, 240, 300].map((a) => (
           <line key={a}
-            x1={240 + 5 * Math.cos((a * Math.PI) / 180)}
-            y1={63 + 5 * Math.sin((a * Math.PI) / 180)}
-            x2={240 + 10 * Math.cos((a * Math.PI) / 180)}
-            y2={63 + 10 * Math.sin((a * Math.PI) / 180)}
+            x1={234 + 5 * Math.cos((a * Math.PI) / 180)}
+            y1={115 + 5 * Math.sin((a * Math.PI) / 180)}
+            x2={234 + 10 * Math.cos((a * Math.PI) / 180)}
+            y2={115 + 10 * Math.sin((a * Math.PI) / 180)}
             stroke={c.bodyShadow} strokeWidth="1.5"
           />
         ))}
@@ -240,23 +240,10 @@ export function TypewriterRecorder({
           <rect x="76" y={214} width="128" height="3" rx="1.5" fill={c.keyTop} opacity="0.5" />
         </g>
 
-        {/* ── Status label on body ── */}
+        {/* ── Decorative brand plate + status — between guide rail and knobs ── */}
+        <rect x="104" y="96" width="72" height="10" rx="2" fill={c.guide} opacity="0.25" />
         <text
-          x="140" y="128"
-          fontFamily="var(--font-cass)"
-          fontSize="6"
-          fill={c.bodyEdge}
-          textAnchor="middle"
-          letterSpacing="2"
-          opacity="0.6"
-        >
-          {animState === "typing" ? "● COMPOSING" : animState === "thinking" ? "◉ THINKING" : animState === "done" ? "■ COMPLETE" : "■ STANDBY"}
-        </text>
-
-        {/* ── Decorative brand plate ── */}
-        <rect x="104" y="116" width="72" height="10" rx="2" fill={c.guide} opacity="0.25" />
-        <text
-          x="140" y="124"
+          x="140" y="104"
           fontFamily="var(--font-cass)"
           fontSize="6"
           fill={c.chromeShine}
@@ -265,6 +252,17 @@ export function TypewriterRecorder({
           opacity="0.55"
         >
           AUTHORED BY
+        </text>
+        <text
+          x="140" y="132"
+          fontFamily="var(--font-cass)"
+          fontSize="6"
+          fill={c.bodyEdge}
+          textAnchor="middle"
+          letterSpacing="2"
+          opacity="0.6"
+        >
+          {animState === "typing" ? "● COMPOSING" : animState === "thinking" ? "◉ THINKING" : animState === "done" ? "■ COMPLETE" : "■ STANDBY"}
         </text>
       </svg>
     </div>
