@@ -122,7 +122,7 @@ export function TapeButton({
         boxShadow: hover && !disabled ? v.hoverShadow : v.baseShadow,
         border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
-        textTransform: "uppercase",
+        textTransform: "none",
         opacity: disabled ? 0.45 : 1,
         transform: hover && !disabled ? "translateY(-2px)" : "translateY(0)",
         transition: "box-shadow 0.2s, transform 0.15s",
