@@ -41,158 +41,180 @@ type DialogueMessage = { role: "user" | "assistant"; content: string };
 
 type Phase = "intro" | "start" | "scripted" | "chatting" | "workplan" | "saving";
 
-// ── Character intro cards ─────────────────────────────────────────────────────
+// ── Cass-narrated intro slides ────────────────────────────────────────────────
 
-const INTRO_CARDS = [
+const INTRO_SLIDES = [
   {
-    id: "cass",
-    name: "Cass",
-    role: "Story Guide",
-    description: "Hey, I'm Cass — your story guide. Every project you kick off, I keep the tape rolling so the real story never gets lost. The decisions, the pivots, the moments that actually mattered.",
-    accentColor: "#c8a86b",
+    id: "welcome",
+    cassText: "Hey — I'm Cass. Welcome to Authored By, your founder's story engine.\n\nEvery project you build has a real story behind it: the decisions, the pivots, the 2am moments that changed everything. My job is to make sure none of it gets lost.",
+    showTy: false,
+    showPress: false,
+    isLast: false,
   },
   {
-    id: "ty",
-    name: "Ty",
-    role: "Narrative Writer",
-    description: "When you're ready to share what you've built, I help you write the story that lands — announcements, press releases, the narrative behind the work.",
-    accentColor: "#cec9c0",
+    id: "meet-ty",
+    cassText: "You won't be working alone. This is Ty — a narrative writer. When you're ready to share what you've built, Ty takes everything we've captured and helps craft the story that lands: launch posts, press releases, the narrative your audience actually connects with.",
+    showTy: true,
+    showPress: false,
+    isLast: false,
   },
   {
-    id: "press",
-    name: "Press",
-    role: "Reach Tracker",
-    description: "I watch how your story moves in the world — tracking coverage, mentions, and audience reach as it spreads.",
-    accentColor: "#e8a830",
+    id: "meet-press",
+    cassText: "And this is Press — your reach tracker. Once your story is out in the world, Press monitors how it moves: coverage, mentions, audience reach. You'll always know if it's landing.",
+    showTy: true,
+    showPress: true,
+    isLast: false,
+  },
+  {
+    id: "lets-go",
+    cassText: "Together, the three of us make sure nothing you build goes undocumented or unheard. I'm excited — we're going to capture a great story. Let's start your first project.",
+    showTy: false,
+    showPress: false,
+    isLast: true,
   },
 ] as const;
 
-type IntroCardId = (typeof INTRO_CARDS)[number]["id"];
+function AvatarLabel({ name, role }: { name: string; role: string }) {
+  return (
+    <div style={{ textAlign: "center", marginTop: "8px" }}>
+      <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "#c8a86b", fontWeight: 600 }}>{name}</div>
+      <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", marginTop: "2px" }}>{role}</div>
+    </div>
+  );
+}
 
 function IntroScreen({ onComplete }: { onComplete: () => void }) {
-  const [cardIndex, setCardIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [textVisible, setTextVisible] = useState(true);
 
-  const card = INTRO_CARDS[cardIndex];
-  const isLast = cardIndex === INTRO_CARDS.length - 1;
+  const slide = INTRO_SLIDES[slideIndex];
 
   function advance() {
-    setVisible(false);
+    setTextVisible(false);
     setTimeout(() => {
-      if (isLast) {
+      if (slide.isLast) {
         onComplete();
       } else {
-        setCardIndex((i) => i + 1);
-        setVisible(true);
+        setSlideIndex((i) => i + 1);
+        setTextVisible(true);
       }
-    }, 280);
+    }, 260);
   }
 
+  function goBack() {
+    setTextVisible(false);
+    setTimeout(() => {
+      setSlideIndex((i) => i - 1);
+      setTextVisible(true);
+    }, 260);
+  }
+
+  const showTy = slide.showTy;
+  const showPress = slide.showPress;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "480px", gap: "32px" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "520px", gap: "28px" }}>
 
       {/* Step dots */}
       <div style={{ display: "flex", gap: "8px" }}>
-        {INTRO_CARDS.map((c, i) => (
-          <div
-            key={c.id}
-            style={{
-              width: i === cardIndex ? "20px" : "6px",
-              height: "6px",
-              borderRadius: "3px",
-              background: i === cardIndex ? "#c8a86b" : "rgba(200,168,107,0.2)",
-              transition: "all 0.3s ease",
-            }}
-          />
+        {INTRO_SLIDES.map((s, i) => (
+          <div key={s.id} style={{
+            width: i === slideIndex ? "20px" : "6px",
+            height: "6px",
+            borderRadius: "3px",
+            background: i === slideIndex ? "#c8a86b" : "rgba(200,168,107,0.2)",
+            transition: "all 0.3s ease",
+          }} />
         ))}
       </div>
 
-      {/* Character card */}
-      <div
-        style={{
+      {/* Avatar row — always render all 3, animate in/out */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "24px", width: "100%", minHeight: "160px" }}>
+
+        {/* Press — slides in from left */}
+        <div style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "20px",
-          width: "100%",
-          opacity: visible ? 1 : 0,
-          transform: visible ? "translateY(0)" : "translateY(8px)",
-          transition: "opacity 0.28s ease, transform 0.28s ease",
-        }}
-      >
-        {/* Avatar */}
-        {card.id === "cass"  && <CassRecorder animState="talking" size="md" />}
-        {card.id === "ty"    && <TypewriterRecorder animState="typing" size="md" />}
-        {card.id === "press" && <PressMonitor animState="talking" size="md" />}
-
-        {/* Welcome header — only on Cass's card */}
-        {card.id === "cass" && (
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "4px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", marginBottom: "8px" }}>
-              Welcome to
-            </div>
-            <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "28px", color: "#d4cec4", fontWeight: 700, lineHeight: 1.2 }}>
-              Authored By
-            </div>
-            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "rgba(212,206,196,0.55)", margin: "8px 0 0", lineHeight: 1.5 }}>
-              The founder's story engine. We help you capture what you build — and tell the world about it.
-            </p>
-          </div>
-        )}
-
-        {/* Name + role — hidden on Cass's card since welcome header takes its place */}
-        {card.id !== "cass" && (
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "26px", color: card.accentColor, fontWeight: 700 }}>
-              {card.name}
-            </div>
-            <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "3px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", marginTop: "4px" }}>
-              {card.role}
-            </div>
-          </div>
-        )}
-
-        {/* Description */}
-        <div
-          style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(200,168,107,0.15)",
-            borderRadius: "12px",
-            padding: "20px 24px",
-            width: "100%",
-          }}
-        >
-          <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
-            {card.description}
-          </p>
+          opacity: showPress ? 1 : 0,
+          transform: showPress ? "translateX(0) scale(1)" : "translateX(-50px) scale(0.9)",
+          transition: "opacity 0.45s ease, transform 0.45s ease",
+          pointerEvents: "none",
+        }}>
+          <PressMonitor animState={showPress ? "talking" : "idle"} size="sm" />
+          <AvatarLabel name="Press" role="Reach Tracker" />
         </div>
 
-        {/* Next / closing CTA + Back stacked below */}
-        {isLast ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", width: "100%" }}>
-            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "rgba(200,168,107,0.7)", textAlign: "center", margin: 0, lineHeight: 1.6 }}>
-              Together we track your work and tell your story.
+        {/* Cass — always center, grows when alone */}
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          transform: (showTy || showPress) ? "scale(0.88)" : "scale(1)",
+          transition: "transform 0.45s ease",
+          transformOrigin: "bottom center",
+        }}>
+          <CassRecorder animState="talking" size="md" />
+          <AvatarLabel name="Cass" role="Story Guide" />
+        </div>
+
+        {/* Ty — slides in from right */}
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          opacity: showTy ? 1 : 0,
+          transform: showTy ? "translateX(0) scale(1)" : "translateX(50px) scale(0.9)",
+          transition: "opacity 0.45s ease, transform 0.45s ease",
+          pointerEvents: "none",
+        }}>
+          <TypewriterRecorder animState={showTy ? "typing" : "idle"} size="sm" />
+          <AvatarLabel name="Ty" role="Narrative Writer" />
+        </div>
+      </div>
+
+      {/* Cass speech box */}
+      <div style={{
+        width: "100%",
+        opacity: textVisible ? 1 : 0,
+        transform: textVisible ? "translateY(0)" : "translateY(6px)",
+        transition: "opacity 0.26s ease, transform 0.26s ease",
+      }}>
+        <div style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(200,168,107,0.15)",
+          borderRadius: "14px",
+          padding: "22px 26px",
+        }}>
+          {slide.cassText.split("\n\n").map((para, i) => (
+            <p key={i} style={{
+              fontFamily: "'Literata', Georgia, serif",
+              fontSize: "16px",
+              lineHeight: "1.65",
+              color: "#d4cec4",
+              margin: i > 0 ? "12px 0 0" : 0,
+            }}>
+              {para}
             </p>
-            <TapeButton variant="primary" size="md" onClick={advance} className="w-full justify-center">
-              Let&apos;s get started →
-            </TapeButton>
-            {cardIndex > 0 && (
-              <TapeButton variant="ghost" size="sm" onClick={() => { setVisible(false); setTimeout(() => { setCardIndex((i) => i - 1); setVisible(true); }, 280); }}>
-                ← Back
-              </TapeButton>
-            )}
-          </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTAs */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%" }}>
+        {slide.isLast ? (
+          <TapeButton variant="primary" size="md" onClick={advance} className="w-full justify-center">
+            Let&apos;s get started →
+          </TapeButton>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
-            <TapeButton variant="secondary" size="sm" onClick={advance}>
-              Next →
-            </TapeButton>
-            {cardIndex > 0 && (
-              <TapeButton variant="ghost" size="sm" onClick={() => { setVisible(false); setTimeout(() => { setCardIndex((i) => i - 1); setVisible(true); }, 280); }}>
-                ← Back
-              </TapeButton>
-            )}
-          </div>
+          <TapeButton variant="secondary" size="sm" onClick={advance}>
+            Next →
+          </TapeButton>
+        )}
+        {slideIndex > 0 && (
+          <TapeButton variant="ghost" size="sm" onClick={goBack}>
+            ← Back
+          </TapeButton>
         )}
       </div>
     </div>
