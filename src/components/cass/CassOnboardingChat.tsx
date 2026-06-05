@@ -520,32 +520,174 @@ export function CassOnboardingChat({
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        .onboarding-outer {
+          min-height: 100dvh;
+          background: #0a0a0a;
+          background-image: radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(42,107,58,0.05) 0%, transparent 50%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          padding: 72px 16px 32px;
+          font-family: var(--font-cass);
+          color: #c8c8c8;
+          position: relative;
+        }
+        .onboarding-steps-sidebar {
+          display: none;
+        }
+        .onboarding-inline-dots {
+          display: flex;
+        }
+        .onboarding-content {
+          width: 100%;
+          max-width: 480px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        @media (min-width: 900px) {
+          .onboarding-inline-dots {
+            display: none;
+          }
+          .onboarding-outer {
+            flex-direction: row;
+            align-items: stretch;
+            justify-content: center;
+            padding: 0;
+            gap: 0;
+          }
+          .onboarding-steps-sidebar {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 240px;
+            min-width: 240px;
+            padding: 80px 32px 80px 48px;
+            border-right: 1px solid rgba(200,168,107,0.08);
+            flex-shrink: 0;
+          }
+          .onboarding-content {
+            flex: 1;
+            max-width: 520px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 48px;
+          }
+        }
       `}</style>
 
-      <div style={{
-        minHeight: "100dvh",
-        background: "#0a0a0a",
-        backgroundImage: "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(42,107,58,0.05) 0%, transparent 50%)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        padding: "72px 16px 32px",
-        fontFamily: "var(--font-cass)",
-        color: "#c8c8c8",
-        position: "relative",
-      }}>
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+      <div className="onboarding-outer">
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
           <CassProgressBar percent={progressPercent} />
         </div>
 
         {hasExistingProjects && (
           <button type="button" onClick={() => router.back()} aria-label="Close"
-            style={{ position: "absolute", top: "16px", right: "16px", background: "transparent", border: "none", color: "#444", cursor: "pointer", fontSize: "20px", lineHeight: 1, padding: "4px", transition: "color 0.2s", fontFamily: "'Literata', Georgia, serif" }}
+            style={{ position: "absolute", top: "16px", right: "16px", zIndex: 10, background: "transparent", border: "none", color: "#444", cursor: "pointer", fontSize: "20px", lineHeight: 1, padding: "4px", transition: "color 0.2s", fontFamily: "'Literata', Georgia, serif" }}
             onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; }}
           >✕</button>
         )}
+
+        {/* Desktop step sidebar — only visible during interview/review/generating */}
+        {(phase === "interview" || phase === "review" || phase === "generating") && (
+          <aside className="onboarding-steps-sidebar">
+            <div style={{ marginBottom: "32px" }}>
+              <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "3px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", marginBottom: "4px" }}>
+                Authored By
+              </div>
+              <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", color: "#d4cec4", fontWeight: 600 }}>
+                Project Brief
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {QUESTIONS.map((q, i) => {
+                const isComplete = answers[q.field].trim().length > 0;
+                const isCurrent = phase === "interview" && i === interviewStep;
+                const isPending = !isComplete && !isCurrent;
+
+                return (
+                  <div key={q.field} style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "12px",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    background: isCurrent ? "rgba(200,168,107,0.07)" : "transparent",
+                    border: isCurrent ? "1px solid rgba(200,168,107,0.15)" : "1px solid transparent",
+                    transition: "all 0.2s ease",
+                  }}>
+                    {/* Status icon */}
+                    <div style={{
+                      width: "18px",
+                      height: "18px",
+                      borderRadius: "50%",
+                      flexShrink: 0,
+                      marginTop: "1px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: isComplete ? "#c8a86b" : isCurrent ? "transparent" : "transparent",
+                      border: isComplete ? "none" : isCurrent ? "1.5px solid #c8a86b" : "1.5px solid rgba(200,168,107,0.2)",
+                      transition: "all 0.3s ease",
+                    }}>
+                      {isComplete && (
+                        <Check size={10} color="#1a0e00" strokeWidth={3} />
+                      )}
+                      {isCurrent && (
+                        <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b" }} />
+                      )}
+                    </div>
+
+                    {/* Label + preview */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontFamily: "var(--font-cass)",
+                        fontSize: "10px",
+                        letterSpacing: "1.5px",
+                        textTransform: "uppercase",
+                        color: isComplete ? "rgba(200,168,107,0.7)" : isCurrent ? "#c8a86b" : "rgba(200,168,107,0.25)",
+                        transition: "color 0.2s ease",
+                        marginBottom: "2px",
+                      }}>
+                        {q.label}
+                      </div>
+                      {isComplete && (
+                        <div style={{
+                          fontFamily: "'Literata', Georgia, serif",
+                          fontSize: "11px",
+                          color: "rgba(212,206,196,0.5)",
+                          lineHeight: 1.4,
+                          overflow: "hidden",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical" as const,
+                        }}>
+                          {answers[q.field]}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* All done state */}
+            {(phase === "review" || phase === "generating") && (
+              <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid rgba(200,168,107,0.1)" }}>
+                <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase" }}>
+                  {phase === "generating" ? "◉ Generating plan..." : "◉ Brief complete"}
+                </div>
+              </div>
+            )}
+          </aside>
+        )}
+
+        <div className="onboarding-content">
 
         {/* ── Intro ── */}
         {phase === "intro" && <IntroScreen onComplete={() => setPhase("interview")} />}
@@ -563,8 +705,8 @@ export function CassOnboardingChat({
               </div>
             )}
 
-            {/* Progress dots */}
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {/* Progress dots — hidden on desktop (sidebar takes over) */}
+            <div className="onboarding-inline-dots" style={{ gap: "8px", alignItems: "center" }}>
               {QUESTIONS.map((q, i) => (
                 <div key={q.field} style={{
                   width: i === interviewStep ? "20px" : "6px",
@@ -683,7 +825,8 @@ export function CassOnboardingChat({
             </div>
           </div>
         )}
-      </div>
+        </div>{/* end onboarding-content */}
+      </div>{/* end onboarding-outer */}
     </>
   );
 }
