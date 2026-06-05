@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
 import { stripe } from "@/lib/stripe";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { OnboardingDraft } from "@/types";
 
 export async function updateUserProfileAction(input: { displayName: string }) {
   const displayName = input.displayName.trim();
@@ -32,6 +33,27 @@ export async function updateUserProfileAction(input: { displayName: string }) {
 
   revalidatePath("/settings");
   revalidatePath("/projects");
+}
+
+export async function saveOnboardingDraftAction(draft: OnboardingDraft) {
+  const { supabase, user } = await getAuthenticatedUser();
+  const { error } = await supabase
+    .from("user_profiles")
+    .upsert({
+      id: user.id,
+      email: user.email ?? "",
+      onboarding_draft: { ...draft, updated_at: new Date().toISOString() },
+    });
+  if (error) throw new Error(error.message);
+}
+
+export async function clearOnboardingDraftAction() {
+  const { supabase, user } = await getAuthenticatedUser();
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({ onboarding_draft: null })
+    .eq("id", user.id);
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteAccountAction() {

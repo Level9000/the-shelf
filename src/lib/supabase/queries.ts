@@ -64,6 +64,7 @@ function mapUserProfile(row: Record<string, unknown>): UserProfile {
     updatedAt: String(row.updated_at),
     termsAcceptedAt: (row.terms_accepted_at as string | null) ?? null,
     termsVersion: (row.terms_version as string | null) ?? null,
+    onboardingDraft: (row.onboarding_draft as import("@/types").OnboardingDraft | null) ?? null,
   };
 }
 
@@ -203,7 +204,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
   const { supabase, user } = await getAuthenticatedUser();
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("id, email, display_name, updated_at, terms_accepted_at, terms_version")
+    .select("id, email, display_name, updated_at, terms_accepted_at, terms_version, onboarding_draft")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -219,6 +220,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile> {
       updatedAt: new Date(0).toISOString(),
       termsAcceptedAt: null,
       termsVersion: null,
+      onboardingDraft: null,
     };
   }
 

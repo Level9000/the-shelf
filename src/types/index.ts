@@ -12,6 +12,25 @@ export type AppUser = {
   displayName: string | null;
 };
 
+export type OnboardingDraft = {
+  step: number; // 0–4 = which question; 5 = brief review; 6 = chapter plan
+  answers: {
+    project_goal: string;
+    north_star: string;
+    project_audience: string;
+    project_success: string;
+    project_biggest_risk: string;
+  };
+  project_name: string;
+  proposed_chapters: Array<{
+    chapter_number: number;
+    title: string;
+    goal: string;
+    prefill?: { goal: string; value: string; measure: string; done: string } | null;
+  }>;
+  updated_at: string;
+};
+
 export type UserProfile = {
   id: string;
   email: string;
@@ -19,6 +38,7 @@ export type UserProfile = {
   updatedAt: string;
   termsAcceptedAt: string | null;
   termsVersion: string | null;
+  onboardingDraft: OnboardingDraft | null;
 };
 
 export type Project = {

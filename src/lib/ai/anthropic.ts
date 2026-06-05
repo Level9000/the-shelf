@@ -971,6 +971,104 @@ export async function runCassOnboardingDialogue(input: {
   };
 }
 
+export async function generateProjectPlanFromBrief(input: {
+  project_goal: string;
+  north_star: string;
+  project_audience: string;
+  project_success: string;
+  project_biggest_risk: string;
+}): Promise<{
+  project_name: string;
+  proposed_chapters: Array<{
+    chapter_number: number;
+    title: string;
+    goal: string;
+    prefill: { goal: string; value: string; measure: string; done: string } | null;
+  }>;
+}> {
+  const apiKey = requireAnthropicKey();
+
+  const prompt = [
+    "You are a project naming and chapter planning assistant.",
+    "Given this founder's project brief, generate:",
+    "1. A short, evocative project name (2-4 words max, no generic words like 'Project' or 'App')",
+    "2. A focused chapter plan of 2-4 chapters that maps the work ahead",
+    "",
+    "PROJECT BRIEF:",
+    `What they're building: ${input.project_goal}`,
+    `North star conviction: ${input.north_star}`,
+    `Who it's for: ${input.project_audience}`,
+    `What success looks like: ${input.project_success}`,
+    `Biggest risk: ${input.project_biggest_risk}`,
+    "",
+    "CHAPTER GUIDELINES:",
+    "- Each chapter is 2-6 weeks of focused work toward a specific bet",
+    "- Name each chapter like a chapter in a book — short, evocative, action-oriented",
+    "- Chapter goal is a one-sentence conviction: 'We believe X will happen if we do Y'",
+    "- prefill.goal = the chapter objective in plain language",
+    "- prefill.value = what success delivers to users/customers",
+    "- prefill.measure = how they'll know it worked (specific metric or observable)",
+    "- prefill.done = the single thing that marks this chapter complete",
+    "- 2-4 chapters only. Don't pad.",
+    "",
+    "Return JSON only:",
+    `{
+  "project_name": "string",
+  "proposed_chapters": [
+    {
+      "chapter_number": 1,
+      "title": "string",
+      "goal": "string",
+      "prefill": { "goal": "string", "value": "string", "measure": "string", "done": "string" }
+    }
+  ]
+}`,
+  ].join("\n");
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const msg = await response.text();
+    throw new Error(`Project plan generation failed: ${msg}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+  const rawText = payload.content?.find((b) => b.type === "text")?.text ?? "";
+  const parsed = safeJsonParse(extractJsonObject(rawText)) as {
+    project_name?: string;
+    proposed_chapters?: Array<{
+      chapter_number: number;
+      title: string;
+      goal: string;
+      prefill?: { goal: string; value: string; measure: string; done: string } | null;
+    }>;
+  } | null;
+
+  return {
+    project_name: parsed?.project_name?.trim() || "Untitled Project",
+    proposed_chapters: (parsed?.proposed_chapters ?? []).map((ch, i) => ({
+      chapter_number: ch.chapter_number ?? i + 1,
+      title: ch.title ?? `Chapter ${i + 1}`,
+      goal: ch.goal ?? "",
+      prefill: ch.prefill ?? null,
+    })),
+  };
+}
+
 export async function runCassChapterKickoffDialogue(input: {
   messages: StrategicDialogueMessage[];
   projectName: string;
