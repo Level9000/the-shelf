@@ -60,14 +60,14 @@ const INTRO_SLIDES = [
   },
   {
     id: "meet-press",
-    cassText: "And this is Press — your reach tracker. Once your story is out in the world, Press monitors how it moves: coverage, mentions, audience reach. You'll always know if it's landing.",
+    cassText: "And this is Press — your presentation designer. Press takes everything Ty and I have built and turns it into something you can put in front of a room: pitch decks, investor updates, board presentations. Professional, polished, ready to send.",
     showTy: true,
     showPress: true,
     isLast: false,
   },
   {
     id: "lets-go",
-    cassText: "Together, the three of us make sure nothing you build goes undocumented or unheard. I'm excited — we're going to capture a great story. Let's start your first project.",
+    cassText: "Together, we cover the whole journey — I capture the story as you build it, Ty shapes it into something worth reading, and Press turns it into presentations that get results. Let's start your first project.",
     showTy: false,
     showPress: false,
     isLast: true,
@@ -142,7 +142,7 @@ function IntroScreen({ onComplete }: { onComplete: () => void }) {
           pointerEvents: "none",
         }}>
           <PressMonitor animState={showPress ? "talking" : "idle"} size="sm" />
-          <AvatarLabel name="Press" role="Reach Tracker" />
+          <AvatarLabel name="Press" role="Presentation Designer" />
         </div>
 
         {/* Cass — always center, grows when alone */}
@@ -339,22 +339,44 @@ function StartScreen({ onStart }: { onStart: () => void }) {
   );
 }
 
-// ── Done card (shown briefly after user's first answer) ───────────────────────
+// ── Message thread bubbles ────────────────────────────────────────────────────
 
-function UserEcho({ answer }: { answer: string }) {
+function UserMessage({ text }: { text: string }) {
   return (
-    <div
-      style={{
-        fontFamily: "var(--font-cass)",
-        fontSize: "13px",
-        color: "#555",
-        textAlign: "right",
-        width: "100%",
-        padding: "4px 0",
-      }}
-    >
-      you said:{" "}
-      <span style={{ color: "#c8a86b" }}>&ldquo;{answer}&rdquo;</span>
+    <div style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
+      <div style={{
+        background: "rgba(200,168,107,0.12)",
+        border: "1px solid rgba(200,168,107,0.2)",
+        borderRadius: "14px 14px 4px 14px",
+        padding: "12px 16px",
+        maxWidth: "85%",
+        fontFamily: "'Literata', Georgia, serif",
+        fontSize: "15px",
+        lineHeight: "1.55",
+        color: "#d4cec4",
+      }}>
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function CassMessage({ text }: { text: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-start", width: "100%" }}>
+      <div style={{
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(200,168,107,0.12)",
+        borderRadius: "14px 14px 14px 4px",
+        padding: "12px 16px",
+        maxWidth: "85%",
+        fontFamily: "'Literata', Georgia, serif",
+        fontSize: "15px",
+        lineHeight: "1.55",
+        color: "#c8c8c8",
+      }}>
+        {text}
+      </div>
     </div>
   );
 }
@@ -379,6 +401,12 @@ export function CassOnboardingChat({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isSaving, startSaveTransition] = useTransition();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom whenever messages or currentReply change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, currentReply, isPending]);
 
   const currentScriptLine = INTRO_SCRIPT[step] as IntroStep | undefined;
 
@@ -712,59 +740,92 @@ export function CassOnboardingChat({
 
         {/* ── AI chat ──────────────────────────────────────────────────────── */}
         {phase === "chatting" && (
-          <CassStage animState={animState}>
-            {firstAnswer && <UserEcho answer={firstAnswer} />}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "480px", gap: "16px" }}>
+            <CassRecorder animState={animState} size="md" />
 
-            {/* Show the current AI reply with typewriter */}
-            {currentReply && (
-              <CassSpeechBubble
-                key={currentReply}
-                text={currentReply}
-                onComplete={handleReplyComplete}
-                speed={24}
-              />
-            )}
+            {/* Scrollable message thread */}
+            <div style={{
+              width: "100%",
+              maxHeight: "45vh",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              padding: "4px 2px",
+              scrollbarWidth: "none",
+            }}>
+              {/* All past messages */}
+              {messages.map((msg, i) => {
+                const isLatestAssistant = msg.role === "assistant" && i === messages.length - 1;
+                if (msg.role === "user") {
+                  return <UserMessage key={i} text={msg.content} />;
+                }
+                // Latest assistant message uses typewriter; previous ones render plain
+                if (isLatestAssistant && currentReply === msg.content) {
+                  return (
+                    <CassMessage key={i} text="" />
+                  );
+                }
+                return <CassMessage key={i} text={msg.content} />;
+              })}
 
-            {/* Loading state */}
-            {isPending && !currentReply && (
-              <div
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(200,168,107,0.15)",
-                  borderRadius: "12px",
-                  padding: "20px 24px",
-                  width: "100%",
-                  minHeight: "64px",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-cass)",
-                    fontSize: "13px",
-                    color: "#555",
-                    letterSpacing: "1px",
-                  }}
-                >
-                  ◉ rolling...
-                </span>
-              </div>
-            )}
+              {/* Typewriter for the current Cass reply */}
+              {currentReply && (
+                <div style={{ display: "flex", justifyContent: "flex-start", width: "100%" }}>
+                  <div style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(200,168,107,0.12)",
+                    borderRadius: "14px 14px 14px 4px",
+                    padding: "12px 16px",
+                    maxWidth: "85%",
+                  }}>
+                    <CassSpeechBubble
+                      key={currentReply}
+                      text={currentReply}
+                      onComplete={handleReplyComplete}
+                      speed={24}
+                    />
+                  </div>
+                </div>
+              )}
 
-            {error && (
-              <p
-                style={{
-                  color: "#ff3b30",
-                  fontFamily: "var(--font-cass)",
-                  fontSize: "13px",
-                  textAlign: "center",
-                  width: "100%",
-                }}
-              >
-                {error}
-              </p>
-            )}
+              {/* Loading indicator */}
+              {isPending && !currentReply && (
+                <div style={{ display: "flex", justifyContent: "flex-start", width: "100%" }}>
+                  <div style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(200,168,107,0.12)",
+                    borderRadius: "14px 14px 14px 4px",
+                    padding: "14px 20px",
+                  }}>
+                    <span style={{ fontFamily: "var(--font-cass)", fontSize: "13px", color: "#555", letterSpacing: "1px" }}>
+                      ◉ rolling...
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div style={{ display: "flex", justifyContent: "flex-start", width: "100%" }}>
+                  <div style={{
+                    background: "rgba(255,59,48,0.08)",
+                    border: "1px solid rgba(255,59,48,0.2)",
+                    borderRadius: "14px 14px 14px 4px",
+                    padding: "12px 16px",
+                    maxWidth: "85%",
+                    fontFamily: "'Literata', Georgia, serif",
+                    fontSize: "14px",
+                    color: "#ff6b6b",
+                    lineHeight: 1.5,
+                  }}>
+                    Tape got stuck for a second. Try sending your message again.
+                  </div>
+                </div>
+              )}
+
+              {/* Scroll anchor */}
+              <div ref={messagesEndRef} />
+            </div>
 
             {/* Input — show when Cass is listening (not pending) */}
             {animState === "listening" && !isPending && (
@@ -776,7 +837,7 @@ export function CassOnboardingChat({
                 autoFocus
               />
             )}
-          </CassStage>
+          </div>
         )}
 
         {/* ── Saving state ─────────────────────────────────────────────────── */}

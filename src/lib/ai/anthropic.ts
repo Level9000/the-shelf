@@ -944,7 +944,31 @@ export async function runCassOnboardingDialogue(input: {
   const rawText = payload.content?.find((block) => block.type === "text")?.text;
   if (!rawText) throw new Error("Cass onboarding returned no content.");
 
-  return cassOnboardingDialogueSchema.parse(safeJsonParse(extractJsonObject(rawText)));
+  const parsed = cassOnboardingDialogueSchema.safeParse(safeJsonParse(extractJsonObject(rawText)));
+
+  if (parsed.success) return parsed.data;
+
+  // Schema validation failed — extract reply text and continue the conversation
+  // rather than crashing. The AI may have returned malformed structured data
+  // (e.g. booleans where strings expected) but the reply text is usually fine.
+  const rawObj = safeJsonParse(extractJsonObject(rawText)) as Record<string, unknown> | null;
+  const reply = typeof rawObj?.reply === "string" && rawObj.reply.trim()
+    ? rawObj.reply.trim()
+    : rawText.replace(/\{[\s\S]*\}/, "").trim() || "Let me think about that for a second.";
+
+  console.warn("Cass onboarding schema validation failed, falling back to reply-only:", parsed.error.message);
+
+  return {
+    reply,
+    done: false,
+    project_name: "",
+    north_star: "",
+    project_goal: "",
+    project_audience: "",
+    project_success: "",
+    project_biggest_risk: "",
+    proposed_chapters: [],
+  };
 }
 
 export async function runCassChapterKickoffDialogue(input: {
