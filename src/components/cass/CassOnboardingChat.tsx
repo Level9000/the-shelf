@@ -551,30 +551,27 @@ export function CassOnboardingChat({
             display: none;
           }
           .onboarding-outer {
-            flex-direction: row;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             align-items: stretch;
-            justify-content: center;
             padding: 0;
-            gap: 0;
+            justify-content: unset;
+            flex-direction: unset;
           }
           .onboarding-steps-sidebar {
             display: flex;
             flex-direction: column;
             justify-content: center;
-            width: 240px;
-            min-width: 240px;
-            padding: 80px 32px 80px 48px;
+            padding: 80px 64px;
             border-right: 1px solid rgba(200,168,107,0.08);
-            flex-shrink: 0;
           }
           .onboarding-content {
-            flex: 1;
-            max-width: 520px;
+            max-width: unset;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 80px 48px;
+            padding: 80px 64px;
           }
         }
       `}</style>
@@ -595,76 +592,74 @@ export function CassOnboardingChat({
         {/* Desktop step sidebar — only visible during interview/review/generating */}
         {(phase === "interview" || phase === "review" || phase === "generating") && (
           <aside className="onboarding-steps-sidebar">
-            <div style={{ marginBottom: "32px" }}>
-              <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "3px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", marginBottom: "4px" }}>
+            <div style={{ marginBottom: "48px" }}>
+              <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "4px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", marginBottom: "10px" }}>
                 Authored By
               </div>
-              <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", color: "#d4cec4", fontWeight: 600 }}>
+              <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "32px", color: "#d4cec4", fontWeight: 700, lineHeight: 1.2 }}>
                 Project Brief
+              </div>
+              <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "rgba(212,206,196,0.35)", marginTop: "8px", lineHeight: 1.5 }}>
+                Five questions. Your story starts here.
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               {QUESTIONS.map((q, i) => {
                 const isComplete = answers[q.field].trim().length > 0;
                 const isCurrent = phase === "interview" && i === interviewStep;
-                const isPending = !isComplete && !isCurrent;
 
                 return (
                   <div key={q.field} style={{
                     display: "flex",
                     alignItems: "flex-start",
-                    gap: "12px",
-                    padding: "10px 12px",
-                    borderRadius: "8px",
+                    gap: "16px",
+                    padding: "14px 16px",
+                    borderRadius: "12px",
                     background: isCurrent ? "rgba(200,168,107,0.07)" : "transparent",
                     border: isCurrent ? "1px solid rgba(200,168,107,0.15)" : "1px solid transparent",
-                    transition: "all 0.2s ease",
+                    transition: "all 0.25s ease",
                   }}>
                     {/* Status icon */}
                     <div style={{
-                      width: "18px",
-                      height: "18px",
+                      width: "24px",
+                      height: "24px",
                       borderRadius: "50%",
                       flexShrink: 0,
-                      marginTop: "1px",
+                      marginTop: "2px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      background: isComplete ? "#c8a86b" : isCurrent ? "transparent" : "transparent",
-                      border: isComplete ? "none" : isCurrent ? "1.5px solid #c8a86b" : "1.5px solid rgba(200,168,107,0.2)",
+                      background: isComplete ? "#c8a86b" : "transparent",
+                      border: isComplete ? "none" : isCurrent ? "2px solid #c8a86b" : "2px solid rgba(200,168,107,0.2)",
                       transition: "all 0.3s ease",
                     }}>
-                      {isComplete && (
-                        <Check size={10} color="#1a0e00" strokeWidth={3} />
-                      )}
-                      {isCurrent && (
-                        <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b" }} />
-                      )}
+                      {isComplete && <Check size={13} color="#1a0e00" strokeWidth={3} />}
+                      {isCurrent && <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#c8a86b" }} />}
                     </div>
 
                     {/* Label + preview */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
                         fontFamily: "var(--font-cass)",
-                        fontSize: "10px",
-                        letterSpacing: "1.5px",
+                        fontSize: "11px",
+                        letterSpacing: "2px",
                         textTransform: "uppercase",
-                        color: isComplete ? "rgba(200,168,107,0.7)" : isCurrent ? "#c8a86b" : "rgba(200,168,107,0.25)",
+                        color: isComplete ? "rgba(200,168,107,0.8)" : isCurrent ? "#c8a86b" : "rgba(200,168,107,0.25)",
                         transition: "color 0.2s ease",
-                        marginBottom: "2px",
+                        marginBottom: isComplete ? "6px" : 0,
                       }}>
                         {q.label}
                       </div>
                       {isComplete && (
                         <div style={{
                           fontFamily: "'Literata', Georgia, serif",
-                          fontSize: "11px",
-                          color: "rgba(212,206,196,0.5)",
-                          lineHeight: 1.4,
+                          fontSize: "14px",
+                          color: "rgba(212,206,196,0.6)",
+                          lineHeight: 1.5,
                           overflow: "hidden",
                           display: "-webkit-box",
-                          WebkitLineClamp: 2,
+                          WebkitLineClamp: 3,
                           WebkitBoxOrient: "vertical" as const,
                         }}>
                           {answers[q.field]}
@@ -678,8 +673,8 @@ export function CassOnboardingChat({
 
             {/* All done state */}
             {(phase === "review" || phase === "generating") && (
-              <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid rgba(200,168,107,0.1)" }}>
-                <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase" }}>
+              <div style={{ marginTop: "32px", paddingTop: "24px", borderTop: "1px solid rgba(200,168,107,0.1)" }}>
+                <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "2px", color: "rgba(200,168,107,0.6)", textTransform: "uppercase" }}>
                   {phase === "generating" ? "◉ Generating plan..." : "◉ Brief complete"}
                 </div>
               </div>
@@ -694,68 +689,116 @@ export function CassOnboardingChat({
 
         {/* ── Interview ── */}
         {phase === "interview" && currentQuestion && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "480px", gap: "20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", width: "100%", maxWidth: "520px", height: "calc(100dvh - 80px)", overflow: "hidden" }}>
 
-            {/* Resume banner */}
-            {isResuming && interviewStep === 0 && (
-              <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "10px", padding: "10px 16px", width: "100%", textAlign: "center" }}>
-                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(200,168,107,0.8)", margin: 0 }}>
-                  Welcome back — picking up where you left off.
-                </p>
-              </div>
-            )}
-
-            {/* Progress dots — hidden on desktop (sidebar takes over) */}
-            <div className="onboarding-inline-dots" style={{ gap: "8px", alignItems: "center" }}>
-              {QUESTIONS.map((q, i) => (
-                <div key={q.field} style={{
-                  width: i === interviewStep ? "20px" : "6px",
-                  height: "6px",
-                  borderRadius: "3px",
-                  background: i < interviewStep ? "#c8a86b" : i === interviewStep ? "#c8a86b" : "rgba(200,168,107,0.2)",
-                  opacity: i < interviewStep ? 0.5 : 1,
-                  transition: "all 0.3s ease",
-                }} />
-              ))}
-            </div>
-
-            {/* Cass + question */}
-            <CassRecorder animState={animState} size="md" />
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px", width: "100%" }}>
-              <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
-                {currentQuestion.cassLine}
-              </p>
-            </div>
-
-            {/* Accumulated brief cards */}
-            {answeredFields.length > 0 && (
-              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px" }}>
-                {answeredFields.map((q) => (
-                  <BriefCard
-                    key={q.field}
-                    label={q.label}
-                    icon={q.icon}
-                    value={answers[q.field]}
-                    onEdit={(v) => handleEditAnswer(q.field, v)}
-                  />
+            {/* Cass avatar — fixed at top */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: "16px", flexShrink: 0 }}>
+              {/* Progress dots — mobile only */}
+              <div className="onboarding-inline-dots" style={{ gap: "8px", alignItems: "center", marginBottom: "16px" }}>
+                {QUESTIONS.map((q, i) => (
+                  <div key={q.field} style={{
+                    width: i === interviewStep ? "20px" : "6px",
+                    height: "6px",
+                    borderRadius: "3px",
+                    background: i < interviewStep ? "#c8a86b" : i === interviewStep ? "#c8a86b" : "rgba(200,168,107,0.2)",
+                    opacity: i < interviewStep ? 0.5 : 1,
+                    transition: "all 0.3s ease",
+                  }} />
                 ))}
               </div>
-            )}
+              <CassRecorder animState={animState} size="md" />
+            </div>
 
-            {/* Input */}
-            <CassInput
-              value={inputValue}
-              onChange={setInputValue}
-              onSubmit={handleAnswerSubmit}
-              placeholder={currentQuestion.placeholder}
-              autoFocus
-            />
+            {/* Scrollable thread */}
+            <div style={{
+              flex: 1,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0",
+              scrollbarWidth: "none",
+              paddingBottom: "8px",
+            }}>
+              {/* Resume banner */}
+              {isResuming && interviewStep === 0 && (
+                <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "10px", padding: "10px 16px", marginBottom: "16px", textAlign: "center" }}>
+                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(200,168,107,0.8)", margin: 0 }}>
+                    Welcome back — picking up where you left off.
+                  </p>
+                </div>
+              )}
 
-            {error && (
-              <p style={{ color: "#ff6b6b", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", textAlign: "center" }}>
-                {error}
-              </p>
-            )}
+              {/* Past Q&A pairs — scrollable history */}
+              {QUESTIONS.slice(0, interviewStep).map((q) => (
+                <div key={q.field} style={{ marginBottom: "24px" }}>
+                  {/* Section label */}
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginBottom: "10px",
+                  }}>
+                    <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.1)" }} />
+                    <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "2.5px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                      {q.label}
+                    </div>
+                    <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.1)" }} />
+                  </div>
+                  {/* Cass question */}
+                  <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(200,168,107,0.08)", borderRadius: "12px 12px 12px 3px", padding: "12px 16px", marginBottom: "8px" }}>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.55", color: "rgba(212,206,196,0.5)", margin: 0 }}>
+                      {q.cassLine}
+                    </p>
+                  </div>
+                  {/* User answer */}
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "12px 12px 3px 12px", padding: "12px 16px", maxWidth: "85%" }}>
+                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.55", color: "rgba(212,206,196,0.65)", margin: 0 }}>
+                        {answers[q.field]}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Current question */}
+              <div style={{ marginBottom: "8px" }}>
+                {/* Section label for current */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "10px",
+                }}>
+                  <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.15)" }} />
+                  <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    {currentQuestion.label}
+                  </div>
+                  <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.15)" }} />
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px" }}>
+                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
+                    {currentQuestion.cassLine}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Input — pinned to bottom */}
+            <div style={{ flexShrink: 0, paddingTop: "8px" }}>
+              {error && (
+                <p style={{ color: "#ff6b6b", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", textAlign: "center", marginBottom: "8px" }}>
+                  {error}
+                </p>
+              )}
+              <CassInput
+                value={inputValue}
+                onChange={setInputValue}
+                onSubmit={handleAnswerSubmit}
+                placeholder={currentQuestion.placeholder}
+                autoFocus
+              />
+            </div>
           </div>
         )}
 
