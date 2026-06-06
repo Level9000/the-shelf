@@ -551,7 +551,7 @@ export function CassOnboardingChat({
       const draft: OnboardingDraft = {
         step: interviewStep,
         journeyStage,
-        wantChronicle,
+        wantPrelude,
         answers,
         project_name: projectName,
         proposed_chapters: proposedChapters,
@@ -559,7 +559,7 @@ export function CassOnboardingChat({
       };
       saveOnboardingDraftAction(draft).catch(console.error);
     }
-  }, [answers, interviewStep, phase, projectName, proposedChapters, journeyStage, wantChronicle]);
+  }, [answers, interviewStep, phase, projectName, proposedChapters, journeyStage, wantPrelude]);
 
   // Animate Cass when question changes
   useEffect(() => {
