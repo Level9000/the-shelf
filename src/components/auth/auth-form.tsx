@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { signInWithGoogleAction, signInWithAppleAction } from "@/lib/actions/auth-actions";
 import { TapeButton } from "@/components/ui/tape-button";
+import { StickyNoteCanvas } from "./sticky-note-canvas";
 
 export function AuthForm({
   oauthError,
@@ -24,8 +25,9 @@ export function AuthForm({
   }
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-white px-6 pt-12 pb-16">
-      <div className="flex w-full max-w-sm flex-col items-center gap-8">
+    <div className="flex min-h-screen items-start justify-center bg-white px-6 pt-12 pb-16" style={{ position: "relative" }}>
+      <StickyNoteCanvas />
+      <div className="flex w-full max-w-sm flex-col items-center gap-8" style={{ position: "relative", zIndex: 1 }}>
 
         {/* Logo */}
         <Image
