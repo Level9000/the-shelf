@@ -14,6 +14,8 @@ export type AppUser = {
 
 export type OnboardingDraft = {
   step: number; // 0–4 = which question; 5 = brief review; 6 = chapter plan
+  journeyStage: string; // "origin" | "midjourney" | "retrospective" | custom text
+  wantChronicle: boolean; // user opted to chronicle their past
   answers: {
     project_goal: string;
     north_star: string;

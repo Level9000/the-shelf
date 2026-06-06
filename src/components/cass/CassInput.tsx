@@ -44,13 +44,13 @@ export function CassInput({
         }}
         style={{
           width: "100%",
-          background: isDark ? "rgba(255,255,255,0.05)" : "var(--surface-muted, rgba(0,0,0,0.04))",
+          background: "rgba(255,255,255,0.05)",
           border: "1px solid rgba(200,168,107,0.25)",
           borderRadius: "8px",
           padding: "14px 16px",
           fontFamily: "'Literata', Georgia, serif",
           fontSize: "14px",
-          color: isDark ? "#d4cec4" : "var(--ink)",
+          color: "#d4cec4",
           outline: "none",
           resize: "none",
           minHeight: "70px",

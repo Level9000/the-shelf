@@ -24,7 +24,8 @@ export async function completeProjectKickoffAction(input: {
       done: string;
     } | null;
   }>;
-}): Promise<{ projectId: string; chapter1Id: string }> {
+  createChronicleChapter?: boolean;
+}): Promise<{ projectId: string; chapter1Id: string; chronicleChapterId?: string }> {
   const { supabase, user } = await getAuthenticatedUser();
 
   const accumulativeStory = input.northStar
@@ -117,10 +118,29 @@ export async function completeProjectKickoffAction(input: {
     throw new Error(columnsError.message);
   }
 
+  // 5. Optionally create a Chronicle chapter (position 0, before chapter 1)
+  let chronicleChapterId: string | undefined;
+  if (input.createChronicleChapter) {
+    const { data: chronicleBoard, error: chronicleError } = await supabase
+      .from("boards")
+      .insert({
+        project_id: projectId,
+        name: "The Beginning — Chronicle",
+        position: 0,
+        chapter_type: "chronicle",
+      })
+      .select("id")
+      .single();
+
+    if (!chronicleError && chronicleBoard) {
+      chronicleChapterId = String(chronicleBoard.id);
+    }
+  }
+
   revalidatePath("/projects");
   revalidatePath(`/projects/${projectId}`);
 
-  return { projectId, chapter1Id };
+  return { projectId, chapter1Id, chronicleChapterId };
 }
 
 export async function createProjectAction(formData: FormData) {

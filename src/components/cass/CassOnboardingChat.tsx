@@ -17,6 +17,30 @@ import { completeProjectKickoffAction } from "@/lib/actions/project-actions";
 import { saveOnboardingDraftAction, clearOnboardingDraftAction } from "@/lib/actions/profile-actions";
 import { Pencil, Check } from "lucide-react";
 
+// ── Journey stage options ─────────────────────────────────────────────────────
+
+const JOURNEY_OPTIONS = [
+  { id: "origin",       label: "Just getting started — this is day one" },
+  { id: "midjourney",   label: "We've been building for a while — months or years in" },
+  { id: "retrospective",label: "I want to look back and document what's already happened" },
+  { id: "custom",       label: "It's complicated..." },
+] as const;
+
+type JourneyId = typeof JOURNEY_OPTIONS[number]["id"];
+
+function journeyAck(stage: string): string {
+  if (stage === "origin") {
+    return "Perfect — a clean slate. We'll capture every chapter as you build it, right from the start.";
+  }
+  if (stage === "midjourney") {
+    return "Got it. Your story didn't start today, and that's completely fine. Chapter 1 is wherever you decide the telling begins — we can always chronicle what came before.";
+  }
+  if (stage === "retrospective") {
+    return "Love it. We'll set up your project, then give you space to go back and capture the beginning. Nothing gets lost.";
+  }
+  return "Understood. Let's set up your project and you can shape the story from there.";
+}
+
 // ── Interview questions ───────────────────────────────────────────────────────
 
 type AnswerKey = keyof OnboardingDraft["answers"];
@@ -27,6 +51,7 @@ const QUESTIONS: Array<{
   placeholder: string;
   label: string;
   icon: string;
+  quickTaps?: string[];
 }> = [
   {
     field: "project_goal",
@@ -62,6 +87,14 @@ const QUESTIONS: Array<{
     placeholder: "The thing keeping you up at night...",
     label: "Biggest Risk",
     icon: "?",
+    quickTaps: [
+      "Running out of runway",
+      "Finding and keeping customers",
+      "Technical complexity",
+      "Competition moving faster",
+      "Building the right team",
+      "Something else...",
+    ],
   },
 ];
 
@@ -106,7 +139,7 @@ const INTRO_SLIDES = [
   },
 ] as const;
 
-type Phase = "intro" | "interview" | "generating" | "review" | "workplan" | "saving";
+type Phase = "intro" | "journey" | "interview" | "generating" | "review" | "chronicle-offer" | "workplan" | "saving";
 
 // ── Avatar label ──────────────────────────────────────────────────────────────
 
@@ -115,6 +148,148 @@ function AvatarLabel({ name, role }: { name: string; role: string }) {
     <div style={{ textAlign: "center", marginTop: "8px" }}>
       <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "#c8a86b", fontWeight: 600 }}>{name}</div>
       <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "2px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", marginTop: "2px" }}>{role}</div>
+    </div>
+  );
+}
+
+// ── Quick tap input ───────────────────────────────────────────────────────────
+
+function QuickTapInput({
+  options,
+  onSelect,
+  placeholder,
+  freeTextLabel = "Something else...",
+}: {
+  options: string[];
+  onSelect: (value: string) => void;
+  placeholder?: string;
+  freeTextLabel?: string;
+}) {
+  const [showFreeText, setShowFreeText] = useState(false);
+  const [freeText, setFreeText] = useState("");
+
+  // Determine which options are tappable vs the free-text trigger
+  const tappableOptions = options[options.length - 1] === freeTextLabel
+    ? options.slice(0, -1)
+    : options;
+  const hasFreeTextEscape = options[options.length - 1] === freeTextLabel;
+
+  if (showFreeText) {
+    return (
+      <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}>
+        <textarea
+          autoFocus
+          value={freeText}
+          onChange={(e) => setFreeText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (freeText.trim()) onSelect(freeText.trim());
+            }
+          }}
+          placeholder={placeholder ?? "Type your answer..."}
+          style={{
+            width: "100%",
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(200,168,107,0.25)",
+            borderRadius: "8px",
+            padding: "14px 16px",
+            fontFamily: "'Literata', Georgia, serif",
+            fontSize: "14px",
+            color: "#d4cec4",
+            outline: "none",
+            resize: "none",
+            minHeight: "70px",
+            lineHeight: "1.5",
+            caretColor: "#c8a86b",
+            boxSizing: "border-box",
+          }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
+        />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={() => setShowFreeText(false)}
+            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(200,168,107,0.45)", padding: 0 }}
+          >
+            ← back to options
+          </button>
+          <TapeButton
+            variant="primary"
+            size="sm"
+            onClick={() => { if (freeText.trim()) onSelect(freeText.trim()); }}
+            disabled={!freeText.trim()}
+          >
+            Submit
+          </TapeButton>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px" }}>
+      {tappableOptions.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onSelect(opt)}
+          style={{
+            width: "100%",
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(200,168,107,0.18)",
+            borderRadius: "10px",
+            padding: "13px 18px",
+            textAlign: "left",
+            fontFamily: "'Literata', Georgia, serif",
+            fontSize: "14px",
+            color: "#d4cec4",
+            cursor: "pointer",
+            transition: "background 0.15s, border-color 0.15s",
+            lineHeight: 1.4,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(200,168,107,0.08)";
+            e.currentTarget.style.borderColor = "rgba(200,168,107,0.4)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+            e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)";
+          }}
+        >
+          {opt}
+        </button>
+      ))}
+      {hasFreeTextEscape && (
+        <button
+          type="button"
+          onClick={() => setShowFreeText(true)}
+          style={{
+            width: "100%",
+            background: "transparent",
+            border: "1px dashed rgba(200,168,107,0.15)",
+            borderRadius: "10px",
+            padding: "11px 18px",
+            textAlign: "left",
+            fontFamily: "'Literata', Georgia, serif",
+            fontSize: "13px",
+            color: "rgba(200,168,107,0.45)",
+            cursor: "pointer",
+            transition: "border-color 0.15s, color 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)";
+            e.currentTarget.style.color = "rgba(200,168,107,0.7)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "rgba(200,168,107,0.15)";
+            e.currentTarget.style.color = "rgba(200,168,107,0.45)";
+          }}
+        >
+          {freeTextLabel}
+        </button>
+      )}
     </div>
   );
 }
@@ -328,14 +503,14 @@ export function CassOnboardingChat({
 }) {
   const router = useRouter();
 
-  // Determine starting phase
   const getInitialPhase = (): Phase => {
     if (existingDraft) {
       if (existingDraft.step >= 5 && existingDraft.proposed_chapters.length > 0) return "workplan";
       if (existingDraft.step >= 5) return "generating";
-      return "interview";
+      if (existingDraft.journeyStage) return "interview";
+      return "journey";
     }
-    return hasExistingProjects ? "interview" : "intro";
+    return hasExistingProjects ? "journey" : "intro";
   };
 
   const getInitialStep = (): number => {
@@ -345,14 +520,16 @@ export function CassOnboardingChat({
 
   const [phase, setPhase] = useState<Phase>(getInitialPhase);
   const [interviewStep, setInterviewStep] = useState(getInitialStep);
+  const [journeyStage, setJourneyStage] = useState<string>(existingDraft?.journeyStage ?? "");
+  const [journeyAckVisible, setJourneyAckVisible] = useState(false);
   const [answers, setAnswers] = useState<OnboardingDraft["answers"]>(
     existingDraft?.answers ?? { ...EMPTY_ANSWERS }
   );
   const [inputValue, setInputValue] = useState("");
   const [animState, setAnimState] = useState<CassAnimState>("idle");
   const [isResuming] = useState(!!existingDraft);
+  const [wantChronicle, setWantChronicle] = useState(existingDraft?.wantChronicle ?? false);
 
-  // Generated plan
   const [projectName, setProjectName] = useState(existingDraft?.project_name ?? "");
   const [proposedChapters, setProposedChapters] = useState<OnboardingDraft["proposed_chapters"]>(
     existingDraft?.proposed_chapters ?? []
@@ -363,14 +540,18 @@ export function CassOnboardingChat({
   const [isGenerating, setIsGenerating] = useState(false);
 
   const currentQuestion = QUESTIONS[interviewStep];
-  const answeredFields = QUESTIONS.filter((q) => answers[q.field].trim().length > 0);
   const isLastQuestion = interviewStep === QUESTIONS.length - 1;
 
-  // Auto-save draft whenever answers or step changes
+  // Show chronicle offer for non-origin users
+  const shouldOfferChronicle = journeyStage !== "origin" && journeyStage !== "";
+
+  // Auto-save draft
   useEffect(() => {
-    if (phase === "interview" || phase === "generating" || phase === "review") {
+    if (phase === "journey" || phase === "interview" || phase === "generating" || phase === "review") {
       const draft: OnboardingDraft = {
         step: interviewStep,
+        journeyStage,
+        wantChronicle,
         answers,
         project_name: projectName,
         proposed_chapters: proposedChapters,
@@ -378,7 +559,7 @@ export function CassOnboardingChat({
       };
       saveOnboardingDraftAction(draft).catch(console.error);
     }
-  }, [answers, interviewStep, phase, projectName, proposedChapters]);
+  }, [answers, interviewStep, phase, projectName, proposedChapters, journeyStage, wantChronicle]);
 
   // Animate Cass when question changes
   useEffect(() => {
@@ -389,8 +570,42 @@ export function CassOnboardingChat({
     }
   }, [interviewStep, phase]);
 
-  async function handleAnswerSubmit() {
-    const trimmed = inputValue.trim();
+  function handleJourneySelect(id: string, label: string) {
+    const value = id === "custom" ? "" : label;
+    setJourneyStage(id === "custom" ? "custom" : id);
+    setJourneyAckVisible(true);
+    setAnimState("talking");
+
+    // After showing ack, move to interview
+    setTimeout(() => {
+      setJourneyStage(id === "custom" ? "custom" : id);
+      setAnimState("listening");
+    }, 400);
+
+    setTimeout(() => {
+      setJourneyAckVisible(false);
+      setTimeout(() => {
+        setPhase("interview");
+        setAnimState("talking");
+      }, 300);
+    }, 2800);
+  }
+
+  function handleJourneyCustom(value: string) {
+    setJourneyStage(value);
+    setJourneyAckVisible(true);
+    setAnimState("talking");
+    setTimeout(() => {
+      setJourneyAckVisible(false);
+      setTimeout(() => {
+        setPhase("interview");
+        setAnimState("talking");
+      }, 300);
+    }, 2800);
+  }
+
+  async function handleAnswerSubmit(value?: string) {
+    const trimmed = (value ?? inputValue).trim();
     if (!trimmed) return;
 
     const updatedAnswers = { ...answers, [currentQuestion.field]: trimmed };
@@ -398,7 +613,6 @@ export function CassOnboardingChat({
     setInputValue("");
 
     if (isLastQuestion) {
-      // All questions answered — generate the project plan
       setPhase("generating");
       setAnimState("recording");
       await generatePlan(updatedAnswers);
@@ -436,6 +650,14 @@ export function CassOnboardingChat({
     setAnswers((prev) => ({ ...prev, [field]: value }));
   }
 
+  function handleReviewComplete() {
+    if (shouldOfferChronicle) {
+      setPhase("chronicle-offer");
+    } else {
+      setPhase("workplan");
+    }
+  }
+
   function handleProceedToWorkplan() {
     setPhase("workplan");
   }
@@ -446,7 +668,7 @@ export function CassOnboardingChat({
 
     startSaveTransition(async () => {
       try {
-        const { projectId, chapter1Id } = await completeProjectKickoffAction({
+        const { projectId, chapter1Id, chronicleChapterId } = await completeProjectKickoffAction({
           name: projectName || answers.project_goal.slice(0, 80),
           northStar: answers.north_star,
           projectGoal: answers.project_goal,
@@ -460,9 +682,16 @@ export function CassOnboardingChat({
             goal: ch.goal,
             prefill: ch.prefill ?? null,
           })),
+          createChronicleChapter: wantChronicle,
         });
         await clearOnboardingDraftAction();
-        router.push(`/projects/${projectId}/chapters/${chapter1Id}`);
+
+        // If they want to chronicle, send them there first; otherwise chapter 1
+        if (wantChronicle && chronicleChapterId) {
+          router.push(`/projects/${projectId}/chapters/${chronicleChapterId}`);
+        } else {
+          router.push(`/projects/${projectId}/chapters/${chapter1Id}`);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to set up project.");
         setPhase("workplan");
@@ -471,11 +700,13 @@ export function CassOnboardingChat({
   }
 
   const progressPercent =
-    phase === "intro"       ? 5  :
-    phase === "interview"   ? 15 + (interviewStep / QUESTIONS.length) * 40 :
-    phase === "generating"  ? 60 :
-    phase === "review"      ? 70 :
-    phase === "workplan"    ? 85 :
+    phase === "intro"             ? 5  :
+    phase === "journey"           ? 10 :
+    phase === "interview"         ? 15 + (interviewStep / QUESTIONS.length) * 40 :
+    phase === "generating"        ? 60 :
+    phase === "review"            ? 70 :
+    phase === "chronicle-offer"   ? 75 :
+    phase === "workplan"          ? 85 :
     100;
 
   // ── Workplan phase ──────────────────────────────────────────────────────────
@@ -519,6 +750,10 @@ export function CassOnboardingChat({
         @keyframes cass-fade-up {
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes cass-fade-in {
+          from { opacity: 0; }
+          to   { opacity: 1; }
         }
         .onboarding-outer {
           min-height: 100dvh;
@@ -589,7 +824,7 @@ export function CassOnboardingChat({
           >✕</button>
         )}
 
-        {/* Desktop step sidebar — only visible during interview/review/generating */}
+        {/* Desktop step sidebar */}
         {(phase === "interview" || phase === "review" || phase === "generating") && (
           <aside className="onboarding-steps-sidebar">
             <div style={{ marginBottom: "48px" }}>
@@ -599,8 +834,8 @@ export function CassOnboardingChat({
               <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "32px", color: "#d4cec4", fontWeight: 700, lineHeight: 1.2 }}>
                 Project Brief
               </div>
-              <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "rgba(212,206,196,0.35)", marginTop: "8px", lineHeight: 1.5 }}>
-                Five questions. Your story starts here.
+              <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "rgba(212,206,196,0.4)", marginTop: "8px", lineHeight: 1.7 }}>
+                Answer these five questions as honestly as you can — there are no wrong answers. The more you share, the better Cass can capture your story as you build. Get through this once, and everything else takes care of itself.
               </div>
             </div>
 
@@ -620,7 +855,6 @@ export function CassOnboardingChat({
                     border: isCurrent ? "1px solid rgba(200,168,107,0.15)" : "1px solid transparent",
                     transition: "all 0.25s ease",
                   }}>
-                    {/* Status icon */}
                     <div style={{
                       width: "24px",
                       height: "24px",
@@ -638,7 +872,6 @@ export function CassOnboardingChat({
                       {isCurrent && <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#c8a86b" }} />}
                     </div>
 
-                    {/* Label + preview */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
                         fontFamily: "var(--font-cass)",
@@ -671,7 +904,6 @@ export function CassOnboardingChat({
               })}
             </div>
 
-            {/* All done state */}
             {(phase === "review" || phase === "generating") && (
               <div style={{ marginTop: "32px", paddingTop: "24px", borderTop: "1px solid rgba(200,168,107,0.1)" }}>
                 <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "2px", color: "rgba(200,168,107,0.6)", textTransform: "uppercase" }}>
@@ -684,190 +916,262 @@ export function CassOnboardingChat({
 
         <div className="onboarding-content">
 
-        {/* ── Intro ── */}
-        {phase === "intro" && <IntroScreen onComplete={() => setPhase("interview")} />}
+          {/* ── Intro ── */}
+          {phase === "intro" && <IntroScreen onComplete={() => setPhase("journey")} />}
 
-        {/* ── Interview ── */}
-        {phase === "interview" && currentQuestion && (
-          <div style={{ display: "flex", flexDirection: "column", width: "100%", maxWidth: "520px", height: "calc(100dvh - 80px)", overflow: "hidden" }}>
+          {/* ── Journey stage ── */}
+          {phase === "journey" && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "520px", gap: "24px", animation: "cass-fade-in 0.4s ease" }}>
+              <CassRecorder animState={journeyAckVisible ? "talking" : "idle"} size="md" />
 
-            {/* Cass avatar — fixed at top */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: "16px", flexShrink: 0 }}>
-              {/* Progress dots — mobile only */}
-              <div className="onboarding-inline-dots" style={{ gap: "8px", alignItems: "center", marginBottom: "16px" }}>
-                {QUESTIONS.map((q, i) => (
-                  <div key={q.field} style={{
-                    width: i === interviewStep ? "20px" : "6px",
-                    height: "6px",
-                    borderRadius: "3px",
-                    background: i < interviewStep ? "#c8a86b" : i === interviewStep ? "#c8a86b" : "rgba(200,168,107,0.2)",
-                    opacity: i < interviewStep ? 0.5 : 1,
-                    transition: "all 0.3s ease",
-                  }} />
-                ))}
-              </div>
-              <CassRecorder animState={animState} size="md" />
-            </div>
-
-            {/* Scrollable thread */}
-            <div style={{
-              flex: 1,
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0",
-              scrollbarWidth: "none",
-              paddingBottom: "8px",
-            }}>
-              {/* Resume banner */}
-              {isResuming && interviewStep === 0 && (
-                <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "10px", padding: "10px 16px", marginBottom: "16px", textAlign: "center" }}>
-                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(200,168,107,0.8)", margin: 0 }}>
-                    Welcome back — picking up where you left off.
+              {journeyAckVisible ? (
+                <div style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(200,168,107,0.15)",
+                  borderRadius: "14px",
+                  padding: "22px 26px",
+                  animation: "cass-fade-in 0.3s ease",
+                }}>
+                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.65", color: "#d4cec4", margin: 0 }}>
+                    {journeyAck(journeyStage)}
                   </p>
                 </div>
-              )}
-
-              {/* Past Q&A pairs — scrollable history */}
-              {QUESTIONS.slice(0, interviewStep).map((q) => (
-                <div key={q.field} style={{ marginBottom: "24px" }}>
-                  {/* Section label */}
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    marginBottom: "10px",
-                  }}>
-                    <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.1)" }} />
-                    <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "2.5px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                      {q.label}
-                    </div>
-                    <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.1)" }} />
-                  </div>
-                  {/* Cass question */}
-                  <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(200,168,107,0.08)", borderRadius: "12px 12px 12px 3px", padding: "12px 16px", marginBottom: "8px" }}>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.55", color: "rgba(212,206,196,0.5)", margin: 0 }}>
-                      {q.cassLine}
+              ) : (
+                <>
+                  <div style={{ width: "100%", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px", padding: "22px 26px" }}>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.65", color: "#d4cec4", margin: 0 }}>
+                      Before we start — where are you in your journey?
                     </p>
                   </div>
-                  {/* User answer */}
-                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "12px 12px 3px 12px", padding: "12px 16px", maxWidth: "85%" }}>
-                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.55", color: "rgba(212,206,196,0.65)", margin: 0 }}>
-                        {answers[q.field]}
+
+                  <QuickTapInput
+                    options={JOURNEY_OPTIONS.map((o) => o.label)}
+                    freeTextLabel="It's complicated..."
+                    placeholder="Tell me where you're at..."
+                    onSelect={(label) => {
+                      const match = JOURNEY_OPTIONS.find((o) => o.label === label);
+                      if (match && match.id !== "custom") {
+                        handleJourneySelect(match.id, label);
+                      } else {
+                        // "It's complicated" free text path
+                        handleJourneyCustom(label);
+                      }
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── Interview ── */}
+          {phase === "interview" && currentQuestion && (
+            <div style={{ display: "flex", flexDirection: "column", width: "100%", maxWidth: "520px", height: "calc(100dvh - 80px)", overflow: "hidden" }}>
+
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: "16px", flexShrink: 0 }}>
+                <div className="onboarding-inline-dots" style={{ gap: "8px", alignItems: "center", marginBottom: "16px" }}>
+                  {QUESTIONS.map((q, i) => (
+                    <div key={q.field} style={{
+                      width: i === interviewStep ? "20px" : "6px",
+                      height: "6px",
+                      borderRadius: "3px",
+                      background: i < interviewStep ? "#c8a86b" : i === interviewStep ? "#c8a86b" : "rgba(200,168,107,0.2)",
+                      opacity: i < interviewStep ? 0.5 : 1,
+                      transition: "all 0.3s ease",
+                    }} />
+                  ))}
+                </div>
+                <CassRecorder animState={animState} size="md" />
+              </div>
+
+              {/* Scrollable thread */}
+              <div style={{
+                flex: 1,
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0",
+                scrollbarWidth: "none",
+                paddingBottom: "8px",
+              }}>
+                {isResuming && interviewStep === 0 && (
+                  <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "10px", padding: "10px 16px", marginBottom: "16px", textAlign: "center" }}>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(200,168,107,0.8)", margin: 0 }}>
+                      Welcome back — picking up where you left off.
+                    </p>
+                  </div>
+                )}
+
+                {/* Past Q&A pairs */}
+                {QUESTIONS.slice(0, interviewStep).map((q) => (
+                  <div key={q.field} style={{ marginBottom: "24px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                      <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.1)" }} />
+                      <div style={{ fontFamily: "var(--font-cass)", fontSize: "12px", letterSpacing: "2.5px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                        {q.label}
+                      </div>
+                      <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.1)" }} />
+                    </div>
+                    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(200,168,107,0.08)", borderRadius: "12px 12px 12px 3px", padding: "12px 16px", marginBottom: "8px" }}>
+                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.55", color: "rgba(212,206,196,0.5)", margin: 0 }}>
+                        {q.cassLine}
                       </p>
                     </div>
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "12px 12px 3px 12px", padding: "12px 16px", maxWidth: "85%" }}>
+                        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.55", color: "rgba(212,206,196,0.65)", margin: 0 }}>
+                          {answers[q.field]}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
-              {/* Current question */}
-              <div style={{ marginBottom: "8px" }}>
-                {/* Section label for current */}
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "10px",
-                }}>
-                  <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.15)" }} />
-                  <div style={{ fontFamily: "var(--font-cass)", fontSize: "9px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                    {currentQuestion.label}
+                {/* Current question */}
+                <div style={{ marginBottom: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                    <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.15)" }} />
+                    <div style={{ fontFamily: "var(--font-cass)", fontSize: "12px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                      {currentQuestion.label}
+                    </div>
+                    <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.15)" }} />
                   </div>
-                  <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.15)" }} />
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px" }}>
-                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
-                    {currentQuestion.cassLine}
-                  </p>
+                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px", marginBottom: "12px" }}>
+                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
+                      {currentQuestion.cassLine}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Input — pinned to bottom */}
-            <div style={{ flexShrink: 0, paddingTop: "8px" }}>
-              {error && (
-                <p style={{ color: "#ff6b6b", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", textAlign: "center", marginBottom: "8px" }}>
-                  {error}
+              {/* Input — pinned to bottom */}
+              <div style={{ flexShrink: 0, paddingTop: "8px" }}>
+                {error && (
+                  <p style={{ color: "#ff6b6b", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", textAlign: "center", marginBottom: "8px" }}>
+                    {error}
+                  </p>
+                )}
+                {currentQuestion.quickTaps ? (
+                  <QuickTapInput
+                    options={currentQuestion.quickTaps}
+                    freeTextLabel="Something else..."
+                    placeholder={currentQuestion.placeholder}
+                    onSelect={(val) => handleAnswerSubmit(val)}
+                  />
+                ) : (
+                  <CassInput
+                    value={inputValue}
+                    onChange={setInputValue}
+                    onSubmit={handleAnswerSubmit}
+                    placeholder={currentQuestion.placeholder}
+                    autoFocus
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Generating ── */}
+          {phase === "generating" && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", maxWidth: "480px", width: "100%" }}>
+              <CassRecorder animState="recording" size="md" />
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px", padding: "22px 26px", width: "100%", textAlign: "center" }}>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
+                  Rolling on this. Building your project brief and chapter plan...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Brief review ── */}
+          {phase === "review" && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "480px", gap: "20px" }}>
+              <CassRecorder animState="idle" size="md" />
+
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px", width: "100%" }}>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
+                  Here&apos;s what I&apos;ve got. Take a look — tap the pencil to change anything before we map out your chapters.
+                </p>
+              </div>
+
+              {projectName && (
+                <div style={{ width: "100%", textAlign: "center" }}>
+                  <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "3px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", marginBottom: "6px" }}>Project</div>
+                  <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "24px", color: "#d4cec4", fontWeight: 700 }}>{projectName}</div>
+                </div>
+              )}
+
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px" }}>
+                {QUESTIONS.map((q) => (
+                  <BriefCard
+                    key={q.field}
+                    label={q.label}
+                    icon={q.icon}
+                    value={answers[q.field]}
+                    onEdit={(v) => handleEditAnswer(q.field, v)}
+                  />
+                ))}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%" }}>
+                <TapeButton variant="primary" size="md" onClick={handleReviewComplete} className="w-full justify-center">
+                  This looks right → map out my chapters
+                </TapeButton>
+                <TapeButton variant="ghost" size="sm" onClick={() => { setPhase("interview"); setInterviewStep(0); }}>
+                  ← Start over
+                </TapeButton>
+              </div>
+            </div>
+          )}
+
+          {/* ── Chronicle offer ── */}
+          {phase === "chronicle-offer" && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "520px", gap: "24px", animation: "cass-fade-in 0.4s ease" }}>
+              <CassRecorder animState="talking" size="md" />
+
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px", padding: "22px 26px", width: "100%" }}>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.65", color: "#d4cec4", margin: 0 }}>
+                  {journeyStage === "retrospective"
+                    ? "Before we map your chapters, want to start by capturing how the story began? We can create a Chronicle chapter where you document the origin — the early days, the decisions that shaped everything."
+                    : "You've been building for a while — there's a story before this moment worth preserving. Want to create a Chronicle chapter to capture where it all started?"}
+                </p>
+              </div>
+
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <QuickTapInput
+                  options={[
+                    "Yes — let's chronicle the beginning",
+                    "Skip for now, I can do this later",
+                  ]}
+                  freeTextLabel=""
+                  onSelect={(val) => {
+                    const wants = val.startsWith("Yes");
+                    setWantChronicle(wants);
+                    handleProceedToWorkplan();
+                  }}
+                />
+              </div>
+
+              {journeyStage === "midjourney" && (
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(212,206,196,0.35)", textAlign: "center", margin: 0, lineHeight: 1.6 }}>
+                  Chronicle chapters don&apos;t have a task board — they&apos;re purely for capturing your story.
                 </p>
               )}
-              <CassInput
-                value={inputValue}
-                onChange={setInputValue}
-                onSubmit={handleAnswerSubmit}
-                placeholder={currentQuestion.placeholder}
-                autoFocus
-              />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Generating ── */}
-        {phase === "generating" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", maxWidth: "480px", width: "100%" }}>
-            <CassRecorder animState="recording" size="md" />
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px", padding: "22px 26px", width: "100%", textAlign: "center" }}>
-              <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
-                Rolling on this. Building your project brief and chapter plan...
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Brief review ── */}
-        {phase === "review" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "480px", gap: "20px" }}>
-            <CassRecorder animState="idle" size="md" />
-
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px", width: "100%" }}>
-              <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
-                Here&apos;s what I&apos;ve got. Take a look — tap the pencil to change anything before we map out your chapters.
-              </p>
-            </div>
-
-            {/* Project name */}
-            {projectName && (
-              <div style={{ width: "100%", textAlign: "center" }}>
-                <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "3px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", marginBottom: "6px" }}>Project</div>
-                <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "24px", color: "#d4cec4", fontWeight: 700 }}>{projectName}</div>
+          {/* ── Saving ── */}
+          {phase === "saving" && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", maxWidth: "480px", width: "100%" }}>
+              <CassRecorder animState="recording" size="md" />
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px", padding: "22px 26px", width: "100%", textAlign: "center" }}>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", color: "#d4cec4", margin: 0 }}>
+                  Setting up your project. One second.
+                </p>
               </div>
-            )}
-
-            {/* All brief cards — editable */}
-            <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px" }}>
-              {QUESTIONS.map((q) => (
-                <BriefCard
-                  key={q.field}
-                  label={q.label}
-                  icon={q.icon}
-                  value={answers[q.field]}
-                  onEdit={(v) => handleEditAnswer(q.field, v)}
-                />
-              ))}
             </div>
+          )}
 
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%" }}>
-              <TapeButton variant="primary" size="md" onClick={handleProceedToWorkplan} className="w-full justify-center">
-                This looks right → map out my chapters
-              </TapeButton>
-              <TapeButton variant="ghost" size="sm" onClick={() => { setPhase("interview"); setInterviewStep(0); }}>
-                ← Start over
-              </TapeButton>
-            </div>
-          </div>
-        )}
-
-        {/* ── Saving ── */}
-        {phase === "saving" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", maxWidth: "480px", width: "100%" }}>
-            <CassRecorder animState="recording" size="md" />
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px", padding: "22px 26px", width: "100%", textAlign: "center" }}>
-              <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", color: "#d4cec4", margin: 0 }}>
-                Setting up your project. One second.
-              </p>
-            </div>
-          </div>
-        )}
         </div>{/* end onboarding-content */}
       </div>{/* end onboarding-outer */}
     </>
