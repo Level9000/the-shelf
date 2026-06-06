@@ -24,8 +24,8 @@ export async function completeProjectKickoffAction(input: {
       done: string;
     } | null;
   }>;
-  createChronicleChapter?: boolean;
-}): Promise<{ projectId: string; chapter1Id: string; chronicleChapterId?: string }> {
+  createPreludeChapter?: boolean;
+}): Promise<{ projectId: string; chapter1Id: string; preludeChapterId?: string }> {
   const { supabase, user } = await getAuthenticatedUser();
 
   const accumulativeStory = input.northStar
@@ -119,28 +119,28 @@ export async function completeProjectKickoffAction(input: {
   }
 
   // 5. Optionally create a Chronicle chapter (position 0, before chapter 1)
-  let chronicleChapterId: string | undefined;
-  if (input.createChronicleChapter) {
-    const { data: chronicleBoard, error: chronicleError } = await supabase
+  let preludeChapterId: string | undefined;
+  if (input.createPreludeChapter) {
+    const { data: preludeBoard, error: preludeError } = await supabase
       .from("boards")
       .insert({
         project_id: projectId,
-        name: "The Beginning — Chronicle",
+        name: "The Prelude",
         position: 0,
-        chapter_type: "chronicle",
+        chapter_type: "prelude",
       })
       .select("id")
       .single();
 
-    if (!chronicleError && chronicleBoard) {
-      chronicleChapterId = String(chronicleBoard.id);
+    if (!preludeError && preludeBoard) {
+      preludeChapterId = String(preludeBoard.id);
     }
   }
 
   revalidatePath("/projects");
   revalidatePath(`/projects/${projectId}`);
 
-  return { projectId, chapter1Id, chronicleChapterId };
+  return { projectId, chapter1Id, preludeChapterId };
 }
 
 export async function createProjectAction(formData: FormData) {

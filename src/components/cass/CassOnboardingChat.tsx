@@ -528,7 +528,7 @@ export function CassOnboardingChat({
   const [inputValue, setInputValue] = useState("");
   const [animState, setAnimState] = useState<CassAnimState>("idle");
   const [isResuming] = useState(!!existingDraft);
-  const [wantChronicle, setWantChronicle] = useState(existingDraft?.wantChronicle ?? false);
+  const [wantPrelude, setWantPrelude] = useState(existingDraft?.wantPrelude ?? false);
 
   const [projectName, setProjectName] = useState(existingDraft?.project_name ?? "");
   const [proposedChapters, setProposedChapters] = useState<OnboardingDraft["proposed_chapters"]>(
@@ -668,7 +668,7 @@ export function CassOnboardingChat({
 
     startSaveTransition(async () => {
       try {
-        const { projectId, chapter1Id, chronicleChapterId } = await completeProjectKickoffAction({
+        const { projectId, chapter1Id, preludeChapterId } = await completeProjectKickoffAction({
           name: projectName || answers.project_goal.slice(0, 80),
           northStar: answers.north_star,
           projectGoal: answers.project_goal,
@@ -682,13 +682,13 @@ export function CassOnboardingChat({
             goal: ch.goal,
             prefill: ch.prefill ?? null,
           })),
-          createChronicleChapter: wantChronicle,
+          createPreludeChapter: wantPrelude,
         });
         await clearOnboardingDraftAction();
 
         // If they want to chronicle, send them there first; otherwise chapter 1
-        if (wantChronicle && chronicleChapterId) {
-          router.push(`/projects/${projectId}/chapters/${chronicleChapterId}`);
+        if (wantPrelude && preludeChapterId) {
+          router.push(`/projects/${projectId}/chapters/${preludeChapterId}`);
         } else {
           router.push(`/projects/${projectId}/chapters/${chapter1Id}`);
         }
@@ -1132,21 +1132,21 @@ export function CassOnboardingChat({
               <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px", padding: "22px 26px", width: "100%" }}>
                 <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.65", color: "#d4cec4", margin: 0 }}>
                   {journeyStage === "retrospective"
-                    ? "Before we map your chapters, want to start by capturing how the story began? We can create a Chronicle chapter where you document the origin — the early days, the decisions that shaped everything."
-                    : "You've been building for a while — there's a story before this moment worth preserving. Want to create a Chronicle chapter to capture where it all started?"}
+                    ? "Before we map your chapters, want to start by capturing how the story began? We'll create a Prelude — a special chapter that sits before everything else, where you document the origin, the early days, the decisions that shaped everything."
+                    : "You've been building for a while — there's a story before this moment worth preserving. Want to add a Prelude? It sits before your chapters and gives you a place to capture where it all started."}
                 </p>
               </div>
 
               <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}>
                 <QuickTapInput
                   options={[
-                    "Yes — let's chronicle the beginning",
+                    "Yes — add a Prelude to my project",
                     "Skip for now, I can do this later",
                   ]}
                   freeTextLabel=""
                   onSelect={(val) => {
                     const wants = val.startsWith("Yes");
-                    setWantChronicle(wants);
+                    setWantPrelude(wants);
                     handleProceedToWorkplan();
                   }}
                 />
@@ -1154,7 +1154,7 @@ export function CassOnboardingChat({
 
               {journeyStage === "midjourney" && (
                 <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(212,206,196,0.35)", textAlign: "center", margin: 0, lineHeight: 1.6 }}>
-                  Chronicle chapters don&apos;t have a task board — they&apos;re purely for capturing your story.
+                  The Prelude doesn&apos;t have a task board — it&apos;s purely for capturing your story.
                 </p>
               )}
             </div>
