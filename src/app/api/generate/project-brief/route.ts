@@ -13,24 +13,16 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as {
-    project_goal?: string;
-    north_star?: string;
-    project_audience?: string;
-    project_success?: string;
-    project_biggest_risk?: string;
+    raw_description?: string;
   };
 
-  if (!body.project_goal) {
-    return NextResponse.json({ error: "project_goal is required." }, { status: 400 });
+  if (!body.raw_description?.trim()) {
+    return NextResponse.json({ error: "raw_description is required." }, { status: 400 });
   }
 
   try {
     const result = await generateProjectPlanFromBrief({
-      project_goal: body.project_goal ?? "",
-      north_star: body.north_star ?? "",
-      project_audience: body.project_audience ?? "",
-      project_success: body.project_success ?? "",
-      project_biggest_risk: body.project_biggest_risk ?? "",
+      raw_description: body.raw_description,
     });
     return NextResponse.json(result);
   } catch (error) {

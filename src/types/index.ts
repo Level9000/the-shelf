@@ -13,9 +13,10 @@ export type AppUser = {
 };
 
 export type OnboardingDraft = {
-  step: number; // 0–4 = which question; 5 = brief review; 6 = chapter plan
+  step: number;
   journeyStage: string; // "origin" | "midjourney" | "retrospective" | custom text
   wantPrelude: boolean; // user opted to add a Prelude chapter
+  raw_description: string; // single free-text input from user
   answers: {
     project_goal: string;
     north_star: string;

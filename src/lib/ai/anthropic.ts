@@ -972,13 +972,14 @@ export async function runCassOnboardingDialogue(input: {
 }
 
 export async function generateProjectPlanFromBrief(input: {
+  raw_description: string;
+}): Promise<{
+  project_name: string;
   project_goal: string;
   north_star: string;
   project_audience: string;
   project_success: string;
   project_biggest_risk: string;
-}): Promise<{
-  project_name: string;
   proposed_chapters: Array<{
     chapter_number: number;
     title: string;
@@ -989,17 +990,20 @@ export async function generateProjectPlanFromBrief(input: {
   const apiKey = requireAnthropicKey();
 
   const prompt = [
-    "You are a project naming and chapter planning assistant.",
-    "Given this founder's project brief, generate:",
-    "1. A short, evocative project name (2-4 words max, no generic words like 'Project' or 'App')",
-    "2. A focused chapter plan of 2-4 chapters that maps the work ahead",
+    "You are a founder story assistant helping set up a project brief.",
+    "Based on this free-form description from a founder, infer and generate a complete project brief.",
     "",
-    "PROJECT BRIEF:",
-    `What they're building: ${input.project_goal}`,
-    `North star conviction: ${input.north_star}`,
-    `Who it's for: ${input.project_audience}`,
-    `What success looks like: ${input.project_success}`,
-    `Biggest risk: ${input.project_biggest_risk}`,
+    "FOUNDER'S DESCRIPTION:",
+    input.raw_description,
+    "",
+    "GENERATE:",
+    "1. project_name — short, evocative (2-4 words, no generic words like 'Project' or 'App')",
+    "2. project_goal — what they're building, in their own words (1-2 sentences)",
+    "3. north_star — the core conviction or belief driving this (1 sentence)",
+    "4. project_audience — who this is for and what it changes for them (1 sentence)",
+    "5. project_success — what winning looks like, something specific and observable (1 sentence)",
+    "6. project_biggest_risk — the biggest unknown or risk they're carrying (1 sentence)",
+    "7. proposed_chapters — 2-4 focused chapters that map the work ahead",
     "",
     "CHAPTER GUIDELINES:",
     "- Each chapter is 2-6 weeks of focused work toward a specific bet",
@@ -1014,6 +1018,11 @@ export async function generateProjectPlanFromBrief(input: {
     "Return JSON only:",
     `{
   "project_name": "string",
+  "project_goal": "string",
+  "north_star": "string",
+  "project_audience": "string",
+  "project_success": "string",
+  "project_biggest_risk": "string",
   "proposed_chapters": [
     {
       "chapter_number": 1,
@@ -1050,6 +1059,11 @@ export async function generateProjectPlanFromBrief(input: {
   const rawText = payload.content?.find((b) => b.type === "text")?.text ?? "";
   const parsed = safeJsonParse(extractJsonObject(rawText)) as {
     project_name?: string;
+    project_goal?: string;
+    north_star?: string;
+    project_audience?: string;
+    project_success?: string;
+    project_biggest_risk?: string;
     proposed_chapters?: Array<{
       chapter_number: number;
       title: string;
@@ -1060,6 +1074,11 @@ export async function generateProjectPlanFromBrief(input: {
 
   return {
     project_name: parsed?.project_name?.trim() || "Untitled Project",
+    project_goal: parsed?.project_goal?.trim() || "",
+    north_star: parsed?.north_star?.trim() || "",
+    project_audience: parsed?.project_audience?.trim() || "",
+    project_success: parsed?.project_success?.trim() || "",
+    project_biggest_risk: parsed?.project_biggest_risk?.trim() || "",
     proposed_chapters: (parsed?.proposed_chapters ?? []).map((ch, i) => ({
       chapter_number: ch.chapter_number ?? i + 1,
       title: ch.title ?? `Chapter ${i + 1}`,

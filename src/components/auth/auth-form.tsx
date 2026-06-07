@@ -66,9 +66,44 @@ export function AuthForm({
         padding: "48px 40px 44px",
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
+        alignItems: "stretch",
         gap: "28px",
       }}>
+
+        {/* Headline — tape label bleeds 10% past each side, centered */}
+        <div style={{
+          width: "calc(100% + 40px)",
+          marginLeft: "-20px",
+          background: "#FFE566",
+          clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
+          padding: "12px 24px 14px",
+          boxShadow: "2px 2px 10px rgba(0,0,0,0.12)",
+          textAlign: "center",
+        }}>
+          <span style={{
+            fontFamily: '"Erik", "Courier New", monospace',
+            fontSize: "28px",
+            fontWeight: 700,
+            color: "#000",
+            letterSpacing: "0.3px",
+            whiteSpace: "nowrap",
+          }}>
+            Founder&apos;s stories live here.
+          </span>
+        </div>
+
+        {/* Welcome line */}
+        <h1 style={{
+          fontFamily: "'Literata', Georgia, serif",
+          fontSize: "36px",
+          fontWeight: 700,
+          color: "#000",
+          margin: 0,
+          textAlign: "left",
+          lineHeight: 1.1,
+        }}>
+          This is
+        </h1>
 
         {/* Logo */}
         <Image
@@ -76,32 +111,21 @@ export function AuthForm({
           alt="Authored By"
           width={300}
           height={225}
-          style={{ width: "100%", maxWidth: "200px", height: "auto" }}
+          style={{ width: "100%", height: "auto" }}
           priority
         />
 
-        {/* Headline + tagline */}
-        <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: "8px" }}>
-          <h1 style={{
-            fontFamily: "'Literata', Georgia, serif",
-            fontSize: "22px",
-            fontWeight: 700,
-            color: "rgba(0,0,0,0.8)",
-            margin: 0,
-            lineHeight: 1.25,
-          }}>
-            Founder's stories<br />live here.
-          </h1>
-          <p style={{
-            fontFamily: "'Literata', Georgia, serif",
-            fontSize: "14px",
-            lineHeight: 1.65,
-            color: "rgba(0,0,0,0.42)",
-            margin: 0,
-          }}>
-            Capturing every decision, pivot, and moment that matters while you build.
-          </p>
-        </div>
+        {/* Tagline */}
+        <p style={{
+          fontFamily: "'Literata', Georgia, serif",
+          fontSize: "14px",
+          lineHeight: 1.65,
+          color: "rgba(0,0,0,0.42)",
+          margin: 0,
+          textAlign: "center",
+        }}>
+          An app that captures every decision, pivot, and moment that matters while you're building.
+        </p>
 
         {/* Divider */}
         <div style={{ width: "100%", height: "1px", background: "rgba(0,0,0,0.07)" }} />

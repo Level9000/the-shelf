@@ -41,61 +41,16 @@ function journeyAck(stage: string): string {
   return "Understood. Let's set up your project and you can shape the story from there.";
 }
 
-// ── Interview questions ───────────────────────────────────────────────────────
+// ── Answer fields for review display ─────────────────────────────────────────
 
 type AnswerKey = keyof OnboardingDraft["answers"];
 
-const QUESTIONS: Array<{
-  field: AnswerKey;
-  cassLine: string;
-  placeholder: string;
-  label: string;
-  icon: string;
-  quickTaps?: string[];
-}> = [
-  {
-    field: "project_goal",
-    cassLine: "Alright, tape's rolling. What are you building?",
-    placeholder: "Tell me anything. A sentence is fine.",
-    label: "The Project",
-    icon: "◉",
-  },
-  {
-    field: "north_star",
-    cassLine: "Good. Now the real question — what's the conviction behind this? The one thing you believe that most people don't yet?",
-    placeholder: "The belief driving the work...",
-    label: "North Star",
-    icon: "★",
-  },
-  {
-    field: "project_audience",
-    cassLine: "Who is this for, and what does it change for them?",
-    placeholder: "The people you're building for...",
-    label: "Who It's For",
-    icon: "◎",
-  },
-  {
-    field: "project_success",
-    cassLine: "What does winning look like — something specific you could point to?",
-    placeholder: "A clear, observable outcome...",
-    label: "What Success Looks Like",
-    icon: "✓",
-  },
-  {
-    field: "project_biggest_risk",
-    cassLine: "Last one. What's the biggest unknown you're carrying into this?",
-    placeholder: "The thing keeping you up at night...",
-    label: "Biggest Risk",
-    icon: "?",
-    quickTaps: [
-      "Running out of runway",
-      "Finding and keeping customers",
-      "Technical complexity",
-      "Competition moving faster",
-      "Building the right team",
-      "Something else...",
-    ],
-  },
+const BRIEF_CARDS: Array<{ field: AnswerKey; label: string; icon: string }> = [
+  { field: "project_goal",         label: "The Project",            icon: "◉" },
+  { field: "north_star",           label: "North Star",             icon: "★" },
+  { field: "project_audience",     label: "Who It's For",           icon: "◎" },
+  { field: "project_success",      label: "What Success Looks Like", icon: "✓" },
+  { field: "project_biggest_risk", label: "Biggest Risk",           icon: "?" },
 ];
 
 const EMPTY_ANSWERS: OnboardingDraft["answers"] = {
@@ -294,150 +249,6 @@ function QuickTapInput({
   );
 }
 
-// ── Mobile step scroller ──────────────────────────────────────────────────────
-
-function MobileStepScroller({
-  questions,
-  currentStep,
-  answers,
-}: {
-  questions: typeof QUESTIONS;
-  currentStep: number;
-  answers: Record<string, string>;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const activeRef = useRef<HTMLDivElement>(null);
-
-  // Scroll active step into center whenever step changes
-  useEffect(() => {
-    if (activeRef.current && scrollRef.current) {
-      const container = scrollRef.current;
-      const item = activeRef.current;
-      const offset = item.offsetLeft - container.offsetWidth / 2 + item.offsetWidth / 2;
-      container.scrollTo({ left: offset, behavior: "smooth" });
-    }
-  }, [currentStep]);
-
-  return (
-    <div
-      className="mobile-step-scroller"
-      ref={scrollRef}
-      style={{
-        width: "100%",
-        overflowX: "auto",
-        scrollbarWidth: "none",
-        marginBottom: "16px",
-        paddingBottom: "4px",
-      }}
-    >
-      <div style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "0",
-        padding: "0 16px",
-        minWidth: "max-content",
-      }}>
-        {questions.map((q, i) => {
-          const isComplete = answers[q.field]?.trim().length > 0;
-          const isCurrent = i === currentStep;
-          const isPast = i < currentStep;
-
-          return (
-            <div
-              key={q.field}
-              ref={isCurrent ? activeRef : undefined}
-              style={{ display: "flex", alignItems: "flex-start" }}
-            >
-              {/* Step item */}
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 12px",
-                borderRadius: "10px",
-                background: isCurrent ? "rgba(200,168,107,0.09)" : "transparent",
-                border: isCurrent ? "1px solid rgba(200,168,107,0.2)" : "1px solid transparent",
-                transition: "all 0.25s ease",
-                minWidth: "80px",
-              }}>
-                {/* Circle */}
-                <div style={{
-                  width: "26px",
-                  height: "26px",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  background: isComplete ? "#c8a86b" : "transparent",
-                  border: isComplete ? "none" : isCurrent ? "2px solid #c8a86b" : "2px solid rgba(200,168,107,0.2)",
-                  transition: "all 0.3s ease",
-                  animation: isCurrent ? "step-pop 0.3s ease" : "none",
-                }}>
-                  {isComplete
-                    ? <Check size={13} color="#1a0e00" strokeWidth={3} />
-                    : isCurrent
-                      ? <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#c8a86b" }} />
-                      : null
-                  }
-                </div>
-
-                {/* Label */}
-                <div style={{
-                  fontFamily: "var(--font-cass)",
-                  fontSize: "9px",
-                  letterSpacing: "1.5px",
-                  textTransform: "uppercase",
-                  textAlign: "center",
-                  whiteSpace: "nowrap",
-                  color: isComplete
-                    ? "rgba(200,168,107,0.7)"
-                    : isCurrent
-                      ? "#c8a86b"
-                      : "rgba(200,168,107,0.25)",
-                  transition: "color 0.2s ease",
-                }}>
-                  {q.label}
-                </div>
-
-                {/* Answer preview for completed steps */}
-                {isComplete && (
-                  <div style={{
-                    fontFamily: "'Literata', Georgia, serif",
-                    fontSize: "10px",
-                    color: "rgba(212,206,196,0.45)",
-                    lineHeight: 1.4,
-                    textAlign: "center",
-                    maxWidth: "80px",
-                    overflow: "hidden",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical" as const,
-                  }}>
-                    {answers[q.field]}
-                  </div>
-                )}
-              </div>
-
-              {/* Connector line between steps */}
-              {i < questions.length - 1 && (
-                <div style={{
-                  width: "20px",
-                  height: "2px",
-                  background: isPast ? "rgba(200,168,107,0.4)" : "rgba(200,168,107,0.12)",
-                  marginTop: "20px",
-                  flexShrink: 0,
-                  transition: "background 0.3s ease",
-                }} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // ── Intro screen ──────────────────────────────────────────────────────────────
 
@@ -650,29 +461,22 @@ export function CassOnboardingChat({
 
   const getInitialPhase = (): Phase => {
     if (existingDraft) {
-      if (existingDraft.step >= 5 && existingDraft.proposed_chapters.length > 0) return "workplan";
-      if (existingDraft.step >= 5) return "generating";
+      if (existingDraft.proposed_chapters.length > 0) return "workplan";
+      if (existingDraft.step >= 1) return "generating";
       if (existingDraft.journeyStage) return "interview";
       return "journey";
     }
     return hasExistingProjects ? "journey" : "intro";
   };
 
-  const getInitialStep = (): number => {
-    if (existingDraft) return Math.min(existingDraft.step, QUESTIONS.length - 1);
-    return 0;
-  };
-
   const [phase, setPhase] = useState<Phase>(getInitialPhase);
-  const [interviewStep, setInterviewStep] = useState(getInitialStep);
   const [journeyStage, setJourneyStage] = useState<string>(existingDraft?.journeyStage ?? "");
   const [journeyAckVisible, setJourneyAckVisible] = useState(false);
   const [answers, setAnswers] = useState<OnboardingDraft["answers"]>(
     existingDraft?.answers ?? { ...EMPTY_ANSWERS }
   );
-  const [inputValue, setInputValue] = useState("");
+  const [rawDescription, setRawDescription] = useState(existingDraft?.raw_description ?? "");
   const [animState, setAnimState] = useState<CassAnimState>("idle");
-  const [isResuming] = useState(!!existingDraft);
   const [wantPrelude, setWantPrelude] = useState(existingDraft?.wantPrelude ?? false);
 
   const [projectName, setProjectName] = useState(existingDraft?.project_name ?? "");
@@ -684,9 +488,6 @@ export function CassOnboardingChat({
   const [isSaving, startSaveTransition] = useTransition();
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const currentQuestion = QUESTIONS[interviewStep];
-  const isLastQuestion = interviewStep === QUESTIONS.length - 1;
-
   // Show chronicle offer for non-origin users
   const shouldOfferChronicle = journeyStage !== "origin" && journeyStage !== "";
 
@@ -694,9 +495,10 @@ export function CassOnboardingChat({
   useEffect(() => {
     if (phase === "journey" || phase === "interview" || phase === "generating" || phase === "review") {
       const draft: OnboardingDraft = {
-        step: interviewStep,
+        step: phase === "interview" ? 0 : phase === "generating" ? 1 : 2,
         journeyStage,
         wantPrelude,
+        raw_description: rawDescription,
         answers,
         project_name: projectName,
         proposed_chapters: proposedChapters,
@@ -704,16 +506,16 @@ export function CassOnboardingChat({
       };
       saveOnboardingDraftAction(draft).catch(console.error);
     }
-  }, [answers, interviewStep, phase, projectName, proposedChapters, journeyStage, wantPrelude]);
+  }, [answers, rawDescription, phase, projectName, proposedChapters, journeyStage, wantPrelude]);
 
-  // Animate Cass when question changes
+  // Animate Cass when entering interview phase
   useEffect(() => {
     if (phase === "interview") {
       setAnimState("talking");
       const t = setTimeout(() => setAnimState("listening"), 1800);
       return () => clearTimeout(t);
     }
-  }, [interviewStep, phase]);
+  }, [phase]);
 
   function handleJourneySelect(id: string, label: string) {
     const value = id === "custom" ? "" : label;
@@ -749,55 +551,48 @@ export function CassOnboardingChat({
     }, 2800);
   }
 
-  async function handleAnswerSubmit(value?: string) {
-    const trimmed = (value ?? inputValue).trim();
+  async function handleDescriptionSubmit() {
+    const trimmed = rawDescription.trim();
     if (!trimmed) return;
-
-    const updatedAnswers = { ...answers, [currentQuestion.field]: trimmed };
-    setAnswers(updatedAnswers);
-    setInputValue("");
-
-    if (isLastQuestion) {
-      setPhase("generating");
-      setAnimState("recording");
-      await generatePlan(updatedAnswers);
-    } else {
-      setInterviewStep((s) => s + 1);
-    }
+    setPhase("generating");
+    setAnimState("recording");
+    await generatePlan(trimmed);
   }
 
-  function handleSkip() {
-    const updatedAnswers = { ...answers, [currentQuestion.field]: "" };
-    setAnswers(updatedAnswers);
-    setInputValue("");
-    if (isLastQuestion) {
-      setPhase("generating");
-      setAnimState("recording");
-      generatePlan(updatedAnswers);
-    } else {
-      setInterviewStep((s) => s + 1);
-    }
-  }
-
-  async function generatePlan(finalAnswers: OnboardingDraft["answers"]) {
+  async function generatePlan(description: string) {
     setIsGenerating(true);
     setError(null);
     try {
       const res = await fetch("/api/generate/project-brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(finalAnswers),
+        body: JSON.stringify({ raw_description: description }),
       });
-      const data = await res.json() as { project_name?: string; proposed_chapters?: OnboardingDraft["proposed_chapters"]; error?: string };
+      const data = await res.json() as {
+        project_name?: string;
+        project_goal?: string;
+        north_star?: string;
+        project_audience?: string;
+        project_success?: string;
+        project_biggest_risk?: string;
+        proposed_chapters?: OnboardingDraft["proposed_chapters"];
+        error?: string;
+      };
       if (!res.ok) throw new Error(data.error ?? "Generation failed.");
       setProjectName(data.project_name ?? "");
+      setAnswers({
+        project_goal:         data.project_goal ?? "",
+        north_star:           data.north_star ?? "",
+        project_audience:     data.project_audience ?? "",
+        project_success:      data.project_success ?? "",
+        project_biggest_risk: data.project_biggest_risk ?? "",
+      });
       setProposedChapters(data.proposed_chapters ?? []);
       setPhase("review");
       setAnimState("idle");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
       setPhase("interview");
-      setInterviewStep(QUESTIONS.length - 1);
       setAnimState("listening");
     } finally {
       setIsGenerating(false);
@@ -827,7 +622,7 @@ export function CassOnboardingChat({
     startSaveTransition(async () => {
       try {
         const { projectId, chapter1Id, preludeChapterId } = await completeProjectKickoffAction({
-          name: projectName || answers.project_goal.slice(0, 80),
+          name: projectName || answers.project_goal.slice(0, 80) || "My Project",
           northStar: answers.north_star,
           projectGoal: answers.project_goal,
           projectAudience: answers.project_audience,
@@ -860,8 +655,8 @@ export function CassOnboardingChat({
   const progressPercent =
     phase === "intro"             ? 5  :
     phase === "journey"           ? 10 :
-    phase === "interview"         ? 15 + (interviewStep / QUESTIONS.length) * 40 :
-    phase === "generating"        ? 60 :
+    phase === "interview"         ? 30 :
+    phase === "generating"        ? 55 :
     phase === "review"            ? 70 :
     phase === "chronicle-offer"   ? 75 :
     phase === "workplan"          ? 85 :
@@ -889,7 +684,7 @@ export function CassOnboardingChat({
           </div>
           {error && <p style={{ color: "#ff3b30", fontFamily: "var(--font-cass)", fontSize: "13px", textAlign: "center", marginBottom: "16px" }}>{error}</p>}
           <WorkplanProposal
-            projectName={projectName || answers.project_goal.slice(0, 80)}
+            projectName={projectName || answers.project_goal.slice(0, 80) || "Your project"}
             northStar={answers.north_star}
             initialChapters={initialChapters}
             isSaving={isSaving}
@@ -926,56 +721,12 @@ export function CassOnboardingChat({
           color: #c8c8c8;
           position: relative;
         }
-        .onboarding-steps-sidebar {
-          display: none;
-        }
-        .onboarding-inline-dots {
-          display: flex;
-        }
-        .mobile-step-scroller {
-          display: flex;
-        }
-        @keyframes step-pop {
-          from { transform: scale(0.8); opacity: 0; }
-          to   { transform: scale(1);   opacity: 1; }
-        }
         .onboarding-content {
           width: 100%;
-          max-width: 480px;
+          max-width: 520px;
           display: flex;
           flex-direction: column;
           align-items: center;
-        }
-        @media (min-width: 900px) {
-          .onboarding-inline-dots {
-            display: none;
-          }
-          .mobile-step-scroller {
-            display: none;
-          }
-          .onboarding-outer {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            align-items: stretch;
-            padding: 0;
-            justify-content: unset;
-            flex-direction: unset;
-          }
-          .onboarding-steps-sidebar {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 80px 64px;
-            border-right: 1px solid rgba(200,168,107,0.08);
-          }
-          .onboarding-content {
-            max-width: unset;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 80px 64px;
-          }
         }
       `}</style>
 
@@ -990,96 +741,6 @@ export function CassOnboardingChat({
             onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; }}
           >✕</button>
-        )}
-
-        {/* Desktop step sidebar */}
-        {(phase === "interview" || phase === "review" || phase === "generating") && (
-          <aside className="onboarding-steps-sidebar">
-            <div style={{ marginBottom: "48px" }}>
-              <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "4px", color: "rgba(200,168,107,0.4)", textTransform: "uppercase", marginBottom: "10px" }}>
-                Authored By
-              </div>
-              <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "32px", color: "#d4cec4", fontWeight: 700, lineHeight: 1.2 }}>
-                Project Brief
-              </div>
-              <div style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "rgba(212,206,196,0.4)", marginTop: "8px", lineHeight: 1.7 }}>
-                Answer these five questions as honestly as you can — there are no wrong answers. The more you share, the better Cass can capture your story as you build. Get through this once, and everything else takes care of itself.
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              {QUESTIONS.map((q, i) => {
-                const isComplete = answers[q.field].trim().length > 0;
-                const isCurrent = phase === "interview" && i === interviewStep;
-
-                return (
-                  <div key={q.field} style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "16px",
-                    padding: "14px 16px",
-                    borderRadius: "12px",
-                    background: isCurrent ? "rgba(200,168,107,0.07)" : "transparent",
-                    border: isCurrent ? "1px solid rgba(200,168,107,0.15)" : "1px solid transparent",
-                    transition: "all 0.25s ease",
-                  }}>
-                    <div style={{
-                      width: "24px",
-                      height: "24px",
-                      borderRadius: "50%",
-                      flexShrink: 0,
-                      marginTop: "2px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: isComplete ? "#c8a86b" : "transparent",
-                      border: isComplete ? "none" : isCurrent ? "2px solid #c8a86b" : "2px solid rgba(200,168,107,0.2)",
-                      transition: "all 0.3s ease",
-                    }}>
-                      {isComplete && <Check size={13} color="#1a0e00" strokeWidth={3} />}
-                      {isCurrent && <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#c8a86b" }} />}
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontFamily: "var(--font-cass)",
-                        fontSize: "11px",
-                        letterSpacing: "2px",
-                        textTransform: "uppercase",
-                        color: isComplete ? "rgba(200,168,107,0.8)" : isCurrent ? "#c8a86b" : "rgba(200,168,107,0.25)",
-                        transition: "color 0.2s ease",
-                        marginBottom: isComplete ? "6px" : 0,
-                      }}>
-                        {q.label}
-                      </div>
-                      {isComplete && (
-                        <div style={{
-                          fontFamily: "'Literata', Georgia, serif",
-                          fontSize: "14px",
-                          color: "rgba(212,206,196,0.6)",
-                          lineHeight: 1.5,
-                          overflow: "hidden",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: "vertical" as const,
-                        }}>
-                          {answers[q.field]}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {(phase === "review" || phase === "generating") && (
-              <div style={{ marginTop: "32px", paddingTop: "24px", borderTop: "1px solid rgba(200,168,107,0.1)" }}>
-                <div style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "2px", color: "rgba(200,168,107,0.6)", textTransform: "uppercase" }}>
-                  {phase === "generating" ? "◉ Generating plan..." : "◉ Brief complete"}
-                </div>
-              </div>
-            )}
-          </aside>
         )}
 
         <div className="onboarding-content">
@@ -1133,123 +794,65 @@ export function CassOnboardingChat({
           )}
 
           {/* ── Interview ── */}
-          {phase === "interview" && currentQuestion && (
-            <div style={{ display: "flex", flexDirection: "column", width: "100%", maxWidth: "520px", height: "calc(100dvh - 80px)", overflow: "hidden" }}>
+          {phase === "interview" && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "520px", gap: "20px", animation: "cass-fade-in 0.4s ease" }}>
+              <CassRecorder animState={animState} size="md" />
 
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: "16px", flexShrink: 0 }}>
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px", width: "100%" }}>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
+                  Tape&apos;s rolling. Tell me about what you&apos;re building — what it is, who it&apos;s for, what you believe about it. Just talk. A few sentences is fine.
+                </p>
+              </div>
 
-                {/* Mobile horizontal step scroller */}
-                <MobileStepScroller
-                  questions={QUESTIONS}
-                  currentStep={interviewStep}
-                  answers={answers}
+              {error && (
+                <p style={{ color: "#ff6b6b", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", textAlign: "center", margin: 0 }}>
+                  {error}
+                </p>
+              )}
+
+              <div style={{ width: "100%" }}>
+                <textarea
+                  autoFocus
+                  value={rawDescription}
+                  onChange={(e) => setRawDescription(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      if (rawDescription.trim()) handleDescriptionSubmit();
+                    }
+                  }}
+                  placeholder="We're building a tool that helps founders capture their story as they build. Most founders forget the decisions that shaped everything — we believe that story is worth preserving..."
+                  style={{
+                    width: "100%",
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(200,168,107,0.25)",
+                    borderRadius: "12px",
+                    padding: "16px 18px",
+                    fontFamily: "'Literata', Georgia, serif",
+                    fontSize: "15px",
+                    color: "#d4cec4",
+                    outline: "none",
+                    resize: "none",
+                    minHeight: "140px",
+                    lineHeight: "1.6",
+                    caretColor: "#c8a86b",
+                    boxSizing: "border-box",
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
                 />
-
-                <CassRecorder animState={animState} size="md" />
-              </div>
-
-              {/* Scrollable thread */}
-              <div style={{
-                flex: 1,
-                overflowY: "auto",
-                display: "flex",
-                flexDirection: "column",
-                gap: "0",
-                scrollbarWidth: "none",
-                paddingBottom: "8px",
-              }}>
-                {isResuming && interviewStep === 0 && (
-                  <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "10px", padding: "10px 16px", marginBottom: "16px", textAlign: "center" }}>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(200,168,107,0.8)", margin: 0 }}>
-                      Welcome back — picking up where you left off.
-                    </p>
-                  </div>
-                )}
-
-                {/* Past Q&A pairs */}
-                {QUESTIONS.slice(0, interviewStep).map((q) => (
-                  <div key={q.field} style={{ marginBottom: "24px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                      <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.1)" }} />
-                      <div style={{ fontFamily: "var(--font-cass)", fontSize: "12px", letterSpacing: "2.5px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                        {q.label}
-                      </div>
-                      <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.1)" }} />
-                    </div>
-                    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(200,168,107,0.08)", borderRadius: "12px 12px 12px 3px", padding: "12px 16px", marginBottom: "8px" }}>
-                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.55", color: "rgba(212,206,196,0.5)", margin: 0 }}>
-                        {q.cassLine}
-                      </p>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                      <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "12px 12px 3px 12px", padding: "12px 16px", maxWidth: "85%" }}>
-                        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.55", color: "rgba(212,206,196,0.65)", margin: 0 }}>
-                          {answers[q.field]}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Current question */}
-                <div style={{ marginBottom: "8px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                    <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.15)" }} />
-                    <div style={{ fontFamily: "var(--font-cass)", fontSize: "12px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                      {currentQuestion.label}
-                    </div>
-                    <div style={{ flex: 1, height: "1px", background: "rgba(200,168,107,0.15)" }} />
-                  </div>
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px", marginBottom: "12px" }}>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
-                      {currentQuestion.cassLine}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Input — pinned to bottom */}
-              <div style={{ flexShrink: 0, paddingTop: "8px" }}>
-                {error && (
-                  <p style={{ color: "#ff6b6b", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", textAlign: "center", marginBottom: "8px" }}>
-                    {error}
-                  </p>
-                )}
-                {currentQuestion.quickTaps ? (
-                  <QuickTapInput
-                    options={currentQuestion.quickTaps}
-                    freeTextLabel="Something else..."
-                    placeholder={currentQuestion.placeholder}
-                    onSelect={(val) => handleAnswerSubmit(val)}
-                  />
-                ) : (
-                  <CassInput
-                    value={inputValue}
-                    onChange={setInputValue}
-                    onSubmit={handleAnswerSubmit}
-                    placeholder={currentQuestion.placeholder}
-                    autoFocus
-                  />
-                )}
-                <div style={{ textAlign: "center", marginTop: "8px" }}>
-                  <button
-                    type="button"
-                    onClick={handleSkip}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontFamily: "'Literata', Georgia, serif",
-                      fontSize: "13px",
-                      color: "rgba(200,168,107,0.4)",
-                      padding: "4px 8px",
-                      transition: "color 0.15s",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(200,168,107,0.7)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(200,168,107,0.4)"; }}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
+                  <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.3)", letterSpacing: "0.5px" }}>
+                    ⌘↵ to submit
+                  </span>
+                  <TapeButton
+                    variant="primary"
+                    size="sm"
+                    onClick={handleDescriptionSubmit}
+                    disabled={!rawDescription.trim() || isGenerating}
                   >
-                    Skip for now →
-                  </button>
+                    That&apos;s it →
+                  </TapeButton>
                 </div>
               </div>
             </div>
@@ -1286,7 +889,7 @@ export function CassOnboardingChat({
               )}
 
               <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px" }}>
-                {QUESTIONS.map((q) => (
+                {BRIEF_CARDS.map((q) => (
                   <BriefCard
                     key={q.field}
                     label={q.label}
@@ -1301,8 +904,8 @@ export function CassOnboardingChat({
                 <TapeButton variant="primary" size="md" onClick={handleReviewComplete} className="w-full justify-center">
                   This looks right → map out my chapters
                 </TapeButton>
-                <TapeButton variant="ghost" size="sm" onClick={() => { setPhase("interview"); setInterviewStep(0); }}>
-                  ← Start over
+                <TapeButton variant="ghost" size="sm" onClick={() => setPhase("interview")}>
+                  ← Edit description
                 </TapeButton>
               </div>
             </div>

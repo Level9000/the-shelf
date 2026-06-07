@@ -75,10 +75,11 @@ function spawnPosition(isMobile: boolean): { x: number; y: number } {
     return                     { x: rand(5, 72), y: rand(78, 93) };
   }
   // Right side only on desktop
+  // Right 50% only on desktop — x starts at 52% so notes stay clearly right of center
   const strip = Math.random();
-  if (strip < 0.33) return { x: rand(65, 90), y: rand(5, 35) };
-  if (strip < 0.66) return { x: rand(65, 88), y: rand(38, 65) };
-  return                   { x: rand(65, 90), y: rand(68, 90) };
+  if (strip < 0.33) return { x: rand(52, 78), y: rand(5, 35) };
+  if (strip < 0.66) return { x: rand(52, 76), y: rand(38, 65) };
+  return                   { x: rand(52, 78), y: rand(68, 90) };
 }
 
 // ── Canvas ────────────────────────────────────────────────────────────────────
