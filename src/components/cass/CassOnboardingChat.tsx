@@ -461,7 +461,7 @@ export function CassOnboardingChat({
 
   const getInitialPhase = (): Phase => {
     if (existingDraft) {
-      if (existingDraft.proposed_chapters.length > 0) return "workplan";
+      if ((existingDraft.proposed_chapters ?? []).length > 0) return "workplan";
       if (existingDraft.step >= 1) return "generating";
       if (existingDraft.journeyStage) return "interview";
       return "journey";
@@ -475,7 +475,7 @@ export function CassOnboardingChat({
   const [answers, setAnswers] = useState<OnboardingDraft["answers"]>(
     existingDraft?.answers ?? { ...EMPTY_ANSWERS }
   );
-  const [rawDescription, setRawDescription] = useState(existingDraft?.raw_description ?? "");
+  const [rawDescription, setRawDescription] = useState(existingDraft?.raw_description ?? existingDraft?.answers?.project_goal ?? "");
   const [animState, setAnimState] = useState<CassAnimState>("idle");
   const [wantPrelude, setWantPrelude] = useState(existingDraft?.wantPrelude ?? false);
 
@@ -486,7 +486,15 @@ export function CassOnboardingChat({
 
   const [error, setError] = useState<string | null>(null);
   const [isSaving, startSaveTransition] = useTransition();
-  const [isGenerating, setIsGenerating] = useState(false);
+
+  // ── Chat state for the multi-turn interview (steps 3–6) ──────────────────
+  type ChatMsg = { role: "user" | "assistant"; content: string };
+  const STEP3_QUESTION = "Before we set anything up, I want to get a real sense of where you are right now. What's actually going on? What brought you here and what are you working through?";
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([
+    { role: "assistant", content: STEP3_QUESTION },
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatPending, setIsChatPending] = useState(false);
 
   // Show chronicle offer for non-origin users
   const shouldOfferChronicle = journeyStage !== "origin" && journeyStage !== "";
@@ -551,51 +559,68 @@ export function CassOnboardingChat({
     }, 2800);
   }
 
-  async function handleDescriptionSubmit() {
-    const trimmed = rawDescription.trim();
-    if (!trimmed) return;
-    setPhase("generating");
-    setAnimState("recording");
-    await generatePlan(trimmed);
-  }
+  async function handleChatSubmit() {
+    const trimmed = chatInput.trim();
+    if (!trimmed || isChatPending) return;
 
-  async function generatePlan(description: string) {
-    setIsGenerating(true);
+    const newMessages: ChatMsg[] = [...chatMessages, { role: "user", content: trimmed }];
+    setChatMessages(newMessages);
+    setChatInput("");
+    setIsChatPending(true);
+    setAnimState("recording");
     setError(null);
+
     try {
-      const res = await fetch("/api/generate/project-brief", {
+      const res = await fetch("/api/chat/cass-onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raw_description: description }),
+        body: JSON.stringify({ messages: newMessages }),
       });
       const data = await res.json() as {
+        reply?: string;
+        done?: boolean;
         project_name?: string;
-        project_goal?: string;
         north_star?: string;
+        project_goal?: string;
         project_audience?: string;
         project_success?: string;
         project_biggest_risk?: string;
         proposed_chapters?: OnboardingDraft["proposed_chapters"];
         error?: string;
       };
-      if (!res.ok) throw new Error(data.error ?? "Generation failed.");
-      setProjectName(data.project_name ?? "");
-      setAnswers({
-        project_goal:         data.project_goal ?? "",
-        north_star:           data.north_star ?? "",
-        project_audience:     data.project_audience ?? "",
-        project_success:      data.project_success ?? "",
-        project_biggest_risk: data.project_biggest_risk ?? "",
-      });
-      setProposedChapters(data.proposed_chapters ?? []);
-      setPhase("review");
-      setAnimState("idle");
+      if (!res.ok) throw new Error(data.error ?? "Something went wrong.");
+
+      const reply = data.reply?.trim() ?? "";
+
+      if (data.done) {
+        setProjectName(data.project_name ?? "");
+        setAnswers({
+          project_goal:         data.project_goal ?? "",
+          north_star:           data.north_star ?? "",
+          project_audience:     data.project_audience ?? "",
+          project_success:      data.project_success ?? "",
+          project_biggest_risk: data.project_biggest_risk ?? "",
+        });
+        setProposedChapters(data.proposed_chapters ?? []);
+        if (reply) setChatMessages([...newMessages, { role: "assistant", content: reply }]);
+        setAnimState("idle");
+        setTimeout(() => {
+          if (shouldOfferChronicle) {
+            setPhase("chronicle-offer");
+          } else {
+            setPhase("workplan");
+          }
+        }, 1600);
+      } else {
+        setChatMessages([...newMessages, { role: "assistant", content: reply }]);
+        setAnimState("talking");
+        setTimeout(() => setAnimState("listening"), 1600);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
-      setPhase("interview");
       setAnimState("listening");
     } finally {
-      setIsGenerating(false);
+      setIsChatPending(false);
     }
   }
 
@@ -798,10 +823,35 @@ export function CassOnboardingChat({
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "520px", gap: "20px", animation: "cass-fade-in 0.4s ease" }}>
               <CassRecorder animState={animState} size="md" />
 
-              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px", width: "100%" }}>
-                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: 0 }}>
-                  Tape&apos;s rolling. Tell me about what you&apos;re building — what it is, who it&apos;s for, what you believe about it. Just talk. A few sentences is fine.
-                </p>
+              {/* Chat history */}
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "12px" }}>
+                {chatMessages.map((msg, i) => (
+                  msg.role === "assistant" ? (
+                    <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px 14px 14px 4px", padding: "18px 22px", width: "100%" }}>
+                      {msg.content.split("\n\n").map((para, j) => (
+                        <p key={j} style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: j > 0 ? "10px 0 0" : 0 }}>
+                          {para}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "14px 14px 4px 14px", padding: "14px 18px", maxWidth: "90%" }}>
+                        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", lineHeight: "1.55", color: "#d4cec4", margin: 0 }}>
+                          {msg.content}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                ))}
+
+                {isChatPending && (
+                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.1)", borderRadius: "14px 14px 14px 4px", padding: "16px 22px", width: "100%" }}>
+                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.4)", letterSpacing: "2px", margin: 0, textTransform: "uppercase" }}>
+                      ● recording
+                    </p>
+                  </div>
+                )}
               </div>
 
               {error && (
@@ -810,51 +860,54 @@ export function CassOnboardingChat({
                 </p>
               )}
 
-              <div style={{ width: "100%" }}>
-                <textarea
-                  autoFocus
-                  value={rawDescription}
-                  onChange={(e) => setRawDescription(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      if (rawDescription.trim()) handleDescriptionSubmit();
-                    }
-                  }}
-                  placeholder="We're building a tool that helps founders capture their story as they build. Most founders forget the decisions that shaped everything — we believe that story is worth preserving..."
-                  style={{
-                    width: "100%",
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(200,168,107,0.25)",
-                    borderRadius: "12px",
-                    padding: "16px 18px",
-                    fontFamily: "'Literata', Georgia, serif",
-                    fontSize: "15px",
-                    color: "#d4cec4",
-                    outline: "none",
-                    resize: "none",
-                    minHeight: "140px",
-                    lineHeight: "1.6",
-                    caretColor: "#c8a86b",
-                    boxSizing: "border-box",
-                  }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
-                />
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-                  <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.3)", letterSpacing: "0.5px" }}>
-                    ⌘↵ to submit
-                  </span>
-                  <TapeButton
-                    variant="primary"
-                    size="sm"
-                    onClick={handleDescriptionSubmit}
-                    disabled={!rawDescription.trim() || isGenerating}
-                  >
-                    That&apos;s it →
-                  </TapeButton>
+              {/* Input — only shown when last message is from Cass and not pending */}
+              {!isChatPending && chatMessages[chatMessages.length - 1]?.role === "assistant" && (
+                <div style={{ width: "100%" }}>
+                  <textarea
+                    autoFocus
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        if (chatInput.trim()) handleChatSubmit();
+                      }
+                    }}
+                    placeholder=""
+                    style={{
+                      width: "100%",
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(200,168,107,0.25)",
+                      borderRadius: "12px",
+                      padding: "16px 18px",
+                      fontFamily: "'Literata', Georgia, serif",
+                      fontSize: "15px",
+                      color: "#d4cec4",
+                      outline: "none",
+                      resize: "none",
+                      minHeight: "100px",
+                      lineHeight: "1.6",
+                      caretColor: "#c8a86b",
+                      boxSizing: "border-box",
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
+                    <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.3)", letterSpacing: "0.5px" }}>
+                      ⌘↵ to send
+                    </span>
+                    <TapeButton
+                      variant="primary"
+                      size="sm"
+                      onClick={handleChatSubmit}
+                      disabled={!chatInput.trim() || isChatPending}
+                    >
+                      Send →
+                    </TapeButton>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

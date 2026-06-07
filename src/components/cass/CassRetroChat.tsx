@@ -63,6 +63,16 @@ function buildOpeningMessage(
 ): DialogueMessage {
   const total = completedCount + incompleteCount;
 
+  let contextLine: string;
+  if (total === 0) {
+    contextLine = "You didn't record any tasks. But work still happened.";
+  } else if (incompleteCount === 0) {
+    contextLine = `You shipped it. ${completedCount} of ${total} tasks done. What surprised you most?`;
+  } else {
+    const leftBehind = incompleteCount === 1 ? "1 task is" : `${incompleteCount} tasks are`;
+    contextLine = `I notice ${leftBehind} still in backlog. What happened?`;
+  }
+
   const text = avatar === "ty"
     ? [
         `Chapter ${chapterNumber} is behind us now.`,
@@ -72,11 +82,9 @@ function buildOpeningMessage(
         `${completedCount} of ${total} cards made it across. What's the real story of how this chapter went?`,
       ].join("\n")
     : [
-        `Alright. Chapter ${chapterNumber} is done.`,
+        contextLine,
         "",
-        `You said you wanted to ${chapterGoal?.toLowerCase() ?? "get something done"}. Let's see what actually happened.`,
-        "",
-        `You completed ${completedCount} of ${total} cards. On a scale of 1–5, how would you rate this chapter overall?`,
+        "Before we close this chapter, what actually happened? Not what you planned. What really happened.",
       ].join("\n");
 
   return { role: "assistant", content: text };
