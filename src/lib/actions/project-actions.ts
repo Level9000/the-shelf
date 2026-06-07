@@ -5,6 +5,57 @@ import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
 import { DEFAULT_COLUMNS } from "@/lib/constants";
 
+export async function updateProjectBriefAction(
+  projectId: string,
+  updates: {
+    project_goal?: string;
+    north_star?: string;
+    project_audience?: string;
+    project_success?: string;
+    project_biggest_risk?: string;
+  },
+  newConversationEntry?: { role: string; content: string },
+): Promise<void> {
+  const { supabase, user } = await getAuthenticatedUser();
+
+  // Only update fields that are provided AND the existing value is null/empty
+  // First fetch existing values
+  const { data: existing } = await supabase
+    .from("projects")
+    .select("project_goal, north_star, project_audience, project_success, project_biggest_risk, project_kickoff_conversation")
+    .eq("id", projectId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!existing) throw new Error("Project not found.");
+
+  // Build update object — only fill in nulls/empty, never overwrite existing content
+  const patch: Record<string, unknown> = {};
+  if (updates.project_goal && !existing.project_goal) patch.project_goal = updates.project_goal;
+  if (updates.north_star && !existing.north_star) patch.north_star = updates.north_star;
+  if (updates.project_audience && !existing.project_audience) patch.project_audience = updates.project_audience;
+  if (updates.project_success && !existing.project_success) patch.project_success = updates.project_success;
+  if (updates.project_biggest_risk && !existing.project_biggest_risk) patch.project_biggest_risk = updates.project_biggest_risk;
+
+  // Append new conversation entry if provided
+  if (newConversationEntry) {
+    const existingConvo = (existing.project_kickoff_conversation as Array<{role:string;content:string}> | null) ?? [];
+    patch.project_kickoff_conversation = [...existingConvo, newConversationEntry];
+  }
+
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await supabase
+    .from("projects")
+    .update(patch)
+    .eq("id", projectId)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/projects/${projectId}`);
+}
+
 export async function completeProjectKickoffAction(input: {
   name: string;
   northStar: string;

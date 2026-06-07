@@ -9,6 +9,7 @@ import { ProjectBoardClient } from "@/components/board/project-board-client";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 import { PaywallModal } from "@/components/paywall/paywall-modal";
 import { TapeButton } from "@/components/ui/tape-button";
+import { OnboardingNudge } from "@/components/cass/OnboardingNudge";
 import { X, ArrowRight } from "lucide-react";
 
 function classifyTasks(snapshot: BoardSnapshot) {
@@ -100,6 +101,14 @@ export function ProjectWorkspaceShell({
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
 
+  const missingCount = [
+    snapshot.project.projectGoal,
+    snapshot.project.northStar,
+    snapshot.project.projectAudience,
+    snapshot.project.projectSuccess,
+    snapshot.project.projectBiggestRisk,
+  ].filter((v) => !v || v.trim() === "").length;
+
   return (
     <>
     <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
@@ -163,6 +172,9 @@ export function ProjectWorkspaceShell({
       )}
 
       <div className="space-y-5">
+        {canAuthor && missingCount > 0 && (
+          <OnboardingNudge projectId={currentProjectId} missingCount={missingCount} />
+        )}
         <ProjectBoardClient
           snapshot={snapshot}
           chapterProjectId={currentProjectId}

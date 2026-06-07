@@ -294,6 +294,151 @@ function QuickTapInput({
   );
 }
 
+// ── Mobile step scroller ──────────────────────────────────────────────────────
+
+function MobileStepScroller({
+  questions,
+  currentStep,
+  answers,
+}: {
+  questions: typeof QUESTIONS;
+  currentStep: number;
+  answers: Record<string, string>;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLDivElement>(null);
+
+  // Scroll active step into center whenever step changes
+  useEffect(() => {
+    if (activeRef.current && scrollRef.current) {
+      const container = scrollRef.current;
+      const item = activeRef.current;
+      const offset = item.offsetLeft - container.offsetWidth / 2 + item.offsetWidth / 2;
+      container.scrollTo({ left: offset, behavior: "smooth" });
+    }
+  }, [currentStep]);
+
+  return (
+    <div
+      className="mobile-step-scroller"
+      ref={scrollRef}
+      style={{
+        width: "100%",
+        overflowX: "auto",
+        scrollbarWidth: "none",
+        marginBottom: "16px",
+        paddingBottom: "4px",
+      }}
+    >
+      <div style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "0",
+        padding: "0 16px",
+        minWidth: "max-content",
+      }}>
+        {questions.map((q, i) => {
+          const isComplete = answers[q.field]?.trim().length > 0;
+          const isCurrent = i === currentStep;
+          const isPast = i < currentStep;
+
+          return (
+            <div
+              key={q.field}
+              ref={isCurrent ? activeRef : undefined}
+              style={{ display: "flex", alignItems: "flex-start" }}
+            >
+              {/* Step item */}
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 12px",
+                borderRadius: "10px",
+                background: isCurrent ? "rgba(200,168,107,0.09)" : "transparent",
+                border: isCurrent ? "1px solid rgba(200,168,107,0.2)" : "1px solid transparent",
+                transition: "all 0.25s ease",
+                minWidth: "80px",
+              }}>
+                {/* Circle */}
+                <div style={{
+                  width: "26px",
+                  height: "26px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  background: isComplete ? "#c8a86b" : "transparent",
+                  border: isComplete ? "none" : isCurrent ? "2px solid #c8a86b" : "2px solid rgba(200,168,107,0.2)",
+                  transition: "all 0.3s ease",
+                  animation: isCurrent ? "step-pop 0.3s ease" : "none",
+                }}>
+                  {isComplete
+                    ? <Check size={13} color="#1a0e00" strokeWidth={3} />
+                    : isCurrent
+                      ? <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#c8a86b" }} />
+                      : null
+                  }
+                </div>
+
+                {/* Label */}
+                <div style={{
+                  fontFamily: "var(--font-cass)",
+                  fontSize: "9px",
+                  letterSpacing: "1.5px",
+                  textTransform: "uppercase",
+                  textAlign: "center",
+                  whiteSpace: "nowrap",
+                  color: isComplete
+                    ? "rgba(200,168,107,0.7)"
+                    : isCurrent
+                      ? "#c8a86b"
+                      : "rgba(200,168,107,0.25)",
+                  transition: "color 0.2s ease",
+                }}>
+                  {q.label}
+                </div>
+
+                {/* Answer preview for completed steps */}
+                {isComplete && (
+                  <div style={{
+                    fontFamily: "'Literata', Georgia, serif",
+                    fontSize: "10px",
+                    color: "rgba(212,206,196,0.45)",
+                    lineHeight: 1.4,
+                    textAlign: "center",
+                    maxWidth: "80px",
+                    overflow: "hidden",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical" as const,
+                  }}>
+                    {answers[q.field]}
+                  </div>
+                )}
+              </div>
+
+              {/* Connector line between steps */}
+              {i < questions.length - 1 && (
+                <div style={{
+                  width: "20px",
+                  height: "2px",
+                  background: isPast ? "rgba(200,168,107,0.4)" : "rgba(200,168,107,0.12)",
+                  marginTop: "20px",
+                  flexShrink: 0,
+                  transition: "background 0.3s ease",
+                }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Intro screen ──────────────────────────────────────────────────────────────
 
 function IntroScreen({ onComplete }: { onComplete: () => void }) {
@@ -621,6 +766,19 @@ export function CassOnboardingChat({
     }
   }
 
+  function handleSkip() {
+    const updatedAnswers = { ...answers, [currentQuestion.field]: "" };
+    setAnswers(updatedAnswers);
+    setInputValue("");
+    if (isLastQuestion) {
+      setPhase("generating");
+      setAnimState("recording");
+      generatePlan(updatedAnswers);
+    } else {
+      setInterviewStep((s) => s + 1);
+    }
+  }
+
   async function generatePlan(finalAnswers: OnboardingDraft["answers"]) {
     setIsGenerating(true);
     setError(null);
@@ -774,6 +932,13 @@ export function CassOnboardingChat({
         .onboarding-inline-dots {
           display: flex;
         }
+        .mobile-step-scroller {
+          display: flex;
+        }
+        @keyframes step-pop {
+          from { transform: scale(0.8); opacity: 0; }
+          to   { transform: scale(1);   opacity: 1; }
+        }
         .onboarding-content {
           width: 100%;
           max-width: 480px;
@@ -783,6 +948,9 @@ export function CassOnboardingChat({
         }
         @media (min-width: 900px) {
           .onboarding-inline-dots {
+            display: none;
+          }
+          .mobile-step-scroller {
             display: none;
           }
           .onboarding-outer {
@@ -969,18 +1137,14 @@ export function CassOnboardingChat({
             <div style={{ display: "flex", flexDirection: "column", width: "100%", maxWidth: "520px", height: "calc(100dvh - 80px)", overflow: "hidden" }}>
 
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: "16px", flexShrink: 0 }}>
-                <div className="onboarding-inline-dots" style={{ gap: "8px", alignItems: "center", marginBottom: "16px" }}>
-                  {QUESTIONS.map((q, i) => (
-                    <div key={q.field} style={{
-                      width: i === interviewStep ? "20px" : "6px",
-                      height: "6px",
-                      borderRadius: "3px",
-                      background: i < interviewStep ? "#c8a86b" : i === interviewStep ? "#c8a86b" : "rgba(200,168,107,0.2)",
-                      opacity: i < interviewStep ? 0.5 : 1,
-                      transition: "all 0.3s ease",
-                    }} />
-                  ))}
-                </div>
+
+                {/* Mobile horizontal step scroller */}
+                <MobileStepScroller
+                  questions={QUESTIONS}
+                  currentStep={interviewStep}
+                  answers={answers}
+                />
+
                 <CassRecorder animState={animState} size="md" />
               </div>
 
@@ -1067,6 +1231,26 @@ export function CassOnboardingChat({
                     autoFocus
                   />
                 )}
+                <div style={{ textAlign: "center", marginTop: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={handleSkip}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: "'Literata', Georgia, serif",
+                      fontSize: "13px",
+                      color: "rgba(200,168,107,0.4)",
+                      padding: "4px 8px",
+                      transition: "color 0.15s",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(200,168,107,0.7)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(200,168,107,0.4)"; }}
+                  >
+                    Skip for now →
+                  </button>
+                </div>
               </div>
             </div>
           )}
