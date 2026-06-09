@@ -4,8 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { signInWithGoogleAction, signInWithAppleAction } from "@/lib/actions/auth-actions";
-import { StickyNoteCanvas } from "./sticky-note-canvas";
-import { AvatarParade } from "./avatar-parade";
 
 export function AuthForm({
   oauthError,
@@ -30,148 +28,109 @@ export function AuthForm({
     alignItems: "center",
     justifyContent: "center",
     gap: "10px",
-    padding: "12px 20px",
-    borderRadius: "12px",
-    fontSize: "15px",
-    fontWeight: 500,
+    padding: "14px 24px",
+    borderRadius: "50px",
+    fontSize: "16px",
+    fontWeight: 600,
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     cursor: "pointer",
-    border: "none",
-    transition: "opacity 0.15s",
+    border: "1.5px solid rgba(255, 255, 255, 0.18)",
+    background: "rgba(255, 255, 255, 0.08)",
+    color: "#fff",
+    transition: "background 0.15s, border-color 0.15s",
+    boxShadow: "none",
   };
 
   return (
     <div style={{
-      minHeight: "100vh",
-      background: "#f8f6f0",
+      minHeight: "100dvh",
+      background: "#000",
       display: "flex",
+      flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      position: "relative",
-      padding: "24px 16px",
+      padding: "48px 32px",
     }}>
-      <StickyNoteCanvas />
-      <AvatarParade />
 
-      {/* Center card */}
+      {/* Content column */}
       <div style={{
-        position: "relative",
-        zIndex: 1,
-        width: "100%",
-        maxWidth: "400px",
-        background: "rgba(255, 255, 255, 0.92)",
-        backdropFilter: "blur(12px)",
-        borderRadius: "24px",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
-        padding: "48px 40px 44px",
         display: "flex",
         flexDirection: "column",
-        alignItems: "stretch",
-        gap: "28px",
+        alignItems: "center",
+        gap: "24px",
+        width: "100%",
+        maxWidth: "360px",
       }}>
 
-        {/* Headline — tape label bleeds 10% past each side, centered */}
-        <div style={{
-          width: "calc(100% + 40px)",
-          marginLeft: "-20px",
-          background: "#FFE566",
-          clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
-          padding: "12px 24px 14px",
-          boxShadow: "2px 2px 10px rgba(0,0,0,0.12)",
-          textAlign: "center",
-        }}>
-          <span style={{
-            fontFamily: '"Erik", "Courier New", monospace',
-            fontSize: "28px",
-            fontWeight: 700,
-            color: "#000",
-            letterSpacing: "0.3px",
-            whiteSpace: "nowrap",
-          }}>
-            Founder&apos;s stories live here.
-          </span>
-        </div>
-
-        {/* Welcome line */}
-        <h1 style={{
-          fontFamily: "'Literata', Georgia, serif",
-          fontSize: "36px",
-          fontWeight: 700,
-          color: "#000",
-          margin: 0,
-          textAlign: "left",
-          lineHeight: 1.1,
-        }}>
-          This is
-        </h1>
-
-        {/* Logo */}
+        {/* Tape image */}
         <Image
-          src="/icons/authored_by_transparent.png"
+          src="/icons/authored-by-tape-icon.png"
           alt="Authored By"
-          width={300}
-          height={225}
-          style={{ width: "100%", height: "auto" }}
+          width={320}
+          height={120}
+          style={{ width: "100%", maxWidth: "300px", height: "auto" }}
           priority
         />
 
         {/* Tagline */}
         <p style={{
           fontFamily: "'Literata', Georgia, serif",
-          fontSize: "14px",
-          lineHeight: 1.65,
-          color: "rgba(0,0,0,0.42)",
+          fontSize: "16px",
+          lineHeight: 1.55,
+          color: "rgba(255, 255, 255, 0.6)",
           margin: 0,
           textAlign: "center",
         }}>
-          An app that captures every decision, pivot, and moment that matters while you're building.
+          Start building your founder&apos;s story today
         </p>
 
-        {/* Divider */}
-        <div style={{ width: "100%", height: "1px", background: "rgba(0,0,0,0.07)" }} />
+        {/* Buttons */}
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
 
-        {/* Sign in label */}
-        <p style={{
-          margin: "-12px 0 -8px",
-          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          fontSize: "12px",
-          fontWeight: 500,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "rgba(0,0,0,0.35)",
-          textAlign: "center",
-        }}>
-          Sign in with
-        </p>
-
-        {/* OAuth buttons */}
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}>
           {oauthError && (
             <p style={{
               borderRadius: "12px",
-              background: "#fff1f1",
+              background: "rgba(255, 80, 60, 0.12)",
+              border: "1px solid rgba(255, 80, 60, 0.3)",
               padding: "10px 14px",
               fontSize: "13px",
-              color: "#c0392b",
+              color: "#ff6b5b",
               margin: 0,
               fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              textAlign: "center",
             }}>
               {oauthError}
             </p>
           )}
 
+          {showTerms && termsError && (
+            <p style={{
+              borderRadius: "12px",
+              background: "rgba(255, 80, 60, 0.1)",
+              border: "1px solid rgba(255, 80, 60, 0.28)",
+              padding: "10px 14px",
+              fontSize: "13px",
+              color: "#ff6b5b",
+              margin: 0,
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              textAlign: "center",
+            }}>
+              Please agree to the Terms and Privacy Policy to continue.
+            </p>
+          )}
 
           <form action={signInWithGoogleAction} onSubmit={requireTerms} style={{ width: "100%" }}>
             <button
               type="submit"
-              style={{
-                ...btnBase,
-                background: "#fff",
-                color: "rgba(0,0,0,0.75)",
-                boxShadow: "0 0 0 1px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06)",
+              style={btnBase}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.14)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.32)";
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
+              }}
             >
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
                 <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
@@ -186,14 +145,15 @@ export function AuthForm({
           <form action={signInWithAppleAction} onSubmit={requireTerms} style={{ width: "100%" }}>
             <button
               type="submit"
-              style={{
-                ...btnBase,
-                background: "#000",
-                color: "#fff",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+              style={btnBase}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.14)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.32)";
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
+              }}
             >
               <svg width="16" height="19" viewBox="0 0 16 19" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
                 <path d="M13.178 10.187c-.02-2.273 1.856-3.373 1.94-3.428-1.057-1.547-2.702-1.758-3.285-1.782-1.394-.142-2.727.828-3.435.828-.71 0-1.796-.808-2.955-.786C3.81 5.04 2.268 5.94 1.424 7.37c-1.73 2.996-.441 7.433 1.237 9.86.823 1.19 1.8 2.524 3.08 2.476 1.24-.05 1.709-.8 3.21-.8 1.498 0 1.928.8 3.236.773 1.333-.022 2.177-1.208 2.986-2.408a11.36 11.36 0 0 0 1.354-2.778c-.031-.012-2.596-1-2.62-3.306ZM10.87 3.18C11.547 2.35 12 1.225 11.867 0c-.952.04-2.119.636-2.8 1.44-.607.712-1.146 1.867-.999 2.969 1.064.08 2.15-.54 2.803-1.228Z"/>
@@ -203,20 +163,53 @@ export function AuthForm({
           </form>
         </div>
 
-        {/* Footer note */}
-        <p style={{
-          margin: "-8px 0 0",
-          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-          fontSize: "11px",
-          color: "rgba(0,0,0,0.3)",
-          textAlign: "center",
-          lineHeight: 1.5,
-        }}>
-          By signing in you agree to our{" "}
-          <Link href="/terms" target="_blank" style={{ color: "rgba(0,0,0,0.45)", textDecoration: "underline" }}>Terms</Link>
-          {" "}and{" "}
-          <Link href="/privacy" target="_blank" style={{ color: "rgba(0,0,0,0.45)", textDecoration: "underline" }}>Privacy Policy</Link>
-        </p>
+        {/* Terms checkbox — signup page only */}
+        {showTerms && (
+          <label style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "10px",
+            cursor: "pointer",
+          }}>
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => {
+                setTermsAccepted(e.target.checked);
+                if (e.target.checked) setTermsError(false);
+              }}
+              style={{ marginTop: "2px", accentColor: "#c8a86b", flexShrink: 0 }}
+            />
+            <span style={{
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              fontSize: "12px",
+              color: "rgba(255, 255, 255, 0.42)",
+              lineHeight: 1.5,
+            }}>
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" style={{ color: "rgba(255,255,255,0.65)", textDecoration: "underline" }}>Terms</Link>
+              {" "}and{" "}
+              <Link href="/privacy" target="_blank" style={{ color: "rgba(255,255,255,0.65)", textDecoration: "underline" }}>Privacy Policy</Link>
+            </span>
+          </label>
+        )}
+
+        {/* Legal — login page */}
+        {!showTerms && (
+          <p style={{
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            fontSize: "11px",
+            color: "rgba(255, 255, 255, 0.28)",
+            textAlign: "center",
+            lineHeight: 1.55,
+            margin: 0,
+          }}>
+            By signing in you agree to our{" "}
+            <Link href="/terms" target="_blank" style={{ color: "rgba(255,255,255,0.45)", textDecoration: "underline" }}>Terms</Link>
+            {" "}and{" "}
+            <Link href="/privacy" target="_blank" style={{ color: "rgba(255,255,255,0.45)", textDecoration: "underline" }}>Privacy Policy</Link>
+          </p>
+        )}
 
       </div>
     </div>
