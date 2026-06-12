@@ -668,6 +668,10 @@ export function CassOnboardingChat({
           0%, 100% { opacity: 1; }
           50%       { opacity: 0; }
         }
+        @keyframes chat-dot-pulse {
+          0%, 100% { opacity: 0.2; transform: translateY(0); }
+          50%       { opacity: 1;   transform: translateY(-3px); }
+        }
         .onboarding-outer {
           min-height: 100dvh;
           background: #0a0a0a;
@@ -681,6 +685,12 @@ export function CassOnboardingChat({
           color: #c8c8c8;
           position: relative;
         }
+        .onboarding-outer.phase-interview {
+          background: #242424;
+          background-image: none;
+          padding: 0;
+          justify-content: stretch;
+        }
         .onboarding-content {
           width: 100%;
           max-width: 520px;
@@ -688,9 +698,44 @@ export function CassOnboardingChat({
           flex-direction: column;
           align-items: center;
         }
+        .chat-send-btn {
+          width: 36px; height: 36px; border-radius: 50%;
+          background: #f5d000; border: none; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0; transition: background 0.15s;
+        }
+        .chat-send-btn:disabled { background: #2e2e2e; cursor: default; }
+        .chat-send-btn:not(:disabled):hover { background: #ffd900; }
+        .chat-send-btn .material-icons { font-size: 18px; color: #0a0a0a; }
+        .chat-send-btn:disabled .material-icons { color: #555; }
+        .chat-chip {
+          display: inline-flex; align-items: center;
+          background: #1e1e1e; border: 1px solid #2e2e2e;
+          border-radius: 20px; padding: 6px 14px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+          text-transform: uppercase; color: #999; cursor: pointer;
+          transition: background 0.15s, color 0.15s;
+          white-space: nowrap;
+        }
+        .chat-chip:hover { background: #f5d000; color: #0a0a0a; }
+        .chat-textarea {
+          flex: 1; background: #2e2e2e;
+          border: 1px solid #3a3a3a; border-radius: 22px;
+          padding: 9px 16px;
+          font-family: 'Lora', Georgia, serif; font-size: 14px; color: #f8f8f6;
+          caret-color: #f5d000; outline: none; resize: none;
+          min-height: 40px; max-height: 120px; line-height: 1.5;
+          transition: border-color 0.15s;
+          scrollbar-width: none;
+        }
+        .chat-textarea::placeholder { color: #666; }
+        .chat-textarea:focus { border-color: #f5d000; }
+        .chat-scrollbar { scrollbar-width: none; }
+        .chat-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
 
-      <div className="onboarding-outer">
+      <div className={`onboarding-outer${phase === "interview" ? " phase-interview" : ""}`}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
           <CassProgressBar percent={progressPercent} />
         </div>
@@ -703,160 +748,12 @@ export function CassOnboardingChat({
           >✕</button>
         )}
 
+        {/* Non-interview phases — centered layout */}
+        {phase !== "interview" && (
         <div className="onboarding-content">
 
           {/* ── Intro ── */}
           {phase === "intro" && <IntroScreen onComplete={() => setPhase("interview")} />}
-
-          {/* ── Interview ── */}
-          {phase === "interview" && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "520px", gap: "20px", animation: "cass-fade-in 0.4s ease" }}>
-              <CassRecorder animState={animState} size="md" />
-
-              {/* Scrollable chat history */}
-              <div
-                ref={chatScrollRef}
-                style={{
-                  width: "100%",
-                  maxHeight: "55vh",
-                  overflowY: "auto",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                  paddingRight: "2px",
-                  scrollbarWidth: "thin",
-                  scrollbarColor: "rgba(200,168,107,0.15) transparent",
-                }}
-              >
-                {chatMessages.map((msg, i) => (
-                  msg.role === "assistant" ? (
-                    <div key={i} style={{
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid rgba(200,168,107,0.15)",
-                      borderRadius: "14px 14px 14px 4px",
-                      padding: "18px 22px",
-                      width: "100%",
-                      animation: "cass-fade-up 0.3s ease forwards",
-                    }}>
-                      {msg.content.split("\n\n").map((para, j) => (
-                        <p key={j} style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.6", color: "#d4cec4", margin: j > 0 ? "10px 0 0" : 0 }}>
-                          {para}
-                        </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <div key={i} style={{ display: "flex", justifyContent: "flex-end", animation: "cass-fade-up 0.3s ease forwards" }}>
-                      <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "14px 14px 4px 14px", padding: "14px 18px", maxWidth: "90%" }}>
-                        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", lineHeight: "1.55", color: "#d4cec4", margin: 0 }}>
-                          {msg.content}
-                        </p>
-                      </div>
-                    </div>
-                  )
-                ))}
-
-                {isChatPending && (
-                  <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.1)", borderRadius: "14px 14px 14px 4px", padding: "16px 22px", width: "100%" }}>
-                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.4)", letterSpacing: "2px", margin: 0, textTransform: "uppercase" }}>
-                      ● recording
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {error && (
-                <p style={{ color: "#ff6b6b", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", textAlign: "center", margin: 0 }}>
-                  {error}
-                </p>
-              )}
-
-              {/* Continue button — shown after each Cass message */}
-              {showContinue && !isChatPending && (
-                <div style={{ width: "100%", display: "flex", justifyContent: "flex-end", animation: "cass-fade-in 0.4s ease" }}>
-                  <button
-                    type="button"
-                    onClick={handleContinue}
-                    style={{
-                      background: "transparent",
-                      border: "1px solid rgba(200,168,107,0.3)",
-                      borderRadius: "8px",
-                      padding: "10px 18px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      cursor: "pointer",
-                      fontFamily: "var(--font-cass)",
-                      fontSize: "11px",
-                      letterSpacing: "2px",
-                      textTransform: "uppercase",
-                      color: "#c8a86b",
-                      transition: "background 0.15s, border-color 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(200,168,107,0.08)";
-                      e.currentTarget.style.borderColor = "rgba(200,168,107,0.55)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.borderColor = "rgba(200,168,107,0.3)";
-                    }}
-                  >
-                    Continue
-                    <span style={{ animation: "cass-blink 1.1s step-end infinite", display: "inline-block" }}>▶</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Input — revealed after Continue press */}
-              {inputRevealed && !isChatPending && (
-                <div style={{ width: "100%", animation: "cass-fade-up 0.3s ease forwards" }}>
-                  <textarea
-                    autoFocus
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                        e.preventDefault();
-                        if (chatInput.trim()) handleChatSubmit();
-                      }
-                    }}
-                    placeholder=""
-                    style={{
-                      width: "100%",
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(200,168,107,0.25)",
-                      borderRadius: "12px",
-                      padding: "16px 18px",
-                      fontFamily: "'Literata', Georgia, serif",
-                      fontSize: "15px",
-                      color: "#d4cec4",
-                      outline: "none",
-                      resize: "none",
-                      minHeight: "100px",
-                      lineHeight: "1.6",
-                      caretColor: "#c8a86b",
-                      boxSizing: "border-box",
-                    }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
-                  />
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-                    <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.3)", letterSpacing: "0.5px" }}>
-                      ⌘↵ to send
-                    </span>
-                    <TapeButton
-                      variant="primary"
-                      size="sm"
-                      onClick={handleChatSubmit}
-                      disabled={!chatInput.trim() || isChatPending}
-                    >
-                      Send →
-                    </TapeButton>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* ── Generating ── */}
           {phase === "generating" && (
@@ -870,7 +767,6 @@ export function CassOnboardingChat({
             </div>
           )}
 
-          {/* ── Brief review ── */}
           {/* ── Saving ── */}
           {phase === "saving" && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", maxWidth: "480px", width: "100%" }}>
@@ -883,7 +779,165 @@ export function CassOnboardingChat({
             </div>
           )}
 
-        </div>{/* end onboarding-content */}
+        </div>
+        )}
+
+        {/* ── Interview — full-height, outside the centered content wrapper ── */}
+        {phase === "interview" && (
+            <div style={{
+              display: "flex", flexDirection: "column",
+              width: "100%", height: "100dvh",
+              animation: "cass-fade-in 0.4s ease",
+            }}>
+
+              {/* Header */}
+              <div style={{
+                background: "#0a0a0a",
+                borderBottom: "1px solid #1e1e1e",
+                padding: "12px 16px",
+                display: "grid",
+                gridTemplateColumns: "40px 1fr 40px",
+                alignItems: "center",
+                flexShrink: 0,
+              }}>
+                <div />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                  <div style={{ position: "relative", width: "44px", height: "44px" }}>
+                    <div style={{ width: "44px", height: "44px", borderRadius: "50%", border: "2px solid #2a2a2a", overflow: "hidden", background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <CassRecorder animState={animState} size="sm" />
+                    </div>
+                    <div style={{ position: "absolute", bottom: "1px", right: "1px", width: "10px", height: "10px", borderRadius: "50%", background: "#f5d000", border: "2px solid #0a0a0a" }} />
+                  </div>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#f8f8f6" }}>Cass</span>
+                </div>
+                <div />
+              </div>
+
+              {/* Message feed */}
+              <div
+                ref={chatScrollRef}
+                className="chat-scrollbar"
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: "20px 16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                  maxWidth: "600px",
+                  width: "100%",
+                  margin: "0 auto",
+                  boxSizing: "border-box",
+                }}
+              >
+                {chatMessages.map((msg, i) => (
+                  msg.role === "assistant" ? (
+                    <div key={i} style={{ maxWidth: "85%", animation: "cass-fade-up 0.3s ease forwards" }}>
+                      {msg.content.split("\n\n").map((para, j) => (
+                        <p key={j} style={{
+                          fontFamily: "'Lora', Georgia, serif",
+                          fontSize: "15px", lineHeight: "1.65",
+                          color: "#f8f8f6", margin: j > 0 ? "10px 0 0" : 0,
+                        }}>
+                          {para}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div key={i} style={{ display: "flex", justifyContent: "flex-end", animation: "cass-fade-up 0.3s ease forwards" }}>
+                      <div style={{
+                        background: "#3a3a3a",
+                        borderRadius: "18px 18px 4px 18px",
+                        padding: "10px 14px", maxWidth: "80%",
+                      }}>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.55", color: "#f8f8f6", margin: 0 }}>
+                          {msg.content}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                ))}
+
+                {/* Typing indicator */}
+                {isChatPending && (
+                  <div style={{ display: "flex", gap: "5px", alignItems: "center", paddingLeft: "2px", animation: "cass-fade-in 0.2s ease" }}>
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} style={{
+                        width: "7px", height: "7px", borderRadius: "50%",
+                        background: "#f5d000",
+                        animation: `chat-dot-pulse 1.2s ease-in-out ${i * 0.15}s infinite`,
+                      }} />
+                    ))}
+                  </div>
+                )}
+
+                {error && (
+                  <p style={{ color: "#ff6b6b", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", margin: 0 }}>
+                    {error}
+                  </p>
+                )}
+
+                {/* Continue chip */}
+                {showContinue && !isChatPending && (
+                  <div style={{ display: "flex", justifyContent: "flex-start", animation: "cass-fade-in 0.35s ease" }}>
+                    <button type="button" className="chat-chip" onClick={handleContinue}>
+                      Continue
+                      <span style={{ marginLeft: "6px", animation: "cass-blink 1.1s step-end infinite" }}>▶</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Input footer */}
+              {inputRevealed && !isChatPending && (
+                <div style={{
+                  background: "#0f0f0f",
+                  borderTop: "1px solid #1e1e1e",
+                  padding: "12px 16px",
+                  display: "flex",
+                  alignItems: "flex-end",
+                  gap: "10px",
+                  flexShrink: 0,
+                  animation: "cass-fade-up 0.25s ease forwards",
+                  maxWidth: "600px",
+                  width: "100%",
+                  margin: "0 auto",
+                  boxSizing: "border-box",
+                }}>
+                  <textarea
+                    autoFocus
+                    className="chat-textarea"
+                    value={chatInput}
+                    rows={1}
+                    onChange={(e) => {
+                      setChatInput(e.target.value);
+                      e.currentTarget.style.height = "auto";
+                      e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 120) + "px";
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        if (chatInput.trim()) handleChatSubmit();
+                      }
+                    }}
+                    placeholder="Type your reply…"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="chat-send-btn"
+                    onClick={handleChatSubmit}
+                    disabled={!chatInput.trim()}
+                    aria-label="Send"
+                  >
+                    <span className="material-icons">arrow_upward</span>
+                  </button>
+                </div>
+              )}
+
+            </div>
+          )}
+
       </div>{/* end onboarding-outer */}
     </>
   );
