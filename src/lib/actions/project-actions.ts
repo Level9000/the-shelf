@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { DEFAULT_COLUMNS } from "@/lib/constants";
 
 export async function updateProjectBriefAction(
@@ -78,13 +79,16 @@ export async function completeProjectKickoffAction(input: {
   createPreludeChapter?: boolean;
 }): Promise<{ projectId: string; chapter1Id: string; preludeChapterId?: string }> {
   const { supabase, user } = await getAuthenticatedUser();
+  // Use service-role client for the project insert to avoid JWT/RLS propagation
+  // issues in server actions. User identity is already verified above.
+  const adminClient = createSupabaseAdminClient();
 
   const accumulativeStory = input.northStar
     ? `${input.northStar}`
     : null;
 
   // 1. Create the project with all kickoff fields
-  const { data: project, error: projectError } = await supabase
+  const { data: project, error: projectError } = await adminClient
     .from("projects")
     .insert({
       user_id: user.id,

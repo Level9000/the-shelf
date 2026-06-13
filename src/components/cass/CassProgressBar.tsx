@@ -9,28 +9,44 @@
 export function CassProgressBar({ percent }: { percent: number }) {
   const clamped = Math.max(0, Math.min(100, percent));
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "3px",
-        background: "rgba(200,168,107,0.12)",
-        flexShrink: 0,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
+    <div style={{ flexShrink: 0 }}>
+      {/* Bar */}
       <div
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          height: "100%",
-          width: `${clamped}%`,
-          background: "linear-gradient(90deg, rgba(200,168,107,0.55) 0%, #c8a86b 100%)",
-          transition: "width 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
-          borderRadius: "0 2px 2px 0",
+          width: "100%",
+          height: "3px",
+          background: "rgba(200,168,107,0.12)",
+          position: "relative",
+          overflow: "hidden",
         }}
-      />
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            height: "100%",
+            width: `${clamped}%`,
+            background: "linear-gradient(90deg, rgba(200,168,107,0.55) 0%, #c8a86b 100%)",
+            transition: "width 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
+            borderRadius: "0 2px 2px 0",
+          }}
+        />
+      </div>
+      {/* PROGRESS label */}
+      <div style={{ padding: "4px 12px 0" }}>
+        <span style={{
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontSize: "9px",
+          fontWeight: 700,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          color: "#c8a86b",
+          opacity: 0.75,
+        }}>
+          Progress
+        </span>
+      </div>
     </div>
   );
 }

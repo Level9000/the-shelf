@@ -124,7 +124,8 @@ export const kickoffChapterPrefillSchema = z.object({
   goal: z.string().trim().max(2000).default(""),
   value: z.string().trim().max(2000).default(""),
   measure: z.string().trim().max(2000).default(""),
-  done: z.string().trim().max(2000).default(""),
+  // AI sometimes returns a boolean for `done` — coerce to string
+  done: z.union([z.string(), z.boolean()]).transform((v) => String(v === true ? "true" : v === false ? "" : v)).pipe(z.string().trim().max(2000)).default(""),
 });
 
 export const kickoffProposedChapterSchema = z.object({
@@ -219,7 +220,8 @@ export type AITaskChunking = z.infer<typeof aiTaskChunkingSchema>;
 
 // Moment 1 — Cass onboarding: extends kickoff with project_name derived from conversation
 export const cassOnboardingDialogueSchema = z.object({
-  reply: z.string().trim().min(1).max(8000),
+  // reply can be empty when done=true (Cass wraps up silently)
+  reply: z.string().trim().max(8000).default(""),
   done: z.boolean(),
   project_name: z.string().trim().max(120).default(""),
   north_star: z.string().trim().max(500).default(""),

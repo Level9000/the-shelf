@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { signInWithGoogleAction, signInWithAppleAction } from "@/lib/actions/auth-actions";
+import { signInWithGoogleAction, signInWithAppleAction, loginAction, signupAction } from "@/lib/actions/auth-actions";
 
 export function AuthForm({
   oauthError,
@@ -14,6 +14,27 @@ export function AuthForm({
 }) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState(false);
+
+  // Dev-only email login state
+  const isDev = process.env.NODE_ENV === "development";
+  const [devEmail, setDevEmail] = useState("");
+  const [devPassword, setDevPassword] = useState("");
+  const [devError, setDevError] = useState("");
+  const [devMode, setDevMode] = useState<"login" | "signup">("login");
+  const [devPending, setDevPending] = useState(false);
+
+  async function handleDevSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setDevError("");
+    setDevPending(true);
+    const fd = new FormData();
+    fd.append("email", devEmail);
+    fd.append("password", devPassword);
+    const action = devMode === "login" ? loginAction : signupAction;
+    const result = await action({ error: undefined }, fd);
+    if (result?.error) setDevError(result.error);
+    setDevPending(false);
+  }
 
   function requireTerms(e: React.FormEvent) {
     if (showTerms && !termsAccepted) {
@@ -209,6 +230,83 @@ export function AuthForm({
             {" "}and{" "}
             <Link href="/privacy" target="_blank" style={{ color: "rgba(255,255,255,0.45)", textDecoration: "underline" }}>Privacy Policy</Link>
           </p>
+        )}
+
+        {/* Dev-only email login */}
+        {isDev && (
+          <div style={{ width: "100%", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "20px", marginTop: "4px" }}>
+            <p style={{ fontFamily: "'Barlow Condensed', -apple-system, sans-serif", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", textAlign: "center", margin: "0 0 14px" }}>
+              ⚡ Dev login
+            </p>
+
+            {/* login / signup toggle */}
+            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+              {(["login", "signup"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setDevMode(m)}
+                  style={{
+                    flex: 1, padding: "6px", borderRadius: "8px", fontSize: "11px",
+                    fontFamily: "-apple-system, sans-serif", cursor: "pointer",
+                    background: devMode === m ? "rgba(255,255,255,0.1)" : "transparent",
+                    border: `1px solid ${devMode === m ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.08)"}`,
+                    color: devMode === m ? "#fff" : "rgba(255,255,255,0.35)",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {m === "login" ? "Sign in" : "Create account"}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleDevSubmit} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <input
+                type="email"
+                placeholder="email"
+                value={devEmail}
+                onChange={(e) => setDevEmail(e.target.value)}
+                required
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: "10px",
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+                  color: "#fff", fontSize: "14px", fontFamily: "-apple-system, sans-serif",
+                  outline: "none", boxSizing: "border-box",
+                }}
+              />
+              <input
+                type="password"
+                placeholder="password"
+                value={devPassword}
+                onChange={(e) => setDevPassword(e.target.value)}
+                required
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: "10px",
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+                  color: "#fff", fontSize: "14px", fontFamily: "-apple-system, sans-serif",
+                  outline: "none", boxSizing: "border-box",
+                }}
+              />
+              {devError && (
+                <p style={{ fontSize: "12px", color: "#ff6b5b", margin: 0, fontFamily: "-apple-system, sans-serif" }}>
+                  {devError}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={devPending}
+                style={{
+                  width: "100%", padding: "10px", borderRadius: "10px",
+                  background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
+                  color: "#fff", fontSize: "13px", fontFamily: "-apple-system, sans-serif",
+                  cursor: devPending ? "default" : "pointer", opacity: devPending ? 0.6 : 1,
+                  transition: "background 0.15s",
+                }}
+              >
+                {devPending ? "..." : devMode === "login" ? "Sign in →" : "Create account →"}
+              </button>
+            </form>
+          </div>
         )}
 
       </div>

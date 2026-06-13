@@ -35,7 +35,7 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth" className="h-full" suppressHydrationWarning>
       <head>
         {/* Prevent flash of wrong theme on load */}
-        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('shelf-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('shelf-theme')||'dark';document.documentElement.setAttribute('data-theme',t);if(!localStorage.getItem('shelf-theme'))localStorage.setItem('shelf-theme','dark');}catch(e){}` }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

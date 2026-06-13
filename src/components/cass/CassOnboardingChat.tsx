@@ -253,109 +253,457 @@ function QuickTapInput({
 }
 
 
+// ── Board / Story toggle demo ─────────────────────────────────────────────────
+
+function BoardStoryDemo() {
+  const [isBoard, setIsBoard] = useState(true);
+
+  // Auto-toggle: Board → Story → Board → Story …
+  useEffect(() => {
+    const sequence = [1400, 1400, 1400, 1400, 1400];
+    let idx = 0;
+    function tick() {
+      setIsBoard((v) => !v);
+      idx++;
+      if (idx < sequence.length) {
+        setTimeout(tick, sequence[idx]);
+      } else {
+        // loop forever after the initial sequence
+        const interval = setInterval(() => setIsBoard((v) => !v), 1600);
+        return () => clearInterval(interval);
+      }
+    }
+    const t = setTimeout(tick, sequence[0]);
+    return () => clearTimeout(t);
+  }, []);
+
+  const clip = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+      padding: "20px 0 8px", userSelect: "none",
+    }}>
+      {/* STORY label */}
+      <span style={{
+        fontFamily: "var(--font-cass)", fontSize: "18px", fontWeight: 700,
+        padding: "5px 14px",
+        background: !isBoard ? "#f5c84a" : "#e8dfc0",
+        clipPath: clip,
+        boxShadow: "2px 1px 5px rgba(0,0,0,0.35)",
+        color: !isBoard ? "#1a0e00" : "#9a8450",
+        transition: "color 0.28s, background 0.28s",
+      }}>
+        STORY
+      </span>
+
+      {/* Pill toggle */}
+      <div style={{
+        position: "relative", width: "48px", height: "26px",
+        background: isBoard ? "#1e1608" : "#151209",
+        borderRadius: "13px",
+        border: `1.5px solid ${isBoard ? "#c8880a" : "#3a2e10"}`,
+        boxShadow: isBoard
+          ? "inset 0 2px 6px rgba(0,0,0,0.6), 0 0 10px rgba(200,136,10,0.25)"
+          : "inset 0 2px 6px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05)",
+        flexShrink: 0,
+        transition: "background 0.3s, border-color 0.3s",
+      }}>
+        <div style={{
+          position: "absolute", top: "3px", left: "3px",
+          width: "18px", height: "18px", borderRadius: "50%",
+          background: isBoard
+            ? "radial-gradient(circle at 35% 30%, #ffd060, #c87010)"
+            : "radial-gradient(circle at 35% 30%, #c8b880, #7a6030)",
+          border: "1px solid #5a4820",
+          boxShadow: isBoard
+            ? "0 2px 5px rgba(0,0,0,0.6), 0 0 8px rgba(255,180,30,0.7), inset 0 1px 0 rgba(255,255,255,0.3)"
+            : "0 2px 5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15)",
+          transform: isBoard ? "translateX(22px)" : "translateX(0)",
+          transition: "transform 0.28s cubic-bezier(0.34, 1.45, 0.64, 1), background 0.28s, box-shadow 0.28s",
+        }} />
+      </div>
+
+      {/* BOARD label */}
+      <span style={{
+        fontFamily: "var(--font-cass)", fontSize: "18px", fontWeight: 700,
+        padding: "5px 14px",
+        background: isBoard ? "#f5c84a" : "#e8dfc0",
+        clipPath: clip,
+        boxShadow: "-2px 1px 5px rgba(0,0,0,0.35)",
+        color: isBoard ? "#1a0e00" : "#9a8450",
+        transition: "color 0.28s, background 0.28s",
+      }}>
+        BOARD
+      </span>
+    </div>
+  );
+}
+
+// ── Shared onboarding header ──────────────────────────────────────────────────
+
+function OnboardingHeader() {
+  return (
+    <>
+      <div style={{
+        background: "#0a0a0a", borderBottom: "1px solid #1e1e1e",
+        padding: "8px 16px", display: "flex",
+        alignItems: "center", justifyContent: "center", flexShrink: 0,
+      }}>
+        <img
+          src="/icons/authored-by-tape-icon.png"
+          alt="Authored By"
+          style={{ width: "auto", height: "52px", objectFit: "contain" }}
+        />
+      </div>
+      <div style={{
+        background: "#242424", padding: "6px 16px 0",
+        display: "flex", justifyContent: "center", flexShrink: 0,
+      }}>
+        <span style={{
+          fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600,
+          letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(248,248,246,0.25)",
+        }}>
+          Onboarding
+        </span>
+      </div>
+    </>
+  );
+}
+
 // ── Intro screen ──────────────────────────────────────────────────────────────
 
 function IntroScreen({ onComplete }: { onComplete: () => void }) {
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [textVisible, setTextVisible] = useState(true);
+  const [revealed, setRevealed] = useState(1);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const cassHeroRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const chipRef = useRef<HTMLDivElement>(null);
 
-  const slide = INTRO_SLIDES[slideIndex];
+  const current = INTRO_SLIDES[revealed - 1];
+  const isDone = current.isLast;
+
+  // Center the new chunk (slide + chip) vertically after each reveal
+  useEffect(() => {
+    if (revealed === 1) return;
+    const scrollEl = scrollRef.current;
+    const newSlideEl = slideRefs.current[revealed - 1];
+    const chipEl = chipRef.current;
+    if (!scrollEl || !newSlideEl) return;
+
+    // Use rAF to let React finish painting the new elements
+    requestAnimationFrame(() => {
+      const containerRect = scrollEl.getBoundingClientRect();
+      const slideTop = newSlideEl.getBoundingClientRect().top - containerRect.top + scrollEl.scrollTop;
+      const chipBottom = chipEl
+        ? chipEl.getBoundingClientRect().bottom - containerRect.top + scrollEl.scrollTop
+        : slideTop + 200;
+
+      const chunkHeight = chipBottom - slideTop;
+      const viewportHeight = scrollEl.clientHeight;
+      const targetScrollTop = slideTop - (viewportHeight - chunkHeight) / 2;
+
+      scrollEl.scrollTo({ top: Math.max(0, targetScrollTop), behavior: "smooth" });
+    });
+  }, [revealed]);
 
   function advance() {
-    setTextVisible(false);
-    setTimeout(() => {
-      if (slide.isLast) {
-        onComplete();
-      } else {
-        setSlideIndex((i) => i + 1);
-        setTextVisible(true);
-      }
-    }, 260);
-  }
-
-  function goBack() {
-    setTextVisible(false);
-    setTimeout(() => {
-      setSlideIndex((i) => i - 1);
-      setTextVisible(true);
-    }, 260);
+    if (isDone) { onComplete(); return; }
+    setRevealed((n) => n + 1);
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "520px", gap: "28px" }}>
-      <div style={{ display: "flex", gap: "8px" }}>
-        {INTRO_SLIDES.map((s, i) => (
-          <div key={s.id} style={{
-            width: i === slideIndex ? "20px" : "6px",
-            height: "6px",
-            borderRadius: "3px",
-            background: i === slideIndex ? "#c8a86b" : "rgba(200,168,107,0.2)",
-            transition: "all 0.3s ease",
-          }} />
-        ))}
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100dvh", animation: "cass-fade-in 0.4s ease" }}>
 
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "24px", width: "100%", minHeight: "160px" }}>
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center",
-          opacity: slide.showPress ? 1 : 0,
-          transform: slide.showPress ? "translateX(0) scale(1)" : "translateX(-50px) scale(0.9)",
-          transition: "opacity 0.45s ease, transform 0.45s ease",
-          pointerEvents: "none",
-        }}>
-          <PressMonitor animState={slide.showPress ? "talking" : "idle"} size="sm" />
-          <AvatarLabel name="Press" role="Presentation Designer" />
-        </div>
+      {/* Header */}
+      <OnboardingHeader />
 
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center",
-          transform: (slide.showTy || slide.showPress) ? "scale(0.88)" : "scale(1)",
-          transition: "transform 0.45s ease",
-          transformOrigin: "bottom center",
-        }}>
+      {/* Scrollable message feed */}
+      <div
+        ref={scrollRef}
+        className="chat-scrollbar"
+        style={{
+          flex: 1, overflowY: "auto",
+          padding: "32px 16px 20px",
+          display: "flex", flexDirection: "column", gap: "24px",
+          maxWidth: "600px", width: "100%", margin: "0 auto", boxSizing: "border-box",
+        }}
+      >
+        {/* Cass hero — full-size intro, anchored in the story */}
+        <div ref={cassHeroRef} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
           <CassRecorder animState="talking" size="md" />
-          <AvatarLabel name="Cass" role="Story Guide" />
+          <span style={{
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600,
+            letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)",
+          }}>Cass · Story Guide</span>
         </div>
 
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center",
-          opacity: slide.showTy ? 1 : 0,
-          transform: slide.showTy ? "translateX(0) scale(1)" : "translateX(50px) scale(0.9)",
-          transition: "opacity 0.45s ease, transform 0.45s ease",
-          pointerEvents: "none",
-        }}>
-          <TypewriterRecorder animState={slide.showTy ? "typing" : "idle"} size="sm" />
-          <AvatarLabel name="Ty" role="Narrative Writer" />
+        {/* Messages — each one stays in the scroll history */}
+        {INTRO_SLIDES.slice(0, revealed).map((slide, i) => {
+          const isLatest = i === revealed - 1;
+
+          // Which new character(s) appear for the first time on this slide?
+          const prevSlide = i > 0 ? INTRO_SLIDES[i - 1] : null;
+          const tyJustIntroduced = slide.showTy && !prevSlide?.showTy;
+          const pressJustIntroduced = slide.showPress && !prevSlide?.showPress;
+
+          return (
+            <div key={slide.id} ref={(el) => { slideRefs.current[i] = el; }} style={{ display: "flex", flexDirection: "column", gap: "16px", animation: isLatest ? "cass-fade-up 0.35s ease forwards" : "none" }}>
+
+              {/* Inline character introductions — stay anchored here in the scroll */}
+              {(tyJustIntroduced || pressJustIntroduced) && (
+                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "24px", marginBottom: "4px" }}>
+                  {pressJustIntroduced && (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", animation: isLatest ? "cass-fade-up 0.4s ease forwards" : "none" }}>
+                      <PressMonitor animState="talking" size="sm" />
+                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)" }}>Press · Presentation Designer</span>
+                    </div>
+                  )}
+                  {tyJustIntroduced && (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", animation: isLatest ? "cass-fade-up 0.4s ease 0.12s forwards" : "none", opacity: isLatest ? 0 : 1 }}>
+                      <TypewriterRecorder animState="typing" size="sm" />
+                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)" }}>Ty · Narrative Writer</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Board/Story demo — only on the "how it works" slide */}
+              {slide.id === "how-it-works" && <BoardStoryDemo />}
+
+              {/* Team trio — above the final lets-go message */}
+              {slide.id === "lets-go" && (
+                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "16px 0 16px", position: "relative" }}>
+                  {/* Press — back-left, scaled down */}
+                  <div style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: "5px",
+                    transform: "scale(0.72) translateY(8px)",
+                    transformOrigin: "bottom center",
+                    marginRight: "-24px",
+                    zIndex: 1,
+                    opacity: isLatest ? 0 : 0.75,
+                    filter: "brightness(0.75)",
+                    animation: isLatest ? "cass-fade-up 0.4s ease 0.2s forwards" : "none",
+                  }}>
+                    <PressMonitor animState="talking" size="sm" />
+                    <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(248,248,246,0.4)" }}>Press</span>
+                  </div>
+                  {/* Cass — front and center */}
+                  <div style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: "6px",
+                    zIndex: 3,
+                    filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.7))",
+                    opacity: isLatest ? 0 : 1,
+                    animation: isLatest ? "cass-fade-up 0.35s ease forwards" : "none",
+                  }}>
+                    <CassRecorder animState="talking" size="sm" />
+                    <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(248,248,246,0.65)" }}>Cass</span>
+                  </div>
+                  {/* Ty — back-right, scaled down */}
+                  <div style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: "5px",
+                    transform: "scale(0.72) translateY(8px)",
+                    transformOrigin: "bottom center",
+                    marginLeft: "-24px",
+                    zIndex: 1,
+                    opacity: isLatest ? 0 : 0.75,
+                    filter: "brightness(0.75)",
+                    animation: isLatest ? "cass-fade-up 0.4s ease 0.2s forwards" : "none",
+                  }}>
+                    <TypewriterRecorder animState="typing" size="sm" />
+                    <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(248,248,246,0.4)" }}>Ty</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Message text */}
+              <div style={{ maxWidth: "85%", margin: "0 auto", width: "100%" }}>
+                {slide.cassText.split("\n\n").map((para, j) => (
+                  <p key={j} style={{
+                    fontFamily: "'Lora', Georgia, serif", fontSize: "15px",
+                    lineHeight: "1.65", color: "#f8f8f6", margin: j > 0 ? "10px 0 0" : 0,
+                  }}>
+                    {para}
+                  </p>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Continue / start chip */}
+        <div ref={chipRef} style={{ display: "flex", justifyContent: "center" }}>
+          {isDone ? (
+            <button type="button" className="chat-chip" onClick={advance}
+              style={{ background: "#f5c84a", color: "#1a0e00", borderColor: "#f5c84a" }}>
+              Let&apos;s get started →
+            </button>
+          ) : (
+            <button type="button" className="chat-chip" onClick={advance}>
+              Continue
+              <span style={{ marginLeft: "6px", animation: "cass-blink 1.1s step-end infinite" }}>▶</span>
+            </button>
+          )}
         </div>
+
+        {/* Spacer so the chip sits near vertical center when scrolled to bottom */}
+        <div style={{ flexShrink: 0, height: "40vh" }} />
       </div>
 
+    </div>
+  );
+}
+
+// ── Voice input footer ────────────────────────────────────────────────────────
+
+function VoiceInputFooter({
+  value,
+  onChange,
+  onSubmit,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+}) {
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  function toggleVoice() {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const rec: SpeechRecognition = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    recognitionRef.current = rec;
+
+    let finalTranscript = value;
+
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalTranscript += (finalTranscript ? " " : "") + e.results[i][0].transcript.trim();
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      onChange(finalTranscript + (interim ? " " + interim : ""));
+    };
+
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+
+    rec.start();
+    setListening(true);
+  }
+
+  return (
+    <div style={{
+      padding: "12px 16px 20px",
+      flexShrink: 0,
+      animation: "cass-fade-up 0.25s ease forwards",
+      maxWidth: "600px",
+      width: "100%",
+      margin: "0 auto",
+      boxSizing: "border-box",
+    }}>
+    <div style={{
+      display: "flex",
+      alignItems: "flex-end",
+      gap: "10px",
+      marginLeft: "7.5%",
+    }}>
+      {/* Input bar with inline Voice button */}
       <div style={{
-        width: "100%",
-        opacity: textVisible ? 1 : 0,
-        transform: textVisible ? "translateY(0)" : "translateY(6px)",
-        transition: "opacity 0.26s ease, transform 0.26s ease",
+        flex: 1, display: "flex", alignItems: "flex-end",
+        background: "#2e2e2e", border: `1px solid ${listening ? "#f5c84a" : "#3a3a3a"}`,
+        borderRadius: "22px", overflow: "hidden",
+        transition: "border-color 0.15s",
+        boxShadow: listening ? "0 0 0 3px rgba(245,200,74,0.15)" : "none",
       }}>
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "14px", padding: "22px 26px" }}>
-          {slide.cassText.split("\n\n").map((para, i) => (
-            <p key={i} style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "16px", lineHeight: "1.65", color: "#d4cec4", margin: i > 0 ? "12px 0 0" : 0 }}>
-              {para}
-            </p>
-          ))}
-        </div>
+        <textarea
+          autoFocus
+          className="chat-textarea"
+          value={value}
+          rows={1}
+          onChange={(e) => {
+            onChange(e.target.value);
+            e.currentTarget.style.height = "auto";
+            e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 120) + "px";
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (value.trim()) onSubmit();
+            }
+          }}
+          placeholder="Type or tap voice to talk out loud…"
+          style={{ flex: 1, background: "transparent", border: "none", borderRadius: 0, padding: "9px 4px 9px 16px" }}
+        />
+        {/* Inline Voice button — hidden once user starts typing */}
+        <button
+          type="button"
+          onClick={toggleVoice}
+          aria-label={listening ? "Stop recording" : "Voice input"}
+          style={{
+            display: value.trim() && !listening ? "none" : "flex", alignItems: "center", gap: "5px",
+            background: listening ? "rgba(245,200,74,0.15)" : "transparent",
+            border: "none", borderLeft: `1px solid ${listening ? "rgba(245,200,74,0.3)" : "#3a3a3a"}`,
+            padding: "0 14px", height: "100%", minHeight: "40px",
+            cursor: "pointer", flexShrink: 0,
+            transition: "background 0.15s, border-color 0.15s",
+          }}
+          onMouseEnter={(e) => { if (!listening) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+          onMouseLeave={(e) => { if (!listening) e.currentTarget.style.background = "transparent"; }}
+        >
+          {/* Waveform icon */}
+          <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+            {[
+              { x: 0,  h: 4,  y: 5 },
+              { x: 3,  h: 8,  y: 3 },
+              { x: 6,  h: 14, y: 0 },
+              { x: 9,  h: 8,  y: 3 },
+              { x: 12, h: 4,  y: 5 },
+            ].map((bar, i) => (
+              <rect
+                key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
+                fill={listening ? "#f5c84a" : "#888"}
+                style={listening ? { animation: `chat-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
+              />
+            ))}
+          </svg>
+          <span style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: listening ? "#f5c84a" : "#888",
+            transition: "color 0.15s",
+          }}>
+            {listening ? "Stop" : "Voice"}
+          </span>
+        </button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%" }}>
-        {slide.isLast ? (
-          <TapeButton variant="primary" size="md" onClick={advance} className="w-full justify-center">
-            Let&apos;s get started →
-          </TapeButton>
-        ) : (
-          <TapeButton variant="secondary" size="sm" onClick={advance}>Next →</TapeButton>
-        )}
-        {slideIndex > 0 && (
-          <TapeButton variant="ghost" size="sm" onClick={goBack}>← Back</TapeButton>
-        )}
-      </div>
+      {/* Send button */}
+      <button
+        type="button"
+        className="chat-send-btn"
+        onClick={onSubmit}
+        disabled={!value.trim()}
+        aria-label="Send"
+      >
+        <span className="material-icons">arrow_upward</span>
+      </button>
+    </div>
     </div>
   );
 }
@@ -487,15 +835,15 @@ export function CassOnboardingChat({
 
   // ── Chat state for the multi-turn interview ──────────────────────────────
   type ChatMsg = { role: "user" | "assistant"; content: string };
-  const OPENING_QUESTION = "Great, so tell me about your business journey so far.";
+  const OPENING_QUESTION = "Great, so tell me about the project or business you are building. How's it going so far?";
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([
     { role: "assistant", content: OPENING_QUESTION },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [isChatPending, setIsChatPending] = useState(false);
   // Nintendo-style gating: user must press Continue after each Cass message
-  const [showContinue, setShowContinue] = useState(true);
-  const [inputRevealed, setInputRevealed] = useState(false);
+  const [showContinue, setShowContinue] = useState(false);
+  const [inputRevealed, setInputRevealed] = useState(true);
   const [chatDone, setChatDone] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -525,15 +873,12 @@ export function CassOnboardingChat({
     }
   }, [phase]);
 
-  // Auto-scroll to bottom when new messages arrive, but only if user is near bottom
+  // Auto-scroll to bottom whenever Cass sends a new message or typing indicator appears
   useEffect(() => {
     const el = chatScrollRef.current;
     if (!el) return;
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    if (isNearBottom) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    }
-  }, [chatMessages, isChatPending, showContinue]);
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [chatMessages, isChatPending]);
 
   async function handleChatSubmit() {
     const trimmed = chatInput.trim();
@@ -579,16 +924,16 @@ export function CassOnboardingChat({
           project_biggest_risk: data.project_biggest_risk ?? "",
         });
         setProposedChapters(data.proposed_chapters ?? []);
-        if (reply) {
-          setChatMessages([...newMessages, { role: "assistant", content: reply }]);
-        }
+        // Always show a closing message — use AI reply if present, otherwise a fixed wrap-up
+        const closingMessage = reply || "Thanks, I have everything I need. Let's take you to your project board.";
+        setChatMessages([...newMessages, { role: "assistant", content: closingMessage }]);
         setChatDone(true);
         setShowContinue(true);
         setAnimState("idle");
         // Transition happens when user presses Continue on the final message
       } else {
         setChatMessages([...newMessages, { role: "assistant", content: reply }]);
-        setShowContinue(true);
+        setInputRevealed(true);
         setAnimState("talking");
         setTimeout(() => setAnimState("listening"), 1600);
       }
@@ -624,7 +969,7 @@ export function CassOnboardingChat({
             createPreludeChapter: false,
           });
           await clearOnboardingDraftAction();
-          router.push(`/projects/${projectId}/chapters/${chapter1Id}`);
+          router.push(`/projects/${projectId}/chapters/${chapter1Id}/board`);
         } catch (err) {
           setError(err instanceof Error ? err.message : "Failed to set up project.");
           setPhase("interview");
@@ -646,10 +991,17 @@ export function CassOnboardingChat({
     setPhase("saving");
   }
 
+  // Count assistant turns to gauge interview progress (1 = opening, 2 = follow-up/risk, 3 = last question)
+  const assistantTurns = chatMessages.filter((m) => m.role === "assistant").length;
+  const interviewProgress =
+    assistantTurns >= 3 ? 75 :
+    assistantTurns === 2 ? 55 :
+    40;
+
   const progressPercent =
     phase === "intro"      ? 5  :
-    phase === "interview"  ? 40 :
-    phase === "generating" ? 65 :
+    phase === "interview"  ? interviewProgress :
+    phase === "generating" ? 85 :
     100;
 
   // ── Main layout ─────────────────────────────────────────────────────────────
@@ -700,42 +1052,42 @@ export function CassOnboardingChat({
         }
         .chat-send-btn {
           width: 36px; height: 36px; border-radius: 50%;
-          background: #f5d000; border: none; cursor: pointer;
+          background: #f5c84a; border: none; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0; transition: background 0.15s;
         }
         .chat-send-btn:disabled { background: #2e2e2e; cursor: default; }
-        .chat-send-btn:not(:disabled):hover { background: #ffd900; }
+        .chat-send-btn:not(:disabled):hover { background: #f0c040; }
         .chat-send-btn .material-icons { font-size: 18px; color: #0a0a0a; }
         .chat-send-btn:disabled .material-icons { color: #555; }
         .chat-chip {
           display: inline-flex; align-items: center;
           background: #1e1e1e; border: 1px solid #2e2e2e;
-          border-radius: 20px; padding: 6px 14px;
+          border-radius: 28px; padding: 12px 28px;
           font-family: 'Barlow Condensed', sans-serif;
-          font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+          font-size: 15px; font-weight: 600; letter-spacing: 0.12em;
           text-transform: uppercase; color: #999; cursor: pointer;
           transition: background 0.15s, color 0.15s;
           white-space: nowrap;
         }
-        .chat-chip:hover { background: #f5d000; color: #0a0a0a; }
+        .chat-chip:hover { background: #f5c84a; color: #1a0e00; }
         .chat-textarea {
           flex: 1; background: #2e2e2e;
           border: 1px solid #3a3a3a; border-radius: 22px;
           padding: 9px 16px;
           font-family: 'Lora', Georgia, serif; font-size: 14px; color: #f8f8f6;
-          caret-color: #f5d000; outline: none; resize: none;
+          caret-color: #f5c84a; outline: none; resize: none;
           min-height: 40px; max-height: 120px; line-height: 1.5;
           transition: border-color 0.15s;
           scrollbar-width: none;
         }
         .chat-textarea::placeholder { color: #666; }
-        .chat-textarea:focus { border-color: #f5d000; }
+        .chat-textarea:focus { border-color: #f5c84a; }
         .chat-scrollbar { scrollbar-width: none; }
         .chat-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
 
-      <div className={`onboarding-outer${phase === "interview" ? " phase-interview" : ""}`}>
+      <div className={`onboarding-outer${(phase === "interview" || phase === "intro") ? " phase-interview" : ""}`}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
           <CassProgressBar percent={progressPercent} />
         </div>
@@ -748,12 +1100,9 @@ export function CassOnboardingChat({
           >✕</button>
         )}
 
-        {/* Non-interview phases — centered layout */}
-        {phase !== "interview" && (
+        {/* Non-chat phases — centered layout */}
+        {phase !== "interview" && phase !== "intro" && (
         <div className="onboarding-content">
-
-          {/* ── Intro ── */}
-          {phase === "intro" && <IntroScreen onComplete={() => setPhase("interview")} />}
 
           {/* ── Generating ── */}
           {phase === "generating" && (
@@ -791,27 +1140,7 @@ export function CassOnboardingChat({
             }}>
 
               {/* Header */}
-              <div style={{
-                background: "#0a0a0a",
-                borderBottom: "1px solid #1e1e1e",
-                padding: "12px 16px",
-                display: "grid",
-                gridTemplateColumns: "40px 1fr 40px",
-                alignItems: "center",
-                flexShrink: 0,
-              }}>
-                <div />
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-                  <div style={{ position: "relative", width: "44px", height: "44px" }}>
-                    <div style={{ width: "44px", height: "44px", borderRadius: "50%", border: "2px solid #2a2a2a", overflow: "hidden", background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <CassRecorder animState={animState} size="sm" />
-                    </div>
-                    <div style={{ position: "absolute", bottom: "1px", right: "1px", width: "10px", height: "10px", borderRadius: "50%", background: "#f5d000", border: "2px solid #0a0a0a" }} />
-                  </div>
-                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#f8f8f6" }}>Cass</span>
-                </div>
-                <div />
-              </div>
+              <OnboardingHeader />
 
               {/* Message feed */}
               <div
@@ -832,7 +1161,14 @@ export function CassOnboardingChat({
               >
                 {chatMessages.map((msg, i) => (
                   msg.role === "assistant" ? (
-                    <div key={i} style={{ maxWidth: "85%", animation: "cass-fade-up 0.3s ease forwards" }}>
+                    <div key={i} style={{ maxWidth: "85%", width: "100%", margin: "0 auto", animation: "cass-fade-up 0.3s ease forwards" }}>
+                      {/* Cass fab — only above the first message */}
+                      {i === 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", marginBottom: "16px" }}>
+                          <CassRecorder animState={animState} size="sm" />
+                          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)" }}>Cass · Story Guide</span>
+                        </div>
+                      )}
                       {msg.content.split("\n\n").map((para, j) => (
                         <p key={j} style={{
                           fontFamily: "'Lora', Georgia, serif",
@@ -864,7 +1200,7 @@ export function CassOnboardingChat({
                     {[0, 1, 2].map((i) => (
                       <div key={i} style={{
                         width: "7px", height: "7px", borderRadius: "50%",
-                        background: "#f5d000",
+                        background: "#f5c84a",
                         animation: `chat-dot-pulse 1.2s ease-in-out ${i * 0.15}s infinite`,
                       }} />
                     ))}
@@ -879,7 +1215,7 @@ export function CassOnboardingChat({
 
                 {/* Continue chip */}
                 {showContinue && !isChatPending && (
-                  <div style={{ display: "flex", justifyContent: "flex-start", animation: "cass-fade-in 0.35s ease" }}>
+                  <div style={{ display: "flex", justifyContent: "center", animation: "cass-fade-in 0.35s ease" }}>
                     <button type="button" className="chat-chip" onClick={handleContinue}>
                       Continue
                       <span style={{ marginLeft: "6px", animation: "cass-blink 1.1s step-end infinite" }}>▶</span>
@@ -890,53 +1226,18 @@ export function CassOnboardingChat({
 
               {/* Input footer */}
               {inputRevealed && !isChatPending && (
-                <div style={{
-                  background: "#0f0f0f",
-                  borderTop: "1px solid #1e1e1e",
-                  padding: "12px 16px",
-                  display: "flex",
-                  alignItems: "flex-end",
-                  gap: "10px",
-                  flexShrink: 0,
-                  animation: "cass-fade-up 0.25s ease forwards",
-                  maxWidth: "600px",
-                  width: "100%",
-                  margin: "0 auto",
-                  boxSizing: "border-box",
-                }}>
-                  <textarea
-                    autoFocus
-                    className="chat-textarea"
-                    value={chatInput}
-                    rows={1}
-                    onChange={(e) => {
-                      setChatInput(e.target.value);
-                      e.currentTarget.style.height = "auto";
-                      e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 120) + "px";
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                        e.preventDefault();
-                        if (chatInput.trim()) handleChatSubmit();
-                      }
-                    }}
-                    placeholder="Type your reply…"
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    className="chat-send-btn"
-                    onClick={handleChatSubmit}
-                    disabled={!chatInput.trim()}
-                    aria-label="Send"
-                  >
-                    <span className="material-icons">arrow_upward</span>
-                  </button>
-                </div>
+                <VoiceInputFooter
+                  value={chatInput}
+                  onChange={setChatInput}
+                  onSubmit={handleChatSubmit}
+                />
               )}
 
             </div>
           )}
+
+        {/* ── Intro — full-height chat layout ── */}
+        {phase === "intro" && <IntroScreen onComplete={() => setPhase("interview")} />}
 
       </div>{/* end onboarding-outer */}
     </>

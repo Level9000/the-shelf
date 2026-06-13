@@ -10,16 +10,16 @@ const ThemeContext = createContext<{
 }>({ theme: "light", setTheme: () => {} });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>("dark");
 
-  // Sync from localStorage on mount
+  // Sync from localStorage on mount — default to dark for new users
   useEffect(() => {
     try {
       const stored = localStorage.getItem("shelf-theme") as Theme | null;
-      if (stored === "dark" || stored === "light") {
-        setThemeState(stored);
-        document.documentElement.setAttribute("data-theme", stored);
-      }
+      const resolved = (stored === "dark" || stored === "light") ? stored : "dark";
+      setThemeState(resolved);
+      document.documentElement.setAttribute("data-theme", resolved);
+      if (!stored) localStorage.setItem("shelf-theme", "dark");
     } catch { /* no-op in environments without localStorage */ }
   }, []);
 

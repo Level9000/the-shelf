@@ -73,7 +73,8 @@ function extractJsonObject(text: string): string {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) {
-    throw new Error(`Response did not contain a JSON object: ${text.slice(0, 120)}`);
+    // Model returned plain text — wrap it as a reply-only JSON so the fallback path can handle it
+    return JSON.stringify({ reply: text.trim(), done: false });
   }
   return text.slice(start, end + 1);
 }
@@ -952,9 +953,10 @@ export async function runCassOnboardingDialogue(input: {
   // rather than crashing. The AI may have returned malformed structured data
   // (e.g. booleans where strings expected) but the reply text is usually fine.
   const rawObj = safeJsonParse(extractJsonObject(rawText)) as Record<string, unknown> | null;
+  const isDone = rawObj?.done === true;
   const reply = typeof rawObj?.reply === "string" && rawObj.reply.trim()
     ? rawObj.reply.trim()
-    : rawText.replace(/\{[\s\S]*\}/, "").trim() || "Let me think about that for a second.";
+    : isDone ? "" : rawText.replace(/\{[\s\S]*\}/, "").trim() || "Let me think about that for a second.";
 
   console.warn("Cass onboarding schema validation failed, falling back to reply-only:", parsed.error.message);
 
