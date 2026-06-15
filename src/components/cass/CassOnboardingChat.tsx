@@ -993,13 +993,15 @@ export function CassOnboardingChat({
 
   // Count assistant turns to gauge interview progress (1 = opening, 2 = follow-up/risk, 3 = last question)
   const assistantTurns = chatMessages.filter((m) => m.role === "assistant").length;
+  const userTurns = chatMessages.filter((m) => m.role === "user").length;
   const interviewProgress =
     assistantTurns >= 3 ? 75 :
     assistantTurns === 2 ? 55 :
-    40;
+    userTurns > 0 ? 30 :
+    0;
 
   const progressPercent =
-    phase === "intro"      ? 5  :
+    phase === "intro"      ? 0  :
     phase === "interview"  ? interviewProgress :
     phase === "generating" ? 85 :
     100;

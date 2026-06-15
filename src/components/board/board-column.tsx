@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import type { BoardColumn, Task } from "@/types";
 import { TaskCard } from "@/components/tasks/task-card";
 import { TapeButton } from "@/components/ui/tape-button";
+import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
 
 const TAPE_CLIP = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
@@ -16,6 +17,29 @@ const TAPE_COLORS: Record<string, string> = {
   "Do Today":     "#bfdbfe",
   "Blocked":      "#fbcfe8",
   "Done":         "#bbf7d0",
+};
+
+// Warm cream base (#faf9f4) tinted with each column's accent at ~10%
+const COLUMN_BG_LIGHT: Record<string, string> = {
+  "Do This Week": "#faf7ec",
+  "Do Today":     "#f3f7fe",
+  "Blocked":      "#fdf3f8",
+  "Done":         "#f3faf6",
+};
+
+// Dark base (#1a1a1a) tinted with each column's accent at ~4%
+const COLUMN_BG_DARK: Record<string, string> = {
+  "Do This Week": "#1c1b16",
+  "Do Today":     "#151820",
+  "Blocked":      "#1e1519",
+  "Done":         "#151e18",
+};
+
+const EMPTY_STATE_MESSAGES: Record<string, string> = {
+  "Do This Week": "nothing planned yet",
+  "Do Today":     "nothing for today",
+  "Blocked":      "nothing blocked",
+  "Done":         "nothing finished yet",
 };
 
 export function BoardColumnView({
@@ -48,7 +72,22 @@ export function BoardColumnView({
     data: { type: "column", columnId: column.id },
   });
 
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const showDropHere = dragInProgress && isOver;
+  const colBg = isDark
+    ? (COLUMN_BG_DARK[column.name] ?? "#1a1a1a")
+    : (COLUMN_BG_LIGHT[column.name] ?? "#faf9f4");
+
+  const cardCountStyle: React.CSSProperties = {
+    fontFamily: "'Barlow Condensed', sans-serif",
+    fontSize: "10px",
+    fontWeight: 600,
+    letterSpacing: "0.14em",
+    textTransform: "uppercase",
+    color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.3)",
+  };
 
   return (
     <>
@@ -100,7 +139,7 @@ export function BoardColumnView({
         </div>
         {/* Card count */}
         <div style={{ padding: "6px 4px 0" }}>
-          <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(0,0,0,0.35)" }}>
+          <span style={cardCountStyle}>
             {tasks.length} card{tasks.length === 1 ? "" : "s"}
           </span>
         </div>
@@ -109,9 +148,13 @@ export function BoardColumnView({
       <section
         ref={setNodeRef}
         className={cn(
-          "surface flex min-h-[420px] min-w-0 flex-col border-b border-black/6 p-4 transition last:border-b-0 lg:border-b-0 lg:border-l-0 lg:border-t-0 lg:border-r lg:last:border-r-0 lg:pt-0",
+          "flex min-h-[calc(100dvh-56px)] min-w-0 flex-col border-b border-black/6 p-4 transition last:border-b-0 lg:border-b-0 lg:border-l-0 lg:border-t-0 lg:border-r lg:last:border-r-0 lg:pt-0",
           showDropHere && "ring-2 ring-[var(--accent)]/40",
         )}
+        style={{
+          background: colBg,
+          boxShadow: "0 24px 80px rgba(28,24,20,0.06)",
+        }}
       >
         {/* Desktop: full-width tape header */}
         <div className="hidden flex-col lg:flex -mx-4 mb-2">
@@ -159,7 +202,7 @@ export function BoardColumnView({
           </div>
           {/* Card count */}
           <div style={{ padding: "6px 4px 0" }}>
-            <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(0,0,0,0.35)" }}>
+            <span style={cardCountStyle}>
               {tasks.length} card{tasks.length === 1 ? "" : "s"}
             </span>
           </div>
@@ -202,6 +245,28 @@ export function BoardColumnView({
             )}
           </div>
         </SortableContext>
+
+        {/* Empty state */}
+        {tasks.length === 0 && !showDropHere && (
+          <div style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            paddingTop: "48px",
+          }}>
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.15)",
+            }}>
+              {EMPTY_STATE_MESSAGES[column.name] ?? "nothing here yet"}
+            </span>
+          </div>
+        )}
       </section>
     </>
   );

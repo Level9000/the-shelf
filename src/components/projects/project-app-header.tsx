@@ -6,89 +6,9 @@ import { Menu, Settings, X } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
 import { useTheme } from "@/lib/theme-context";
 
-// ── LED menu item ─────────────────────────────────────────────────────────────
+// ── Tape label (Story / Board toggle) ────────────────────────────────────────
 
-const BOTH_TORN_CLIP = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
-
-function LedItem({
-  active,
-  muted,
-  onClick,
-  children,
-}: {
-  active?: boolean;
-  muted?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  const [hover, setHover] = useState(false);
-
-  const bg = (active || hover)
-    ? "#f5c84a"
-    : muted
-    ? "rgba(232,212,176,0.45)"
-    : "#e8dfc0";
-
-  const textColor = (active || hover) ? "#1a0e00" : muted ? "rgba(26,14,0,0.45)" : "#3a2a0a";
-  const shadow = (active || hover) && !muted
-    ? "0 0 20px rgba(245,200,74,0.5), 0 2px 8px rgba(0,0,0,0.22)"
-    : "0 1px 4px rgba(0,0,0,0.10)";
-
-  return (
-    <div style={{ padding: "3px 0" }}>
-      <button
-        type="button"
-        onClick={onClick}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        style={{
-          width: "100%",
-          background: bg,
-          border: "none",
-          clipPath: BOTH_TORN_CLIP,
-          cursor: "pointer",
-          padding: "8px 28px 10px",
-          textAlign: "left",
-          display: "block",
-          fontFamily: "var(--font-cass)",
-          fontSize: "20px",
-          fontWeight: 700,
-          color: textColor,
-          textTransform: "uppercase",
-          fontStyle: muted ? "italic" : "normal",
-          letterSpacing: "0.01em",
-          lineHeight: 1.3,
-          boxShadow: shadow,
-          transform: (active || hover) && !muted ? "translateY(-1px)" : "translateY(0)",
-          transition: "background 0.15s, box-shadow 0.15s, color 0.15s, transform 0.12s",
-        }}
-      >
-        {children}
-      </button>
-    </div>
-  );
-}
-
-// Flat left edge, torn right edge — left side sits flush against the drawer wall
-const DRAWER_TAPE_CLIP = "polygon(0% 0%, calc(100% - 2px) 0%, 100% 20%, calc(100% - 4px) 48%, 100% 72%, calc(100% - 2px) 100%, 0% 100%)";
-
-function LedMenuHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ padding: "18px 16px 6px" }}>
-      <span style={{
-        fontFamily: "'Literata', Georgia, serif",
-        fontSize: "17px",
-        fontWeight: 700,
-        letterSpacing: "-0.02em",
-        color: "var(--ink)",
-      }}>
-        {children}
-      </span>
-    </div>
-  );
-}
-
-// ── Tape label ────────────────────────────────────────────────────────────────
+const TORN_CLIP = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
 
 function TapeLabel({
   children,
@@ -103,7 +23,6 @@ function TapeLabel({
   side: "left" | "right";
   onClick: () => void;
 }) {
-  const clip = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
   return (
     <span
       onClick={disabled ? undefined : onClick}
@@ -113,7 +32,7 @@ function TapeLabel({
         fontWeight: 700,
         padding: "5px 14px",
         background: active ? "#f5c84a" : "#e8dfc0",
-        clipPath: clip,
+        clipPath: TORN_CLIP,
         boxShadow: side === "left" ? "2px 1px 5px rgba(0,0,0,0.35)" : "-2px 1px 5px rgba(0,0,0,0.35)",
         color: active ? "#1a0e00" : disabled ? "#b8a870" : "#9a8450",
         cursor: disabled ? "default" : "pointer",
@@ -178,6 +97,88 @@ function PillToggle({ on, disabled, onClick }: { on: boolean; disabled?: boolean
   );
 }
 
+// ── Drawer nav item ───────────────────────────────────────────────────────────
+
+function NavItem({
+  active,
+  muted,
+  isDark,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  muted?: boolean;
+  isDark: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const [hover, setHover] = useState(false);
+
+  const activeBg   = isDark ? "rgba(245,200,74,0.08)"  : "rgba(160,100,10,0.07)";
+  const hoverBg    = isDark ? "rgba(255,255,255,0.04)"  : "rgba(0,0,0,0.04)";
+  const divider    = isDark ? "rgba(255,255,255,0.05)"  : "rgba(0,0,0,0.07)";
+  const activeClr  = isDark ? "#f5c84a"                 : "#8b5e0a";
+  const mutedClr   = isDark ? "rgba(245,200,74,0.35)"   : "rgba(160,100,10,0.5)";
+  const hoverClr   = isDark ? "#f8f8f6"                 : "rgba(26,14,0,0.9)";
+  const normalClr  = isDark ? "rgba(248,248,246,0.6)"   : "rgba(26,14,0,0.6)";
+  const dotClr     = isDark ? "#f5c84a"                 : "#8b5e0a";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        padding: "11px 20px",
+        background: active ? activeBg : hover && !muted ? hoverBg : "transparent",
+        border: "none",
+        borderTop: `1px solid ${divider}`,
+        cursor: "pointer",
+        textAlign: "left",
+        transition: "background 0.15s, color 0.15s",
+      }}
+    >
+      {active && (
+        <div style={{ width: "4px", height: "4px", borderRadius: "50%", background: dotClr, flexShrink: 0 }} />
+      )}
+      <span style={{
+        fontFamily: muted ? "'Barlow Condensed', sans-serif" : "'Lora', Georgia, serif",
+        fontSize: muted ? "15px" : "14px",
+        fontWeight: muted ? 600 : active ? 600 : 400,
+        letterSpacing: muted ? "0.12em" : "0",
+        textTransform: muted ? "uppercase" : "none",
+        color: active ? activeClr : muted ? mutedClr : hover ? hoverClr : normalClr,
+        lineHeight: 1.4,
+        transition: "color 0.15s",
+      }}>
+        {children}
+      </span>
+    </button>
+  );
+}
+
+// ── Drawer section header ─────────────────────────────────────────────────────
+
+function NavSectionHeader({ isDark, children }: { isDark: boolean; children: React.ReactNode }) {
+  return (
+    <div style={{ padding: "20px 20px 6px" }}>
+      <span style={{
+        fontFamily: "'Barlow Condensed', sans-serif",
+        fontSize: "13px", fontWeight: 700,
+        letterSpacing: "0.18em", textTransform: "uppercase",
+        color: isDark ? "rgba(245,200,74,0.4)" : "rgba(160,100,10,0.5)",
+      }}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
 // ── Main header ───────────────────────────────────────────────────────────────
 
 export function ProjectAppHeader({
@@ -200,7 +201,6 @@ export function ProjectAppHeader({
   const router = useRouter();
   const { theme } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  // Project selected in step 1 — waiting for track selection before navigating
   const [pendingProject, setPendingProject] = useState<ProjectWithChapters | null>(null);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
@@ -213,17 +213,7 @@ export function ProjectAppHeader({
   const isStory = activeNav === "story" || activeNav === "overview";
   const isDark = theme === "dark";
 
-  // The project whose tracks are shown in "Select Track"
   const displayedProject = pendingProject ?? currentProject;
-
-  // Nav drawer theme-aware colors
-  const drawerBg = isDark ? "#0d1109" : "#faf9f4";
-  const drawerBorder = isDark ? "#3a3010" : "rgba(26,14,0,0.10)";
-  const drawerShadow = isDark
-    ? "8px 0 40px rgba(0,0,0,0.95), inset -1px 0 0 rgba(255,180,30,0.04)"
-    : "8px 0 40px rgba(0,0,0,0.12)";
-  const drawerHeaderBorder = isDark ? "#1a1608" : "rgba(26,14,0,0.10)";
-  const drawerCloseColor = isDark ? "#7a6a2e" : "rgba(26,14,0,0.4)";
 
   function closeDrawer() {
     setDrawerOpen(false);
@@ -232,21 +222,17 @@ export function ProjectAppHeader({
 
   function handleProjectClick(p: ProjectWithChapters) {
     if (p.id === currentProjectId) {
-      // Tapping the active project clears any pending selection
       setPendingProject(null);
     } else if (p.chapters.length === 0) {
-      // No tracks to pick from — navigate directly
       router.push(`/projects/${p.id}`);
       closeDrawer();
     } else {
-      // Step 1: show this project's tracks, wait for track selection
       setPendingProject(p);
     }
   }
 
   function handleSelectChapter(ch: { id: string }) {
     if (pendingProject) {
-      // Step 2: navigate to the chosen track in the pending project
       router.push(`/projects/${pendingProject.id}/chapters/${ch.id}/board`);
       closeDrawer();
     } else if (isBoard) {
@@ -281,7 +267,7 @@ export function ProjectAppHeader({
 
   return (
     <>
-      {/* ── Panel ── */}
+      {/* ── Top bar ── */}
       <div
         style={{
           position: "relative",
@@ -297,13 +283,11 @@ export function ProjectAppHeader({
           transition: "background 0.25s, border-color 0.25s, box-shadow 0.25s",
         }}
       >
-
-        {/* ── Hamburger ── */}
+        {/* Hamburger */}
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
           style={{
-            fontFamily: "'Literata', Georgia, serif",
             width: "34px", height: "34px",
             borderRadius: "6px",
             background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
@@ -319,71 +303,64 @@ export function ProjectAppHeader({
           <Menu size={16} />
         </button>
 
-        {/* ── Project / Chapter breadcrumb — desktop only ── */}
+        {/* Breadcrumb — desktop only */}
         {currentProject && (
           <div className="hidden lg:block" style={{ zIndex: 1, minWidth: 0 }}>
             <span style={{
-              fontFamily: "'Literata', Georgia, serif",
-              fontSize: "14px",
-              fontWeight: 600,
-              letterSpacing: "-0.01em",
-              color: isDark ? "rgba(232,223,192,0.55)" : "rgba(26,14,0,0.45)",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              display: "block",
+              fontFamily: "'Lora', Georgia, serif",
+              fontSize: "18px", fontWeight: 500,
+              color: isDark ? "rgba(248,248,246,0.4)" : "rgba(26,14,0,0.45)",
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block",
             }}>
               {currentProject.name}{chapterNumber ? `: Chapter ${chapterNumber}` : ""}
             </span>
           </div>
         )}
 
-        {/* ── STORY / BOARD toggle — always absolutely centred ── */}
+        {/* STORY / BOARD toggle — absolutely centred */}
         <div
           style={{
-            position: "absolute",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            zIndex: 2,
+            position: "absolute", left: "50%", transform: "translateX(-50%)",
+            display: "flex", alignItems: "center", gap: "8px", zIndex: 2,
           }}
         >
-          <TapeLabel active={isStory} side="left" onClick={goStory}>
-            STORY
-          </TapeLabel>
+          <TapeLabel active={isStory} side="left" onClick={goStory}>STORY</TapeLabel>
           <PillToggle on={isBoard} disabled={!hasChapter} onClick={handlePillToggle} />
-          <TapeLabel active={isBoard} disabled={!hasChapter} side="right" onClick={goBoard}>
-            BOARD
-          </TapeLabel>
+          <TapeLabel active={isBoard} disabled={!hasChapter} side="right" onClick={goBoard}>BOARD</TapeLabel>
         </div>
 
-        {/* ── Settings ── */}
+        {/* Settings */}
         <div style={{ display: "flex", alignItems: "center", zIndex: 1, flexShrink: 0, marginLeft: "auto" }}>
           <button
             type="button"
             onClick={onOpenSettings}
             title="Settings"
             style={{
-              fontFamily: "'Literata', Georgia, serif",
-              width: "30px", height: "30px",
-              borderRadius: "50%",
-              background: "transparent",
-              border: "none",
+              width: "34px", height: "34px",
+              borderRadius: "6px",
+              background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+              border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.09)"}`,
               cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)",
+              color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)",
+              flexShrink: 0,
+              transition: "background 0.25s, border-color 0.25s, color 0.25s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.75)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)"; }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)";
+              e.currentTarget.style.color = isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.75)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
+              e.currentTarget.style.color = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)";
+            }}
           >
-            <Settings size={14} />
+            <Settings size={16} />
           </button>
         </div>
       </div>
 
-      {/* ── Navigation drawer (all screen sizes) ── */}
+      {/* ── Navigation drawer ── */}
       <div
         style={{
           position: "fixed", inset: 0, zIndex: 300,
@@ -405,83 +382,92 @@ export function ProjectAppHeader({
         <div style={{
           position: "absolute", left: 0, top: 0, bottom: 0,
           width: "280px",
-          background: drawerBg,
-          borderRight: `1.5px solid ${drawerBorder}`,
-          boxShadow: drawerShadow,
+          background: isDark ? "#181818" : "#faf9f4",
+          borderRight: `1px solid ${isDark ? "#282828" : "rgba(0,0,0,0.08)"}`,
+          boxShadow: isDark ? "8px 0 40px rgba(0,0,0,0.8)" : "8px 0 40px rgba(0,0,0,0.12)",
           transform: drawerOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), background 0.25s, border-color 0.25s",
+          transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
           display: "flex", flexDirection: "column",
           overflowY: "auto",
+          scrollbarWidth: "none",
         }}>
-          {/* Drawer close button */}
+
+          {/* Header — tape logo centered, X at right */}
           <div style={{
-            display: "flex", justifyContent: "flex-end",
-            padding: "10px 12px 8px",
-            borderBottom: `1px solid ${drawerHeaderBorder}`,
-            flexShrink: 0,
+            background: isDark ? "#0a0a0a" : "#f0ebe0",
+            borderBottom: `1px solid ${isDark ? "#1e1e1e" : "rgba(0,0,0,0.08)"}`,
+            padding: "10px 16px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            position: "relative", flexShrink: 0,
           }}>
+            <img
+              src="/icons/authored-by-tape-icon.png"
+              alt="Authored By"
+              style={{ height: "40px", width: "auto", objectFit: "contain" }}
+            />
             <button
               type="button"
               onClick={closeDrawer}
               style={{
-                fontFamily: "'Literata', Georgia, serif",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: drawerCloseColor,
-                padding: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                position: "absolute", right: "14px", top: "50%",
+                transform: "translateY(-50%)",
+                background: "transparent", border: "none",
+                color: isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.3)",
+                cursor: "pointer", padding: "4px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "color 0.2s",
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = isDark ? "rgba(248,248,246,0.8)" : "rgba(26,14,0,0.8)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.3)"; }}
             >
               <X size={15} />
             </button>
           </div>
 
-          {/* Project section */}
-          <LedMenuHeader>Select Project</LedMenuHeader>
+          {/* Projects */}
+          <NavSectionHeader isDark={isDark}>Select Project</NavSectionHeader>
           {projects.map((p) => (
-            <LedItem
+            <NavItem
               key={p.id}
+              isDark={isDark}
               active={p.id === (pendingProject?.id ?? currentProjectId)}
               onClick={() => handleProjectClick(p)}
             >
               {p.name}
-            </LedItem>
+            </NavItem>
           ))}
-          <LedItem muted onClick={() => { router.push("/projects/new"); closeDrawer(); }}>
+          <NavItem isDark={isDark} muted onClick={() => { router.push("/projects/new"); closeDrawer(); }}>
             + New Project
-          </LedItem>
+          </NavItem>
 
-          {/* Track section — shows pending project's tracks while waiting for step 2 */}
-          <LedMenuHeader>
+          {/* Chapters */}
+          <NavSectionHeader isDark={isDark}>
             {pendingProject ? `Chapters — ${pendingProject.name}` : "Select Chapter"}
-          </LedMenuHeader>
+          </NavSectionHeader>
           {pendingProject && (
             <div style={{
-              padding: "4px 14px 2px",
-              fontFamily: "var(--font-cass)",
-              fontSize: "11px",
-              letterSpacing: "0.1em",
-              color: isDark ? "rgba(200,168,107,0.55)" : "rgba(26,14,0,0.42)",
+              padding: "2px 20px 6px",
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "10px", letterSpacing: "0.1em",
+              color: isDark ? "rgba(245,200,74,0.3)" : "rgba(160,100,10,0.4)",
             }}>
               Pick a chapter to open ↓
             </div>
           )}
           {displayedProject?.chapters.map((ch, i) => (
-            <LedItem
+            <NavItem
               key={ch.id}
+              isDark={isDark}
               active={!pendingProject && ch.id === (currentChapterId ?? navChapterId)}
               onClick={() => handleSelectChapter(ch)}
             >
               Chapter {i + 1}
-            </LedItem>
+            </NavItem>
           ))}
           {!pendingProject && onPlanChapters && (
-            <LedItem muted onClick={() => { onPlanChapters?.(); closeDrawer(); }}>
+            <NavItem isDark={isDark} muted onClick={() => { onPlanChapters?.(); closeDrawer(); }}>
               + Plan new chapters
-            </LedItem>
+            </NavItem>
           )}
         </div>
       </div>

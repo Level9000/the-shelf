@@ -36,6 +36,7 @@ import type { Chapter } from "@/types";
 import { BoardColumnView } from "@/components/board/board-column";
 import { CassBoardDrawer, CassBoardFab } from "@/components/board/cass-board-drawer";
 import { MobileFab } from "@/components/ui/MobileFab";
+import { CassFirstChapterIntro } from "@/components/cass/CassFirstChapterIntro";
 import { resolveBannerState } from "@/components/board/chapter-progress-banner";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
@@ -267,13 +268,17 @@ export function ProjectBoardClient({
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   // When a modal opens during a drag, mark it cancelled so handleDragEnd skips the move
   const cancelDragRef = useRef(false);
-  const [cassOpen, setCassOpen] = useState(() => !!initialDrawerMode && !needsPaywall);
+  // Chapter 1 first-ever kickoff: show the cinematic intro instead of auto-opening the drawer
+  const isFirstChapterKickoff = initialDrawerMode === "kickoff" && chapterNumber === 1;
+  const [showCassIntro, setShowCassIntro] = useState(() => isFirstChapterKickoff && !needsPaywall);
+  const [cassOpen, setCassOpen] = useState(() => !!initialDrawerMode && !needsPaywall && !isFirstChapterKickoff);
   const [cassBreakupTaskId, setCassBreakupTaskId] = useState<string | null>(null);
   const [cassCompletedMode, setCassCompletedMode] = useState(false);
 
   // Re-open drawer when a forced mode is set from outside (e.g., "all done" → retro)
+  // Skip for chapter 1 kickoff — the intro overlay handles that case.
   useEffect(() => {
-    if (initialDrawerMode) {
+    if (initialDrawerMode && !isFirstChapterKickoff) {
       setCassBreakupTaskId(null);
       setCassCompletedMode(false);
       if (needsPaywall) {
@@ -282,7 +287,7 @@ export function ProjectBoardClient({
         setCassOpen(true);
       }
     }
-  }, [initialDrawerMode, needsPaywall]);
+  }, [initialDrawerMode, needsPaywall, isFirstChapterKickoff]);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -608,20 +613,19 @@ export function ProjectBoardClient({
             >
               {/* Mobile: one column at a time with swipe pagination */}
               <div className="p-4 sm:p-5 lg:hidden">
-                {/* Pagination dots — above the column header */}
-                <div className="flex justify-center gap-2.5 pb-4">
+                {/* Pagination indicators — above the column header */}
+                <div className="flex justify-center items-center gap-2 pb-4">
                   {snapshot.columns.map((column, i) => (
                     <button
                       key={column.id}
                       onClick={() => scrollToPage(i)}
                       aria-label={`Go to ${column.name}`}
                       type="button"
-                      style={{ fontFamily: "'Literata', Georgia, serif" }}
                       className={cn(
                         "h-2 rounded-full transition-all duration-200",
                         i === activePage
                           ? "w-6 bg-[var(--accent)]"
-                          : "w-2 bg-black/20",
+                          : "w-2 bg-white/30",
                       )}
                     />
                   ))}
@@ -802,40 +806,15 @@ export function ProjectBoardClient({
         </div>
       </Modal>
 
-      {/* Cass FAB — retro nudge / completed chapter / active chapter */}
-      {/* Mobile: plain + button */}
-      <div className="md:hidden">
-        <MobileFab onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }} />
-      </div>
-      {/* Desktop: animated Cass avatar */}
-      <div className="hidden md:block">
-        {retroNudge ? (
-          <CassBoardFab
-            onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
-            hoverText="Looks like the work is done. Let's recap this chapter together"
-            ringColor="green"
-          />
-        ) : snapshot.board.retroCompletedAt ? (
-          <CassBoardFab
-            onClick={() => { setCassCompletedMode(true); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
-            hoverText="This chapter is complete, need something new?"
-            expandedWidth="336px"
-            teaserText={fabTeaserText}
-            teaserExpandedWidth={fabTeaserWidth}
-            ringColor={fabRingColor}
-          />
-        ) : (
-          <CassBoardFab
-            onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }}
-            hoverText="What needs to get done?"
-            teaserText={fabTeaserText}
-            teaserExpandedWidth={fabTeaserWidth}
-            ringColor={fabRingColor}
-          />
-        )}
-      </div>
+      {/* FAB — plus circle on all screen sizes */}
+      <MobileFab onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }} />
 
       <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
+
+      {/* Chapter 1 first-ever kickoff: cinematic Cass intro overlay */}
+      {showCassIntro && (
+        <CassFirstChapterIntro onComplete={() => setShowCassIntro(false)} />
+      )}
 
       <CassBoardDrawer
         open={cassOpen}

@@ -7,13 +7,13 @@ export type TypewriterSize = "sm" | "md" | "lg";
 
 const SIZE_MAP: Record<TypewriterSize, number> = { sm: 160, md: 280, lg: 400 };
 
-// Key layout rows: [count, startX, y, keyW]
-// Rows start at y=147, 16px apart — keyboard bed starts at y=138
+// Key layout rows — each row is centered within the keyboard bed (x=12, width=256)
+// Row width = count × (keyW + gap) - gap; startX = 12 + (256 - rowWidth) / 2
 const KEY_ROWS = [
-  { count: 13, startX: 17, y: 147, keyW: 17 },
-  { count: 12, startX: 21, y: 163, keyW: 17 },
-  { count: 11, startX: 26, y: 179, keyW: 17 },
-  { count: 10, startX: 30, y: 195, keyW: 17 },
+  { count: 13, startX: 17, y: 147, keyW: 17 }, // rowW=245 → startX≈17 ✓
+  { count: 12, startX: 27, y: 163, keyW: 17 }, // rowW=226 → startX≈27
+  { count: 11, startX: 37, y: 179, keyW: 17 }, // rowW=207 → startX≈37
+  { count: 10, startX: 46, y: 195, keyW: 17 }, // rowW=188 → startX≈46
 ];
 const KEY_GAP = 2;
 const TOTAL_KEYS = KEY_ROWS.reduce((sum, r) => sum + r.count, 0); // 46

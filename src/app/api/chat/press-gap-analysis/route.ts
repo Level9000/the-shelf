@@ -14,10 +14,12 @@ export async function POST(request: Request) {
     messages?: Array<{ role?: string; content?: string }>;
     projectId?: string;
     outputType?: string;
+    audienceId?: string;
   };
 
   const projectId  = String(payload.projectId ?? "");
   const outputType = String(payload.outputType ?? "output");
+  const audienceId = payload.audienceId ? String(payload.audienceId) : null;
   const messages   = Array.isArray(payload.messages)
     ? payload.messages
         .map((m) => strategicDialogueMessageSchema.safeParse(m))
@@ -50,6 +52,7 @@ export async function POST(request: Request) {
       projectName: String(project.name),
       northStar:   (project.north_star as string | null) ?? null,
       outputType,
+      audienceId,
       chapters,
     });
     return NextResponse.json(result);

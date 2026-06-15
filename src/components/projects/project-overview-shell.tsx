@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowUp, Check, ChevronRight, LoaderCircle, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ArrowUp, ChevronRight, LoaderCircle, X } from "lucide-react";
 import type { AppUser, Chapter, ProjectMember, ProjectWithChapters, Task, UserProfile } from "@/types";
 import { useAvatar } from "@/lib/avatar-context";
 import { PRESS_TEMPLATES } from "@/lib/press/templates";
@@ -15,15 +14,17 @@ import { AvatarRecorder, useAvatarName } from "@/components/ui/AvatarRecorder";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
-import { TyFab } from "@/components/ui/TyFab";
+import { ShareFab } from "@/components/ui/ShareFab";
 import { PressFab } from "@/components/ui/PressFab";
 import { MobileFab } from "@/components/ui/MobileFab";
-import { createPlannedChaptersAction } from "@/lib/actions/project-actions";
 import { renderParagraphs } from "@/lib/render-paragraphs";
 import { useTheme } from "@/lib/theme-context";
 import { TapeButton } from "@/components/ui/tape-button";
 import { PaywallModal } from "@/components/paywall/paywall-modal";
+import { TyFirstStoryIntro } from "@/components/ui/TyFirstStoryIntro";
 import type { SubscriptionStatus } from "@/lib/subscription";
+
+const TY_INTRO_KEY = "ty_story_intro_seen";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -277,86 +278,34 @@ function ChatHistoryDrawer({
 
 // ── Shared drawer styles ──────────────────────────────────────────────────────
 
-const CASSB_STYLE = {
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(200,168,107,0.22)",
-  borderRadius: "12px 12px 12px 2px",
-  padding: "12px 16px",
-  fontFamily: "'Literata', Georgia, serif",
-  fontSize: "16px",
-  lineHeight: "1.65",
-  color: "#d4cec4",
-} as const;
+// ── Audience options ──────────────────────────────────────────────────────────
 
-const USER_BUBBLE_STYLE = {
-  background: "rgba(200,168,107,0.1)",
-  border: "1px solid rgba(200,168,107,0.22)",
-  borderRadius: "12px 12px 2px 12px",
-  padding: "10px 16px",
-  fontFamily: "'Literata', Georgia, serif",
-  fontSize: "14px",
-  lineHeight: "1.6",
-  color: "#c8a86b",
-  maxWidth: "80%",
-} as const;
+const AUDIENCE_OPTIONS = [
+  { id: "blog", label: "Blog post", description: "Tell your story in long form", templateId: "case-study" },
+  { id: "social", label: "Social media", description: "A punchy update for LinkedIn or X", templateId: "founder-memo" },
+  { id: "network", label: "Professional network", description: "Reach your professional contacts", templateId: "quarterly-update" },
+  { id: "leadership", label: "Leadership", description: "A memo for your team or board", templateId: "quarterly-update" },
+  { id: "investors", label: "Investors", description: "Make the case to funders", templateId: "investor-pitch" },
+] as const;
 
-function CassDot({ color = "#c8a86b" }: { color?: string } = {}) {
-  return (
-    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: color, flexShrink: 0, marginBottom: "10px" }} />
-  );
-}
-
-// ── Avatar name badge (reads from context) ────────────────────────────────────
-function AvatarNameBadge() {
-  const name = useAvatarName();
-  return (
-    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2.5px", color: "#c8a86b", textTransform: "uppercase", margin: "6px 0 0", opacity: 0.7 }}>
-      {name}
-    </p>
-  );
-}
+type DrawerMode = "audience" | "chat";
+type PlanMessage = { role: "user" | "assistant"; content: string };
 
 // ── Cass Chronicle drawer ─────────────────────────────────────────────────────
 
-type DrawerMode = "menu" | "planning" | "proposal" | "done" | "press_pick" | "press" | "press_intro";
-type PlanMessage = { role: "user" | "assistant"; content: string };
-
-
-const CHRONICLE_QUESTION = "What do you want to do?";
-
-function buildPlanOpening(project: ProjectWithChapters): string {
-  const active = project.chapters.find((ch) => ch.kickoffCompletedAt && !ch.retroCompletedAt);
-  if (project.chapters.length > 0) {
-    return `${active ? `You're currently working on "${active.name}". ` : ""}What are you hoping to tackle next? Tell me what's on your mind and we'll shape it into chapters together.`;
-  }
-  return `Let's plan out your first chapter${project.northStar ? ` for "${project.northStar}"` : ""}. What's the first big bet you want to make?`;
-}
-
 function CassChronicleDrawer({
   open,
-  startInPlanMode = false,
-  startInPressIntroMode = false,
   project,
   onClose,
-  onRefine,
 }: {
   open: boolean;
-  startInPlanMode?: boolean;
-  startInPressIntroMode?: boolean;
   project: ProjectWithChapters;
   onClose: () => void;
-  onRefine: () => void;
 }) {
-  const router = useRouter();
   const { setActiveAvatar } = useAvatar();
 
-  // ── Menu state ──
-  const [menuDisplayed, setMenuDisplayed] = useState("");
-  const [optionsReady, setOptionsReady] = useState(false);
-  const [menuSelected, setMenuSelected] = useState<string | null>(null);
-
-  // ── Mode ──
-  const [mode, setMode] = useState<DrawerMode>("menu");
+  const [mode, setMode] = useState<DrawerMode>("audience");
+  const [selectedAudience, setSelectedAudience] = useState<string | null>(null);
 
   // ── Press state ──
   const [pressTemplate, setPressTemplate] = useState<PressTemplate | null>(null);
@@ -368,33 +317,52 @@ function CassChronicleDrawer({
   const [isPressLoading, startPressTransition] = useTransition();
   const pressEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Scroll to bottom when press messages update
   useEffect(() => {
     queueMicrotask(() => pressEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
   }, [pressMessages, isPressLoading]);
 
-  function enterPressMode(template: PressTemplate) {
+  // Reset on open
+  useEffect(() => {
+    if (!open) return;
+    setMode("audience");
+    setSelectedAudience(null);
+    setPressTemplate(null);
+    setPressMessages([]);
+    setPressDraft("");
+    setPressError(null);
+    setPressReadyToGenerate(false);
+    setIsGenerating(false);
+    setActiveAvatar("ty");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function enterChatMode(audienceId: string) {
+    const audience = AUDIENCE_OPTIONS.find((a) => a.id === audienceId);
+    if (!audience) return;
+    const template = PRESS_TEMPLATES.find((t) => t.id === audience.templateId);
+    if (!template) return;
+
+    setSelectedAudience(audienceId);
     setPressTemplate(template);
     setPressMessages([]);
     setPressDraft("");
     setPressError(null);
     setPressReadyToGenerate(false);
     setIsGenerating(false);
-    setActiveAvatar("press");
-    setMode("press");
-    // Press opens with a gap analysis
+    setMode("chat");
+
     const opener: PlanMessage = { role: "user", content: `__press_open__:${template.label}` };
     startPressTransition(async () => {
       try {
         const res = await fetch("/api/chat/press-gap-analysis", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, outputType: template.label, messages: [opener] }),
+          body: JSON.stringify({ projectId: project.id, outputType: template.label, audienceId, messages: [opener] }),
         });
         const data = await res.json() as { reply?: string; ready_to_generate?: boolean; error?: string };
-        if (!res.ok) throw new Error(data.error ?? "Press couldn't load.");
+        if (!res.ok) throw new Error(data.error ?? "Couldn't connect.");
         const reply = data.reply?.trim() ?? "";
-        if (!reply) throw new Error("Press returned nothing.");
+        if (!reply) throw new Error("No response.");
         setPressMessages([{ role: "assistant", content: reply }]);
         if (data.ready_to_generate) setPressReadyToGenerate(true);
       } catch (err) {
@@ -415,7 +383,7 @@ function CassChronicleDrawer({
         const res = await fetch("/api/chat/press-gap-analysis", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, outputType: pressTemplate.label, messages: next }),
+          body: JSON.stringify({ projectId: project.id, outputType: pressTemplate.label, audienceId: selectedAudience, messages: next }),
         });
         const data = await res.json() as { reply?: string; ready_to_generate?: boolean; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Press failed.");
@@ -446,13 +414,12 @@ function CassChronicleDrawer({
         const err = await res.json() as { error?: string };
         throw new Error(err.error ?? "Generation failed.");
       }
-      // Trigger download
       const blob = await res.blob();
-      const ext  = pressTemplate.format;
+      const ext = pressTemplate.format;
       const name = `${project.name.toLowerCase().replace(/\s+/g, "-")}-${pressTemplate.id}.${ext}`;
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href     = url;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
       a.download = name;
       a.click();
       URL.revokeObjectURL(url);
@@ -463,683 +430,151 @@ function CassChronicleDrawer({
     }
   }
 
-  function exitPressMode() {
-    setActiveAvatar("ty");
-    setMode("menu");
-    setPressMessages([]);
-    setPressTemplate(null);
-    setPressReadyToGenerate(false);
-    setIsGenerating(false);
-  }
+  const progressPercent =
+    mode === "chat" && pressReadyToGenerate ? 90 :
+    mode === "chat" && pressMessages.length > 2 ? 60 :
+    mode === "chat" ? 30 :
+    10;
 
-  function enterPressIntroMode() {
-    setIntroMessages([]);
-    setIntroDraft("");
-    setIntroError(null);
-    setActiveAvatar("press");
-    setMode("press_intro");
-    const opener: PlanMessage = { role: "user", content: "__press_intro__" };
-    startIntroTransition(async () => {
-      try {
-        const res = await fetch("/api/chat/press-intro", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, messages: [opener] }),
-        });
-        const data = await res.json() as { reply?: string; ready_for_press?: boolean; error?: string };
-        if (!res.ok) throw new Error(data.error ?? "Press couldn't connect.");
-        const reply = data.reply?.trim() ?? "";
-        if (!reply) throw new Error("No response from Press.");
-        setIntroMessages([{ role: "assistant", content: reply }]);
-        if (data.ready_for_press) {
-          setTimeout(() => setMode("press_pick"), 800);
-        }
-      } catch (err) {
-        setIntroError(err instanceof Error ? err.message : "Signal lost. Stand by.");
-      }
-    });
-  }
-
-  function handleIntroSend() {
-    const content = introDraft.trim();
-    if (!content || isIntroLoading) return;
-    const next: PlanMessage[] = [...introMessages, { role: "user", content }];
-    setIntroMessages(next);
-    setIntroDraft("");
-    setIntroError(null);
-    startIntroTransition(async () => {
-      try {
-        const res = await fetch("/api/chat/press-intro", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, messages: next }),
-        });
-        const data = await res.json() as { reply?: string; ready_for_press?: boolean; error?: string };
-        if (!res.ok) throw new Error(data.error ?? "Press failed.");
-        const reply = data.reply?.trim() ?? "";
-        setIntroMessages((m) => [...m, { role: "assistant", content: reply }]);
-        if (data.ready_for_press) {
-          setTimeout(() => setMode("press_pick"), 800);
-        }
-      } catch (err) {
-        setIntroError(err instanceof Error ? err.message : "Signal lost. Stand by.");
-      }
-    });
-  }
-
-  // ── Planning state ──
-  const [planMessages, setPlanMessages] = useState<PlanMessage[]>([]);
-  const [draft, setDraft] = useState("");
-  const [planError, setPlanError] = useState<string | null>(null);
-  const [liveChapters, setLiveChapters] = useState<{ name: string; goal: string }[]>([]);
-  const [proposedChapters, setProposedChapters] = useState<{ name: string; goal: string }[]>([]);
-  const [removedIndices, setRemovedIndices] = useState<Set<number>>(new Set());
-  const [savedCount, setSavedCount] = useState(0);
-  const [isPending, startTransition] = useTransition();
-  const [isSaving, startSaveTransition] = useTransition();
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-
-  // ── Press intro state ──
-  const [introMessages, setIntroMessages] = useState<PlanMessage[]>([]);
-  const [introDraft, setIntroDraft] = useState("");
-  const [introError, setIntroError] = useState<string | null>(null);
-  const [isIntroLoading, startIntroTransition] = useTransition();
-  const introEndRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    queueMicrotask(() => introEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
-  }, [introMessages, isIntroLoading]);
-
-  const startInPlanModeRef = useRef(startInPlanMode);
-  useEffect(() => { startInPlanModeRef.current = startInPlanMode; }, [startInPlanMode]);
-
-  const startInPressIntroModeRef = useRef(startInPressIntroMode);
-  useEffect(() => { startInPressIntroModeRef.current = startInPressIntroMode; }, [startInPressIntroMode]);
-
-  // Scroll to bottom when messages update
-  useEffect(() => {
-    queueMicrotask(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
-  }, [planMessages, isPending]);
-
-  function enterPlanningMode() {
-    const opening = buildPlanOpening(project);
-    setPlanMessages([{ role: "assistant", content: opening }]);
-    setDraft("");
-    setPlanError(null);
-    setLiveChapters([]);
-    setProposedChapters([]);
-    setRemovedIndices(new Set());
-    setSavedCount(0);
-    setMode("planning");
-  }
-
-  // Reset on open
-  useEffect(() => {
-    if (!open) return;
-    setMenuDisplayed("");
-    setOptionsReady(false);
-    setMenuSelected(null);
-    setMode("menu");
-    setPlanMessages([]);
-    setDraft("");
-    setPlanError(null);
-    setLiveChapters([]);
-    setPressMessages([]);
-    setPressDraft("");
-    setPressTemplate(null);
-    setPressReadyToGenerate(false);
-    setIsGenerating(false);
-    setIntroMessages([]);
-    setIntroDraft("");
-    setIntroError(null);
-
-    if (startInPressIntroModeRef.current) {
-      enterPressIntroMode();
-      return;
-    }
-
-    setActiveAvatar("ty");
-
-    if (startInPlanModeRef.current) {
-      // Skip menu, go straight to planning
-      const opening = buildPlanOpening(project);
-      setPlanMessages([{ role: "assistant", content: opening }]);
-      setMode("planning");
-      return;
-    }
-
-    // Typewrite the menu question
-    let i = 0;
-    const id = setInterval(() => {
-      i++;
-      setMenuDisplayed(CHRONICLE_QUESTION.slice(0, i));
-      if (i >= CHRONICLE_QUESTION.length) {
-        clearInterval(id);
-        setTimeout(() => setOptionsReady(true), 200);
-      }
-    }, 26);
-    return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  async function sendMessage() {
-    const content = draft.trim();
-    if (!content || isPending) return;
-    const next: PlanMessage[] = [...planMessages, { role: "user", content }];
-    setPlanMessages(next);
-    setDraft("");
-    setPlanError(null);
-
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/chat/plan-chapters", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, messages: next, avatar: "ty" }),
-        });
-        const payload = await res.json();
-        if (!res.ok) throw new Error(payload.error ?? "Planning failed.");
-        const reply = payload.reply?.trim();
-        if (!reply) throw new Error("Empty response.");
-        setPlanMessages((m) => [...m, { role: "assistant", content: reply }]);
-        setLiveChapters(payload.chapters ?? []);
-        if (payload.done && payload.chapters?.length > 0) {
-          setProposedChapters(payload.chapters);
-          setMode("proposal");
-        }
-      } catch (err) {
-        setPlanError(err instanceof Error ? err.message : "Something went wrong.");
-      }
-    });
-  }
-
-  function handleConfirm() {
-    const toCreate = proposedChapters.filter((_, i) => !removedIndices.has(i));
-    if (!toCreate.length) return;
-    startSaveTransition(async () => {
-      try {
-        await createPlannedChaptersAction({
-          projectId: project.id,
-          chapters: toCreate,
-          conversation: planMessages,
-        });
-        setSavedCount(toCreate.length);
-        setMode("done");
-        router.refresh();
-      } catch (err) {
-        setPlanError(err instanceof Error ? err.message : "Failed to save chapters.");
-      }
-    });
-  }
-
-  const menuOptions = [
-    {
-      key: "plan",
-      label: "Plan chapters",
-      sub: "Map out what's coming next",
-      disabled: false,
-      onSelect: () => {
-        setMenuSelected("plan");
-        setTimeout(() => enterPlanningMode(), 380);
-      },
-    },
-    {
-      key: "refine",
-      label: "Refine the vision",
-      sub: "Sharpen your north star and narrative arc",
-      disabled: false,
-      onSelect: () => {
-        setMenuSelected("refine");
-        setTimeout(() => { onClose(); onRefine(); }, 380);
-      },
-    },
-    {
-      key: "press",
-      label: "Generate something with Press",
-      sub: "Turn your story into a pitch, post, or update",
-      disabled: false,
-      onSelect: () => {
-        setMenuSelected("press");
-        setTimeout(() => setMode("press_pick"), 380);
-      },
-    },
-  ];
-
-  const chronicleProgressPercent =
-    mode === "done" ? 100 :
-    mode === "proposal" ? 80 :
-    mode === "planning" ? 50 :
-    mode === "press" && pressReadyToGenerate ? 90 :
-    mode === "press" ? 60 :
-    mode === "press_pick" ? 30 :
-    15;
+  const audienceLabel = AUDIENCE_OPTIONS.find((a) => a.id === selectedAudience)?.label;
 
   return (
     <>
       <style>{`
-        @keyframes cassCaretBlink { 0%, 100% { opacity: 0.5; } 50% { opacity: 0; } }
-        @keyframes cassOptionIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes chronicleOptionIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes chronicleDotPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.9; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
       {/* Mobile backdrop */}
       <div
         className="fixed inset-0 z-40 lg:hidden"
-        style={{ background: "rgba(0,0,0,0.5)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.3s ease" }}
+        style={{ background: "rgba(0,0,0,0.6)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.3s ease" }}
         onClick={onClose}
       />
 
-      {/* Drawer */}
+      {/* Drawer panel */}
       <div
         className="fixed inset-y-0 right-0 z-50 flex w-full flex-col lg:w-[30%] lg:min-w-[360px]"
         style={{
-          background: "radial-gradient(ellipse at 20% 90%, rgba(200,168,107,0.06) 0%, transparent 60%), #0a0a0a",
+          background: "#242424",
           transform: open ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          boxShadow: open ? "-8px 0 40px rgba(0,0,0,0.4)" : "none",
+          transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+          boxShadow: open ? "-8px 0 40px rgba(0,0,0,0.5)" : "none",
         }}
         aria-hidden={!open}
       >
-        <CassProgressBar percent={chronicleProgressPercent} />
+        <CassProgressBar percent={progressPercent} />
 
-        {/* Header — consistent across all modes */}
-        <div style={{ flexShrink: 0, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px" }}>
-          {/* Back button — planning/proposal/press modes */}
-          {(mode === "planning" || mode === "proposal" || mode === "press_pick") && (
-            <div style={{ position: "absolute", top: "14px", left: "16px" }}>
-              <TapeButton variant="ghost" size="sm" onClick={() => setMode("menu")}>← back</TapeButton>
-            </div>
+        {/* Header */}
+        <div style={{
+          background: "#0a0a0a",
+          borderBottom: "1px solid #1e1e1e",
+          padding: "10px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          flexShrink: 0,
+        }}>
+          {mode === "chat" && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("audience");
+                setSelectedAudience(null);
+                setPressTemplate(null);
+                setPressMessages([]);
+                setPressDraft("");
+                setPressReadyToGenerate(false);
+              }}
+              style={{
+                position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)",
+                background: "transparent", border: "none", cursor: "pointer",
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "12px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase",
+                color: "rgba(248,248,246,0.35)", padding: "4px 6px",
+                transition: "color 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.75)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.35)"; }}
+            >
+              ← back
+            </button>
           )}
-          {(mode === "press" || mode === "press_intro") && (
-            <div style={{ position: "absolute", top: "14px", left: "16px" }}>
-              <TapeButton variant="ghost" size="sm" onClick={exitPressMode}>← back</TapeButton>
-            </div>
-          )}
+          <img
+            src="/icons/authored-by-tape-icon.png"
+            alt="Authored By"
+            style={{ height: "40px", width: "auto", objectFit: "contain" }}
+          />
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
             style={{
-              position: "absolute", top: "14px", right: "16px",
-              width: "32px", height: "32px",
+              position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)",
+              background: "transparent", border: "none", cursor: "pointer",
+              color: "rgba(248,248,246,0.3)", padding: "4px",
               display: "flex", alignItems: "center", justifyContent: "center",
-              borderRadius: "50%", background: "rgba(255,255,255,0.06)",
-              color: "#888", border: "none", cursor: "pointer",
-              transition: "background 0.15s, color 0.15s",
-              fontFamily: "'Literata', Georgia, serif",
+              transition: "color 0.2s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.8)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.3)"; }}
           >
-            <X size={14} />
+            <X size={15} />
           </button>
-
-          {/* Avatar */}
-          <AvatarRecorder animState={isPending ? "playing" : "idle"} size="sm" />
-          <AvatarNameBadge />
         </div>
 
-        <div style={{ height: "1px", background: "rgba(200,168,107,0.08)", flexShrink: 0 }} />
-
-        {/* ── Menu mode ── */}
-        {mode === "menu" && (
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-            {/* Cass question bubble */}
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
-              <CassDot />
-              <div style={CASSB_STYLE}>
-                {menuDisplayed}
-                {menuDisplayed.length > 0 && menuDisplayed.length < CHRONICLE_QUESTION.length && (
-                  <span style={{ opacity: 0.5, animation: "cassCaretBlink 0.9s step-end infinite" }}>▌</span>
-                )}
-              </div>
+        {/* ── Audience picker ── */}
+        {mode === "audience" && (
+          <div style={{ flex: 1, overflowY: "auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: "16px", scrollbarWidth: "none" }}>
+            {/* Ty FAB — anchored at top of feed */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+              <AvatarRecorder animState="idle" size="sm" />
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "10px", fontWeight: 600,
+                letterSpacing: "0.14em", textTransform: "uppercase",
+                color: "rgba(248,248,246,0.35)",
+              }}>
+                Ty · Story Publisher
+              </span>
             </div>
-            {/* Options */}
-            {optionsReady && !menuSelected && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingTop: "4px" }}>
-                {menuOptions.map(({ key, label, sub, disabled, onSelect }, i) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={onSelect ?? undefined}
-                    disabled={disabled}
-                    style={{
-                      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)",
-                      borderRadius: "12px", padding: "14px 16px",
-                      display: "flex", alignItems: "center", gap: "14px",
-                      cursor: disabled ? "not-allowed" : "pointer",
-                      textAlign: "left", width: "100%",
-                      transition: "border-color 0.15s, background 0.15s",
-                      opacity: disabled ? 0.35 : 1,
-                      animation: "cassOptionIn 0.28s ease forwards",
-                      animationDelay: `${i * 110}ms`,
-                      fontFamily: "'Literata', Georgia, serif",
-                    }}
-                    onMouseEnter={(e) => { if (!disabled) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; } }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-                  >
-                    <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
-                    <div>
-                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>{label}</p>
-                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{sub}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-            {/* Selected echo */}
-            {menuSelected && (
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <div style={USER_BUBBLE_STYLE}>{menuOptions.find((o) => o.key === menuSelected)?.label}</div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Planning mode ── */}
-        {mode === "planning" && (
-          <>
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 16px", display: "flex", flexDirection: "column", gap: "14px" }}>
-              {planMessages.map((msg, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: "10px" }}>
-                  {msg.role === "assistant" && <CassDot />}
-                  <div style={msg.role === "assistant" ? { ...CASSB_STYLE, maxWidth: "92%" } : USER_BUBBLE_STYLE}>
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-              {isPending && (
-                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
-                  <CassDot />
-                  <div style={{ ...CASSB_STYLE, display: "flex", gap: "5px", alignItems: "center" }}>
-                    {[0, 1, 2].map((d) => (
-                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#c8a86b", opacity: 0.4, animation: `cassCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {planError && (
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{planError}</p>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Live chapter tally — subtle, shown when chapters are forming */}
-            {liveChapters.length > 0 && (
-              <div style={{ flexShrink: 0, padding: "6px 20px", borderTop: "1px solid rgba(200,168,107,0.08)" }}>
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
-                  {liveChapters.length} chapter{liveChapters.length !== 1 ? "s" : ""} taking shape…
-                </p>
-              </div>
-            )}
-
-            {/* Input */}
-            <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "14px 16px" }}>
-              <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
-                <textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  placeholder="Tell me what you want to work on next…"
-                  rows={2}
-                  disabled={isPending}
-                  style={{
-                    flex: 1, background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px",
-                    padding: "10px 14px", resize: "none",
-                    fontFamily: "'Special Elite', cursive", fontSize: "14px",
-                    lineHeight: 1.6, color: "#d4cec4", outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
+            <p style={{
+              fontFamily: "'Lora', Georgia, serif",
+              fontSize: "17px",
+              lineHeight: "1.55",
+              color: "rgba(248,248,246,0.85)",
+              margin: 0,
+              padding: "0 2px",
+            }}>
+              Who would you like to share your story with?
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {AUDIENCE_OPTIONS.map(({ id, label, description }, i) => (
                 <button
+                  key={id}
                   type="button"
-                  onClick={sendMessage}
-                  disabled={!draft.trim() || isPending}
+                  onClick={() => enterChatMode(id)}
                   style={{
-                    width: "40px", height: "40px", flexShrink: 0,
-                    borderRadius: "50%", border: "none", cursor: draft.trim() && !isPending ? "pointer" : "not-allowed",
-                    background: draft.trim() && !isPending ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "background 0.15s",
-                    fontFamily: "'Literata', Georgia, serif",
-                  }}
-                >
-                  {isPending
-                    ? <LoaderCircle size={16} style={{ color: "#c8a86b", animation: "spin 1s linear infinite" }} />
-                    : <ArrowUp size={16} style={{ color: draft.trim() ? "#0a0a0a" : "#555" }} />
-                  }
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ── Proposal mode ── */}
-        {mode === "proposal" && (
-          <>
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-              {/* Cass intro */}
-              <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%", marginBottom: "6px" }}>
-                <CassDot />
-                <div style={CASSB_STYLE}>
-                  Here&apos;s what I put together. Remove any you don&apos;t need — you can always plan more later.
-                </div>
-              </div>
-              {/* Chapter cards */}
-              {proposedChapters.map((ch, i) =>
-                removedIndices.has(i) ? null : (
-                  <div
-                    key={i}
-                    style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(200,168,107,0.2)",
-                      borderRadius: "14px", padding: "14px 16px",
-                      position: "relative",
-                    }}
-                  >
-                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: "0 0 4px" }}>
-                      Chapter {project.chapters.length + i - [...removedIndices].filter((r) => r < i).length + 1}
-                    </p>
-                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "15px", color: "#d4cec4", margin: 0 }}>{ch.name}</p>
-                    {ch.goal && (
-                      <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: "6px 0 0", lineHeight: 1.5 }}>{ch.goal}</p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setRemovedIndices((prev) => new Set([...prev, i]))}
-                      aria-label="Remove"
-                      style={{
-                        position: "absolute", top: "10px", right: "10px",
-                        width: "24px", height: "24px", borderRadius: "50%",
-                        background: "transparent", border: "none", cursor: "pointer",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        color: "rgba(200,168,107,0.3)", transition: "background 0.15s, color 0.15s",
-                        fontFamily: "'Literata', Georgia, serif",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.12)"; e.currentTarget.style.color = "#f87171"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(200,168,107,0.3)"; }}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                )
-              )}
-              {planError && (
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{planError}</p>
-              )}
-            </div>
-
-            {/* Confirm bar */}
-            <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-              <TapeButton variant="ghost" size="sm" onClick={() => setMode("planning")}>← back to chat</TapeButton>
-              <TapeButton
-                variant="primary"
-                size="md"
-                onClick={handleConfirm}
-                disabled={isSaving || proposedChapters.filter((_, i) => !removedIndices.has(i)).length === 0}
-              >
-                {isSaving ? "Saving…" : `Add ${proposedChapters.filter((_, i) => !removedIndices.has(i)).length} chapter${proposedChapters.filter((_, i) => !removedIndices.has(i)).length !== 1 ? "s" : ""} to story`}
-              </TapeButton>
-            </div>
-          </>
-        )}
-
-        {/* ── Done mode ── */}
-        {mode === "done" && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 28px", gap: "24px" }}>
-            <AvatarRecorder animState="idle" size="sm" />
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "3px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 10px" }}>
-                Chapters planned
-              </p>
-              <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "22px", color: "#d4cec4", margin: 0, lineHeight: 1.3 }}>
-                {savedCount} {savedCount === 1 ? "chapter" : "chapters"} added to your story
-              </p>
-              <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.4)", margin: "10px 0 0", lineHeight: 1.6 }}>
-                Each one is ready to kick off whenever you are.
-              </p>
-            </div>
-            <TapeButton variant="primary" size="md" onClick={onClose}>Done</TapeButton>
-          </div>
-        )}
-
-        {/* ── Press: introduction ── */}
-        {mode === "press_intro" && (
-          <>
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 16px", display: "flex", flexDirection: "column", gap: "14px" }}>
-
-              {/* Loading opener */}
-              {isIntroLoading && introMessages.length === 0 && (
-                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
-                  <CassDot />
-                  <div style={{ ...CASSB_STYLE, display: "flex", gap: "5px", alignItems: "center" }}>
-                    {[0, 1, 2].map((d) => (
-                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#F59E0B", opacity: 0.5, animation: `cassCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Intro messages */}
-              {introMessages.map((msg, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: "10px" }}>
-                  {msg.role === "assistant" && <CassDot color="#F59E0B" />}
-                  <div style={msg.role === "assistant"
-                    ? { ...CASSB_STYLE, maxWidth: "92%", borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }
-                    : USER_BUBBLE_STYLE}>
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-
-              {isIntroLoading && introMessages.length > 0 && (
-                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
-                  <CassDot color="#F59E0B" />
-                  <div style={{ ...CASSB_STYLE, display: "flex", gap: "5px", alignItems: "center" }}>
-                    {[0, 1, 2].map((d) => (
-                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#F59E0B", opacity: 0.5, animation: `cassCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {introError && (
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{introError}</p>
-              )}
-
-              {/* CTA to generate — shown once Press has introduced herself */}
-              {introMessages.length > 0 && !isIntroLoading && (
-                <div style={{ marginTop: "8px" }}>
-                  <div style={{ display: "flex", justifyContent: "center" }}>
-                    <TapeButton
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      onClick={() => setMode("press_pick")}
-                    >
-                      Let&apos;s publish something →
-                    </TapeButton>
-                  </div>
-                </div>
-              )}
-
-              <div ref={introEndRef} />
-            </div>
-
-            {/* Reply input */}
-            {introMessages.length > 0 && (
-              <div style={{ flexShrink: 0, borderTop: "1px solid rgba(245,158,11,0.1)", padding: "12px 16px 16px", display: "flex", gap: "10px", alignItems: "flex-end" }}>
-                <textarea
-                  value={introDraft}
-                  onChange={(e) => setIntroDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleIntroSend(); } }}
-                  placeholder="Say something to Press…"
-                  rows={2}
-                  style={{
-                    flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(245,158,11,0.15)",
-                    borderRadius: "10px", padding: "10px 14px", color: "#d4cec4",
-                    fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.5",
-                    resize: "none", outline: "none", transition: "border-color 0.15s",
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = "rgba(245,158,11,0.4)"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "rgba(245,158,11,0.15)"; }}
-                  disabled={isIntroLoading}
-                />
-                <button
-                  type="button"
-                  onClick={handleIntroSend}
-                  disabled={!introDraft.trim() || isIntroLoading}
-                  style={{
-                    width: "38px", height: "38px", borderRadius: "50%",
-                    background: introDraft.trim() ? "#F59E0B" : "rgba(245,158,11,0.15)",
-                    border: "none", cursor: introDraft.trim() ? "pointer" : "not-allowed",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "background 0.15s", flexShrink: 0,
-                    fontFamily: "'Literata', Georgia, serif",
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M7 12V2M7 2L2 7M7 2L12 7" stroke={introDraft.trim() ? "#0a0a0a" : "rgba(245,158,11,0.4)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ── Press: output type picker ── */}
-        {mode === "press_pick" && (
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
-              <CassDot />
-              <div style={CASSB_STYLE}>
-                What are we publishing?
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingTop: "4px" }}>
-              {PRESS_TEMPLATES.map((tmpl, i) => (
-                <button
-                  key={tmpl.id}
-                  type="button"
-                  onClick={() => enterPressMode(tmpl)}
-                  style={{
-                    background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)",
-                    borderRadius: "12px", padding: "14px 16px",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(245,200,74,0.15)",
+                    borderRadius: "12px",
+                    padding: "14px 16px",
                     display: "flex", alignItems: "center", gap: "14px",
                     cursor: "pointer", textAlign: "left", width: "100%",
                     transition: "border-color 0.15s, background 0.15s",
-                    animation: "cassOptionIn 0.28s ease forwards",
-                    animationDelay: `${i * 110}ms`,
+                    animation: "chronicleOptionIn 0.28s ease forwards",
+                    animationDelay: `${i * 80}ms`,
                     opacity: 0,
-                    fontFamily: "'Literata', Georgia, serif",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(245,200,74,0.4)"; e.currentTarget.style.background = "rgba(245,200,74,0.06)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(245,200,74,0.15)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
                 >
-                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(245,200,74,0.4)", background: "transparent" }} />
                   <div>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>{tmpl.label}</p>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{tmpl.description}</p>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "rgba(248,248,246,0.9)", margin: 0, lineHeight: "1.3" }}>{label}</p>
+                    <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "12px", letterSpacing: "0.05em", color: "rgba(248,248,246,0.4)", margin: "3px 0 0" }}>{description}</p>
                   </div>
                 </button>
               ))}
@@ -1147,132 +582,195 @@ function CassChronicleDrawer({
           </div>
         )}
 
-        {/* ── Press: gap analysis chat ── */}
-        {mode === "press" && (
+        {/* ── Chat mode (gap analysis) ── */}
+        {mode === "chat" && (
           <>
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 16px", display: "flex", flexDirection: "column", gap: "14px" }}>
-              {/* Output type label */}
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <span style={{ fontFamily: "var(--font-cass)", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(200,168,107,0.4)", border: "1px solid rgba(200,168,107,0.15)", borderRadius: "999px", padding: "3px 12px" }}>
-                  {pressTemplate?.label ?? ""}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "12px", scrollbarWidth: "none" }}>
+              {/* Ty FAB — anchored at top of feed */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                <AvatarRecorder animState={isPressLoading ? "playing" : "idle"} size="sm" />
+                <span style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: "10px", fontWeight: 600,
+                  letterSpacing: "0.14em", textTransform: "uppercase",
+                  color: "rgba(248,248,246,0.35)",
+                }}>
+                  Ty · Story Publisher
                 </span>
               </div>
-
-              {/* Loading opener */}
-              {isPressLoading && pressMessages.length === 0 && (
-                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
-                  <CassDot />
-                  <div style={{ ...CASSB_STYLE, display: "flex", gap: "5px", alignItems: "center" }}>
-                    {[0, 1, 2].map((d) => (
-                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#c8a86b", opacity: 0.4, animation: `cassCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
-                    ))}
-                  </div>
+              {/* Audience label pill */}
+              {audienceLabel && (
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <span style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontSize: "10px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase",
+                    color: "rgba(245,200,74,0.6)",
+                    border: "1px solid rgba(245,200,74,0.2)",
+                    borderRadius: "999px", padding: "3px 12px",
+                  }}>
+                    {audienceLabel}
+                  </span>
                 </div>
               )}
 
-              {/* Press messages */}
+              {/* Loading skeleton (first message) */}
+              {isPressLoading && pressMessages.length === 0 && (
+                <div style={{ display: "flex", gap: "5px", alignItems: "center", padding: "4px 2px" }}>
+                  {[0, 1, 2].map((d) => (
+                    <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#f5c84a", opacity: 0.4, animation: `chronicleDotPulse 1.1s ease-in-out ${d * 0.18}s infinite` }} />
+                  ))}
+                </div>
+              )}
+
+              {/* Messages */}
               {pressMessages.map((msg, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: "10px" }}>
-                  {msg.role === "assistant" && <CassDot />}
-                  <div style={msg.role === "assistant" ? { ...CASSB_STYLE, maxWidth: "92%" } : USER_BUBBLE_STYLE}>
-                    {msg.content}
-                  </div>
+                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
+                  {msg.role === "assistant" ? (
+                    <p style={{
+                      fontFamily: "'Lora', Georgia, serif",
+                      fontSize: "15px",
+                      lineHeight: "1.65",
+                      color: "rgba(248,248,246,0.82)",
+                      margin: 0,
+                      maxWidth: "92%",
+                    }}>
+                      {msg.content}
+                    </p>
+                  ) : (
+                    <div style={{
+                      background: "rgba(245,200,74,0.1)",
+                      border: "1px solid rgba(245,200,74,0.2)",
+                      borderRadius: "16px 16px 4px 16px",
+                      padding: "10px 14px",
+                      fontFamily: "'Lora', Georgia, serif",
+                      fontSize: "14px",
+                      lineHeight: "1.55",
+                      color: "rgba(248,248,246,0.8)",
+                      maxWidth: "80%",
+                    }}>
+                      {msg.content}
+                    </div>
+                  )}
                 </div>
               ))}
 
+              {/* Typing indicator */}
               {isPressLoading && pressMessages.length > 0 && (
-                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
-                  <CassDot />
-                  <div style={{ ...CASSB_STYLE, display: "flex", gap: "5px", alignItems: "center" }}>
-                    {[0, 1, 2].map((d) => (
-                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#c8a86b", opacity: 0.4, animation: `cassCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
-                    ))}
-                  </div>
+                <div style={{ display: "flex", gap: "5px", alignItems: "center", padding: "4px 2px" }}>
+                  {[0, 1, 2].map((d) => (
+                    <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#f5c84a", opacity: 0.4, animation: `chronicleDotPulse 1.1s ease-in-out ${d * 0.18}s infinite` }} />
+                  ))}
                 </div>
               )}
 
               {pressError && (
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{pressError}</p>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{pressError}</p>
               )}
 
+              {/* Generate CTA */}
               {pressReadyToGenerate && (
-                <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
-                  <div style={{ background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.25)", borderRadius: "12px", padding: "20px 24px", textAlign: "center", maxWidth: "320px" }}>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "#c8a86b", margin: "0 0 4px", fontWeight: 600 }}>
-                      Ready to generate
-                    </p>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.55)", margin: "0 0 16px", lineHeight: 1.5 }}>
-                      Press will build your {pressTemplate?.label.toLowerCase()} and download it as a .{pressTemplate?.format} file.
-                    </p>
-                    <TapeButton
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      onClick={handleGenerate}
-                      disabled={isGenerating}
-                    >
-                      {isGenerating ? (
-                        <>
-                          <span style={{ display: "inline-block", width: "14px", height: "14px", border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#0a0a0a", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-                          Generating…
-                        </>
-                      ) : (
-                        `Download .${pressTemplate?.format ?? "file"}`
-                      )}
-                    </TapeButton>
-                  </div>
+                <div style={{
+                  background: "rgba(245,200,74,0.07)",
+                  border: "1px solid rgba(245,200,74,0.2)",
+                  borderRadius: "12px",
+                  padding: "20px",
+                  textAlign: "center",
+                  marginTop: "8px",
+                }}>
+                  <p style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontSize: "13px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
+                    color: "rgba(245,200,74,0.8)", margin: "0 0 6px",
+                  }}>
+                    Ready to generate
+                  </p>
+                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "rgba(248,248,246,0.5)", margin: "0 0 16px", lineHeight: "1.5" }}>
+                    Download your {pressTemplate?.label.toLowerCase()} as a .{pressTemplate?.format} file.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={isGenerating}
+                    style={{
+                      background: isGenerating ? "rgba(245,200,74,0.5)" : "#f5c84a",
+                      border: "none", borderRadius: "8px",
+                      padding: "10px 20px",
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                      color: "#0a0a0a",
+                      cursor: isGenerating ? "not-allowed" : "pointer",
+                      display: "inline-flex", alignItems: "center", gap: "8px",
+                      transition: "background 0.15s",
+                    }}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <span style={{ display: "inline-block", width: "12px", height: "12px", border: "2px solid rgba(0,0,0,0.25)", borderTopColor: "#0a0a0a", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                        Generating…
+                      </>
+                    ) : (
+                      `Download .${pressTemplate?.format ?? "file"}`
+                    )}
+                  </button>
                 </div>
               )}
 
               <div ref={pressEndRef} />
             </div>
 
-            {/* Press input */}
+            {/* Input */}
             {!pressReadyToGenerate && (
-              <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.08)", padding: "12px 16px 16px", display: "flex", gap: "10px", alignItems: "flex-end" }}>
-                <textarea
-                  value={pressDraft}
-                  onChange={(e) => setPressDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePressSend(); } }}
-                  placeholder="Fill in the gaps…"
-                  rows={2}
-                  style={{
-                    flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.15)",
-                    borderRadius: "10px", padding: "10px 14px", color: "#d4cec4",
-                    fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: "1.5",
-                    resize: "none", outline: "none", transition: "border-color 0.15s",
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = "rgba(200,168,107,0.4)"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "rgba(200,168,107,0.15)"; }}
-                  disabled={isPressLoading}
-                />
-                <button
-                  type="button"
-                  onClick={handlePressSend}
-                  disabled={!pressDraft.trim() || isPressLoading}
-                  style={{
-                    width: "38px", height: "38px", borderRadius: "50%",
-                    background: pressDraft.trim() ? "#c8a86b" : "rgba(200,168,107,0.15)",
-                    border: "none", cursor: pressDraft.trim() ? "pointer" : "not-allowed",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "background 0.15s", flexShrink: 0,
-                    fontFamily: "'Literata', Georgia, serif",
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M7 12V2M7 2L2 7M7 2L12 7" stroke={pressDraft.trim() ? "#0a0a0a" : "rgba(200,168,107,0.4)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
+              <div style={{ flexShrink: 0, borderTop: "1px solid #2e2e2e", padding: "12px 14px 16px" }}>
+                <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
+                  <textarea
+                    value={pressDraft}
+                    onChange={(e) => setPressDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePressSend(); } }}
+                    placeholder="Fill in the gaps…"
+                    rows={2}
+                    disabled={isPressLoading}
+                    style={{
+                      flex: 1,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "12px",
+                      padding: "10px 14px",
+                      resize: "none",
+                      fontFamily: "'Lora', Georgia, serif",
+                      fontSize: "14px",
+                      lineHeight: "1.5",
+                      color: "rgba(248,248,246,0.85)",
+                      caretColor: "#f5c84a",
+                      outline: "none",
+                      transition: "border-color 0.15s",
+                      boxSizing: "border-box",
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(245,200,74,0.35)"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handlePressSend}
+                    disabled={!pressDraft.trim() || isPressLoading}
+                    style={{
+                      width: "40px", height: "40px", flexShrink: 0,
+                      borderRadius: "50%", border: "none",
+                      background: pressDraft.trim() && !isPressLoading ? "#f5c84a" : "rgba(255,255,255,0.08)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: pressDraft.trim() && !isPressLoading ? "pointer" : "not-allowed",
+                      transition: "background 0.15s",
+                    }}
+                  >
+                    {isPressLoading
+                      ? <LoaderCircle size={16} style={{ color: "#f5c84a", animation: "spin 1s linear infinite" }} />
+                      : <ArrowUp size={16} style={{ color: pressDraft.trim() ? "#0a0a0a" : "rgba(255,255,255,0.3)" }} />
+                    }
+                  </button>
+                </div>
               </div>
             )}
           </>
         )}
-
-        <style>{`
-          @keyframes cassCaretBlink { 0%, 100% { opacity: 0.5; } 50% { opacity: 0; } }
-          @keyframes cassOptionIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
       </div>
     </>
   );
@@ -1360,6 +858,18 @@ function ChapterEntry({
       )}
 
       <div style={{ opacity: status === "planned" ? 0.4 : 1, transition: "opacity 0.2s" }}>
+        {/* Chapter number label */}
+        <p style={{
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontSize: "11px",
+          fontWeight: 600,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          color: isDark ? "rgba(200,168,107,0.45)" : "rgba(0,0,0,0.35)",
+          margin: "0 0 6px",
+        }}>
+          Chapter {index + 1}
+        </p>
         {/* Chapter name */}
         <h2 style={{
           fontFamily: "'Literata', Georgia, serif",
@@ -1584,8 +1094,10 @@ export function ProjectOverviewShell({
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [refining, setRefining] = useState(false);
   const [cassDrawerOpen, setCassDrawerOpen] = useState(initialPlanning && !needsPaywall);
-  const [startInPlanMode, setStartInPlanMode] = useState(initialPlanning && !needsPaywall);
-  const [startInPressIntroMode, setStartInPressIntroMode] = useState(false);
+  const [showTyIntro, setShowTyIntro] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !localStorage.getItem(TY_INTRO_KEY);
+  });
 
   // Show PressFab once at least one chapter has been fully completed (retro done)
   const hasCompletedChapter = project.chapters.some((ch) => ch.retroCompletedAt);
@@ -1663,7 +1175,6 @@ export function ProjectOverviewShell({
     if (needsPaywall) {
       setPaywallOpen(true);
     } else {
-      setStartInPlanMode(true);
       setCassDrawerOpen(true);
     }
   }
@@ -1719,7 +1230,7 @@ export function ProjectOverviewShell({
                     ),
                     zIndex: 0,
                     opacity: 0.72,
-                    filter: "drop-shadow(0 6px 16px rgba(0,0,0,0.55))",
+                    filter: "drop-shadow(0 6px 16px rgba(28,14,0,0.22))",
                   }}
                 >
                   {item.src === "cass" ? (
@@ -1820,10 +1331,11 @@ export function ProjectOverviewShell({
                 return (
                   <div style={{ marginBottom: "52px" }}>
                     <p style={{
-                      fontFamily: "'Literata', Georgia, serif",
-                      fontSize: "13px",
-                      fontWeight: 700,
-                      letterSpacing: "-0.01em",
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
                       color: projThreadFaintColor,
                       margin: "0 0 10px",
                     }}>
@@ -1929,8 +1441,6 @@ export function ProjectOverviewShell({
             <div className="md:hidden">
               <MobileFab onClick={() => {
                 if (needsPaywall) { setPaywallOpen(true); return; }
-                setStartInPlanMode(false);
-                setStartInPressIntroMode(true);
                 setCassDrawerOpen(true);
               }} />
             </div>
@@ -1939,8 +1449,6 @@ export function ProjectOverviewShell({
               <PressFab
                 onClick={() => {
                   if (needsPaywall) { setPaywallOpen(true); return; }
-                  setStartInPlanMode(false);
-                  setStartInPressIntroMode(true);
                   setCassDrawerOpen(true);
                 }}
                 hoverText="Publish your story"
@@ -1950,25 +1458,22 @@ export function ProjectOverviewShell({
           </>
         )}
         {!refining && !hasCompletedChapter && (
-          <>
-            {/* Mobile: plain + button */}
-            <div className="md:hidden">
-              <MobileFab onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)} />
-            </div>
-            {/* Desktop: animated Ty avatar */}
-            <div className="hidden md:block">
-              <TyFab
-                onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)}
-                hoverText="Plan your next chapter"
-                teaserText="Need help planning what comes next?"
-              />
-            </div>
-          </>
+          <ShareFab onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)} />
         )}
 
       </ProjectShellFrame>
 
       <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
+
+      {/* ── Ty first-time story tab intro ── */}
+      {showTyIntro && (
+        <TyFirstStoryIntro
+          onComplete={() => {
+            localStorage.setItem(TY_INTRO_KEY, "1");
+            setShowTyIntro(false);
+          }}
+        />
+      )}
 
       {/* ── Chat history drawer ── */}
       <ChatHistoryDrawer
@@ -1979,11 +1484,8 @@ export function ProjectOverviewShell({
       {/* ── Cass Chronicle drawer ── */}
       <CassChronicleDrawer
         open={cassDrawerOpen}
-        startInPlanMode={startInPlanMode}
-        startInPressIntroMode={startInPressIntroMode}
         project={project}
-        onClose={() => { setCassDrawerOpen(false); setStartInPlanMode(false); setStartInPressIntroMode(false); }}
-        onRefine={() => setRefining(true)}
+        onClose={() => setCassDrawerOpen(false)}
       />
 
       <ProjectOverviewSettingsDrawer

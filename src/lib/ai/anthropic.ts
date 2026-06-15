@@ -1425,6 +1425,7 @@ export async function runPressGapAnalysis(input: {
   projectName: string;
   northStar?: string | null;
   outputType: string;
+  audienceId?: string | null;
   chapters: Array<{
     name: string;
     goal: string | null;
@@ -1433,7 +1434,7 @@ export async function runPressGapAnalysis(input: {
   }>;
 }) {
   return runJsonDialogue(
-    buildPressGapAnalysisPrompt(input),
+    buildPressGapAnalysisPrompt({ ...input, audienceId: input.audienceId ?? null }),
     input.messages,
     (text) => {
       const parsed = safeJsonParse(extractJsonObject(text)) as {

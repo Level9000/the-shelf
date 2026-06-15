@@ -15,20 +15,23 @@ import { TapeButton } from "@/components/ui/tape-button";
 // ── Section wrapper ───────────────────────────────────────────────────────────
 
 function DrawerSection({ label, children, danger = false }: { label: string; children: React.ReactNode; danger?: boolean }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   return (
     <div>
-      <div style={{ padding: "18px 16px 6px" }}>
+      <div style={{ padding: "20px 16px 8px" }}>
         <span style={{
-          fontFamily: "'Literata', Georgia, serif",
-          fontSize: "17px",
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontSize: "13px",
           fontWeight: 700,
-          letterSpacing: "-0.02em",
-          color: danger ? "var(--danger, #9f3f38)" : "var(--ink)",
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          color: danger ? "rgba(248,113,113,0.6)" : isDark ? "rgba(245,200,74,0.45)" : "rgba(160,100,10,0.55)",
         }}>
           {label}
         </span>
       </div>
-      <div style={{ padding: "10px 16px 14px" }}>
+      <div style={{ padding: "6px 16px 14px" }}>
         {children}
       </div>
     </div>
@@ -59,6 +62,8 @@ const PLANS = [
 const BEST_VALUE_CLIP = "polygon(4px 0%, calc(100% - 4px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 4px) 100%, 4px 100%, 0% 72%, 3px 48%, 0% 22%)";
 
 function SubscribePicker() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [selectedPlan, setSelectedPlan] = useState<"builderMonthly" | "builderAnnual">("builderAnnual");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +92,7 @@ function SubscribePicker() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       <p style={{
-        fontFamily: "Verdana, Geneva, sans-serif",
+        fontFamily: "'Lora', Georgia, serif",
         fontSize: "13px",
         color: "var(--muted)",
         margin: 0,
@@ -136,14 +141,14 @@ function SubscribePicker() {
                 Best value
               </span>
             )}
-            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", fontWeight: 700, color: "var(--ink)", margin: "0 0 2px" }}>
+            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", fontWeight: 700, color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.9)", margin: "0 0 2px" }}>
               {plan.label}
             </p>
-            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "15px", fontWeight: 700, color: "var(--ink)", margin: "0 0 2px" }}>
+            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", fontWeight: 700, color: "var(--ink)", margin: "0 0 2px" }}>
               {plan.price}
               <span style={{ fontSize: "12px", fontWeight: 400, color: "var(--muted)" }}>{plan.period}</span>
             </p>
-            <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "11px", color: "var(--muted)", margin: 0 }}>
+            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "11px", color: "var(--muted)", margin: 0 }}>
               {plan.description}
             </p>
           </button>
@@ -151,7 +156,7 @@ function SubscribePicker() {
       </div>
 
       {error && (
-        <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{error}</p>
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{error}</p>
       )}
 
       <TapeButton variant="primary" size="sm" onClick={handleSubscribe} disabled={isPending} className="w-full justify-center">
@@ -228,12 +233,12 @@ export function SettingsContent({
   }
 
   // Theme-aware colors
-  const labelColor = isDark ? "rgba(232,223,192,0.38)" : "rgba(26,14,0,0.38)";
-  const bodyColor = isDark ? "rgba(232,223,192,0.65)" : "rgba(26,14,0,0.65)";
-  const strongColor = isDark ? "rgba(232,223,192,0.88)" : "rgba(26,14,0,0.88)";
-  const inputBg = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.03)";
-  const inputColor = isDark ? "rgba(232,223,192,0.85)" : "rgba(26,14,0,0.85)";
-  const themeLabelColor = isDark ? "rgba(232,223,192,0.3)" : "rgba(26,14,0,0.3)";
+  const labelColor  = isDark ? "rgba(248,248,246,0.35)"  : "rgba(26,14,0,0.38)";
+  const bodyColor   = isDark ? "rgba(248,248,246,0.6)"   : "rgba(26,14,0,0.65)";
+  const strongColor = isDark ? "#f8f8f6"                 : "rgba(26,14,0,0.9)";
+  const inputBg     = isDark ? "rgba(255,255,255,0.05)"  : "rgba(0,0,0,0.04)";
+  const inputColor  = isDark ? "rgba(248,248,246,0.85)"  : "rgba(26,14,0,0.85)";
+  const themeLabelColor = isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.3)";
 
   function handleDeleteProject() {
     if (!currentProjectId) return;
@@ -362,9 +367,9 @@ export function SettingsContent({
               href="/terms"
               target="_blank"
               style={{
-                fontFamily: "Verdana, Geneva, sans-serif",
+                fontFamily: "'Lora', Georgia, serif",
                 fontSize: "13px",
-                color: isDark ? "rgba(232,223,192,0.75)" : "rgba(26,14,0,0.75)",
+                color: isDark ? "rgba(248,248,246,0.65)" : "rgba(26,14,0,0.65)",
                 textDecoration: "underline",
                 textUnderlineOffset: "3px",
               }}
@@ -375,9 +380,9 @@ export function SettingsContent({
               href="/privacy"
               target="_blank"
               style={{
-                fontFamily: "Verdana, Geneva, sans-serif",
+                fontFamily: "'Lora', Georgia, serif",
                 fontSize: "13px",
-                color: isDark ? "rgba(232,223,192,0.75)" : "rgba(26,14,0,0.75)",
+                color: isDark ? "rgba(248,248,246,0.65)" : "rgba(26,14,0,0.65)",
                 textDecoration: "underline",
                 textUnderlineOffset: "3px",
               }}
@@ -387,9 +392,9 @@ export function SettingsContent({
           </div>
           {profile.termsAcceptedAt && (
             <p style={{
-              fontFamily: "Verdana, Geneva, sans-serif",
+              fontFamily: "'Lora', Georgia, serif",
               fontSize: "11px",
-              color: isDark ? "rgba(232,223,192,0.35)" : "rgba(26,14,0,0.35)",
+              color: isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.3)",
               margin: 0,
             }}>
               Accepted on {new Date(profile.termsAcceptedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
@@ -403,16 +408,16 @@ export function SettingsContent({
         {hasActiveSubscription ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <p style={{
-              fontFamily: "Verdana, Geneva, sans-serif",
+              fontFamily: "'Lora', Georgia, serif",
               fontSize: "13px",
-              color: isDark ? "rgba(232,223,192,0.65)" : "rgba(26,14,0,0.65)",
+              color: isDark ? "rgba(248,248,246,0.6)" : "rgba(26,14,0,0.6)",
               margin: 0,
               lineHeight: 1.55,
             }}>
               Manage your billing, update your payment method, or cancel your subscription.
             </p>
             {portalError && (
-              <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{portalError}</p>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{portalError}</p>
             )}
             <TapeButton variant="secondary" size="sm" onClick={handleOpenPortal} disabled={isOpeningPortal}>
               {isOpeningPortal ? "Opening portal…" : "Manage subscription"}
@@ -426,13 +431,14 @@ export function SettingsContent({
       {/* ── Danger zone ── */}
       {hasDangerZone && (
         <div>
-          <div style={{ padding: "18px 16px 6px" }}>
+          <div style={{ padding: "20px 16px 8px" }}>
             <span style={{
-              fontFamily: "'Literata', Georgia, serif",
-              fontSize: "17px",
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "13px",
               fontWeight: 700,
-              letterSpacing: "-0.02em",
-              color: "var(--danger, #9f3f38)",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "rgba(248,113,113,0.6)",
             }}>
               Danger Zone
             </span>
@@ -442,19 +448,19 @@ export function SettingsContent({
             {/* Delete chapter */}
             {currentChapterId && (
               <div>
-                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   Chapter
                 </p>
-                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
                   <span style={{ color: strongColor, fontWeight: 600 }}>{currentChapterName ?? "Untitled chapter"}</span>
                   {" "}— removes its board, columns, and all tasks permanently.
                 </p>
                 {confirmingDelete ? (
                   <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
-                    <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 4px" }}>Delete this chapter?</p>
-                    <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "rgba(248,113,113,0.65)", margin: "0 0 12px" }}>This action cannot be undone.</p>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 4px" }}>Delete this chapter?</p>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "rgba(248,113,113,0.65)", margin: "0 0 12px" }}>This action cannot be undone.</p>
                     {deleteError && (
-                      <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteError}</p>
+                      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteError}</p>
                     )}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
                       <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting} className="w-full justify-center">{isDeleting ? "Deleting…" : "Delete chapter"}</TapeButton>
@@ -471,17 +477,17 @@ export function SettingsContent({
             {/* Delete project */}
             {currentProjectName && (
               <div>
-                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   Project
                 </p>
-                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
                   <span style={{ color: strongColor, fontWeight: 600 }}>{currentProjectName}</span>
                   {" "}— permanently deletes all chapters, boards, and tasks.
                 </p>
                 {confirmingDeleteProject ? (
                   <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
-                    <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 2px" }}>Type the project name to confirm:</p>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "rgba(248,113,113,0.7)", margin: "0 0 10px" }}>{currentProjectName}</p>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 2px" }}>Type the project name to confirm:</p>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "rgba(248,113,113,0.7)", margin: "0 0 10px" }}>{currentProjectName}</p>
                     <input
                       type="text"
                       value={deleteProjectInput}
@@ -493,7 +499,7 @@ export function SettingsContent({
                         border: "1px solid rgba(248,113,113,0.22)",
                         borderRadius: "8px",
                         padding: "9px 12px",
-                        fontFamily: "Verdana, Geneva, sans-serif",
+                        fontFamily: "'Lora', Georgia, serif",
                         fontSize: "13px",
                         color: inputColor,
                         outline: "none",
@@ -502,7 +508,7 @@ export function SettingsContent({
                       }}
                     />
                     {deleteProjectError && (
-                      <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteProjectError}</p>
+                      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteProjectError}</p>
                     )}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
                       <TapeButton variant="danger" size="sm" onClick={handleDeleteProject} disabled={isDeletingProject || deleteProjectInput !== currentProjectName} className="w-full justify-center">{isDeletingProject ? "Deleting…" : "Delete project"}</TapeButton>
@@ -522,11 +528,12 @@ export function SettingsContent({
       <div>
         <div style={{ padding: "18px 16px 6px" }}>
           <span style={{
-            fontFamily: "'Literata', Georgia, serif",
-            fontSize: "17px",
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontSize: "13px",
             fontWeight: 700,
-            letterSpacing: "-0.02em",
-            color: "var(--danger, #9f3f38)",
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "rgba(248,113,113,0.6)",
           }}>
             Account
           </span>
@@ -534,21 +541,21 @@ export function SettingsContent({
         <div style={{ padding: "10px 16px 14px" }}>
           {confirmingDeleteAccount ? (
             <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
-              <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 6px" }}>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 6px" }}>
                 Delete your account?
               </p>
               {hasActiveSubscription && (
-                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "rgba(248,113,113,0.75)", margin: "0 0 10px", lineHeight: 1.55 }}>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "rgba(248,113,113,0.75)", margin: "0 0 10px", lineHeight: 1.55 }}>
                   Your active subscription will be cancelled immediately and your account and all data will be permanently deleted.
                 </p>
               )}
               {!hasActiveSubscription && (
-                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "rgba(248,113,113,0.65)", margin: "0 0 10px", lineHeight: 1.55 }}>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "rgba(248,113,113,0.65)", margin: "0 0 10px", lineHeight: 1.55 }}>
                   All your projects, chapters, and data will be permanently deleted. This cannot be undone.
                 </p>
               )}
               {deleteAccountError && (
-                <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteAccountError}</p>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteAccountError}</p>
               )}
               <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                 <TapeButton variant="secondary" size="sm" onClick={() => { setConfirmingDeleteAccount(false); setDeleteAccountError(null); }} disabled={isDeletingAccount}>
@@ -561,7 +568,7 @@ export function SettingsContent({
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <p style={{ fontFamily: "Verdana, Geneva, sans-serif", fontSize: "13px", color: isDark ? "rgba(232,223,192,0.55)" : "rgba(26,14,0,0.55)", margin: 0, lineHeight: 1.55 }}>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: isDark ? "rgba(248,248,246,0.55)" : "rgba(26,14,0,0.55)", margin: 0, lineHeight: 1.55 }}>
                 {hasActiveSubscription
                   ? "Permanently delete your account and cancel your subscription."
                   : "Permanently delete your account and all your data."}
@@ -581,9 +588,30 @@ export function SettingsContent({
 // ── Sign out footer button ────────────────────────────────────────────────────
 
 function SignOutButton() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   return (
     <form action={logoutAction}>
-      <TapeButton variant="secondary" size="sm" type="submit">Sign out</TapeButton>
+      <button
+        type="submit"
+        style={{
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontSize: "12px",
+          fontWeight: 600,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.35)",
+          padding: "0",
+          transition: "color 0.15s",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = isDark ? "rgba(248,248,246,0.7)" : "rgba(26,14,0,0.75)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.35)"; }}
+      >
+        Sign out
+      </button>
     </form>
   );
 }

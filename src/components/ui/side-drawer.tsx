@@ -4,20 +4,15 @@ import { useEffect } from "react";
 import { X } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
-// Flat left edge, torn right edge — sits flush against the left wall of the drawer
-const TAPE_CLIP = "polygon(0% 0%, calc(100% - 2px) 0%, 100% 20%, calc(100% - 4px) 48%, 100% 72%, calc(100% - 2px) 100%, 0% 100%)";
-
 export function SideDrawer({
   open,
-  title,
-  description: _description,
   onClose,
   side = "right",
   children,
   footer,
 }: {
   open: boolean;
-  title: string;
+  title?: string;
   description?: string;
   onClose: () => void;
   side?: "left" | "right";
@@ -36,18 +31,6 @@ export function SideDrawer({
       document.body.style.overflow = previousOverflow;
     };
   }, [open]);
-
-  const panelBg = isDark ? "#0d1109" : "#faf9f4";
-  const panelBorder = isDark ? "#3a3010" : "rgba(26,14,0,0.10)";
-  const panelShadow = isDark
-    ? (side === "right"
-        ? "-8px 0 40px rgba(0,0,0,0.95), inset 1px 0 0 rgba(255,180,30,0.04)"
-        : "8px 0 40px rgba(0,0,0,0.95), inset -1px 0 0 rgba(255,180,30,0.04)")
-    : (side === "right"
-        ? "-8px 0 40px rgba(0,0,0,0.12)"
-        : "8px 0 40px rgba(0,0,0,0.12)");
-  const headerBorder = isDark ? "1px solid #1a1608" : "1px solid rgba(26,14,0,0.10)";
-  const closeColor = isDark ? "#7a6a2e" : "rgba(26,14,0,0.4)";
 
   return (
     <div
@@ -79,10 +62,12 @@ export function SideDrawer({
           top: 0,
           bottom: 0,
           width: "min(320px, 90vw)",
-          background: panelBg,
-          borderLeft: side === "right" ? `1.5px solid ${panelBorder}` : "none",
-          borderRight: side === "left" ? `1.5px solid ${panelBorder}` : "none",
-          boxShadow: panelShadow,
+          background: isDark ? "#181818" : "#faf9f4",
+          borderLeft: side === "right" ? `1px solid ${isDark ? "#282828" : "rgba(0,0,0,0.08)"}` : "none",
+          borderRight: side === "left" ? `1px solid ${isDark ? "#282828" : "rgba(0,0,0,0.08)"}` : "none",
+          boxShadow: side === "right"
+            ? (isDark ? "-8px 0 40px rgba(0,0,0,0.8)" : "-8px 0 40px rgba(0,0,0,0.12)")
+            : (isDark ? "8px 0 40px rgba(0,0,0,0.8)" : "8px 0 40px rgba(0,0,0,0.12)"),
           transform: open
             ? "translateX(0)"
             : side === "right" ? "translateX(100%)" : "translateX(-100%)",
@@ -92,83 +77,59 @@ export function SideDrawer({
           overflow: "hidden",
         }}
       >
-        {/* Header — only rendered when a title is provided */}
-        {title ? (
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "10px 12px 8px 0",
-            borderBottom: headerBorder,
-            flexShrink: 0,
-          }}>
-            <span style={{
-              display: "inline-block",
-              fontFamily: "var(--font-cass)",
-              fontSize: "18px",
-              fontWeight: 700,
-              color: "#1a0e00",
-              background: "#f5c84a",
-              padding: "3px 22px 5px 14px",
-              clipPath: TAPE_CLIP,
-              boxShadow: "3px 1px 5px rgba(0,0,0,0.35)",
-              textTransform: "uppercase",
-            }}>
-              {title}
-            </span>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                fontFamily: "'Literata', Georgia, serif",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: closeColor,
-                padding: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <X size={15} />
-            </button>
-          </div>
-        ) : (
-          <div style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            padding: "10px 12px 8px",
-            flexShrink: 0,
-          }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                fontFamily: "'Literata', Georgia, serif",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: closeColor,
-                padding: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <X size={15} />
-            </button>
-          </div>
-        )}
+        {/* Header — tape logo centered, X at right */}
+        <div style={{
+          background: isDark ? "#0a0a0a" : "#f0ebe0",
+          borderBottom: `1px solid ${isDark ? "#1e1e1e" : "rgba(0,0,0,0.08)"}`,
+          padding: "10px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          flexShrink: 0,
+        }}>
+          <img
+            src="/icons/authored-by-tape-icon.png"
+            alt="Authored By"
+            style={{ height: "40px", width: "auto", objectFit: "contain" }}
+          />
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              position: "absolute",
+              right: "14px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "transparent",
+              border: "none",
+              color: isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.3)",
+              cursor: "pointer",
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "color 0.2s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = isDark ? "rgba(248,248,246,0.8)" : "rgba(26,14,0,0.8)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.3)"; }}
+          >
+            <X size={15} />
+          </button>
+        </div>
 
         {/* Scrollable content */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "none" }}>
           {children}
         </div>
 
         {/* Pinned footer */}
         {footer && (
-          <div style={{ flexShrink: 0, padding: "16px 16px 20px" }}>
+          <div style={{
+            flexShrink: 0,
+            padding: "14px 16px 20px",
+            borderTop: `1px solid ${isDark ? "#222" : "rgba(0,0,0,0.08)"}`,
+          }}>
             {footer}
           </div>
         )}
