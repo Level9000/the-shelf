@@ -13,14 +13,14 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/authored_by_app_icon.png", type: "image/png" },
+      { url: "/icons/authored-by-tape-icon.png", type: "image/png" },
     ],
-    shortcut: "/icons/authored_by_app_icon.png",
-    apple: "/icons/authored_by_app_icon.png",
+    shortcut: "/icons/authored-by-tape-icon.png",
+    apple: "/icons/authored-by-tape-icon.png",
     other: [
       {
         rel: "apple-touch-icon-precomposed",
-        url: "/icons/authored_by_app_icon.png",
+        url: "/icons/authored-by-tape-icon.png",
       },
     ],
   },

@@ -63,7 +63,7 @@ export function TyFirstStoryIntro({ onComplete }: { onComplete: () => void }) {
           }}
         >
           <div className="ty-avatar-wrap">
-            <TypewriterRecorder animState="talking" size="lg" />
+            <TypewriterRecorder animState="typing" size="lg" />
           </div>
 
           <div style={{ textAlign: "center" }}>

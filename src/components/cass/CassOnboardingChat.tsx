@@ -560,50 +560,115 @@ function VoiceInputFooter({
   value,
   onChange,
   onSubmit,
+  voiceMode = false,
+  onRegisterOpenMic,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSubmit: () => void;
+  voiceMode?: boolean;
+  onRegisterOpenMic?: (fn: () => void) => void;
 }) {
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finalTranscriptRef = useRef(value);
 
-  function toggleVoice() {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+  // Resize textarea whenever value changes (covers both typing and voice)
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  }, [value]);
 
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
+  // Keep finalTranscriptRef in sync with value when not listening
+  useEffect(() => {
+    if (!listening) finalTranscriptRef.current = value;
+  }, [value, listening]);
+
+  // Auto-start mic when entering voice mode
+  useEffect(() => {
+    if (voiceMode && !listening) {
+      startListening();
     }
+    if (!voiceMode && listening) {
+      stopListening();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceMode]);
 
-    const rec: SpeechRecognition = new SpeechRecognition();
+  // Register our openMic function with parent so TTS can re-open after speaking
+  useEffect(() => {
+    onRegisterOpenMic?.(() => {
+      if (voiceMode) startListening();
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceMode, onRegisterOpenMic]);
+
+  function scheduleAutoSubmit(text: string) {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = setTimeout(() => {
+      if (text.trim()) {
+        stopListening();
+        onSubmit();
+      }
+    }, 1800);
+  }
+
+  function stopListening() {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    recognitionRef.current?.stop();
+    setListening(false);
+  }
+
+  function startListening() {
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    finalTranscriptRef.current = "";
+    onChange("");
+
+    const rec: any = new SR();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
     recognitionRef.current = rec;
 
-    let finalTranscript = value;
-
-    rec.onresult = (e: SpeechRecognitionEvent) => {
+    rec.onresult = (e: any) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
-          finalTranscript += (finalTranscript ? " " : "") + e.results[i][0].transcript.trim();
+          finalTranscriptRef.current += (finalTranscriptRef.current ? " " : "") + e.results[i][0].transcript.trim();
         } else {
           interim += e.results[i][0].transcript;
         }
       }
-      onChange(finalTranscript + (interim ? " " + interim : ""));
+      const combined = finalTranscriptRef.current + (interim ? " " + interim : "");
+      onChange(combined);
+      scheduleAutoSubmit(finalTranscriptRef.current);
     };
 
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
+    rec.onend = () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      setListening(false);
+    };
+    rec.onerror = () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      setListening(false);
+    };
 
     rec.start();
     setListening(true);
+  }
+
+  function toggleVoice() {
+    if (listening) {
+      stopListening();
+    } else {
+      startListening();
+    }
   }
 
   return (
@@ -616,57 +681,35 @@ function VoiceInputFooter({
       margin: "0 auto",
       boxSizing: "border-box",
     }}>
-    <div style={{
-      display: "flex",
-      alignItems: "flex-end",
-      gap: "10px",
-      marginLeft: "7.5%",
-    }}>
-      {/* Input bar with inline Voice button */}
-      <div style={{
-        flex: 1, display: "flex", alignItems: "flex-end",
-        background: "#2e2e2e", border: `1px solid ${listening ? "#f5c84a" : "#3a3a3a"}`,
-        borderRadius: "22px", overflow: "hidden",
-        transition: "border-color 0.15s",
-        boxShadow: listening ? "0 0 0 3px rgba(245,200,74,0.15)" : "none",
-      }}>
-        <textarea
-          autoFocus
-          className="chat-textarea"
-          value={value}
-          rows={1}
-          onChange={(e) => {
-            onChange(e.target.value);
-            e.currentTarget.style.height = "auto";
-            e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 120) + "px";
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              if (value.trim()) onSubmit();
-            }
-          }}
-          placeholder="Type or tap voice to talk out loud…"
-          style={{ flex: 1, background: "transparent", border: "none", borderRadius: 0, padding: "9px 4px 9px 16px" }}
-        />
-        {/* Inline Voice button — hidden once user starts typing */}
+    {voiceMode ? (
+      /* ── Full voice mode UI ── */
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+        {/* Transcript preview */}
+        {value && (
+          <p style={{
+            fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.6",
+            color: "rgba(248,248,246,0.55)", textAlign: "center",
+            margin: 0, maxWidth: "360px",
+            animation: "cass-fade-in 0.2s ease",
+          }}>
+            {value}
+          </p>
+        )}
+        {/* Mic pulse button */}
         <button
           type="button"
           onClick={toggleVoice}
-          aria-label={listening ? "Stop recording" : "Voice input"}
+          aria-label={listening ? "Stop recording" : "Start recording"}
           style={{
-            display: value.trim() && !listening ? "none" : "flex", alignItems: "center", gap: "5px",
-            background: listening ? "rgba(245,200,74,0.15)" : "transparent",
-            border: "none", borderLeft: `1px solid ${listening ? "rgba(245,200,74,0.3)" : "#3a3a3a"}`,
-            padding: "0 14px", height: "100%", minHeight: "40px",
-            cursor: "pointer", flexShrink: 0,
-            transition: "background 0.15s, border-color 0.15s",
+            width: "64px", height: "64px", borderRadius: "50%",
+            background: listening ? "rgba(245,200,74,0.15)" : "rgba(255,255,255,0.06)",
+            border: `2px solid ${listening ? "#f5c84a" : "rgba(255,255,255,0.15)"}`,
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "all 0.2s",
+            boxShadow: listening ? "0 0 0 8px rgba(245,200,74,0.08), 0 0 0 16px rgba(245,200,74,0.04)" : "none",
           }}
-          onMouseEnter={(e) => { if (!listening) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-          onMouseLeave={(e) => { if (!listening) e.currentTarget.style.background = "transparent"; }}
         >
-          {/* Waveform icon */}
-          <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+          <svg width="20" height="18" viewBox="0 0 16 14" fill="none" aria-hidden="true">
             {[
               { x: 0,  h: 4,  y: 5 },
               { x: 3,  h: 8,  y: 3 },
@@ -676,34 +719,108 @@ function VoiceInputFooter({
             ].map((bar, i) => (
               <rect
                 key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
-                fill={listening ? "#f5c84a" : "#888"}
+                fill={listening ? "#f5c84a" : "#666"}
                 style={listening ? { animation: `chat-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
               />
             ))}
           </svg>
-          <span style={{
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            color: listening ? "#f5c84a" : "#888",
-            transition: "color 0.15s",
-          }}>
-            {listening ? "Stop" : "Voice"}
-          </span>
+        </button>
+        <span style={{
+          fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px",
+          fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase",
+          color: listening ? "#f5c84a" : "#444",
+          transition: "color 0.2s",
+        }}>
+          {listening ? "Listening…" : "Tap to speak"}
+        </span>
+      </div>
+    ) : (
+      /* ── Text + optional mic UI ── */
+      <div style={{
+        display: "flex",
+        alignItems: "flex-end",
+        gap: "10px",
+        marginLeft: "7.5%",
+      }}>
+        {/* Input bar with inline Voice button */}
+        <div style={{
+          flex: 1, display: "flex", alignItems: "flex-end",
+          background: "#2e2e2e", border: `1px solid ${listening ? "#f5c84a" : "#3a3a3a"}`,
+          borderRadius: "22px", overflow: "hidden",
+          transition: "border-color 0.15s",
+          boxShadow: listening ? "0 0 0 3px rgba(245,200,74,0.15)" : "none",
+        }}>
+          <textarea
+            ref={textareaRef}
+            autoFocus
+            className="chat-textarea"
+            value={value}
+            rows={1}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (value.trim()) onSubmit();
+              }
+            }}
+            placeholder="Type or tap voice to talk out loud…"
+            style={{ flex: 1, background: "transparent", border: "none", borderRadius: 0, padding: "9px 4px 9px 16px" }}
+          />
+          {/* Inline Voice button — hidden once user starts typing */}
+          <button
+            type="button"
+            onClick={toggleVoice}
+            aria-label={listening ? "Stop recording" : "Voice input"}
+            style={{
+              display: value.trim() && !listening ? "none" : "flex", alignItems: "center", gap: "5px",
+              background: listening ? "rgba(245,200,74,0.15)" : "transparent",
+              border: "none", borderLeft: `1px solid ${listening ? "rgba(245,200,74,0.3)" : "#3a3a3a"}`,
+              padding: "0 14px", height: "100%", minHeight: "40px",
+              cursor: "pointer", flexShrink: 0,
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={(e) => { if (!listening) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+            onMouseLeave={(e) => { if (!listening) e.currentTarget.style.background = "transparent"; }}
+          >
+            <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+              {[
+                { x: 0,  h: 4,  y: 5 },
+                { x: 3,  h: 8,  y: 3 },
+                { x: 6,  h: 14, y: 0 },
+                { x: 9,  h: 8,  y: 3 },
+                { x: 12, h: 4,  y: 5 },
+              ].map((bar, i) => (
+                <rect
+                  key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
+                  fill={listening ? "#f5c84a" : "#888"}
+                  style={listening ? { animation: `chat-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
+                />
+              ))}
+            </svg>
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: listening ? "#f5c84a" : "#888",
+              transition: "color 0.15s",
+            }}>
+              {listening ? "Stop" : "Voice"}
+            </span>
+          </button>
+        </div>
+
+        {/* Send button */}
+        <button
+          type="button"
+          className="chat-send-btn"
+          onClick={onSubmit}
+          disabled={!value.trim()}
+          aria-label="Send"
+        >
+          <span className="material-icons">arrow_upward</span>
         </button>
       </div>
-
-      {/* Send button */}
-      <button
-        type="button"
-        className="chat-send-btn"
-        onClick={onSubmit}
-        disabled={!value.trim()}
-        aria-label="Send"
-      >
-        <span className="material-icons">arrow_upward</span>
-      </button>
-    </div>
+    )}
     </div>
   );
 }
@@ -847,6 +964,62 @@ export function CassOnboardingChat({
   const [chatDone, setChatDone] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
+  // ── Voice conversation mode ──────────────────────────────────────────────
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Callback ref so speakAsCass can re-open the mic after audio ends
+  const openMicRef = useRef<(() => void) | null>(null);
+
+  async function speakAsCass(text: string) {
+    if (!voiceMode || !text.trim()) return;
+    try {
+      setIsSpeaking(true);
+      setAnimState("talking");
+
+      const res = await fetch("/api/tts/cass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("TTS failed");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setIsSpeaking(false);
+        setAnimState("listening");
+        // Re-open the mic for the next user turn
+        openMicRef.current?.();
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        setIsSpeaking(false);
+        setAnimState("listening");
+        openMicRef.current?.();
+      };
+
+      await audio.play();
+    } catch {
+      setIsSpeaking(false);
+      setAnimState("listening");
+    }
+  }
+
+  function toggleVoiceMode() {
+    // Stop any playing audio when switching modes
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsSpeaking(false);
+    setVoiceMode((v) => !v);
+  }
+
   // Auto-save draft
   useEffect(() => {
     if (phase === "interview" || phase === "generating") {
@@ -928,14 +1101,26 @@ export function CassOnboardingChat({
         const closingMessage = reply || "Thanks, I have everything I need. Let's take you to your project board.";
         setChatMessages([...newMessages, { role: "assistant", content: closingMessage }]);
         setChatDone(true);
-        setShowContinue(true);
         setAnimState("idle");
+        if (voiceMode) {
+          // Speak closing message; Continue chip appears after audio ends
+          openMicRef.current = null; // no mic after final turn
+          await speakAsCass(closingMessage);
+          setShowContinue(true);
+        } else {
+          setShowContinue(true);
+        }
         // Transition happens when user presses Continue on the final message
       } else {
         setChatMessages([...newMessages, { role: "assistant", content: reply }]);
         setInputRevealed(true);
-        setAnimState("talking");
-        setTimeout(() => setAnimState("listening"), 1600);
+        if (voiceMode) {
+          // speakAsCass handles animState; mic re-opens via openMicRef after audio ends
+          await speakAsCass(reply);
+        } else {
+          setAnimState("talking");
+          setTimeout(() => setAnimState("listening"), 1600);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
@@ -1226,12 +1411,36 @@ export function CassOnboardingChat({
                 )}
               </div>
 
+              {/* Voice mode toggle */}
+              {inputRevealed && !isChatPending && !showContinue && (
+                <div style={{ display: "flex", justifyContent: "center", paddingBottom: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={toggleVoiceMode}
+                    style={{
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontSize: "11px", fontWeight: 600,
+                      letterSpacing: "0.14em", textTransform: "uppercase",
+                      background: voiceMode ? "rgba(245,200,74,0.12)" : "transparent",
+                      color: voiceMode ? "#f5c84a" : "#555",
+                      border: `1px solid ${voiceMode ? "rgba(245,200,74,0.3)" : "#333"}`,
+                      borderRadius: "20px", padding: "5px 14px",
+                      cursor: "pointer", transition: "all 0.15s",
+                    }}
+                  >
+                    {voiceMode ? "🎙 Voice mode on" : "Switch to voice mode"}
+                  </button>
+                </div>
+              )}
+
               {/* Input footer */}
-              {inputRevealed && !isChatPending && (
+              {inputRevealed && !isChatPending && !isSpeaking && (
                 <VoiceInputFooter
                   value={chatInput}
                   onChange={setChatInput}
                   onSubmit={handleChatSubmit}
+                  voiceMode={voiceMode}
+                  onRegisterOpenMic={(fn) => { openMicRef.current = fn; }}
                 />
               )}
 

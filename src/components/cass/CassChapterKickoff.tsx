@@ -30,19 +30,19 @@ function KickoffInputFooter({
   disabled?: boolean;
 }) {
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   function toggleVoice() {
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     if (!SR) return;
     if (listening) { recognitionRef.current?.stop(); setListening(false); return; }
-    const rec: SpeechRecognition = new SR();
+    const rec: any = new SR();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
     recognitionRef.current = rec;
     let finalTranscript = value;
-    rec.onresult = (e: SpeechRecognitionEvent) => {
+    rec.onresult = (e: any) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) finalTranscript += (finalTranscript ? " " : "") + e.results[i][0].transcript.trim();
