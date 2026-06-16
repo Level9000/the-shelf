@@ -1035,6 +1035,10 @@ export function CassBoardDrawer({
     setMenuSelected(null);
     setChatSubMode("tasks");
 
+    // Play pre-recorded menu question audio
+    const menuAudio = new Audio("/audio/cass-menu-question.mp3");
+    menuAudio.play().catch(() => {});
+
     let i = 0;
     const id = setInterval(() => {
       i++;
@@ -1044,7 +1048,7 @@ export function CassBoardDrawer({
         setTimeout(() => setOptionsReady(true), 180);
       }
     }, 26);
-    return () => clearInterval(id);
+    return () => { clearInterval(id); menuAudio.pause(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 

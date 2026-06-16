@@ -379,6 +379,69 @@ function IntroScreen({ onComplete }: { onComplete: () => void }) {
   const cassHeroRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const chipRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
+
+  async function toggleAudio(index: number) {
+    // If already playing this slide, pause it
+    if (playingIndex === index) {
+      audioRef.current?.pause();
+      audioRef.current = null;
+      if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
+      setPlayingIndex(null);
+      return;
+    }
+    // Stop any current audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (blobUrlRef.current) { URL.revokeObjectURL(blobUrlRef.current); blobUrlRef.current = null; }
+    setPlayingIndex(null);
+
+    setLoadingIndex(index);
+    try {
+      const res = await fetch("/api/tts/cass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: INTRO_SLIDES[index].cassText }),
+      });
+      if (!res.ok) throw new Error("TTS failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      blobUrlRef.current = url;
+      const audio = new Audio(url);
+      audio.volume = TTS_VOLUME;
+      audioRef.current = audio;
+      setLoadingIndex(null);
+      setPlayingIndex(index);
+      // Identity guard: if this audio is no longer active (e.g. rapid slide advance),
+      // skip cleanup so we don't wipe the next audio's reference.
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        if (blobUrlRef.current === url) blobUrlRef.current = null;
+        if (audioRef.current === audio) { audioRef.current = null; setPlayingIndex(null); }
+      };
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      audio.play().catch(cleanup);
+    } catch {
+      setLoadingIndex(null);
+    }
+  }
+
+  // Auto-play audio when a new slide is revealed
+  useEffect(() => {
+    toggleAudio(revealed - 1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealed]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => { audioRef.current?.pause(); };
+  }, []);
 
   const current = INTRO_SLIDES[revealed - 1];
   const isDone = current.isLast;
@@ -516,7 +579,7 @@ function IntroScreen({ onComplete }: { onComplete: () => void }) {
                 </div>
               )}
 
-              {/* Message text */}
+              {/* Message text + audio play button */}
               <div style={{ maxWidth: "85%", margin: "0 auto", width: "100%" }}>
                 {slide.cassText.split("\n\n").map((para, j) => (
                   <p key={j} style={{
@@ -526,6 +589,54 @@ function IntroScreen({ onComplete }: { onComplete: () => void }) {
                     {para}
                   </p>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => toggleAudio(i)}
+                  disabled={loadingIndex !== null && loadingIndex !== i}
+                  title={playingIndex === i ? "Pause" : loadingIndex === i ? "Loading…" : "Listen"}
+                  style={{
+                    marginTop: "12px",
+                    display: "inline-flex", alignItems: "center", gap: "6px",
+                    background: "transparent",
+                    border: "1px solid rgba(248,248,246,0.18)",
+                    borderRadius: "20px",
+                    padding: "5px 12px 5px 9px",
+                    cursor: loadingIndex === i ? "default" : "pointer",
+                    color: playingIndex === i ? "#f5c84a" : loadingIndex === i ? "rgba(248,248,246,0.6)" : "rgba(248,248,246,0.45)",
+                    fontSize: "11px",
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontWeight: 600,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    transition: "color 0.15s, border-color 0.15s",
+                    ...(playingIndex === i ? { borderColor: "rgba(245,200,74,0.4)" } : {}),
+                  }}
+                  onMouseEnter={(e) => {
+                    if (playingIndex !== i && loadingIndex !== i) e.currentTarget.style.color = "rgba(248,248,246,0.75)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (playingIndex !== i && loadingIndex !== i) e.currentTarget.style.color = "rgba(248,248,246,0.45)";
+                  }}
+                >
+                  {playingIndex === i ? (
+                    /* Pause icon */
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+                      <rect x="1" y="1" width="3" height="8" rx="1" />
+                      <rect x="6" y="1" width="3" height="8" rx="1" />
+                    </svg>
+                  ) : loadingIndex === i ? (
+                    /* Spinner */
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" style={{ animation: "spin 0.8s linear infinite" }}>
+                      <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.5" strokeDasharray="18" strokeDashoffset="6" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    /* Play icon */
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+                      <path d="M2 1.5l7 3.5-7 3.5V1.5z" />
+                    </svg>
+                  )}
+                  {playingIndex === i ? "Playing" : loadingIndex === i ? "Loading" : "Listen"}
+                </button>
               </div>
             </div>
           );
@@ -626,6 +737,17 @@ function VoiceInputFooter({
   function startListening() {
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     if (!SR) return;
+
+    // Tear down any existing instance before creating a new one.
+    // Without this, the old recognition keeps firing onresult and both instances
+    // append to finalTranscriptRef — causing the transcript to repeat itself.
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.onend = null;
+      recognitionRef.current.onerror = null;
+      try { recognitionRef.current.stop(); } catch { /* already stopped */ }
+      recognitionRef.current = null;
+    }
 
     finalTranscriptRef.current = "";
     onChange("");
@@ -916,14 +1038,21 @@ function BriefCard({
   );
 }
 
+// ── Audio volume constants ────────────────────────────────────────────────────
+// Adjust these to balance pre-recorded files against ElevenLabs TTS output.
+const PRERECORDED_VOLUME = 0.5;
+const TTS_VOLUME = 1.0;
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function CassOnboardingChat({
   hasExistingProjects = false,
   existingDraft = null,
+  skipIntro = false,
 }: {
   hasExistingProjects?: boolean;
   existingDraft?: OnboardingDraft | null;
+  skipIntro?: boolean;
 }) {
   const router = useRouter();
 
@@ -932,6 +1061,7 @@ export function CassOnboardingChat({
       if (existingDraft.step >= 1) return "generating";
       return "interview";
     }
+    if (skipIntro) return "interview";
     return "intro";
   };
 
@@ -965,7 +1095,7 @@ export function CassOnboardingChat({
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // ── Voice conversation mode ──────────────────────────────────────────────
-  const [voiceMode, setVoiceMode] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   // Callback ref so speakAsCass can re-open the mic after audio ends
@@ -973,40 +1103,41 @@ export function CassOnboardingChat({
 
   async function speakAsCass(text: string) {
     if (!voiceMode || !text.trim()) return;
-    try {
-      setIsSpeaking(true);
-      setAnimState("talking");
 
+    setIsSpeaking(true);
+    setAnimState("talking");
+
+    const onEnd = () => {
+      setIsSpeaking(false);
+      setAnimState("listening");
+      openMicRef.current?.();
+    };
+
+    try {
+      await ttsSpeak(text, onEnd);
+    } catch {
+      onEnd();
+    }
+  }
+
+  async function ttsSpeak(text: string, onEnd: () => void) {
+    try {
       const res = await fetch("/api/tts/cass", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
       if (!res.ok) throw new Error("TTS failed");
-
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
+      audio.volume = TTS_VOLUME;
       audioRef.current = audio;
-
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        setIsSpeaking(false);
-        setAnimState("listening");
-        // Re-open the mic for the next user turn
-        openMicRef.current?.();
-      };
-      audio.onerror = () => {
-        URL.revokeObjectURL(url);
-        setIsSpeaking(false);
-        setAnimState("listening");
-        openMicRef.current?.();
-      };
-
+      audio.onended = () => { URL.revokeObjectURL(url); onEnd(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); onEnd(); };
       await audio.play();
     } catch {
-      setIsSpeaking(false);
-      setAnimState("listening");
+      onEnd();
     }
   }
 
@@ -1037,13 +1168,18 @@ export function CassOnboardingChat({
     }
   }, [answers, rawDescription, phase, projectName, proposedChapters]);
 
-  // Animate Cass when entering interview phase
+  // Animate Cass and auto-play the opening question when entering interview phase
   useEffect(() => {
     if (phase === "interview") {
       setAnimState("talking");
-      const t = setTimeout(() => setAnimState("listening"), 1800);
-      return () => clearTimeout(t);
+      setIsSpeaking(true);
+      ttsSpeak(OPENING_QUESTION, () => {
+        setIsSpeaking(false);
+        setAnimState("listening");
+        openMicRef.current?.();
+      });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   // Auto-scroll to bottom whenever Cass sends a new message or typing indicator appears
@@ -1202,6 +1338,10 @@ export function CassOnboardingChat({
         @keyframes cass-fade-in {
           from { opacity: 0; }
           to   { opacity: 1; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
         @keyframes cass-blink {
           0%, 100% { opacity: 1; }
@@ -1428,7 +1568,22 @@ export function CassOnboardingChat({
                       cursor: "pointer", transition: "all 0.15s",
                     }}
                   >
-                    {voiceMode ? "🎙 Voice mode on" : "Switch to voice mode"}
+                    {voiceMode ? (
+                      <>
+                        <svg width="12" height="10" viewBox="0 0 16 14" fill="none" aria-hidden="true" style={{ display: "inline-block", verticalAlign: "middle", marginRight: "6px" }}>
+                          {[
+                            { x: 0,  h: 4,  y: 5 },
+                            { x: 3,  h: 8,  y: 3 },
+                            { x: 6,  h: 14, y: 0 },
+                            { x: 9,  h: 8,  y: 3 },
+                            { x: 12, h: 4,  y: 5 },
+                          ].map((bar, i) => (
+                            <rect key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1" fill="#f5c84a" />
+                          ))}
+                        </svg>
+                        Conversation mode on
+                      </>
+                    ) : "Switch to conversation mode"}
                   </button>
                 </div>
               )}

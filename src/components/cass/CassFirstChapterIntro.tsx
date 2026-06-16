@@ -8,6 +8,14 @@ type Phase = "entering" | "visible" | "exiting";
 export function CassFirstChapterIntro({ onComplete }: { onComplete: () => void }) {
   const [phase, setPhase] = useState<Phase>("entering");
 
+  // Play pre-recorded intro audio when Cass slides in
+  useEffect(() => {
+    if (phase !== "entering") return;
+    const audio = new Audio("/audio/cass-chapter-intro.mp3");
+    audio.play().catch(() => {}); // silent fail if file not yet present
+    return () => { audio.pause(); };
+  }, [phase]);
+
   // After exit animation, hand off to the board
   useEffect(() => {
     if (phase !== "exiting") return;

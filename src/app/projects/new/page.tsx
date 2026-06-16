@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getOptionalUser, getProjects, getCurrentUserProfile } from "@/lib/supabase/queries";
 import { CassOnboardingChat } from "@/components/cass/CassOnboardingChat";
-import { ProjectKickoffChat } from "@/components/projects/project-kickoff-chat";
+import { CassNewProjectPage } from "@/components/cass/CassNewProjectPage";
 
 export default async function NewProjectPage({
   searchParams,
@@ -16,21 +16,34 @@ export default async function NewProjectPage({
   const { name } = await searchParams;
   const projectName = (name ?? "").trim();
 
-  // No name param → Cass onboarding experience (full screen, dark)
-  if (!projectName) {
-    const [existingProjects, profile] = await Promise.all([
-      getProjects(),
-      getCurrentUserProfile(),
-    ]);
-    const hasExistingProjects = existingProjects.length > 0;
+  // Legacy name-param path — redirect to the clean new-project flow
+  if (projectName) {
+    redirect("/projects/new");
+  }
+
+  const [existingProjects, profile] = await Promise.all([
+    getProjects(),
+    getCurrentUserProfile(),
+  ]);
+  const hasExistingProjects = existingProjects.length > 0;
+
+  // First-time user → full onboarding (intro slides + interview)
+  if (!hasExistingProjects) {
+    return (
+      <CassOnboardingChat existingDraft={profile.onboardingDraft ?? null} />
+    );
+  }
+
+  // Returning user with a draft in progress → resume the interview directly
+  if (profile.onboardingDraft) {
     return (
       <CassOnboardingChat
-        hasExistingProjects={hasExistingProjects}
-        existingDraft={profile.onboardingDraft ?? null}
+        hasExistingProjects
+        existingDraft={profile.onboardingDraft}
       />
     );
   }
 
-  // Name param provided → returning user creating additional project
-  return <ProjectKickoffChat projectName={projectName} />;
+  // Returning user, fresh start → cinematic transition then straight to interview
+  return <CassNewProjectPage />;
 }
