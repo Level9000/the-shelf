@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import type { BoardColumn, ProjectMember, Task } from "@/types";
 import { deleteTaskAction, updateTaskAction } from "@/lib/actions/task-actions";
 import { TapeButton } from "@/components/ui/tape-button";
@@ -118,19 +118,36 @@ export function TaskDetailModal({
       growWithContent
       className="max-w-lg"
     >
-      {/* Gray header — full width, no padding on modal panel */}
-      <div className="relative rounded-t-[2rem] bg-[var(--accent-soft)] px-7 pt-8 pb-6 text-center">
+      {/* Header */}
+      <div className="relative rounded-t-[2rem] bg-[var(--surface-muted)] px-7 pt-8 pb-6 text-center border-b border-black/6">
         <button
           type="button"
           onClick={handleDelete}
           disabled={isPending}
-          style={{ fontFamily: "'Literata', Georgia, serif" }}
-          className="absolute left-4 top-4 inline-flex size-10 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-rose-100 hover:text-rose-600"
+          className="absolute left-4 top-4 inline-flex size-[34px] items-center justify-center rounded-[6px] border border-black/9 bg-black/4 text-[var(--muted)] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
           aria-label="Delete task"
         >
           <Trash2 className="size-4" />
         </button>
-        <h2 className="text-2xl font-bold text-[var(--ink)] font-literata">Edit Task</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 inline-flex size-[34px] items-center justify-center rounded-[6px] border border-black/9 bg-black/4 text-[var(--muted)] transition hover:bg-black/8 hover:text-[var(--ink)]"
+          aria-label="Close"
+        >
+          <X className="size-4" />
+        </button>
+        <h2 style={{
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontSize: "13px",
+          fontWeight: 600,
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+          color: "var(--muted)",
+          margin: 0,
+        }}>
+          Edit Task
+        </h2>
       </div>
 
       {/* Body */}
@@ -154,7 +171,7 @@ export function TaskDetailModal({
       </div>
 
       <div className="sticky bottom-0 flex items-center justify-center border-t border-black/6 bg-[var(--surface)] px-6 py-4">
-        <TapeButton variant="primary" size="sm" onClick={handleSave} disabled={isPending}>
+        <TapeButton variant="primary" onClick={handleSave} disabled={isPending}>
           {isPending ? "Saving..." : "Save changes"}
         </TapeButton>
       </div>

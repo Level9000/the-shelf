@@ -51,9 +51,11 @@ export function AuthForm({
     gap: "10px",
     padding: "14px 24px",
     borderRadius: "50px",
-    fontSize: "16px",
-    fontWeight: 600,
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    fontSize: "15px",
+    fontWeight: 700,
+    fontFamily: "'Barlow Condensed', sans-serif",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
     cursor: "pointer",
     border: "1.5px solid rgba(255, 255, 255, 0.18)",
     background: "rgba(255, 255, 255, 0.08)",
@@ -65,7 +67,8 @@ export function AuthForm({
   return (
     <div style={{
       minHeight: "100dvh",
-      background: "#000",
+      background: "#0a0a0a",
+      backgroundImage: "radial-gradient(ellipse at 30% 60%, rgba(200,168,107,0.06) 0%, transparent 55%), radial-gradient(ellipse at 75% 25%, rgba(42,107,58,0.05) 0%, transparent 50%)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -83,30 +86,52 @@ export function AuthForm({
         maxWidth: "360px",
       }}>
 
+        {/* Card — logo, tagline, and buttons together */}
+        <div style={{
+          width: "100%",
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: "24px",
+          padding: "28px 20px 20px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "20px",
+        }}>
+
         {/* Tape image */}
         <Image
           src="/icons/authored-by-tape-icon.png"
           alt="Authored By"
           width={320}
           height={120}
-          style={{ width: "100%", maxWidth: "300px", height: "auto" }}
+          style={{ width: "100%", maxWidth: "280px", height: "auto" }}
           priority
         />
 
         {/* Tagline */}
         <p style={{
-          fontFamily: "'Literata', Georgia, serif",
+          fontFamily: "'Lora', Georgia, serif",
           fontSize: "16px",
-          lineHeight: 1.55,
-          color: "rgba(255, 255, 255, 0.6)",
+          lineHeight: 1.6,
+          color: "rgba(255, 255, 255, 0.75)",
           margin: 0,
           textAlign: "center",
+          textWrap: "balance",
         }}>
-          Start building your founder&apos;s story today
+          Your story is already in progress. Let&apos;s capture it together.
         </p>
 
+        {/* Divider */}
+        <div style={{ width: "100%", height: "1px", background: "rgba(255,255,255,0.07)" }} />
+
         {/* Buttons */}
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
+        <div style={{
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+        }}>
 
           {oauthError && (
             <p style={{
@@ -183,6 +208,7 @@ export function AuthForm({
             </button>
           </form>
         </div>
+        </div>{/* end card */}
 
         {/* Terms checkbox — signup page only */}
         {showTerms && (

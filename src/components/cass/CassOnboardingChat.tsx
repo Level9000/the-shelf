@@ -565,7 +565,7 @@ function VoiceInputFooter({
 }: {
   value: string;
   onChange: (v: string) => void;
-  onSubmit: () => void;
+  onSubmit: (text?: string) => void;
   voiceMode?: boolean;
   onRegisterOpenMic?: (fn: () => void) => void;
 }) {
@@ -612,7 +612,7 @@ function VoiceInputFooter({
     pauseTimerRef.current = setTimeout(() => {
       if (text.trim()) {
         stopListening();
-        onSubmit();
+        onSubmit(text); // pass text directly — avoids stale state closure
       }
     }, 1800);
   }
@@ -763,7 +763,7 @@ function VoiceInputFooter({
                 if (value.trim()) onSubmit();
               }
             }}
-            placeholder="Type or tap voice to talk out loud…"
+            placeholder="Type or tap voice…"
             style={{ flex: 1, background: "transparent", border: "none", borderRadius: 0, padding: "9px 4px 9px 16px" }}
           />
           {/* Inline Voice button — hidden once user starts typing */}
@@ -813,7 +813,7 @@ function VoiceInputFooter({
         <button
           type="button"
           className="chat-send-btn"
-          onClick={onSubmit}
+          onClick={() => onSubmit()}
           disabled={!value.trim()}
           aria-label="Send"
         >
@@ -1053,8 +1053,8 @@ export function CassOnboardingChat({
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [chatMessages, isChatPending]);
 
-  async function handleChatSubmit() {
-    const trimmed = chatInput.trim();
+  async function handleChatSubmit(overrideText?: string) {
+    const trimmed = (overrideText ?? chatInput).trim();
     if (!trimmed || isChatPending) return;
 
     const newMessages: ChatMsg[] = [...chatMessages, { role: "user", content: trimmed }];

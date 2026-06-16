@@ -147,7 +147,7 @@ export function TaskFormFields({
     <div className="space-y-4">
       {/* Title */}
       <div>
-        <label className="mb-2 block text-sm font-medium">Title</label>
+        <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Title</label>
         <Textarea
           value={title}
           onChange={(event) => onChange("title", event.target.value)}
@@ -164,7 +164,7 @@ export function TaskFormFields({
 
       {/* Description */}
       <div>
-        <label className="mb-2 block text-sm font-medium">Description</label>
+        <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Description</label>
         <Textarea
           value={description}
           onChange={(event) => onChange("description", event.target.value)}
@@ -175,7 +175,7 @@ export function TaskFormFields({
 
       {/* Assigned to */}
       <div>
-        <label className="mb-2 block text-sm font-medium">Assigned to</label>
+        <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Assigned to</label>
         {memberOptions.length > 0 ? (
           <AssigneeMultiSelect
             value={assigneeName}
@@ -194,7 +194,7 @@ export function TaskFormFields({
       {/* Due date / Column / Priority */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
-          <label className="mb-2 block text-sm font-medium">Due date</label>
+          <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Due date</label>
           <Input
             type="date"
             value={dueDate}
@@ -202,7 +202,7 @@ export function TaskFormFields({
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-medium">Column</label>
+          <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Column</label>
           <select
             value={columnId}
             onChange={(event) => onChange("columnId", event.target.value)}
@@ -216,7 +216,7 @@ export function TaskFormFields({
           </select>
         </div>
         <div>
-          <label className="mb-2 block text-sm font-medium">Priority</label>
+          <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Priority</label>
           <select
             value={priority ?? ""}
             onChange={(event) => onChange("priority", event.target.value)}

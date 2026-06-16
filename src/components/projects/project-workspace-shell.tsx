@@ -45,9 +45,13 @@ export function ProjectWorkspaceShell({
 }) {
   const router = useRouter();
   const { setActiveAvatar } = useAvatar();
+  const [mounted, setMounted] = useState(false);
 
   // RT-02: Board tab → Cass
   useEffect(() => { setActiveAvatar("cass"); }, [setActiveAvatar]);
+
+  // Fade in on mount
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 30); return () => clearTimeout(t); }, []);
 
   const [retroOpen, setRetroOpen] = useState(false);
   const [allDoneDismissed, setAllDoneDismissed] = useState(false);
@@ -110,7 +114,10 @@ export function ProjectWorkspaceShell({
   ].filter((v) => !v || v.trim() === "").length;
 
   return (
-    <>
+    <div style={{
+      opacity: mounted ? 1 : 0,
+      transition: "opacity 0.6s ease",
+    }}>
     <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
     <ProjectShellFrame
       projects={projects}
@@ -204,6 +211,6 @@ export function ProjectWorkspaceShell({
         />
       </div>
     </ProjectShellFrame>
-    </>
+    </div>
   );
 }

@@ -58,7 +58,7 @@ export async function loginAction(
 ): Promise<FormState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/projects");
+  const next = String(formData.get("next") ?? "/welcome");
 
   if (!email || !password) {
     return { error: "Email and password are required." };
@@ -71,7 +71,7 @@ export async function loginAction(
     return { error: error.message };
   }
 
-  redirect(next.startsWith("/") ? next : "/projects");
+  redirect(next.startsWith("/") ? next : "/welcome");
 }
 
 export async function signupAction(
