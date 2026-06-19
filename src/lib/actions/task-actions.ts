@@ -368,7 +368,7 @@ export async function createBrainDumpCardsAction(input: {
   cards: Array<{
     title: string;
     column: string;
-    priority: "low" | "medium" | "high";
+    priority?: "low" | "medium" | "high" | null;
     context: string;
     rawQuote: string;
     templateId?: string | null;
@@ -403,9 +403,9 @@ export async function createBrainDumpCardsAction(input: {
         board_id: input.boardId,
         column_id: columnId,
         title: card.title.trim(),
-        description: null,
+        description: card.context.trim() || null,
         assignee_name: null,
-        priority: card.priority,
+        priority: card.priority ?? null,
         due_date: null,
         position: startPosition + index * 1000,
         created_by: user.id,

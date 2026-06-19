@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       supabase
         .from("boards")
         .select(
-          "id,name,goal,why_it_matters,success_looks_like,done_definition,opening_line,kickoff_completed_at",
+          "id,name,goal,why_it_matters,success_looks_like,done_definition,opening_line",
         )
         .eq("id", chapterId)
         .eq("project_id", projectId)
@@ -64,13 +64,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Chapter context not found." },
       { status: 404 },
-    );
-  }
-
-  if (!board.kickoff_completed_at) {
-    return NextResponse.json(
-      { error: "Chapter must be kicked off before running a retro." },
-      { status: 400 },
     );
   }
 

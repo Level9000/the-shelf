@@ -129,7 +129,8 @@ export const kickoffChapterPrefillSchema = z.object({
 });
 
 export const kickoffProposedChapterSchema = z.object({
-  chapter_number: z.number().int().min(1),
+  // AI sometimes omits chapter_number — default to 0 and let callers re-index
+  chapter_number: z.number().int().min(1).optional().default(0),
   title: z.string().trim().min(1).max(120),
   goal: z.string().trim().max(2000).default(""),
   prefill: kickoffChapterPrefillSchema.optional(),
@@ -230,6 +231,11 @@ export const cassOnboardingDialogueSchema = z.object({
   project_success: z.string().trim().max(2000).default(""),
   project_biggest_risk: z.string().trim().max(2000).default(""),
   proposed_chapters: z.array(kickoffProposedChapterSchema).max(8).default([]),
+  proposed_tasks: z.array(z.object({
+    title: z.string().trim().min(1).max(120),
+    column: z.enum(["Do This Week", "Do Today"]).default("Do This Week"),
+    notes: z.string().trim().max(500).optional().default(""),
+  })).max(10).default([]),
 });
 
 export type CassOnboardingDialogue = z.infer<typeof cassOnboardingDialogueSchema>;

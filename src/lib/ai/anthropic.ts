@@ -949,27 +949,39 @@ export async function runCassOnboardingDialogue(input: {
 
   if (parsed.success) return parsed.data;
 
-  // Schema validation failed — extract reply text and continue the conversation
-  // rather than crashing. The AI may have returned malformed structured data
-  // (e.g. booleans where strings expected) but the reply text is usually fine.
+  // Schema validation failed — extract whatever we can from the raw object and
+  // continue the conversation rather than crashing. Critically, if the AI set
+  // done=true we must still honour it — forcing done=false causes the onboarding
+  // to loop forever after the last question.
   const rawObj = safeJsonParse(extractJsonObject(rawText)) as Record<string, unknown> | null;
   const isDone = rawObj?.done === true;
   const reply = typeof rawObj?.reply === "string" && rawObj.reply.trim()
     ? rawObj.reply.trim()
     : isDone ? "" : rawText.replace(/\{[\s\S]*\}/, "").trim() || "Let me think about that for a second.";
 
-  console.warn("Cass onboarding schema validation failed, falling back to reply-only:", parsed.error.message);
+  const str = (key: string) => typeof rawObj?.[key] === "string" ? (rawObj[key] as string).trim() : "";
+
+  // Re-index chapters so chapter_number is always valid even when AI omits it
+  const rawChapters = Array.isArray(rawObj?.proposed_chapters) ? rawObj.proposed_chapters as Record<string, unknown>[] : [];
+  const proposed_chapters = rawChapters.map((ch, i) => ({
+    chapter_number: typeof ch.chapter_number === "number" ? ch.chapter_number : i + 1,
+    title: typeof ch.title === "string" ? ch.title.trim() : `Chapter ${i + 1}`,
+    goal: typeof ch.goal === "string" ? ch.goal.trim() : "",
+    prefill: null,
+  }));
+
+  console.warn("Cass onboarding schema validation failed, falling back to partial extraction:", parsed.error.message);
 
   return {
     reply,
-    done: false,
-    project_name: "",
-    north_star: "",
-    project_goal: "",
-    project_audience: "",
-    project_success: "",
-    project_biggest_risk: "",
-    proposed_chapters: [],
+    done: isDone,
+    project_name: str("project_name"),
+    north_star: str("north_star"),
+    project_goal: str("project_goal"),
+    project_audience: str("project_audience"),
+    project_success: str("project_success"),
+    project_biggest_risk: str("project_biggest_risk"),
+    proposed_chapters,
   };
 }
 
@@ -1102,6 +1114,7 @@ export async function runCassChapterKickoffDialogue(input: {
   previousChapterBridgeSentence?: string | null;
   recenteringType?: string | null;
   foundingThesis?: string | null;
+  boardGoal?: string | null;
   prefill?: {
     goal?: string | null;
     value?: string | null;

@@ -2,7 +2,7 @@
  * POST /api/story/generate
  *
  * Orchestrates the full narrative pipeline after a retro is complete:
- *   1. Load kickoff_beats + retro_beats + card data from Supabase
+ *   1. Load retro_beats + card data from Supabase
  *   2. Load chapter history (for arc context + health check)
  *   3. Assemble chapter brief
  *   4. Detect chapter type
@@ -33,7 +33,7 @@ import {
 import { runNarrativeEngine } from "@/lib/ai/anthropic";
 import { detectStitchingPattern } from "@/prompts/chapter-templates";
 import type { ChapterType } from "@/prompts/chapter-templates";
-import type { KickoffBeats, RetroBeats } from "@/lib/ai/schema";
+import type { RetroBeats } from "@/lib/ai/schema";
 
 export const runtime = "nodejs";
 // Allow up to 5 minutes for two AI passes (Pass 1 + Pass 2)
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       .select(`
         id,name,position,goal,why_it_matters,success_looks_like,done_definition,
         chapter_story,chapter_type,confirmed_thesis,bridge_sentence,
-        kickoff_beats,retro_beats,story_health_flag,retro_completed_at
+        retro_beats,story_health_flag,retro_completed_at
       `)
       .eq("id", chapterId)
       .eq("project_id", projectId)
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
   )?.id;
 
   const allTasks = tasks ?? [];
-  const kickoffCompletedAt = new Date(board.retro_completed_at ?? 0).getTime();
+  const retroCompletedTimestamp = new Date(board.retro_completed_at ?? 0).getTime();
 
   const cards: CardSummary[] = allTasks.map((t) => {
     const isComplete = doneColumnId && String(t.column_id) === String(doneColumnId);
@@ -122,8 +122,8 @@ export async function POST(request: Request) {
       title:         String(t.title),
       status:        isComplete ? "complete" : "todo",
       emotional_tag: (t.emotional_tag as "excited" | "neutral" | "dreaded" | null) ?? null,
-      // "mid_chapter" = created after kickoff was completed
-      added_at:      taskCreated > kickoffCompletedAt ? "mid_chapter" : "kickoff",
+      // "mid_chapter" = created after retro was completed
+      added_at:      taskCreated > retroCompletedTimestamp ? "mid_chapter" : "kickoff",
     };
   });
 
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
   const { data: allBoards } = await supabase
     .from("boards")
     .select(`
-      id,position,chapter_type,confirmed_thesis,kickoff_beats,retro_beats,
+      id,position,chapter_type,confirmed_thesis,retro_beats,
       chapter_story,bridge_sentence,story_health_flag
     `)
     .eq("project_id", projectId)
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
     .map((b) => ({
       chapter_type:     (b.chapter_type as ChapterType | null) ?? null,
       confirmed_thesis: (b.confirmed_thesis as string | null) ?? null,
-      kickoff_beats:    (b.kickoff_beats as KickoffBeats | null) ?? null,
+      kickoff_beats:    null,
       retro_beats:      (b.retro_beats as RetroBeats | null) ?? null,
     }));
 
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
   const seasonName: string | null = null;
 
   // ── 5. Assemble brief ──────────────────────────────────────────────────────
-  const kickoffBeats = (board.kickoff_beats as KickoffBeats | null) ?? {
+  const kickoffBeats = {
     context: { previous_chapter_summary: "", incoming_feeling: "" },
     work: {
       goal:               (board.goal as string | null) ?? "",

@@ -28,14 +28,14 @@ type Stage = "chatting" | "proposal" | "done";
 
 function chapterStatus(chapter: ProjectWithChapters["chapters"][number]) {
   if (chapter.retroCompletedAt) return "completed";
-  if (chapter.kickoffCompletedAt) return "working_on_it";
+  if (!chapter.retroCompletedAt) return "working_on_it";
   return "planned";
 }
 
 function buildOpeningMessage(project: ProjectWithChapters): DialogueMessage {
   const hasChapters = project.chapters.length > 0;
   if (hasChapters) {
-    const activeChapter = project.chapters.find((ch) => ch.kickoffCompletedAt && !ch.retroCompletedAt);
+    const activeChapter = project.chapters.find((ch) => !ch.retroCompletedAt);
     const hint = activeChapter
       ? `You're currently working on "${activeChapter.name}".`
       : "";

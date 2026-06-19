@@ -18,19 +18,20 @@
 
 :root {
   --font-cass: "Erik", "Courier New", monospace;
-  --app-bg: #f6f3ee;
-  --surface: rgba(255, 255, 255, 0.9);
-  --surface-strong: rgba(255, 255, 255, 0.98);
-  --surface-muted: rgba(247, 244, 239, 0.86);
-  --field-bg: rgba(255, 255, 255, 0.9);
-  --stroke: rgba(32, 28, 24, 0.08);
-  --ink: #16130f;
-  --muted: #4a443c;
-  --accent: #16130f;
-  --accent-soft: rgba(22, 19, 15, 0.07);
-  --danger: #9f3f38;
-  --shadow-soft: 0 24px 80px rgba(28, 24, 20, 0.08);
-  --shadow-card: 0 18px 46px rgba(24, 21, 18, 0.08);
+  /* Dark is the default — no JS required for new users to get the right colors */
+  --app-bg: #0d0d0d;
+  --surface: #1a1a1a;
+  --surface-strong: #212121;
+  --surface-muted: #161616;
+  --field-bg: #2a2a2a;
+  --stroke: rgba(255, 255, 255, 0.08);
+  --ink: #d4cec4;
+  --muted: rgba(212, 206, 196, 0.45);
+  --accent: #d4cec4;
+  --accent-soft: #2a2a2a;
+  --danger: #f87171;
+  --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 18px 46px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="dark"] {
@@ -49,13 +50,30 @@
   --shadow-card: 0 18px 46px rgba(0, 0, 0, 0.4);
 }
 
+[data-theme="light"] {
+  --app-bg: #f6f3ee;
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-strong: rgba(255, 255, 255, 0.98);
+  --surface-muted: rgba(247, 244, 239, 0.86);
+  --field-bg: rgba(255, 255, 255, 0.9);
+  --stroke: rgba(32, 28, 24, 0.08);
+  --ink: #16130f;
+  --muted: #4a443c;
+  --accent: #16130f;
+  --accent-soft: rgba(22, 19, 15, 0.07);
+  --danger: #9f3f38;
+  --shadow-soft: 0 24px 80px rgba(28, 24, 20, 0.08);
+  --shadow-card: 0 18px 46px rgba(24, 21, 18, 0.08);
+}
+
 /* Soften pure-white text in dark mode — text-white class → warm ivory */
-[data-theme="dark"] .text-white {
+[data-theme="dark"] .text-white,
+:root:not([data-theme="light"]) .text-white {
   color: #d4cec4;
 }
 
-[data-theme="dark"] body {
-  background: #0d0d0d;
+body {
+  background: var(--app-bg);
 }
 
 @theme inline {

@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { runChapterRefocusDialogue } from "@/lib/ai/anthropic";
 import { strategicDialogueMessageSchema } from "@/lib/ai/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getChapterAgeDays } from "@/lib/utils";
-import type { Board } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -54,7 +52,7 @@ export async function POST(request: Request) {
         .maybeSingle(),
       supabase
         .from("boards")
-        .select("id,name,goal,opening_line,kickoff_completed_at")
+        .select("id,name,goal,opening_line,created_at")
         .eq("id", chapterId)
         .eq("project_id", projectId)
         .maybeSingle(),
@@ -64,13 +62,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Chapter context not found." },
       { status: 404 },
-    );
-  }
-
-  if (!board.kickoff_completed_at) {
-    return NextResponse.json(
-      { error: "Chapter must be kicked off before a refocus session." },
-      { status: 400 },
     );
   }
 
@@ -107,11 +98,9 @@ export async function POST(request: Request) {
       columnName: columnNameById.get(String(t.column_id)) ?? "Backlog",
     }));
 
-  // Build a minimal Board-like object to reuse getChapterAgeDays
-  const boardLike = {
-    kickoffCompletedAt: board.kickoff_completed_at as string,
-  } as Board;
-  const ageDays = getChapterAgeDays(boardLike) ?? 0;
+  const ageDays = board.created_at
+    ? Math.floor((Date.now() - new Date(board.created_at as string).getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
 
   try {
     const result = await runChapterRefocusDialogue({

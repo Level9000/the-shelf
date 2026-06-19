@@ -38,12 +38,12 @@ export function getFileExtension(filename: string) {
 }
 
 /**
- * Returns the number of whole days since a chapter's kickoff was completed.
- * Returns null if the chapter hasn't been kicked off yet.
+ * Returns the number of whole days since a chapter was created.
+ * Returns null if the chapter has no createdAt timestamp.
  */
 export function getChapterAgeDays(board: Board): number | null {
-  if (!board.kickoffCompletedAt) return null;
-  const started = new Date(board.kickoffCompletedAt).getTime();
+  if (!board.createdAt) return null;
+  const started = new Date(board.createdAt).getTime();
   const now = Date.now();
   return Math.floor((now - started) / (1000 * 60 * 60 * 24));
 }

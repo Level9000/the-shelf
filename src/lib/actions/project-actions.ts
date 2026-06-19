@@ -77,6 +77,11 @@ export async function completeProjectKickoffAction(input: {
     } | null;
   }>;
   createPreludeChapter?: boolean;
+  proposedTasks?: Array<{
+    title: string;
+    column: string;
+    notes?: string;
+  }>;
 }): Promise<{ projectId: string; chapter1Id: string; preludeChapterId?: string }> {
   const { supabase, user } = await getAuthenticatedUser();
   // Use service-role client for the project insert to avoid JWT/RLS propagation
@@ -147,7 +152,6 @@ export async function completeProjectKickoffAction(input: {
       why_it_matters: chapter1Prefill?.value?.trim() || null,
       success_looks_like: chapter1Prefill?.measure?.trim() || null,
       done_definition: chapter1Prefill?.done?.trim() || null,
-      kickoff_prefilled_at: chapter1Prefill ? new Date().toISOString() : null,
     })
     .select("id")
     .single();
@@ -173,7 +177,38 @@ export async function completeProjectKickoffAction(input: {
     throw new Error(columnsError.message);
   }
 
-  // 5. Optionally create a Chronicle chapter (position 0, before chapter 1)
+  // 5. Insert onboarding-generated starter tasks for Chapter 1
+  if (input.proposedTasks && input.proposedTasks.length > 0) {
+    const { data: columns } = await supabase
+      .from("board_columns")
+      .select("id, name")
+      .eq("board_id", chapter1Id);
+
+    const columnMap = Object.fromEntries((columns ?? []).map((c) => [c.name, c.id]));
+
+    const taskInserts = input.proposedTasks
+      .filter((t) => t.title.trim())
+      .map((t, index) => {
+        const colName = (t.column === "Do Today" ? "Do Today" : "Do This Week") as string;
+        const columnId = columnMap[colName] ?? columnMap["Do This Week"];
+        return {
+          project_id: projectId,
+          board_id: chapter1Id,
+          column_id: columnId,
+          title: t.title.trim(),
+          description: t.notes?.trim() || null,
+          position: (index + 1) * 1000,
+          created_by: user.id,
+        };
+      })
+      .filter((t) => t.column_id); // skip any with unresolved columns
+
+    if (taskInserts.length > 0) {
+      await supabase.from("tasks").insert(taskInserts);
+    }
+  }
+
+  // 6. Optionally create a Chronicle chapter (position 0, before chapter 1)
   let preludeChapterId: string | undefined;
   if (input.createPreludeChapter) {
     const { data: preludeBoard, error: preludeError } = await supabase
@@ -599,99 +634,6 @@ export async function deleteProjectAction(input: { projectId: string }) {
   }
 
   revalidatePath("/dashboard");
-}
-
-export async function completeChapterKickoffAction(input: {
-  projectId: string;
-  boardId: string;
-  goal: string;
-  whyItMatters: string;
-  successLooksLike: string;
-  doneDefinition: string;
-  openingLine: string;
-  conversation: Array<{ role: string; content: string }>;
-  tasks: Array<{ title: string }>;
-  columns: Array<{ id: string; name: string }>;
-  // Enhanced storytelling fields
-  kickoffBeats?: {
-    context:  { previous_chapter_summary: string; incoming_feeling: string };
-    work:     { goal: string; why_it_matters: string; success_definition: string; target_completion: string };
-    stakes:   { biggest_risk: string; personal_meaning: string; gut_feeling: string };
-    confirmed_thesis: string;
-  } | null;
-  confirmedThesis?: string;
-}) {
-  const { supabase, user } = await getAuthenticatedUser();
-
-  // Save the chapter overview fields + kickoff metadata
-  const { error: boardError } = await supabase
-    .from("boards")
-    .update({
-      goal:                 input.goal.trim() || null,
-      why_it_matters:       input.whyItMatters.trim() || null,
-      success_looks_like:   input.successLooksLike.trim() || null,
-      done_definition:      input.doneDefinition.trim() || null,
-      opening_line:         input.openingLine.trim() || null,
-      kickoff_conversation: input.conversation,
-      kickoff_completed_at: new Date().toISOString(),
-      // Enhanced fields
-      kickoff_beats:    input.kickoffBeats ?? null,
-      confirmed_thesis: (input.confirmedThesis ?? input.kickoffBeats?.confirmed_thesis ?? "").trim() || null,
-    })
-    .eq("id", input.boardId)
-    .eq("project_id", input.projectId);
-
-  if (boardError) {
-    throw new Error(boardError.message);
-  }
-
-  // Insert proposed tasks into the "Do This Week" column
-  if (input.tasks.length > 0) {
-    const toDoColumn =
-      input.columns.find((col) => col.name === "Do This Week") ?? input.columns[0];
-
-    if (toDoColumn) {
-      const { data: existingTasks, error: positionError } = await supabase
-        .from("tasks")
-        .select("position")
-        .eq("board_id", input.boardId)
-        .eq("column_id", toDoColumn.id)
-        .order("position", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (positionError) {
-        throw new Error(positionError.message);
-      }
-
-      const startPosition = (existingTasks?.position ?? 0) + 1000;
-
-      const inserts = input.tasks.map((task, index) => ({
-        project_id: input.projectId,
-        board_id: input.boardId,
-        column_id: toDoColumn.id,
-        title: task.title.trim(),
-        description: null,
-        assignee_name: null,
-        priority: null,
-        due_date: null,
-        position: startPosition + index * 1000,
-        created_by: user.id,
-        source_voice_capture_id: null,
-        source_template_id: null,
-      }));
-
-      const { error: tasksError } = await supabase.from("tasks").insert(inserts);
-
-      if (tasksError) {
-        throw new Error(tasksError.message);
-      }
-    }
-  }
-
-  revalidatePath(`/projects/${input.projectId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
 }
 
 export async function completeChapterRetroAction(input: {
@@ -1138,7 +1080,6 @@ export async function createPlannedChaptersAction(input: {
         name: chapter.name.trim(),
         position: nextPosition,
         goal: chapter.goal.trim() || null,
-        kickoff_prefilled_at: chapter.goal.trim() ? new Date().toISOString() : null,
       })
       .select("id")
       .single();

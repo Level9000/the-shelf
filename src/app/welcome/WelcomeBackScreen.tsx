@@ -1,47 +1,42 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CassRecorder } from "./CassRecorder";
-import { CassOnboardingChat } from "./CassOnboardingChat";
+import { useRouter } from "next/navigation";
+import { CassRecorder } from "@/components/cass/CassRecorder";
 
-type Stage = "intro" | "interview";
-type AnimPhase = "entering" | "visible" | "exiting";
+type Phase = "entering" | "visible" | "exiting";
 
-export function CassNewProjectPage() {
-  const [stage, setStage] = useState<Stage>("intro");
-  const [animPhase, setAnimPhase] = useState<AnimPhase>("entering");
+export function WelcomeBackScreen() {
+  const router = useRouter();
+  const [phase, setPhase] = useState<Phase>("entering");
 
   useEffect(() => {
-    // Enter → hold for 2.2s → exit → hand off to interview
-    const hold = setTimeout(() => setAnimPhase("exiting"), 900 + 2200);
+    // Enter → hold for 3s → exit → redirect
+    const hold = setTimeout(() => setPhase("exiting"), 900 + 3000);
     return () => clearTimeout(hold);
   }, []);
 
   useEffect(() => {
-    if (animPhase !== "exiting") return;
-    const t = setTimeout(() => setStage("interview"), 850);
+    if (phase !== "exiting") return;
+    const t = setTimeout(() => router.replace("/projects"), 850);
     return () => clearTimeout(t);
-  }, [animPhase]);
-
-  if (stage === "interview") {
-    return <CassOnboardingChat hasExistingProjects skipIntro />;
-  }
+  }, [phase, router]);
 
   const cassStyle: React.CSSProperties =
-    animPhase === "entering"
-      ? { animation: "new-project-enter 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards" }
-      : animPhase === "exiting"
-      ? { animation: "new-project-exit 0.8s cubic-bezier(0.64, 0, 0.78, 0) forwards" }
+    phase === "entering"
+      ? { animation: "welcome-enter 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards" }
+      : phase === "exiting"
+      ? { animation: "welcome-exit 0.8s cubic-bezier(0.64, 0, 0.78, 0) forwards" }
       : {};
 
   return (
     <>
       <style>{`
-        @keyframes new-project-enter {
+        @keyframes welcome-enter {
           from { transform: translateX(110vw); }
           to   { transform: translateX(0); }
         }
-        @keyframes new-project-exit {
+        @keyframes welcome-exit {
           from { transform: translateX(0); }
           to   { transform: translateX(-110vw); }
         }
@@ -52,8 +47,8 @@ export function CassNewProjectPage() {
         background: "#0a0a0a",
         backgroundImage: "radial-gradient(ellipse at 30% 60%, rgba(200,168,107,0.06) 0%, transparent 55%), radial-gradient(ellipse at 75% 25%, rgba(42,107,58,0.05) 0%, transparent 50%)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        opacity: animPhase === "exiting" ? 0 : 1,
-        transition: animPhase === "exiting" ? "opacity 0.55s ease 0.3s" : "none",
+        opacity: phase === "exiting" ? 0 : 1,
+        transition: phase === "exiting" ? "opacity 0.55s ease 0.3s" : "none",
       }}>
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "center",
@@ -71,7 +66,7 @@ export function CassNewProjectPage() {
             textAlign: "center",
             textWrap: "balance",
           }}>
-            Kicking off your new project
+            Welcome back to Authored By
           </p>
         </div>
       </div>

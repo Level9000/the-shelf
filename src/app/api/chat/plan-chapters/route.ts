@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         .maybeSingle(),
       supabase
         .from("boards")
-        .select("name,goal,kickoff_completed_at,retro_completed_at")
+        .select("name,goal,retro_completed_at")
         .eq("project_id", projectId)
         .order("position", { ascending: true }),
     ]);
@@ -60,11 +60,7 @@ export async function POST(request: Request) {
   }
 
   const existingChapters = (boards ?? []).map((b) => {
-    const status = b.retro_completed_at
-      ? "completed"
-      : b.kickoff_completed_at
-        ? "working_on_it"
-        : "planned";
+    const status = b.retro_completed_at ? "completed" : "working_on_it";
     return {
       name: String(b.name),
       goal: (b.goal as string | null) ?? null,

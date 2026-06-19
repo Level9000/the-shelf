@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const [{ data: project }, { data: boards }] = await Promise.all([
     supabase.from("projects").select("id,name,north_star").eq("id", projectId).maybeSingle(),
     supabase.from("boards")
-      .select("name,goal,chapter_story,kickoff_completed_at,retro_completed_at")
+      .select("name,goal,chapter_story,retro_completed_at")
       .eq("project_id", projectId)
       .order("position", { ascending: true }),
   ]);
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     name:   String(b.name),
     goal:   (b.goal as string | null) ?? null,
     story:  (b.chapter_story as string | null) ?? null,
-    status: b.retro_completed_at ? "completed" : b.kickoff_completed_at ? "in_progress" : "planned",
+    status: b.retro_completed_at ? "completed" : "in_progress",
   }));
 
   try {

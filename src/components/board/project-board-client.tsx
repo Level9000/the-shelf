@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { BoardColumn, BoardSnapshot, ProposedTask, Task } from "@/types";
 import {
   deleteTaskAction,
@@ -36,7 +36,6 @@ import type { Chapter } from "@/types";
 import { BoardColumnView } from "@/components/board/board-column";
 import { CassBoardDrawer, CassBoardFab } from "@/components/board/cass-board-drawer";
 import { MobileFab } from "@/components/ui/MobileFab";
-import { CassFirstChapterIntro } from "@/components/cass/CassFirstChapterIntro";
 import { resolveBannerState } from "@/components/board/chapter-progress-banner";
 import { ManualTaskModal } from "@/components/tasks/manual-task-modal";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
@@ -218,7 +217,6 @@ export function ProjectBoardClient({
   chapterNumber = 1,
   retroNudge = false,
   onStartRetro,
-  onKickoffComplete,
   onRetroComplete,
   subscriptionStatus,
 }: {
@@ -230,11 +228,10 @@ export function ProjectBoardClient({
   futureChapters?: Chapter[];
   allChaptersCount?: number;
   onNavigateToStory?: () => void;
-  initialDrawerMode?: "kickoff" | "retro";
+  initialDrawerMode?: "retro";
   chapterNumber?: number;
   retroNudge?: boolean;
   onStartRetro?: () => void;
-  onKickoffComplete?: () => void;
   onRetroComplete?: (data: { chapterStory: string; pullQuote: string; headline?: string; subheadline?: string; chapterType?: string }) => void;
   subscriptionStatus?: SubscriptionStatus;
 }) {
@@ -268,17 +265,20 @@ export function ProjectBoardClient({
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   // When a modal opens during a drag, mark it cancelled so handleDragEnd skips the move
   const cancelDragRef = useRef(false);
-  // Chapter 1 first-ever kickoff: show the cinematic intro instead of auto-opening the drawer
-  const isFirstChapterKickoff = initialDrawerMode === "kickoff" && chapterNumber === 1;
-  const [showCassIntro, setShowCassIntro] = useState(() => isFirstChapterKickoff && !needsPaywall);
-  const [cassOpen, setCassOpen] = useState(() => !!initialDrawerMode && !needsPaywall && !isFirstChapterKickoff);
+  const searchParams = useSearchParams();
+  const skipIntro = searchParams.get("skipIntro") === "true";
+  // When arriving from onboarding (skipIntro=true), open the drawer directly so Cass greets them
+  const [cassOpen, setCassOpen] = useState(() =>
+    skipIntro
+      ? !needsPaywall
+      : !!initialDrawerMode && !needsPaywall
+  );
   const [cassBreakupTaskId, setCassBreakupTaskId] = useState<string | null>(null);
   const [cassCompletedMode, setCassCompletedMode] = useState(false);
 
   // Re-open drawer when a forced mode is set from outside (e.g., "all done" → retro)
-  // Skip for chapter 1 kickoff — the intro overlay handles that case.
   useEffect(() => {
-    if (initialDrawerMode && !isFirstChapterKickoff) {
+    if (initialDrawerMode) {
       setCassBreakupTaskId(null);
       setCassCompletedMode(false);
       if (needsPaywall) {
@@ -287,7 +287,7 @@ export function ProjectBoardClient({
         setCassOpen(true);
       }
     }
-  }, [initialDrawerMode, needsPaywall, isFirstChapterKickoff]);
+  }, [initialDrawerMode, needsPaywall]);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualColumnId, setManualColumnId] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -601,6 +601,47 @@ export function ProjectBoardClient({
               <Badge className="mb-4">Saving changes...</Badge>
             </div>
           ) : null}
+          {/* Chapter focus bar — shown when the board has a goal set */}
+          {snapshot.board.goal && (
+            <div style={{
+              borderBottom: "1px solid var(--stroke)",
+              padding: "7px 20px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              background: "var(--surface-muted)",
+            }}>
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "10px",
+                fontWeight: 700,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "var(--muted)",
+                flexShrink: 0,
+              }}>
+                Chapter focus
+              </span>
+              <span style={{
+                width: "1px",
+                height: "12px",
+                background: "var(--stroke)",
+                flexShrink: 0,
+              }} />
+              <span style={{
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: "13px",
+                color: "var(--ink)",
+                opacity: 0.75,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}>
+                {snapshot.board.goal}
+              </span>
+            </div>
+          )}
+
           <div style={{ position: "relative", pointerEvents: anyModalOpen ? "none" : "auto" }}>
             <DndContext
               id="board-dnd-context"
@@ -811,11 +852,6 @@ export function ProjectBoardClient({
 
       <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
 
-      {/* Chapter 1 first-ever kickoff: cinematic Cass intro overlay */}
-      {showCassIntro && (
-        <CassFirstChapterIntro onComplete={() => setShowCassIntro(false)} />
-      )}
-
       <CassBoardDrawer
         open={cassOpen}
         project={snapshot.project}
@@ -830,13 +866,12 @@ export function ProjectBoardClient({
         retroNudge={retroNudge}
         onStartRetro={onStartRetro}
         initialMode={!cassCompletedMode && !cassBreakupTaskId ? initialDrawerMode : undefined}
+        fromOnboarding={skipIntro}
         chapterNumber={chapterNumber}
-        isPrefilled={!!snapshot.board.kickoffPrefilledAt}
         onNavigateToLatest={activeChapterUrl ? () => router.push(activeChapterUrl) : undefined}
         onPlanChapters={() => router.push(`/projects/${chapterProjectId}?plan=true`)}
         onRefocus={bannerState.kind === "running_long" ? () => {} : undefined}
         onEndChapterConfirmed={!snapshot.board.retroCompletedAt ? (nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); refreshData(); } : undefined}
-        onKickoffComplete={() => { onKickoffComplete?.(); refreshData(); }}
         onRetroComplete={(data) => { onRetroComplete?.(data); refreshData(); }}
         onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); setCassCompletedMode(false); }}
         onTasksAdded={refreshData}

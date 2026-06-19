@@ -96,12 +96,11 @@ async function computeTrialStatus(
 
   const projectIds = projects.map((p: { id: string }) => p.id);
 
-  // Count boards with a completed kickoff
+  // Count boards that have been started (have a retro or are in-progress)
   const { count } = await supabase
     .from("boards")
     .select("id", { count: "exact", head: true })
-    .in("project_id", projectIds)
-    .not("kickoff_completed_at", "is", null);
+    .in("project_id", projectIds);
 
   return (count ?? 0) >= 2 ? "trial_ended" : "trial";
 }

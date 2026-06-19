@@ -6,6 +6,13 @@ import { Menu, Settings, X } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
 import { useTheme } from "@/lib/theme-context";
 
+// ── Chapter status ────────────────────────────────────────────────────────────
+function chapterStatus(ch: ProjectWithChapters["chapters"][number]): "completed" | "active" | "planned" {
+  if (ch.retroCompletedAt) return "completed";
+  if (!ch.retroCompletedAt) return "active";
+  return "planned";
+}
+
 // ── Tape label (Story / Board toggle) ────────────────────────────────────────
 
 const TORN_CLIP = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
@@ -454,16 +461,45 @@ export function ProjectAppHeader({
               Pick a chapter to open ↓
             </div>
           )}
-          {displayedProject?.chapters.map((ch, i) => (
-            <NavItem
-              key={ch.id}
-              isDark={isDark}
-              active={!pendingProject && ch.id === (currentChapterId ?? navChapterId)}
-              onClick={() => handleSelectChapter(ch)}
-            >
-              Chapter {i + 1}
-            </NavItem>
-          ))}
+          {displayedProject?.chapters.map((ch, i) => {
+            const st = chapterStatus(ch);
+            return (
+              <NavItem
+                key={ch.id}
+                isDark={isDark}
+                active={!pendingProject && ch.id === (currentChapterId ?? navChapterId)}
+                onClick={() => handleSelectChapter(ch)}
+              >
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: "8px" }}>
+                  <span>Chapter {i + 1}</span>
+                  {st === "active" && (
+                    <span style={{
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontSize: "9px", fontWeight: 700,
+                      letterSpacing: "0.12em", textTransform: "uppercase",
+                      color: isDark ? "#c8a86b" : "rgba(22,19,15,0.6)",
+                      border: `1px solid ${isDark ? "rgba(200,168,107,0.3)" : "rgba(0,0,0,0.15)"}`,
+                      borderRadius: "999px",
+                      padding: "1px 6px",
+                      flexShrink: 0,
+                    }}>Active</span>
+                  )}
+                  {st === "planned" && (
+                    <span style={{
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontSize: "9px", fontWeight: 700,
+                      letterSpacing: "0.12em", textTransform: "uppercase",
+                      color: isDark ? "rgba(200,168,107,0.3)" : "rgba(0,0,0,0.25)",
+                      border: `1px solid ${isDark ? "rgba(200,168,107,0.12)" : "rgba(0,0,0,0.08)"}`,
+                      borderRadius: "999px",
+                      padding: "1px 6px",
+                      flexShrink: 0,
+                    }}>Planned</span>
+                  )}
+                </span>
+              </NavItem>
+            );
+          })}
           {!pendingProject && onPlanChapters && (
             <NavItem isDark={isDark} muted onClick={() => { onPlanChapters?.(); closeDrawer(); }}>
               + Plan new chapters

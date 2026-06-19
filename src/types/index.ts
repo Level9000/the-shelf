@@ -109,8 +109,6 @@ export type Board = {
   successLooksLike: string | null;
   doneDefinition: string | null;
   openingLine: string | null;
-  kickoffCompletedAt: string | null;
-  kickoffPrefilledAt: string | null;
   kickoffConversation: Array<{ role: string; content: string }> | null;
   retroConversation: Array<{ role: string; content: string }> | null;
   chapterStory: string | null;
@@ -122,7 +120,6 @@ export type Board = {
   createdAt: string;
   boardConversations: BoardConversationEntry[];
   confirmedThesis: string | null;
-  kickoffBeats: Record<string, unknown> | null;
 };
 
 export type Chapter = Board;

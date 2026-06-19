@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getOptionalUser, getProjects, getCurrentUserProfile } from "@/lib/supabase/queries";
 import { CassOnboardingChat } from "@/components/cass/CassOnboardingChat";
-import { CassNewProjectPage } from "@/components/cass/CassNewProjectPage";
 
 export default async function NewProjectPage({
   searchParams,
@@ -44,6 +43,6 @@ export default async function NewProjectPage({
     );
   }
 
-  // Returning user, fresh start → cinematic transition then straight to interview
-  return <CassNewProjectPage />;
+  // Returning user, fresh start → skip intro phase but keep slides in scroll history
+  return <CassOnboardingChat hasExistingProjects />;
 }

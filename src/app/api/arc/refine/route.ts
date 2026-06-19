@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
   const { data: chaptersRaw } = await supabase
     .from("chapters")
-    .select("id, name, goal, opening_line, kickoff_completed_at, retro_completed_at")
+    .select("id, name, goal, opening_line, retro_completed_at")
     .eq("project_id", projectId)
     .order("created_at", { ascending: true });
 
@@ -58,9 +58,7 @@ export async function POST(request: Request) {
     openingLine: ch.opening_line as string | null,
     status: (ch.retro_completed_at
       ? "complete"
-      : ch.kickoff_completed_at
-        ? "active"
-        : "upcoming") as "upcoming" | "active" | "complete",
+      : "active") as "upcoming" | "active" | "complete",
   }));
 
   try {

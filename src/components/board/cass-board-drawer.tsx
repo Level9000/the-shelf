@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { ArrowRight, ArrowUp, Check, LoaderCircle, Trash2, X } from "lucide-react";
+import { ArrowRight, ArrowUp, Check, CheckCircle, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
 import { TapeButton } from "@/components/ui/tape-button";
 import type { AICassBoardDialogue } from "@/lib/ai/schema";
 import type { Board, BoardColumn, BoardConversationEntry, Chapter, Priority, Project, ProposedTask, Task, WorkflowTemplate } from "@/types";
 import { createBrainDumpCardsAction, createNextChapterForDeferAction, deleteTaskAction, moveTasksToChapterAction, saveBoardConversationAction, saveWorkflowTemplateAction } from "@/lib/actions/task-actions";
 import { deferTasksToNextChapterAction, endChapterEarlyAction } from "@/lib/actions/project-actions";
 import { getChapterAgeDays } from "@/lib/utils";
-import { CassChapterKickoff } from "@/components/cass/CassChapterKickoff";
 import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { AvatarRecorder, useAvatarName } from "@/components/ui/AvatarRecorder";
@@ -51,7 +50,7 @@ declare global {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "kickoff" | "retro";
+type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "retro" | "onboarding_welcome";
 type ChatSubMode = "tasks" | "braindump" | "move" | "breakup" | "end_chapter";
 type RefocusPhase = "chat" | "triage" | "retro";
 type TriageDecision = "keep" | "move" | "delete";
@@ -59,7 +58,7 @@ type BrainDumpState = "idle" | "recording" | "processing" | "error";
 type MovePhase = "select" | "destination" | "done";
 type Msg = { role: "user" | "assistant"; content: string };
 
-const MENU_QUESTION = "What would you like to do?";
+const MENU_QUESTION = "What would you like to add to this chapter?";
 
 // Small avatar name label shown under the avatar in the drawer header
 function AvatarNameLabel() {
@@ -76,9 +75,9 @@ function AvatarNameLabel() {
 }
 
 const MENU_OPTIONS: Array<{ key: ChatSubMode; label: string; sub: string }> = [
-  { key: "tasks",     label: "Add new tasks to the board thru chat",                sub: "Type what needs to get done"                   },
-  { key: "braindump", label: "Brain Dump. Record me talking and convert into tasks.", sub: "Speak freely — I'll capture the cards"         },
-  { key: "move",      label: "Move some tasks to a future chapter",                   sub: "Defer tasks you won't get to this chapter"        },
+  { key: "tasks",     label: "Talk it out together. Strategize and create new tasks.", sub: "" },
+  { key: "braindump", label: "Voice memo. Turn recorded audio into new tasks.",        sub: "" },
+  { key: "move",      label: "Move some tasks to a future chapter",                    sub: "" },
 ];
 
 // ── Styles ───────────────────────────────────────────────────────────────────
@@ -117,80 +116,140 @@ function buildRfOpener(board: Board, incompleteTasks: Task[], ageDays: number): 
 // ── Proposal card ─────────────────────────────────────────────────────────────
 
 function ProposalCard({
-  task, columns, onRemove, onColumnChange,
+  task, columns, onRemove, onColumnChange, onTitleChange, onDescriptionChange,
 }: {
   task: ProposedTask;
   columns: BoardColumn[];
   onRemove: () => void;
   onColumnChange: (col: string) => void;
+  onTitleChange: (title: string) => void;
+  onDescriptionChange: (desc: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [localTitle, setLocalTitle] = useState(task.title);
+  const [localDesc, setLocalDesc] = useState(task.description ?? "");
   const availableCols = columns.map((c) => c.name);
+
+  function commitTitle() { if (localTitle.trim()) onTitleChange(localTitle.trim()); else setLocalTitle(task.title); }
+  function commitDesc() { onDescriptionChange(localDesc); }
+
   return (
     <div style={{
-      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.15)",
-      borderRadius: "12px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px",
+      background: "rgba(255,255,255,0.04)", border: `1px solid ${expanded ? "rgba(200,168,107,0.35)" : "rgba(200,168,107,0.18)"}`,
+      borderRadius: "14px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "10px",
+      transition: "border-color 0.2s",
     }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
-        <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "#d4cec4", margin: 0, lineHeight: "1.5", flex: 1 }}>
-          {task.title}
-        </p>
+      {/* ── Collapsed header: title + pencil + trash ── */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+        {expanded ? (
+          <input
+            autoFocus
+            value={localTitle}
+            onChange={(e) => setLocalTitle(e.target.value)}
+            onBlur={commitTitle}
+            style={{
+              flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,168,107,0.3)",
+              borderRadius: "8px", padding: "6px 10px",
+              fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.5",
+              color: "#f8f8f6", outline: "none", caretColor: "#c8a86b",
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.6)"; }}
+          />
+        ) : (
+          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: "#f8f8f6", margin: 0, lineHeight: "1.55", flex: 1 }}>
+            {task.title}
+          </p>
+        )}
+
+        {/* Pencil to expand / chevron to collapse */}
+        <button
+          type="button"
+          onClick={() => { if (!expanded) setExpanded(true); else { commitTitle(); commitDesc(); setExpanded(false); } }}
+          title={expanded ? "Done editing" : "Edit card"}
+          style={{ width: "26px", height: "26px", flexShrink: 0, borderRadius: "50%", background: expanded ? "rgba(200,168,107,0.15)" : "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: expanded ? "#c8a86b" : "rgba(248,248,246,0.35)", transition: "background 0.15s, color 0.15s" }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.15)"; e.currentTarget.style.color = "#c8a86b"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = expanded ? "rgba(200,168,107,0.15)" : "rgba(255,255,255,0.06)"; e.currentTarget.style.color = expanded ? "#c8a86b" : "rgba(248,248,246,0.35)"; }}
+        >
+          {expanded ? <CheckCircle size={13} /> : <Pencil size={12} />}
+        </button>
+
+        {/* Trash */}
         <button
           type="button" onClick={onRemove}
-          style={{ width: "22px", height: "22px", flexShrink: 0, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#666", transition: "background 0.15s, color 0.15s", fontFamily: "'Literata', Georgia, serif" }}
+          style={{ width: "26px", height: "26px", flexShrink: 0, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(248,248,246,0.3)", transition: "background 0.15s, color 0.15s" }}
           onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; e.currentTarget.style.color = "#f87171"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#666"; }}
-        ><Trash2 size={10} /></button>
+          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "rgba(248,248,246,0.3)"; }}
+        ><Trash2 size={11} /></button>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-        <select
-          value={task.suggestedColumn}
-          onChange={(e) => onColumnChange(e.target.value)}
-          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "999px", padding: "2px 10px", fontFamily: "var(--font-cass)", fontSize: "11px", color: "#c8a86b", cursor: "pointer", outline: "none" }}
-        >
-          {availableCols.map((c) => (
-            <option key={c} value={c} style={{ background: "#1a1a1a" }}>{COLUMN_LABELS[c] ?? c}</option>
-          ))}
-        </select>
-        {task.priority && (
-          <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "1.5px", color: PRIORITY_COLORS[task.priority], textTransform: "uppercase", opacity: 0.8 }}>
-            {task.priority}
-          </span>
-        )}
-        {task.dueDate && (
-          <span style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.4)", letterSpacing: "0.5px" }}>
-            due {task.dueDate}
-          </span>
-        )}
-      </div>
+
+      {/* ── Description — collapsed: dimmed read-only preview; expanded: editable ── */}
+      {expanded ? (
+        <textarea
+          value={localDesc}
+          onChange={(e) => setLocalDesc(e.target.value)}
+          onBlur={commitDesc}
+          placeholder="Add context or details…"
+          rows={3}
+          style={{
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
+            borderRadius: "8px", padding: "8px 10px", resize: "vertical",
+            fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: "1.6",
+            color: "rgba(248,248,246,0.8)", outline: "none", caretColor: "#c8a86b",
+          }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
+          onBlurCapture={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.22)"; }}
+        />
+      ) : task.description ? (
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: "1.6", color: "rgba(248,248,246,0.45)", margin: 0 }}>
+          {task.description}
+        </p>
+      ) : null}
+
+      {/* ── Column pill ── */}
+      <select
+        value={task.suggestedColumn}
+        onChange={(e) => onColumnChange(e.target.value)}
+        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,168,107,0.22)", borderRadius: "999px", padding: "3px 12px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#c8a86b", cursor: "pointer", outline: "none", alignSelf: "flex-start" }}
+      >
+        {availableCols.map((c) => (
+          <option key={c} value={c} style={{ background: "#1a1a1a" }}>{COLUMN_LABELS[c] ?? c}</option>
+        ))}
+      </select>
     </div>
   );
 }
 
-// ── Brain dump recorder view ──────────────────────────────────────────────────
+// ── Voice memo flow ───────────────────────────────────────────────────────────
 
-function BrainDumpRecorderView({
+type VoiceMemoPhase = "column_select" | "voice" | "text_input" | "processing";
+
+function VoiceMemoFlow({
+  columns,
   projectId,
   onCardsReady,
 }: {
+  columns: BoardColumn[];
   projectId: string;
-  onCardsReady: (tasks: ProposedTask[], transcript: string) => void;
+  onCardsReady: (tasks: ProposedTask[], transcript: string, columnName: string) => void;
 }) {
-  const recognitionRef = useRef<ISpeechRecognition | null>(null);
-  const transcriptRef = useRef<string>("");
-  const [dumpState, setDumpState] = useState<BrainDumpState>("idle");
-  const [elapsed, setElapsed] = useState(0);
+  const [phase, setPhase] = useState<VoiceMemoPhase>("column_select");
+  const [selectedColumn, setSelectedColumn] = useState<string>("");
+  const [listening, setListening] = useState(false);
+  const [textInput, setTextInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef("");
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // Elapsed timer while recording
-  useEffect(() => {
-    if (dumpState !== "recording") return;
-    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [dumpState]);
+  // Column display names to show (use actual column names from board)
+  const columnOptions = columns.filter(c =>
+    ["Do Today", "Do This Week", "Blocked", "Done"].includes(c.name)
+  );
 
-  const processTranscript = useCallback((transcript: string) => {
-    setDumpState("processing");
+  function processTranscript(transcript: string) {
+    setPhase("processing");
     startTransition(async () => {
       try {
         const res = await fetch("/api/voice/process", {
@@ -198,197 +257,218 @@ function BrainDumpRecorderView({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ projectId, transcript }),
         });
-        const payload = await res.json() as { id?: string; transcript?: string; tasks?: ProposedTask[]; error?: string };
+        const payload = await res.json() as { tasks?: ProposedTask[]; error?: string };
         if (!res.ok) throw new Error(payload.error ?? "Processing failed.");
-        const tasks = (payload.tasks ?? []).map((t) => ({ ...t, id: t.id ?? crypto.randomUUID() }));
-        onCardsReady(tasks, transcript);
+        const tasks = (payload.tasks ?? []).map((t, i) => ({
+          ...t,
+          id: t.id ?? `voice-${i}`,
+          suggestedColumn: selectedColumn, // override with user's chosen column
+        }));
+        onCardsReady(tasks, transcript, selectedColumn);
       } catch (err) {
-        setDumpState("error");
         setError(err instanceof Error ? err.message : "Something went wrong.");
+        setPhase("voice");
       }
     });
-  }, [projectId, onCardsReady]);
+  }
 
-  function startRecording() {
-    const SpeechClass = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!SpeechClass) {
-      setDumpState("error");
-      setError("Speech recognition isn't supported in this browser. Try Chrome or Edge.");
-      return;
+  function stopListening() {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.onend = null;
+      recognitionRef.current.onerror = null;
+      try { recognitionRef.current.stop(); } catch { /* ok */ }
+      recognitionRef.current = null;
     }
-    try {
-      setError(null);
-      setElapsed(0);
-      transcriptRef.current = "";
-      const recognition = new SpeechClass();
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.lang = "en-US";
-      recognition.addEventListener("result", (e) => {
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) {
-            transcriptRef.current += (transcriptRef.current ? " " : "") + e.results[i][0].transcript;
-          }
+    setListening(false);
+  }
+
+  function scheduleAutoSubmit(text: string) {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = setTimeout(() => {
+      if (text.trim()) {
+        stopListening();
+        processTranscript(text.trim());
+      }
+    }, 1800);
+  }
+
+  function startListening() {
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    if (!SR) { setError("Speech recognition isn't supported in this browser."); return; }
+    setError(null);
+    transcriptRef.current = "";
+    const rec = new SR();
+    rec.continuous = !isIOS;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    recognitionRef.current = rec;
+    rec.onresult = (e: any) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          transcriptRef.current += (transcriptRef.current ? " " : "") + e.results[i][0].transcript.trim();
         }
-      });
-      recognition.addEventListener("error", (e) => {
-        if (e.error === "not-allowed") {
-          setDumpState("error");
-          setError("Microphone access denied. Check browser permissions.");
-        } else if (e.error !== "no-speech" && e.error !== "aborted") {
-          setDumpState("error");
-          setError(`Speech error: ${e.error}`);
-        }
-      });
-      recognitionRef.current = recognition;
-      recognition.start();
-      setDumpState("recording");
-    } catch {
-      setDumpState("error");
-      setError("Microphone access failed. Check browser permissions.");
-    }
+      }
+      scheduleAutoSubmit(transcriptRef.current);
+    };
+    rec.onend = () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      setListening(false);
+      if (isIOS && transcriptRef.current.trim()) {
+        processTranscript(transcriptRef.current.trim());
+      }
+    };
+    rec.onerror = () => { if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current); setListening(false); };
+    rec.start();
+    setListening(true);
   }
 
-  function stopRecording() {
-    if (!recognitionRef.current) return;
-    recognitionRef.current.stop();
-    recognitionRef.current = null;
-    const transcript = transcriptRef.current.trim();
-    if (!transcript) {
-      setDumpState("error");
-      setError("Nothing was captured. Please try again.");
-      return;
-    }
-    processTranscript(transcript);
+  function toggleVoice() {
+    if (listening) stopListening(); else startListening();
   }
 
-  function formatTime(s: number) {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${String(sec).padStart(2, "0")}`;
-  }
-
-  const cassAnim: CassAnimState =
-    dumpState === "recording" ? "recording" :
-    dumpState === "processing" ? "playing" :
-    "idle";
-
-  const isActive = dumpState === "recording" || dumpState === "processing";
-
-  return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px 24px", gap: "0" }}>
-
-      {/* Pulsing glow ring behind Cass when active */}
-      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "24px" }}>
-        {isActive && (
-          <div style={{
-            position: "absolute",
-            width: "220px", height: "220px",
-            borderRadius: "50%",
-            background: dumpState === "recording"
-              ? "radial-gradient(circle, rgba(200,168,107,0.18) 0%, transparent 70%)"
-              : "radial-gradient(circle, rgba(200,168,107,0.1) 0%, transparent 70%)",
-            animation: "cassBoardPulse 2s ease-in-out infinite",
-          }} />
-        )}
-        <AvatarRecorder animState={cassAnim} size="md" />
-      </div>
-
-      {/* State label */}
-      <p style={{
-        fontFamily: "var(--font-cass)",
-        fontSize: "11px",
-        letterSpacing: "3px",
-        textTransform: "uppercase",
-        color: dumpState === "recording" ? "#c8a86b" : dumpState === "processing" ? "rgba(200,168,107,0.6)" : "rgba(255,255,255,0.25)",
-        margin: "0 0 6px",
-        transition: "color 0.3s",
-      }}>
-        {dumpState === "recording" ? "Listening" :
-         dumpState === "processing" ? "Transcribing" :
-         dumpState === "error" ? "Error" :
-         "Ready"}
-      </p>
-
-      {/* Elapsed timer */}
-      {dumpState === "recording" && (
-        <p style={{ fontFamily: "var(--font-cass)", fontSize: "28px", color: "#c8a86b", margin: "0 0 28px", letterSpacing: "2px" }}>
-          {formatTime(elapsed)}
+  // ── Phase: column_select ──
+  if (phase === "column_select") {
+    return (
+      <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 32px", display: "flex", flexDirection: "column", gap: "20px" }}>
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: "#f8f8f6", margin: 0 }}>
+          Which column should these go in?
         </p>
-      )}
-
-      {/* Processing message */}
-      {dumpState === "processing" && (
-        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "rgba(232,224,208,0.6)", margin: "8px 0 28px", textAlign: "center" }}>
-          Pulling the cards from your dump…
-        </p>
-      )}
-
-      {/* Idle message */}
-      {dumpState === "idle" && (
-        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "rgba(232,224,208,0.45)", margin: "8px 0 28px", textAlign: "center", lineHeight: "1.6", maxWidth: "260px" }}>
-          Hit record and just talk. Everything on your mind — Cass will sort it into cards.
-        </p>
-      )}
-
-      {/* Error message */}
-      {dumpState === "error" && error && (
-        <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: "8px 0 20px", textAlign: "center", lineHeight: "1.6" }}>
-          {error}
-        </p>
-      )}
-
-      {/* Action button */}
-      {dumpState !== "processing" && (
-        <button
-          type="button"
-          onClick={dumpState === "recording" ? stopRecording : startRecording}
-          style={{
-            width: "72px", height: "72px",
-            borderRadius: "50%",
-            border: "none",
-            cursor: "pointer",
-            background: dumpState === "recording"
-              ? "linear-gradient(135deg, #ef4444, #dc2626)"
-              : "linear-gradient(135deg, #c8a86b, #a8864e)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: dumpState === "recording"
-              ? "0 0 0 8px rgba(239,68,68,0.15), 0 8px 24px rgba(239,68,68,0.3)"
-              : "0 0 0 8px rgba(200,168,107,0.12), 0 8px 24px rgba(200,168,107,0.25)",
-            transition: "transform 0.15s ease, box-shadow 0.15s ease",
-            animation: dumpState === "recording" ? "cassBoardRecordPulse 1.5s ease-in-out infinite" : "none",
-            fontFamily: "'Literata', Georgia, serif",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-        >
-          {dumpState === "recording" ? (
-            /* Stop square */
-            <div style={{ width: "22px", height: "22px", borderRadius: "4px", background: "white" }} />
-          ) : (
-            /* Mic dot */
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-              <div style={{ width: "8px", height: "14px", borderRadius: "999px", background: "white" }} />
-              <div style={{ display: "flex", gap: "6px" }}>
-                <div style={{ width: "1.5px", height: "6px", background: "rgba(255,255,255,0.6)", borderRadius: "2px" }} />
-                <div style={{ width: "1.5px", height: "8px", background: "rgba(255,255,255,0.9)", borderRadius: "2px" }} />
-                <div style={{ width: "1.5px", height: "6px", background: "rgba(255,255,255,0.6)", borderRadius: "2px" }} />
-              </div>
-            </div>
-          )}
-        </button>
-      )}
-
-      {/* Processing spinner */}
-      {dumpState === "processing" && (
-        <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(200,168,107,0.1)", border: "1px solid rgba(200,168,107,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <LoaderCircle size={28} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite" }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {columnOptions.map((col, i) => (
+            <button
+              key={col.id}
+              type="button"
+              onClick={() => { setSelectedColumn(col.name); setPhase("voice"); }}
+              style={{
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)",
+                borderRadius: "12px", padding: "14px 18px", textAlign: "left",
+                fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600,
+                color: "#d4cec4", cursor: "pointer",
+                transition: "background 0.15s, border-color 0.15s",
+                animation: `cassBoardOptionIn 0.28s ease ${i * 80}ms both`,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.08)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.4)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; }}
+            >
+              {col.name}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
+    );
+  }
 
-      <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.25)", textTransform: "uppercase", letterSpacing: "2px", margin: "20px 0 0" }}>
-        {dumpState === "recording" ? "Tap to stop" : dumpState === "idle" || dumpState === "error" ? "Tap to record" : ""}
+  // ── Phase: processing ──
+  if (phase === "processing") {
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px", padding: "32px 20px" }}>
+        <AvatarRecorder animState="playing" size="md" />
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "12px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(200,168,107,0.55)", margin: 0 }}>
+          Pulling out the key items…
+        </p>
+      </div>
+    );
+  }
+
+  // ── Phase: text_input ──
+  if (phase === "text_input") {
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px 20px 20px", gap: "16px" }}>
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: "#f8f8f6", margin: 0 }}>
+          Type what you want to capture for <strong style={{ color: "#c8a86b" }}>{selectedColumn}</strong>:
+        </p>
+        <textarea
+          autoFocus
+          value={textInput}
+          onChange={(e) => setTextInput(e.target.value)}
+          placeholder="Describe the tasks or ideas you want to add…"
+          style={{
+            flex: 1, minHeight: "140px",
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
+            borderRadius: "10px", padding: "14px 16px",
+            fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.6",
+            color: "#d4cec4", outline: "none", resize: "none", caretColor: "#c8a86b",
+          }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.22)"; }}
+        />
+        {error && <p style={{ color: "#ff6b6b", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", margin: 0 }}>{error}</p>}
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            type="button"
+            onClick={() => setPhase("voice")}
+            style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.22)", borderRadius: "8px", padding: "10px 16px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(200,168,107,0.55)", cursor: "pointer" }}
+          >
+            ← Voice
+          </button>
+          <button
+            type="button"
+            onClick={() => { if (textInput.trim()) processTranscript(textInput.trim()); }}
+            disabled={!textInput.trim()}
+            style={{ flex: 1, background: textInput.trim() ? "#f5c84a" : "rgba(255,255,255,0.06)", border: "none", borderRadius: "8px", padding: "10px 16px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: textInput.trim() ? "#1a0e00" : "#555", cursor: textInput.trim() ? "pointer" : "default", transition: "background 0.15s" }}
+          >
+            Process
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Phase: voice ──
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px 24px", gap: "20px" }}>
+      {/* Column context */}
+      <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(200,168,107,0.5)", margin: 0 }}>
+        → {selectedColumn}
       </p>
+
+      {/* Mic button */}
+      <button
+        type="button"
+        {...(isIOS ? {
+          onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => { e.preventDefault(); if (!listening) startListening(); },
+          onPointerUp:   (e: React.PointerEvent<HTMLButtonElement>) => { e.preventDefault(); if (listening) stopListening(); },
+          onPointerCancel: () => { if (listening) stopListening(); },
+        } : { onClick: toggleVoice })}
+        aria-label={listening ? "Stop recording" : "Start recording"}
+        style={{
+          width: "96px", height: "96px", borderRadius: "50%",
+          background: listening ? "rgba(245,200,74,0.15)" : "rgba(255,255,255,0.06)",
+          border: `2px solid ${listening ? "#f5c84a" : "rgba(255,255,255,0.15)"}`,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.2s",
+          boxShadow: listening ? "0 0 0 12px rgba(245,200,74,0.08), 0 0 0 24px rgba(245,200,74,0.04)" : "none",
+          userSelect: "none", WebkitUserSelect: "none",
+        }}
+      >
+        <svg width="28" height="24" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+          {[{ x: 0, h: 4, y: 5 }, { x: 3, h: 8, y: 3 }, { x: 6, h: 14, y: 0 }, { x: 9, h: 8, y: 3 }, { x: 12, h: 4, y: 5 }].map((bar, i) => (
+            <rect key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
+              fill={listening ? "#f5c84a" : "#666"}
+              style={listening ? { animation: `chat-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
+            />
+          ))}
+        </svg>
+      </button>
+
+      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: listening ? "#f5c84a" : "#888", transition: "color 0.2s" }}>
+        {isIOS ? (listening ? "Release to send" : "Hold to speak") : (listening ? "Listening…" : "Start talking...")}
+      </span>
+
+      {error && <p style={{ color: "#ff6b6b", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", margin: 0, textAlign: "center" }}>{error}</p>}
+
+      {/* Switch to typing */}
+      <button
+        type="button"
+        onClick={() => { stopListening(); setPhase("text_input"); }}
+        style={{ background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(248,248,246,0.2)", transition: "color 0.15s", padding: "4px 8px", marginTop: "4px" }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.5)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.2)"; }}
+      >
+        Switch to typing
+      </button>
     </div>
   );
 }
@@ -462,7 +542,7 @@ function MoveToChapterView({
       try {
         const created = await createNextChapterForDeferAction({ projectId, currentChapterCount: allChaptersCount });
         // Add created chapter to available list and immediately proceed to move
-        setAvailableChapters([{ ...created, projectId, goal: null, whyItMatters: null, successLooksLike: null, doneDefinition: null, openingLine: null, kickoffCompletedAt: null, kickoffPrefilledAt: null, retroConversation: null, chapterStory: null, storyLength: null, retroCompletedAt: null, sharedAt: null, shareSlug: null, position: allChaptersCount * 1000, createdAt: new Date().toISOString() } as Chapter]);
+        setAvailableChapters([{ ...created, projectId, goal: null, whyItMatters: null, successLooksLike: null, doneDefinition: null, openingLine: null, retroConversation: null, chapterStory: null, storyLength: null, retroCompletedAt: null, sharedAt: null, shareSlug: null, position: allChaptersCount * 1000, createdAt: new Date().toISOString() } as Chapter]);
         handleMoveToChapter(created.id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Couldn't create chapter.");
@@ -821,13 +901,12 @@ export function CassBoardDrawer({
   retroNudge = false,
   onStartRetro,
   initialMode,
+  fromOnboarding = false,
   chapterNumber = 1,
-  isPrefilled = false,
   onNavigateToLatest,
   onPlanChapters,
   onRefocus,
   onEndChapterConfirmed,
-  onKickoffComplete,
   onRetroComplete,
   onClose,
   onTasksAdded,
@@ -845,20 +924,20 @@ export function CassBoardDrawer({
   completedChapterMode?: boolean;
   retroNudge?: boolean;
   onStartRetro?: () => void;
-  initialMode?: "kickoff" | "retro";
+  initialMode?: "retro";
+  fromOnboarding?: boolean;
   chapterNumber?: number;
-  isPrefilled?: boolean;
   onNavigateToLatest?: () => void;
   onPlanChapters?: () => void;
   onRefocus?: () => void;
   onEndChapterConfirmed?: (nextChapterId: string | null) => void;
-  onKickoffComplete?: () => void;
   onRetroComplete?: (data: { chapterStory: string; pullQuote: string; headline?: string; subheadline?: string; chapterType?: string }) => void;
   onClose: () => void;
   onTasksAdded: () => void;
   onTaskDeleted?: () => void;
 }) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const proposalsStartRef = useRef<HTMLDivElement | null>(null);
 
   // ── Theme ────────────────────────────────────────────────────────────────────
   const { theme } = useTheme();
@@ -897,14 +976,13 @@ export function CassBoardDrawer({
   };
   // eslint-disable-next-line @typescript-eslint/no-shadow
   const USER_B: React.CSSProperties = {
-    background: isDark ? "rgba(200,168,107,0.1)" : "rgba(200,168,107,0.14)",
-    border: `1px solid ${borderGoldDim}`,
-    borderRadius: "12px 12px 2px 12px",
-    padding: "10px 16px",
-    fontFamily: "'Literata', Georgia, serif",
-    fontSize: "14px",
-    lineHeight: "1.6",
-    color: isDark ? "#c8a86b" : "#8a6a20",
+    background: "#3a3a3a",
+    borderRadius: "18px 18px 4px 18px",
+    padding: "10px 14px",
+    fontFamily: "'Lora', Georgia, serif",
+    fontSize: "15px",
+    lineHeight: "1.55",
+    color: "#f8f8f6",
     maxWidth: "80%",
   };
 
@@ -924,6 +1002,7 @@ export function CassBoardDrawer({
 
   // ── Braindump transcript (for Chronicle history) ──────────────────────────────
   const [braindumpTranscript, setBraindumpTranscript] = useState<string | null>(null);
+  const [braindumpAddingMore, setBraindumpAddingMore] = useState(false);
 
   // ── Review / confirm state ────────────────────────────────────────────────────
   const [proposedTasks, setProposedTasks] = useState<ProposedTask[]>([]);
@@ -963,6 +1042,7 @@ export function CassBoardDrawer({
     setTemplateSaved(false);
     setTemplateError(null);
     setBraindumpTranscript(null);
+    setBraindumpAddingMore(false);
     setRfPhase("chat");
     setRfMessages([]);
     setRfDraft("");
@@ -970,14 +1050,16 @@ export function CassBoardDrawer({
     setRfError(null);
     setRfDoneCount(null);
 
-    // If forced into kickoff or retro mode, skip straight to that experience
-    if (initialMode === "kickoff") {
-      setMode("kickoff");
+    // If arriving from onboarding, show the welcome message first
+    if (fromOnboarding) {
+      setMode("onboarding_welcome");
       setMenuDisplayed("");
       setOptionsReady(false);
       setMenuSelected(null);
       return;
     }
+
+    // If forced into retro mode, skip straight to that experience
     if (initialMode === "retro") {
       setMode("retro");
       setMenuDisplayed("");
@@ -1053,8 +1135,26 @@ export function CassBoardDrawer({
   }, [open]);
 
   useEffect(() => {
-    queueMicrotask(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
+    queueMicrotask(() => {
+      // When proposals first arrive, scroll so the Cass reply is visible at the top —
+      // not all the way to the bottom card. If no proposals yet, scroll to bottom as usual.
+      if (proposalsStartRef.current && reviewTasks.length > 0) {
+        proposalsStartRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    });
   }, [messages, reviewTasks]);
+
+  // Scroll to bottom when entering chat so the menu history scrolls away (onboarding feel)
+  useEffect(() => {
+    if (mode === "chat") {
+      const t = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }, 80);
+      return () => clearTimeout(t);
+    }
+  }, [mode]);
 
   // ── Mode selection from menu ──────────────────────────────────────────────────
   function selectMode(sub: ChatSubMode) {
@@ -1064,13 +1164,15 @@ export function CassBoardDrawer({
     setTimeout(() => setMode("chat"), 320);
 
     if (sub === "tasks") {
+      // Send context to the API but don't add the synthetic user message to UI —
+      // menuSelected already shows the user's choice as a gray bubble above.
       const openingMsg: Msg = { role: "user", content: "I want to add some specific tasks." };
       setTimeout(() => {
-        setMessages([openingMsg]);
+        setMessages([]);
         startTransition(async () => {
           try {
             const result = await callApi([openingMsg], "tasks");
-            applyAiResult(result, [openingMsg]);
+            applyAiResult(result, []);
           } catch (err) {
             setChatError(err instanceof Error ? err.message : "Something went wrong.");
           }
@@ -1150,13 +1252,18 @@ export function CassBoardDrawer({
   }
 
   // ── Voice (braindump) cards ready callback ────────────────────────────────────
-  const handleVoiceCardsReady = useCallback((tasks: ProposedTask[], transcript: string) => {
-    const stamped = tasks.map((t, i) => ({ ...t, id: t.id ?? `voice-${i}` }));
-    setProposedTasks(stamped);
-    setReviewTasks(stamped);
+  const handleVoiceCardsReady = useCallback((tasks: ProposedTask[], transcript: string, _columnName: string) => {
+    const stamped = tasks.map((t, i) => ({ ...t, id: t.id ?? `voice-${i}-${Date.now()}` }));
+    // Inject a Cass reply so the unified container renders the same flow as "talk it out":
+    // Cass message → proposal cards → save button. The proposalsStartRef will anchor to it
+    // and the scroll-to-top-of-Cass behavior kicks in automatically.
+    const cassReply = `Got it. Here's what I captured from your voice memo.`;
+    setMessages([{ role: "assistant", content: cassReply }]);
+    setProposedTasks((prev) => [...prev, ...stamped]);
+    setReviewTasks((prev) => [...prev, ...stamped]);
     setBraindumpTranscript(transcript);
-    // Voice dumps don't suggest template saves automatically (often too varied)
     setSuggestSaveAsTemplate(false);
+    setBraindumpAddingMore(false);
   }, []);
 
   // ── Save tasks ────────────────────────────────────────────────────────────────
@@ -1173,7 +1280,6 @@ export function CassBoardDrawer({
           cards: reviewTasks.map((t) => ({
             title: t.title,
             column: t.suggestedColumn,
-            priority: (t.priority ?? "medium") as "low" | "medium" | "high",
             context: t.description ?? "",
             rawQuote: "",
           })),
@@ -1376,67 +1482,90 @@ export function CassBoardDrawer({
         }}
         aria-hidden={!open}
       >
-        {mode !== "kickoff" && mode !== "retro" && <CassProgressBar percent={progressPercent} />}
+        {/* Progress bar — only for retro/refocus/lifecycle flows, not for menu/chat task flows */}
+        {(mode === "refocus" || mode === "completed" || mode === "retro_nudge") && <CassProgressBar percent={progressPercent} />}
 
-        {/* ── Header — hidden during retro/kickoff (those components own the stage) ── */}
-        {!(mode === "refocus" && rfPhase === "retro") && mode !== "kickoff" && mode !== "retro" && (
-        <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 14px", position: "relative" }}>
-          {(mode === "chat" && !savedOk) && (
-            <div style={{ position: "absolute", top: "14px", left: "16px" }}>
-              <TapeButton
-                type="button"
-                onClick={isBreakupMode ? onClose : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); }}
-                variant="ghost"
-                size="sm"
-              >{isBreakupMode ? "✕ cancel" : "← back"}</TapeButton>
-            </div>
-          )}
-          {mode === "refocus" && rfPhase === "chat" && (
-            <div style={{ position: "absolute", top: "14px", left: "16px" }}>
-              <TapeButton
-                type="button"
-                onClick={() => { setMode("menu"); setMenuSelected(null); }}
-                variant="ghost"
-                size="sm"
-              >← back</TapeButton>
-            </div>
-          )}
-          <button
-            type="button" onClick={onClose} aria-label="Close"
-            style={{ position: "absolute", top: "14px", right: "16px", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: btnBg, color: btnColor, border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s", fontFamily: "'Literata', Georgia, serif" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
-          ><X size={14} /></button>
-
-          {/* Avatar — hidden during brain dump recording so the large recorder owns the stage */}
-          {!(mode === "chat" && isBrainDump && !hasProposals && !savedOk) && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-              <AvatarRecorder animState={headerCassAnim} size="sm" />
-              <AvatarNameLabel />
-            </div>
-          )}
+        {/* ── Header — hidden during retro/onboarding_welcome (those components own the stage) ── */}
+        {!(mode === "refocus" && rfPhase === "retro") && mode !== "retro" && mode !== "onboarding_welcome" && (
+        <div style={{ flexShrink: 0, position: "relative" }}>
+          {/* Authored By banner */}
+          <div style={{ background: "#0a0a0a", borderBottom: "1px solid #1e1e1e", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <img
+              src="/icons/authored-by-tape-icon.png"
+              alt="Authored By"
+              style={{ width: "auto", height: "52px", objectFit: "contain" }}
+            />
+            {/* Back button */}
+            {((mode === "chat" && !savedOk) || (mode === "refocus" && rfPhase === "chat")) && (
+              <div style={{ position: "absolute", top: "50%", left: "16px", transform: "translateY(-50%)" }}>
+                <TapeButton
+                  type="button"
+                  onClick={(mode === "refocus" && rfPhase === "chat")
+                    ? () => { setMode("menu"); setMenuSelected(null); }
+                    : isBreakupMode
+                      ? onClose
+                      : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); }}
+                  variant="ghost"
+                  size="sm"
+                >{isBreakupMode ? "✕ cancel" : "← back"}</TapeButton>
+              </div>
+            )}
+            {/* Close button */}
+            <button
+              type="button" onClick={onClose} aria-label="Close"
+              style={{ position: "absolute", top: "50%", right: "16px", transform: "translateY(-50%)", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#d4cec4"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
+            ><X size={14} /></button>
+          </div>
+          {/* Label bar */}
+          <div style={{ background: "#242424", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(248,248,246,0.25)" }}>
+              {mode === "menu" ? "Add something new" :
+               chatSubMode === "braindump" ? "Voice Memo" :
+               chatSubMode === "move" ? "Reroute Tasks" :
+               chatSubMode === "end_chapter" ? "End Chapter" :
+               mode === "completed" ? "What's Next" :
+               mode === "retro_nudge" ? "Chapter Recap" :
+               mode === "refocus" ? "Refocus" :
+               "Add Tasks"}
+            </span>
+          </div>
         </div>
         )}
 
-        {!(mode === "chat" && isBrainDump && !hasProposals && !savedOk) && !(mode === "refocus" && rfPhase === "retro") && (
-          <div style={{ height: "1px", background: dividerColor, flexShrink: 0 }} />
-        )}
+        {/* ── Unified menu + chat scroll container ── */}
+        {/* Shared by "menu" mode and "chat" mode (tasks/breakup/braindump proposals).
+            The Cass avatar + question stay at the top; selecting an option causes the
+            content below it to scroll into view — matching the onboarding scroll feel. */}
+        {(mode === "menu" || (mode === "chat" && !isMoveMode && !isEndChapterMode && !(isBrainDump && (!hasProposals || braindumpAddingMore) && !savedOk))) && (
+          <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", scrollbarWidth: "none" }}>
 
-        {/* ── Menu mode ── */}
-        {mode === "menu" && (
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-              <div style={CASS_B}>
-                {menuDisplayed}
-                {menuDisplayed.length > 0 && menuDisplayed.length < MENU_QUESTION.length && (
-                  <span style={{ opacity: 0.5, animation: "cassBoardCaretBlink 0.9s step-end infinite" }}>▌</span>
-                )}
-              </div>
+            {/* Cass avatar — always at top */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+              <CassRecorder animState={mode === "menu" ? headerCassAnim : (isPending ? "playing" : "talking")} size="sm" />
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)" }}>
+                Cass · Story Guide
+              </span>
             </div>
-            {optionsReady && !menuSelected && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {/* Running-long state: only show the refocus prompt, nothing else */}
+
+            {/* Cass question — plain Lora, left-aligned, no bubble */}
+            <div style={{ maxWidth: "85%", width: "100%" }}>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: "#f8f8f6", margin: 0 }}>
+                {mode === "menu" ? (
+                  <>
+                    {menuDisplayed}
+                    {menuDisplayed.length > 0 && menuDisplayed.length < MENU_QUESTION.length && (
+                      <span style={{ opacity: 0.5, animation: "cassBoardCaretBlink 0.9s step-end infinite" }}>▌</span>
+                    )}
+                  </>
+                ) : MENU_QUESTION}
+              </p>
+            </div>
+
+            {/* Options — shown only in menu mode, before selection */}
+            {mode === "menu" && optionsReady && !menuSelected && (
+              <div style={{ width: "100%", maxWidth: "85%", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {onRefocus ? (
                   <button
                     type="button"
@@ -1447,8 +1576,7 @@ export function CassBoardDrawer({
                   >
                     <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(251,146,60,0.6)", background: "transparent" }} />
                     <div>
-                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "rgba(251,180,80,0.9)", margin: 0, lineHeight: "1.3" }}>We need to refocus this chapter.</p>
-                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(251,146,60,0.5)", margin: "3px 0 0" }}>Let&apos;s see how we can wrap things up together</p>
+                      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "rgba(251,180,80,0.9)", margin: 0, lineHeight: "1.4" }}>We need to refocus this chapter.</p>
                     </div>
                   </button>
                 ) : (
@@ -1456,34 +1584,24 @@ export function CassBoardDrawer({
                     {MENU_OPTIONS.map((opt, i) => (
                       <button
                         key={opt.key} type="button" onClick={() => selectMode(opt.key)}
-                        style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${i * 100}ms`, opacity: 0 }}
+                        style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 18px", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${i * 100}ms`, opacity: 0, cursor: "pointer" }}
                         onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
                         onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
                       >
-                        <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
-                        <div>
-                          <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>{opt.label}</p>
-                          {opt.sub && <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>{opt.sub}</p>}
-                        </div>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: textPrimary, margin: 0 }}>{opt.label}</p>
                       </button>
                     ))}
-
-                    {/* End chapter early — lifecycle action, shown when wired up */}
                     {onEndChapterConfirmed && (
                       <>
                         <div style={{ margin: "4px 0", height: "1px", background: "rgba(255,255,255,0.06)" }} />
                         <button
                           type="button"
                           onClick={() => selectMode("end_chapter")}
-                          style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${MENU_OPTIONS.length * 100 + 40}ms`, opacity: 0 }}
+                          style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 18px", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${MENU_OPTIONS.length * 100 + 40}ms`, opacity: 0, cursor: "pointer" }}
                           onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
                           onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
                         >
-                          <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
-                          <div>
-                            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>End this chapter early</p>
-                            <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", color: "rgba(200,168,107,0.35)", margin: "3px 0 0" }}>Close the chapter and write the story</p>
-                          </div>
+                          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: textSecondary, margin: 0 }}>End this chapter early</p>
                         </button>
                       </>
                     )}
@@ -1491,25 +1609,211 @@ export function CassBoardDrawer({
                 )}
               </div>
             )}
+
+            {/* Selected option — user gray bubble (shown in both menu transition + chat history) */}
             {menuSelected && (
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", width: "100%", maxWidth: "85%" }}>
                 <div style={USER_B}>{menuSelected}</div>
+              </div>
+            )}
+
+            {/* ── Chat messages (chat mode only) ── */}
+            {mode === "chat" && (
+              <div style={{ width: "100%", maxWidth: "85%", display: "flex", flexDirection: "column", gap: "14px" }}>
+                {/* Breakup context banner */}
+                {isBreakupMode && breakupTask && (
+                  <div style={{
+                    background: "rgba(200,168,107,0.05)",
+                    border: "1px solid rgba(200,168,107,0.18)",
+                    borderRadius: "10px", padding: "10px 14px",
+                    display: "flex", flexDirection: "column", gap: "3px",
+                  }}>
+                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>Breaking up</p>
+                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: textPrimary, margin: 0, lineHeight: "1.4" }}>{breakupTask.title}</p>
+                  </div>
+                )}
+
+                {messages.map((msg, i) => (
+                  msg.role === "assistant" ? (
+                    <div key={i} ref={i === messages.length - 1 ? proposalsStartRef : undefined} style={{ animation: "cassBoardOptionIn 0.3s ease forwards" }}>
+                      {msg.content.split("\n\n").map((para, j) => (
+                        <p key={j} style={{
+                          fontFamily: "'Lora', Georgia, serif",
+                          fontSize: "15px", lineHeight: "1.65",
+                          color: "#f8f8f6",
+                          margin: j > 0 ? "10px 0 0" : 0,
+                        }}>
+                          {para}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <div style={USER_B}>{msg.content}</div>
+                    </div>
+                  )
+                ))}
+
+                {isPending && (
+                  <div style={{ display: "flex", gap: "5px", alignItems: "center", paddingLeft: "2px" }}>
+                    {[0,1,2].map((d) => (
+                      <span key={d} style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b", display: "block", animation: `cassBoardCaretBlink 1.2s ease-in-out ${d * 0.15}s infinite` }} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Proposal cards */}
+                {hasProposals && !savedOk && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
+                    <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.2em", color: "rgba(248,248,246,0.3)", textTransform: "uppercase", margin: 0 }}>
+                      {reviewTasks.length} card{reviewTasks.length !== 1 ? "s" : ""} captured — review &amp; adjust
+                    </p>
+                    {reviewTasks.map((task, i) => (
+                      <ProposalCard
+                        key={task.id}
+                        task={task}
+                        columns={columns}
+                        onRemove={() => setReviewTasks((prev) => prev.filter((_, idx) => idx !== i))}
+                        onColumnChange={(col) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, suggestedColumn: col } : t))}
+                        onTitleChange={(title) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, title } : t))}
+                        onDescriptionChange={(description) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, description } : t))}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Success + template offer */}
+                {savedOk && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px", background: "rgba(110,231,183,0.06)", border: "1px solid rgba(110,231,183,0.2)", borderRadius: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(110,231,183,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Check size={14} style={{ color: "#6ee7b7" }} />
+                      </div>
+                      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#d4cec4", margin: 0 }}>
+                        {isBreakupMode
+                          ? `Broken into ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""}. Original card removed.`
+                          : `${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} added to the board.`}
+                      </p>
+                    </div>
+                    {suggestSaveAsTemplate && templateDraft?.name && !templateSaved && (
+                      <div style={{ borderTop: "1px solid rgba(200,168,107,0.1)", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginTop: "6px" }} />
+                          <div>
+                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "#f8f8f6", margin: "0 0 4px", lineHeight: "1.6" }}>
+                              This looks like something you&apos;d run again. Want me to save it as a workflow?
+                            </p>
+                            <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: 0 }}>
+                              &ldquo;{templateDraft.name}&rdquo;
+                            </p>
+                          </div>
+                        </div>
+                        {templateError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{templateError}</p>}
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <TapeButton type="button" onClick={() => setSuggestSaveAsTemplate(false)} disabled={templateSaving} variant="secondary" size="sm">Not now</TapeButton>
+                          <TapeButton type="button" onClick={handleSaveTemplate} disabled={templateSaving} variant="primary" size="sm">
+                            {templateSaving ? <LoaderCircle size={11} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={11} />}
+                            {templateSaving ? "Saving…" : "Save workflow"}
+                          </TapeButton>
+                        </div>
+                      </div>
+                    )}
+                    {templateSaved && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#6ee7b7", margin: 0, letterSpacing: "0.5px" }}>✓ Workflow saved — Cass will suggest it next time.</p>}
+                    <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Done</TapeButton>
+                  </div>
+                )}
+
+                {chatError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{chatError}</p>}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </div>
         )}
 
-        {/* ── Kickoff mode ── */}
-        {mode === "kickoff" && (
-          <CassChapterKickoff
-            project={project}
-            board={board}
-            columns={columns}
-            chapterNumber={chapterNumber}
-            isPrefilled={isPrefilled}
-            onComplete={() => { onKickoffComplete?.(); onClose(); }}
-            onDismiss={onClose}
-          />
+        {/* ── Onboarding welcome mode — styled to match the onboarding chat exactly ── */}
+        {mode === "onboarding_welcome" && (
+          <div style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            background: "#0a0a0a",
+            backgroundImage: "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(42,107,58,0.05) 0%, transparent 50%)",
+          }}>
+            {/* Authored By header */}
+            <div style={{
+              background: "#0a0a0a", borderBottom: "1px solid #1e1e1e",
+              padding: "8px 16px", display: "flex",
+              alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <img
+                src="/icons/authored-by-tape-icon.png"
+                alt="Authored By"
+                style={{ width: "auto", height: "52px", objectFit: "contain" }}
+              />
+            </div>
+            <div style={{
+              background: "#242424", padding: "6px 16px",
+              display: "flex", justifyContent: "center", alignItems: "center", flexShrink: 0,
+            }}>
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600,
+                letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(248,248,246,0.25)",
+              }}>
+                Onboarding
+              </span>
+            </div>
+
+            {/* Scroll content */}
+            <div style={{
+              flex: 1, overflowY: "auto",
+              padding: "32px 16px 40px",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: "24px",
+              maxWidth: "600px", width: "100%", margin: "0 auto",
+              boxSizing: "border-box",
+              scrollbarWidth: "none",
+            }}>
+              {/* Cass hero */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+                <CassRecorder animState="talking" size="md" />
+                <span style={{
+                  fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600,
+                  letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)",
+                }}>Cass · Story Guide</span>
+              </div>
+
+              {/* Message — plain text, no bubble */}
+              <div style={{ maxWidth: "85%", width: "100%", animation: "cassBoardOptionIn 0.35s ease 0.1s both" }}>
+                <p style={{
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "15px", lineHeight: "1.65",
+                  color: "#f8f8f6", margin: 0,
+                }}>
+                  One last thing. If you need to add new items to this board, whether they are tasks you still need to complete, or things you already finished up and want to chronicle, just tap the plus button in the corner (or the column headers) and I&apos;ll make sure we capture everything. I can&apos;t wait to see what comes next for you!
+                </p>
+              </div>
+
+              {/* Got it chip */}
+              <div style={{ animation: "cassBoardOptionIn 0.35s ease 0.5s both" }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    display: "inline-flex", alignItems: "center",
+                    background: "#f5c84a",
+                    border: "1px solid #f5c84a",
+                    borderRadius: "28px", padding: "12px 28px",
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontSize: "15px", fontWeight: 600, letterSpacing: "0.12em",
+                    textTransform: "uppercase", color: "#1a0e00", cursor: "pointer",
+                    transition: "background 0.15s",
+                    whiteSpace: "nowrap",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#f0c040"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "#f5c84a"; }}
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── Retro mode (initiated from end-chapter or all-done) ── */}
@@ -1804,194 +2108,97 @@ export function CassBoardDrawer({
           </div>
         )}
 
-        {/* ── Chat mode ── */}
-        {mode === "chat" && (
-          <>
-            {/* End chapter early */}
-            {isEndChapterMode ? (
-              <EndChapterView
-                projectId={project.id}
-                boardId={board.id}
-                tasks={tasks}
-                columns={columns}
-                onConfirm={(nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); setMode("retro"); }}
-                onClose={onClose}
-              />
-            ) : isMoveMode ? (
-              <MoveToChapterView
-                movableTasks={movableTasks}
-                futureChapters={futureChapters}
-                allChaptersCount={allChaptersCount}
-                projectId={project.id}
-                onSuccess={onTasksAdded}
-                onClose={onClose}
-              />
-            ) : isBrainDump && !hasProposals && !savedOk ? (
-              <BrainDumpRecorderView
-                projectId={project.id}
-                onCardsReady={handleVoiceCardsReady}
-              />
-            ) : (
-              /* Text chat + proposal cards */
-              <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 12px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                {/* Breakup context banner */}
-                {isBreakupMode && breakupTask && (
-                  <div style={{
-                    background: "rgba(200,168,107,0.05)",
-                    border: "1px solid rgba(200,168,107,0.18)",
-                    borderRadius: "10px",
-                    padding: "10px 14px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "3px",
-                  }}>
-                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>Breaking up</p>
-                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: textPrimary, margin: 0, lineHeight: "1.4" }}>{breakupTask.title}</p>
-                  </div>
-                )}
-                {messages.map((msg, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: "10px" }}>
-                    {msg.role === "assistant" && (
-                      <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-                    )}
-                    <div style={msg.role === "assistant" ? CASS_B : USER_B}>{msg.content}</div>
-                  </div>
-                ))}
+        {/* ── Chat mode — specialty sub-modes that own the full content area ── */}
+        {mode === "chat" && (isEndChapterMode || isMoveMode || (isBrainDump && (!hasProposals || braindumpAddingMore) && !savedOk)) && (
+          isEndChapterMode ? (
+            <EndChapterView
+              projectId={project.id}
+              boardId={board.id}
+              tasks={tasks}
+              columns={columns}
+              onConfirm={(nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); setMode("retro"); }}
+              onClose={onClose}
+            />
+          ) : isMoveMode ? (
+            <MoveToChapterView
+              movableTasks={movableTasks}
+              futureChapters={futureChapters}
+              allChaptersCount={allChaptersCount}
+              projectId={project.id}
+              onSuccess={onTasksAdded}
+              onClose={onClose}
+            />
+          ) : (
+            <VoiceMemoFlow
+              columns={columns}
+              projectId={project.id}
+              onCardsReady={handleVoiceCardsReady}
+            />
+          )
+        )}
 
-                {isPending && (
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
-                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-                    <div style={{ ...CASS_B, display: "flex", gap: "5px", alignItems: "center" }}>
-                      {[0,1,2].map((d) => (
-                        <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#c8a86b", opacity: 0.4, animation: `cassBoardCaretBlink 1.1s ease-in-out ${d * 0.18}s infinite` }} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Proposal cards */}
-                {hasProposals && !savedOk && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
-                    <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.5)", textTransform: "uppercase", margin: "0 0 4px" }}>
-                      {reviewTasks.length} card{reviewTasks.length !== 1 ? "s" : ""} captured — review &amp; adjust
-                    </p>
-                    {reviewTasks.map((task, i) => (
-                      <ProposalCard
-                        key={task.id}
-                        task={task}
-                        columns={columns}
-                        onRemove={() => setReviewTasks((prev) => prev.filter((_, idx) => idx !== i))}
-                        onColumnChange={(col) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, suggestedColumn: col } : t))}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Success + template offer */}
-                {savedOk && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px", background: "rgba(110,231,183,0.06)", border: "1px solid rgba(110,231,183,0.2)", borderRadius: "14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(110,231,183,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <Check size={14} style={{ color: "#6ee7b7" }} />
-                      </div>
-                      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "14px", color: "#d4cec4", margin: 0 }}>
-                        {isBreakupMode
-                          ? `Broken into ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""}. Original card removed.`
-                          : `${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} added to the board.`}
-                      </p>
-                    </div>
-                    {suggestSaveAsTemplate && templateDraft?.name && !templateSaved && (
-                      <div style={{ borderTop: "1px solid rgba(200,168,107,0.1)", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginTop: "6px" }} />
-                          <div>
-                            <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "13px", color: "#d4cec4", margin: "0 0 4px", lineHeight: "1.6" }}>
-                              This looks like something you'd run again. Want me to save it as a workflow?
-                            </p>
-                            <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: 0 }}>
-                              "{templateDraft.name}"
-                            </p>
-                          </div>
-                        </div>
-                        {templateError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{templateError}</p>}
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <TapeButton type="button" onClick={() => setSuggestSaveAsTemplate(false)} disabled={templateSaving} variant="secondary" size="sm">Not now</TapeButton>
-                          <TapeButton type="button" onClick={handleSaveTemplate} disabled={templateSaving} variant="primary" size="sm">
-                            {templateSaving ? <LoaderCircle size={11} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={11} />}
-                            {templateSaving ? "Saving…" : "Save workflow"}
-                          </TapeButton>
-                        </div>
-                      </div>
-                    )}
-                    {templateSaved && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#6ee7b7", margin: 0, letterSpacing: "0.5px" }}>✓ Workflow saved — Cass will suggest it next time.</p>}
-                    <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Done</TapeButton>
-                  </div>
-                )}
-
-                {chatError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{chatError}</p>}
-                <div ref={messagesEndRef} />
-              </div>
+        {/* Input bar — text tasks / breakup mode, not when saved */}
+        {mode === "chat" && !isBrainDump && !isMoveMode && !isEndChapterMode && !savedOk && (
+          <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            {hasProposals && reviewTasks.length > 0 && (
+              <button
+                type="button" onClick={handleAddTasks} disabled={isSaving}
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px", background: isSaving ? "rgba(245,200,74,0.6)" : "#f5c84a", border: "none", borderRadius: "28px", padding: "13px 28px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "15px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1a0e00", cursor: isSaving ? "not-allowed" : "pointer", transition: "background 0.15s", width: "100%" }}
+                onMouseEnter={(e) => { if (!isSaving) e.currentTarget.style.background = "#f0c040"; }}
+                onMouseLeave={(e) => { if (!isSaving) e.currentTarget.style.background = "#f5c84a"; }}
+              >
+                {isSaving
+                  ? <><LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} />{isBreakupMode ? "Breaking up…" : "Adding…"}</>
+                  : isBreakupMode
+                    ? `Break into ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""}`
+                    : `✓ Add ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} to board`}
+              </button>
             )}
-
-            {/* Input bar — only for text tasks / breakup mode, and not when saved */}
-            {!isBrainDump && !isMoveMode && !isEndChapterMode && !savedOk && (
-              <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                {hasProposals && reviewTasks.length > 0 && (
-                  <TapeButton
-                    type="button"
-                    onClick={handleAddTasks}
-                    disabled={isSaving}
-                    variant="primary"
-                    className="w-full"
-                  >
-                    {isSaving ? <LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={14} />}
-                    {isSaving
-                      ? (isBreakupMode ? "Breaking up…" : "Adding…")
-                      : isBreakupMode
-                        ? `Break into ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""}`
-                        : `Add ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} to board`}
-                  </TapeButton>
-                )}
-                {aiStatus === "chatting" && (
-                  <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
-                    <textarea
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                      placeholder="What needs to get done…"
-                      rows={2}
-                      disabled={isPending || isSaving}
-                      style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Literata', Georgia, serif", fontSize: "14px", lineHeight: 1.6, color: textPrimary, outline: "none", boxSizing: "border-box" }}
-                    />
-                    <button
-                      type="button" onClick={sendMessage} disabled={!draft.trim() || isPending || isSaving}
-                      style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%", border: "none", cursor: draft.trim() && !isPending ? "pointer" : "not-allowed", background: draft.trim() && !isPending && !isSaving ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s", fontFamily: "'Literata', Georgia, serif" }}
-                    >
-                      {isPending
-                        ? <LoaderCircle size={16} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite" }} />
-                        : <ArrowUp size={16} style={{ color: draft.trim() && !isSaving ? "#0a0a0a" : "#555" }} />}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Brain dump: Add tasks bar appears after cards come back from voice */}
-            {isBrainDump && hasProposals && !savedOk && (
-              <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex" }}>
-                <TapeButton
-                  type="button"
-                  onClick={handleAddTasks}
-                  disabled={isSaving || reviewTasks.length === 0}
-                  variant="primary"
-                  className="w-full"
+            {aiStatus === "chatting" && (
+              <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  placeholder="What needs to get done…"
+                  rows={2}
+                  disabled={isPending || isSaving}
+                  style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: 1.6, color: "#f8f8f6", outline: "none", boxSizing: "border-box" }}
+                />
+                <button
+                  type="button" onClick={sendMessage} disabled={!draft.trim() || isPending || isSaving}
+                  style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%", border: "none", cursor: draft.trim() && !isPending ? "pointer" : "not-allowed", background: draft.trim() && !isPending && !isSaving ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
                 >
-                  {isSaving ? <LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} /> : <Check size={14} />}
-                  {isSaving ? "Adding…" : `Add ${reviewTasks.length} card${reviewTasks.length !== 1 ? "s" : ""} to board`}
-                </TapeButton>
+                  {isPending
+                    ? <LoaderCircle size={16} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite" }} />
+                    : <ArrowUp size={16} style={{ color: draft.trim() && !isSaving ? "#0a0a0a" : "#555" }} />}
+                </button>
               </div>
             )}
-          </>
+          </div>
+        )}
+
+        {/* Braindump footer — save + add more, after voice proposals arrive */}
+        {mode === "chat" && isBrainDump && hasProposals && !braindumpAddingMore && !savedOk && (
+          <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <button
+              type="button" onClick={handleAddTasks} disabled={isSaving || reviewTasks.length === 0}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px", background: (isSaving || reviewTasks.length === 0) ? "rgba(245,200,74,0.5)" : "#f5c84a", border: "none", borderRadius: "28px", padding: "13px 28px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "15px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1a0e00", cursor: (isSaving || reviewTasks.length === 0) ? "not-allowed" : "pointer", transition: "background 0.15s", width: "100%" }}
+              onMouseEnter={(e) => { if (!isSaving && reviewTasks.length > 0) e.currentTarget.style.background = "#f0c040"; }}
+              onMouseLeave={(e) => { if (!isSaving && reviewTasks.length > 0) e.currentTarget.style.background = "#f5c84a"; }}
+            >
+              {isSaving ? <><LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} />Adding…</> : `✓ Add ${reviewTasks.length} card${reviewTasks.length !== 1 ? "s" : ""} to board`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setBraindumpAddingMore(true)}
+              style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "8px", padding: "10px 16px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "12px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(200,168,107,0.55)", cursor: "pointer", transition: "border-color 0.15s, color 0.15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.color = "rgba(200,168,107,0.85)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.2)"; e.currentTarget.style.color = "rgba(200,168,107,0.55)"; }}
+            >
+              + Add another voice memo
+            </button>
+          </div>
         )}
       </div>
     </>

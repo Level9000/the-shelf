@@ -32,7 +32,7 @@ type Intent = "exploring" | "northStar" | "accumulativeStory" | "shareable";
 
 function chapterStatus(ch: Chapter): "upcoming" | "active" | "complete" {
   if (ch.retroCompletedAt) return "complete";
-  if (ch.kickoffCompletedAt) return "active";
+  if (!ch.retroCompletedAt) return "active";
   return "upcoming";
 }
 

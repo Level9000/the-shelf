@@ -19,17 +19,16 @@ import { renderParagraphs } from "@/lib/render-paragraphs";
 import { useTheme } from "@/lib/theme-context";
 import { TapeButton } from "@/components/ui/tape-button";
 import { PaywallModal } from "@/components/paywall/paywall-modal";
-import { TyFirstStoryIntro } from "@/components/ui/TyFirstStoryIntro";
+import { StoryWelcomeDrawer } from "@/components/ui/StoryWelcomeDrawer";
 import type { SubscriptionStatus } from "@/lib/subscription";
 
 const TY_INTRO_KEY = "ty_story_intro_seen";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function chapterStatus(chapter: Chapter): "completed" | "working_on_it" | "planned" {
+function chapterStatus(chapter: Chapter): "completed" | "working_on_it" {
   if (chapter.retroCompletedAt) return "completed";
-  if (chapter.kickoffCompletedAt) return "working_on_it";
-  return "planned";
+  return "working_on_it";
 }
 
 // ── Chat history types ───────────────────────────────────────────────────────
@@ -811,11 +810,11 @@ function ChapterEntry({
 
   // Build the list of completed chat threads for this chapter
   const threads: ChatThread[] = [];
-  if (chapter.kickoffConversation && chapter.kickoffCompletedAt) {
+  if (chapter.kickoffConversation) {
     threads.push({
       id: `kickoff-${chapter.id}`,
       label: "Chapter Kickoff",
-      completedAt: chapter.kickoffCompletedAt,
+      completedAt: chapter.createdAt,
       messages: chapter.kickoffConversation,
       tasks: chapterTasks,
     });
@@ -851,19 +850,34 @@ function ChapterEntry({
         />
       )}
 
-      <div style={{ opacity: status === "planned" ? 0.4 : 1, transition: "opacity 0.2s" }}>
-        {/* Chapter number label */}
-        <p style={{
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.18em",
-          textTransform: "uppercase",
-          color: isDark ? "rgba(200,168,107,0.45)" : "rgba(0,0,0,0.35)",
-          margin: "0 0 6px",
-        }}>
-          Chapter {index + 1}
-        </p>
+      <div style={{ transition: "opacity 0.2s" }}>
+        {/* Chapter number label + status pill */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+          <p style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontSize: "11px",
+            fontWeight: 600,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: isDark ? "rgba(200,168,107,0.45)" : "rgba(0,0,0,0.35)",
+            margin: 0,
+          }}>
+            Chapter {index + 1}
+          </p>
+          {status === "working_on_it" && (
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "10px", fontWeight: 700,
+              letterSpacing: "0.12em", textTransform: "uppercase",
+              color: isDark ? "#c8a86b" : "rgba(22,19,15,0.7)",
+              border: `1px solid ${isDark ? "rgba(200,168,107,0.35)" : "rgba(0,0,0,0.18)"}`,
+              borderRadius: "999px",
+              padding: "2px 8px",
+            }}>
+              Active
+            </span>
+          )}
+        </div>
         {/* Chapter name */}
         <h2 style={{
           fontFamily: "'Literata', Georgia, serif",
@@ -948,20 +962,6 @@ function ChapterEntry({
           </div>
         )}
 
-        {/* Planned: goal if set, otherwise placeholder */}
-        {status === "planned" && chapter.goal && (
-          <p
-            style={{
-              fontFamily: "var(--font-cass)",
-              fontSize: "12px",
-              color: faintColor,
-              lineHeight: 1.65,
-              margin: "10px 0 0",
-            }}
-          >
-            {chapter.goal}
-          </p>
-        )}
 
         {/* ── Chat history threads ── */}
         {threads.length > 0 && (
@@ -1455,15 +1455,14 @@ export function ProjectOverviewShell({
 
       <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
 
-      {/* ── Ty first-time story tab intro ── */}
-      {showTyIntro && (
-        <TyFirstStoryIntro
-          onComplete={() => {
-            localStorage.setItem(TY_INTRO_KEY, "1");
-            setShowTyIntro(false);
-          }}
-        />
-      )}
+      {/* ── Story tab first-visit welcome drawer ── */}
+      <StoryWelcomeDrawer
+        open={showTyIntro}
+        onClose={() => {
+          localStorage.setItem(TY_INTRO_KEY, "1");
+          setShowTyIntro(false);
+        }}
+      />
 
       {/* ── Chat history drawer ── */}
       <ChatHistoryDrawer

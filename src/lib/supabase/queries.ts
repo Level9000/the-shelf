@@ -78,8 +78,6 @@ function mapBoard(row: Record<string, unknown>): Board {
     successLooksLike: (row.success_looks_like as string | null) ?? null,
     doneDefinition: (row.done_definition as string | null) ?? null,
     openingLine: (row.opening_line as string | null) ?? null,
-    kickoffCompletedAt: (row.kickoff_completed_at as string | null) ?? null,
-    kickoffPrefilledAt: (row.kickoff_prefilled_at as string | null) ?? null,
     kickoffConversation:
       (row.kickoff_conversation as Array<{ role: string; content: string }> | null) ?? null,
     retroConversation:
@@ -94,7 +92,6 @@ function mapBoard(row: Record<string, unknown>): Board {
     position: Number(row.position ?? 1000),
     createdAt: String(row.created_at),
     confirmedThesis: (row.confirmed_thesis as string | null) ?? null,
-    kickoffBeats: (row.kickoff_beats as Record<string, unknown> | null) ?? null,
   };
 }
 

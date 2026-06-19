@@ -535,8 +535,7 @@ function LockedView({
   board: Board;
   onEndChapter?: () => void;
 }) {
-  const retroAvailable =
-    Boolean(board.kickoffCompletedAt) && !board.retroCompletedAt;
+  const retroAvailable = !board.retroCompletedAt;
 
   return (
     <div className="flex h-full min-h-0 flex-col items-center justify-center gap-6 px-4 py-12">
@@ -562,11 +561,6 @@ function LockedView({
               End chapter &amp; write the story
             </TapeButton>
           </div>
-        )}
-        {!board.kickoffCompletedAt && (
-          <p className="mt-4 text-xs text-[var(--muted)]">
-            Complete the chapter kickoff first to unlock the recap.
-          </p>
         )}
       </div>
     </div>

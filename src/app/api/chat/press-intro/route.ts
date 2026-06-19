@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   const [{ data: project }, { data: boards }] = await Promise.all([
     supabase.from("projects").select("id,name,north_star").eq("id", projectId).maybeSingle(),
     supabase.from("boards")
-      .select("name,goal,chapter_story,kickoff_completed_at,retro_completed_at")
+      .select("name,goal,chapter_story,retro_completed_at")
       .eq("project_id", projectId)
       .order("position", { ascending: true }),
   ]);

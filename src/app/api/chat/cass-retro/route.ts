@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { runCassRetroDialogue } from "@/lib/ai/anthropic";
 import { strategicDialogueMessageSchema } from "@/lib/ai/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { KickoffBeats } from "@/lib/ai/schema";
-
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
@@ -60,7 +58,7 @@ export async function POST(request: Request) {
       .from("boards")
       .select(`
         id,name,goal,why_it_matters,success_looks_like,done_definition,
-        kickoff_completed_at,kickoff_beats,confirmed_thesis,story_health_flag,
+        confirmed_thesis,story_health_flag,
         recentering_type,position
       `)
       .eq("id", chapterId)
@@ -72,13 +70,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Chapter context not found." },
       { status: 404 },
-    );
-  }
-
-  if (!board.kickoff_completed_at) {
-    return NextResponse.json(
-      { error: "Chapter must be kicked off before running a retro." },
-      { status: 400 },
     );
   }
 
@@ -103,9 +94,6 @@ export async function POST(request: Request) {
     ? allTasks.filter((t) => String(t.column_id) !== String(doneColumnId))
     : allTasks;
 
-  // Extract kickoff gut feeling from kickoff_beats if available
-  const kickoffBeats = (board.kickoff_beats as KickoffBeats | null) ?? null;
-  const kickoffGutFeeling = kickoffBeats?.stakes?.gut_feeling ?? null;
   const confirmedThesis   = (board.confirmed_thesis as string | null) ?? null;
 
   // Determine re-centering type (pass to retro if active)
@@ -128,7 +116,6 @@ export async function POST(request: Request) {
         whyItMatters:     (board.why_it_matters as string | null) ?? null,
         successLooksLike: (board.success_looks_like as string | null) ?? null,
         doneDefinition:   (board.done_definition as string | null) ?? null,
-        kickoffGutFeeling,
         confirmedThesis,
       },
       completedTasks:  completedTasks.map((t) => ({ title: String(t.title) })),

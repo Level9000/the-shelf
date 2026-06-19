@@ -56,10 +56,6 @@ export function ProjectWorkspaceShell({
   const [retroOpen, setRetroOpen] = useState(false);
   const [allDoneDismissed, setAllDoneDismissed] = useState(false);
 
-  // ── Kickoff gate ─────────────────────────────────────────────────────────────
-  // kickoffNeeded is only true for authors with active access — contributors and
-  // expired users skip straight to the board (read/task-only mode).
-  const kickoffNeeded = !snapshot.board.kickoffCompletedAt && canAuthor;
   const [paywallOpen, setPaywallOpen] = useState(
     subscriptionStatus === "trial_ended" || subscriptionStatus === "expired",
   );
@@ -71,7 +67,7 @@ export function ProjectWorkspaceShell({
   const chapterNumber = chapterIndex >= 0 ? chapterIndex + 1 : 1;
 
   const retroAvailable =
-    canAuthor && Boolean(snapshot.board.kickoffCompletedAt) && !snapshot.board.retroCompletedAt;
+    canAuthor && !snapshot.board.retroCompletedAt;
 
   const { completedTasks, remainingTasks } = useMemo(
     () => classifyTasks(snapshot),
@@ -89,9 +85,7 @@ export function ProjectWorkspaceShell({
   // lock the board in a nudge state until they actually kick off the retro.
   const retroNudge = allDone && allDoneDismissed && !retroOpen;
 
-  // Determine which mode the Cass drawer should open in (kickoff takes priority)
-  const drawerMode: "kickoff" | "retro" | undefined =
-    kickoffNeeded ? "kickoff" : retroOpen ? "retro" : undefined;
+  const drawerMode: "retro" | undefined = retroOpen ? "retro" : undefined;
 
   function handleAllDoneStartRetro() {
     setAllDoneDismissed(true);
@@ -190,7 +184,6 @@ export function ProjectWorkspaceShell({
           chapterNumber={chapterNumber}
           retroNudge={retroNudge}
           onStartRetro={handleAllDoneStartRetro}
-          onKickoffComplete={() => router.refresh()}
           onRetroComplete={handleRetroComplete}
           onNavigateToStory={() => router.push(`/projects/${currentProjectId}/chapters/${currentChapterId}`)}
           activeChapterUrl={(() => {
