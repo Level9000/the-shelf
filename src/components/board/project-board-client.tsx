@@ -705,7 +705,7 @@ export function ProjectBoardClient({
                         boardCompleted={!!snapshot.board.retroCompletedAt || retroNudge}
                         onOpenCass={
                           !snapshot.board.retroCompletedAt && !retroNudge &&
-                          (column.name === "Do This Week" || column.name === "Do Today")
+                          (column.name === "Do This Week" || column.name === "Do Today" || column.name === "Blocked" || column.name === "Done")
                             ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }
                             : undefined
                         }
@@ -730,7 +730,7 @@ export function ProjectBoardClient({
                     boardCompleted={!!snapshot.board.retroCompletedAt || retroNudge}
                     onOpenCass={
                       !snapshot.board.retroCompletedAt && !retroNudge &&
-                      (column.name === "Do This Week" || column.name === "Do Today")
+                      (column.name === "Do This Week" || column.name === "Do Today" || column.name === "Blocked" || column.name === "Done")
                         ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }
                         : undefined
                     }

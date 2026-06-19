@@ -369,6 +369,8 @@ export async function createBrainDumpCardsAction(input: {
     title: string;
     column: string;
     priority?: "low" | "medium" | "high" | null;
+    dueDate?: string | null;
+    assigneeName?: string | null;
     context: string;
     rawQuote: string;
     templateId?: string | null;
@@ -404,9 +406,9 @@ export async function createBrainDumpCardsAction(input: {
         column_id: columnId,
         title: card.title.trim(),
         description: card.context.trim() || null,
-        assignee_name: null,
+        assignee_name: card.assigneeName?.trim() || null,
         priority: card.priority ?? null,
-        due_date: null,
+        due_date: card.dueDate?.trim() || null,
         position: startPosition + index * 1000,
         created_by: user.id,
         source_voice_capture_id: null,

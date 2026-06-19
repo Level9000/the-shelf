@@ -115,8 +115,15 @@ function buildRfOpener(board: Board, incompleteTasks: Task[], ageDays: number): 
 
 // ── Proposal card ─────────────────────────────────────────────────────────────
 
+const PRIORITY_OPTIONS = ["low", "medium", "high"] as const;
+const PRIORITY_CHIP_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  low:    { bg: "rgba(110,231,183,0.15)", border: "rgba(110,231,183,0.45)", text: "#6ee7b7" },
+  medium: { bg: "rgba(251,191,36,0.15)",  border: "rgba(251,191,36,0.45)",  text: "#fbbf24" },
+  high:   { bg: "rgba(248,113,113,0.15)", border: "rgba(248,113,113,0.45)", text: "#f87171" },
+};
+
 function ProposalCard({
-  task, columns, onRemove, onColumnChange, onTitleChange, onDescriptionChange,
+  task, columns, onRemove, onColumnChange, onTitleChange, onDescriptionChange, onPriorityChange, onDueDateChange, onAssigneeChange,
 }: {
   task: ProposedTask;
   columns: BoardColumn[];
@@ -124,65 +131,94 @@ function ProposalCard({
   onColumnChange: (col: string) => void;
   onTitleChange: (title: string) => void;
   onDescriptionChange: (desc: string) => void;
+  onPriorityChange: (p: "low" | "medium" | "high" | null) => void;
+  onDueDateChange: (d: string) => void;
+  onAssigneeChange: (a: string) => void;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const [expanded, setExpanded] = useState(false);
   const [localTitle, setLocalTitle] = useState(task.title);
   const [localDesc, setLocalDesc] = useState(task.description ?? "");
+  const [localAssignee, setLocalAssignee] = useState((task as any).assigneeName ?? "");
+  const [localDueDate, setLocalDueDate] = useState((task as any).dueDate ?? "");
   const availableCols = columns.map((c) => c.name);
 
   function commitTitle() { if (localTitle.trim()) onTitleChange(localTitle.trim()); else setLocalTitle(task.title); }
   function commitDesc() { onDescriptionChange(localDesc); }
+  function commitAssignee() { onAssigneeChange(localAssignee); }
+  function commitDueDate() { onDueDateChange(localDueDate); }
+
+  const currentPriority = (task as any).priority as "low" | "medium" | "high" | null ?? null;
+
+  const cardTextPrimary   = isDark ? "#f8f8f6"               : "rgba(26,14,0,0.88)";
+  const cardTextMuted     = isDark ? "rgba(248,248,246,0.45)" : "rgba(26,14,0,0.45)";
+  const cardTextFaint     = isDark ? "rgba(248,248,246,0.3)"  : "rgba(26,14,0,0.35)";
+  const cardSurface       = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.03)";
+  const cardBorder        = isDark ? "rgba(200,168,107,0.18)" : "rgba(200,168,107,0.25)";
+  const cardBorderExpanded = isDark ? "rgba(200,168,107,0.35)" : "rgba(200,168,107,0.45)";
+  const cardInputBg       = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.04)";
+  const cardBtnBg         = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.06)";
+  const cardPriorityInactiveBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(26,14,0,0.12)";
+  const cardSelectBg      = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.06)";
+
+  const fieldLabel: React.CSSProperties = {
+    fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600,
+    letterSpacing: "0.18em", textTransform: "uppercase", color: cardTextFaint,
+    marginBottom: "5px",
+  };
+  const textField: React.CSSProperties = {
+    width: "100%", background: cardInputBg, border: "1px solid rgba(200,168,107,0.22)",
+    borderRadius: "8px", padding: "7px 10px", boxSizing: "border-box",
+    fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: "1.5",
+    color: cardTextPrimary, outline: "none", caretColor: "#c8a86b",
+    colorScheme: isDark ? "dark" : "light",
+  };
 
   return (
     <div style={{
-      background: "rgba(255,255,255,0.04)", border: `1px solid ${expanded ? "rgba(200,168,107,0.35)" : "rgba(200,168,107,0.18)"}`,
+      background: cardSurface, border: `1px solid ${expanded ? cardBorderExpanded : cardBorder}`,
       borderRadius: "14px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "10px",
       transition: "border-color 0.2s",
     }}>
-      {/* ── Collapsed header: title + pencil + trash ── */}
+      {/* ── Title row ── */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
         {expanded ? (
           <input
             autoFocus
             value={localTitle}
             onChange={(e) => setLocalTitle(e.target.value)}
-            onBlur={commitTitle}
-            style={{
-              flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,168,107,0.3)",
-              borderRadius: "8px", padding: "6px 10px",
-              fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.5",
-              color: "#f8f8f6", outline: "none", caretColor: "#c8a86b",
-            }}
+            style={{ ...textField, flex: 1, fontSize: "15px", padding: "6px 10px" }}
             onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.6)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.22)"; commitTitle(); }}
           />
         ) : (
-          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: "#f8f8f6", margin: 0, lineHeight: "1.55", flex: 1 }}>
+          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: cardTextPrimary, margin: 0, lineHeight: "1.55", flex: 1 }}>
             {task.title}
           </p>
         )}
-
-        {/* Pencil to expand / chevron to collapse */}
+        {/* Pencil / check-circle */}
         <button
           type="button"
-          onClick={() => { if (!expanded) setExpanded(true); else { commitTitle(); commitDesc(); setExpanded(false); } }}
+          onClick={() => { if (!expanded) { setExpanded(true); } else { commitTitle(); commitDesc(); commitAssignee(); commitDueDate(); setExpanded(false); } }}
           title={expanded ? "Done editing" : "Edit card"}
-          style={{ width: "26px", height: "26px", flexShrink: 0, borderRadius: "50%", background: expanded ? "rgba(200,168,107,0.15)" : "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: expanded ? "#c8a86b" : "rgba(248,248,246,0.35)", transition: "background 0.15s, color 0.15s" }}
+          style={{ width: "26px", height: "26px", flexShrink: 0, borderRadius: "50%", background: expanded ? "rgba(200,168,107,0.15)" : cardBtnBg, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: expanded ? "#c8a86b" : cardTextFaint, transition: "background 0.15s, color 0.15s" }}
           onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.15)"; e.currentTarget.style.color = "#c8a86b"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = expanded ? "rgba(200,168,107,0.15)" : "rgba(255,255,255,0.06)"; e.currentTarget.style.color = expanded ? "#c8a86b" : "rgba(248,248,246,0.35)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = expanded ? "rgba(200,168,107,0.15)" : cardBtnBg; e.currentTarget.style.color = expanded ? "#c8a86b" : cardTextFaint; }}
         >
           {expanded ? <CheckCircle size={13} /> : <Pencil size={12} />}
         </button>
-
         {/* Trash */}
         <button
           type="button" onClick={onRemove}
-          style={{ width: "26px", height: "26px", flexShrink: 0, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(248,248,246,0.3)", transition: "background 0.15s, color 0.15s" }}
+          style={{ width: "26px", height: "26px", flexShrink: 0, borderRadius: "50%", background: cardBtnBg, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: cardTextFaint, transition: "background 0.15s, color 0.15s" }}
           onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.15)"; e.currentTarget.style.color = "#f87171"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "rgba(248,248,246,0.3)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = cardBtnBg; e.currentTarget.style.color = cardTextFaint; }}
         ><Trash2 size={11} /></button>
       </div>
 
-      {/* ── Description — collapsed: dimmed read-only preview; expanded: editable ── */}
+      {/* ── Description ── */}
       {expanded ? (
         <textarea
           value={localDesc}
@@ -190,31 +226,105 @@ function ProposalCard({
           onBlur={commitDesc}
           placeholder="Add context or details…"
           rows={3}
-          style={{
-            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
-            borderRadius: "8px", padding: "8px 10px", resize: "vertical",
-            fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: "1.6",
-            color: "rgba(248,248,246,0.8)", outline: "none", caretColor: "#c8a86b",
-          }}
+          style={{ ...textField, resize: "vertical" }}
           onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
           onBlurCapture={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.22)"; }}
         />
       ) : task.description ? (
-        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: "1.6", color: "rgba(248,248,246,0.45)", margin: 0 }}>
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: "1.6", color: cardTextMuted, margin: 0 }}>
           {task.description}
         </p>
       ) : null}
 
-      {/* ── Column pill ── */}
-      <select
-        value={task.suggestedColumn}
-        onChange={(e) => onColumnChange(e.target.value)}
-        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(200,168,107,0.22)", borderRadius: "999px", padding: "3px 12px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#c8a86b", cursor: "pointer", outline: "none", alignSelf: "flex-start" }}
-      >
-        {availableCols.map((c) => (
-          <option key={c} value={c} style={{ background: "#1a1a1a" }}>{COLUMN_LABELS[c] ?? c}</option>
-        ))}
-      </select>
+      {/* ── Expanded detail tray: priority + due date + assignee ── */}
+      {expanded && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingTop: "4px", borderTop: `1px solid ${isDark ? "rgba(200,168,107,0.1)" : "rgba(200,168,107,0.18)"}` }}>
+
+          {/* Priority chips */}
+          <div>
+            <p style={fieldLabel}>Priority</p>
+            <div style={{ display: "flex", gap: "6px" }}>
+              {PRIORITY_OPTIONS.map((p) => {
+                const active = currentPriority === p;
+                const colors = PRIORITY_CHIP_COLORS[p];
+                return (
+                  <button
+                    key={p} type="button"
+                    onClick={() => onPriorityChange(active ? null : p)}
+                    style={{
+                      padding: "4px 12px", borderRadius: "999px", cursor: "pointer",
+                      background: active ? colors.bg : "transparent",
+                      border: `1px solid ${active ? colors.border : cardPriorityInactiveBorder}`,
+                      fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600,
+                      letterSpacing: "0.12em", textTransform: "uppercase",
+                      color: active ? colors.text : cardTextFaint,
+                      transition: "all 0.15s",
+                    }}
+                    onMouseEnter={(e) => { if (!active) { e.currentTarget.style.borderColor = colors.border; e.currentTarget.style.color = colors.text; } }}
+                    onMouseLeave={(e) => { if (!active) { e.currentTarget.style.borderColor = cardPriorityInactiveBorder; e.currentTarget.style.color = cardTextFaint; } }}
+                  >{p}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Due date + Assigned to — side by side */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <div>
+              <p style={fieldLabel}>Due date</p>
+              <input
+                type="date"
+                value={localDueDate}
+                onChange={(e) => { setLocalDueDate(e.target.value); onDueDateChange(e.target.value); }}
+                style={{ ...textField, colorScheme: "dark" }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.22)"; commitDueDate(); }}
+              />
+            </div>
+            <div>
+              <p style={fieldLabel}>Assigned to</p>
+              <input
+                type="text"
+                value={localAssignee}
+                onChange={(e) => setLocalAssignee(e.target.value)}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.22)"; commitAssignee(); }}
+                placeholder="Name or @handle"
+                style={textField}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Column pill — always visible ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <select
+          value={task.suggestedColumn}
+          onChange={(e) => onColumnChange(e.target.value)}
+          style={{ background: cardSelectBg, border: "1px solid rgba(200,168,107,0.22)", borderRadius: "999px", padding: "3px 12px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#c8a86b", cursor: "pointer", outline: "none", colorScheme: isDark ? "dark" : "light" }}
+        >
+          {availableCols.map((c) => (
+            <option key={c} value={c} style={{ background: isDark ? "#1a1a1a" : "#faf9f4", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)" }}>{COLUMN_LABELS[c] ?? c}</option>
+          ))}
+        </select>
+        {/* Show set values as read-only badges when collapsed */}
+        {!expanded && currentPriority && (
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: PRIORITY_CHIP_COLORS[currentPriority].text }}>
+            {currentPriority}
+          </span>
+        )}
+        {!expanded && (task as any).dueDate && (
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", letterSpacing: "0.08em", color: "rgba(200,168,107,0.6)" }}>
+            {(task as any).dueDate}
+          </span>
+        )}
+        {!expanded && (task as any).assigneeName && (
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", letterSpacing: "0.08em", color: cardTextMuted }}>
+            → {(task as any).assigneeName}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -232,6 +342,9 @@ function VoiceMemoFlow({
   projectId: string;
   onCardsReady: (tasks: ProposedTask[], transcript: string, columnName: string) => void;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const [phase, setPhase] = useState<VoiceMemoPhase>("column_select");
   const [selectedColumn, setSelectedColumn] = useState<string>("");
   const [listening, setListening] = useState(false);
@@ -332,7 +445,7 @@ function VoiceMemoFlow({
   if (phase === "column_select") {
     return (
       <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 32px", display: "flex", flexDirection: "column", gap: "20px" }}>
-        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: "#f8f8f6", margin: 0 }}>
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>
           Which column should these go in?
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -342,15 +455,15 @@ function VoiceMemoFlow({
               type="button"
               onClick={() => { setSelectedColumn(col.name); setPhase("voice"); }}
               style={{
-                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)",
+                background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)", border: "1px solid rgba(200,168,107,0.25)",
                 borderRadius: "12px", padding: "14px 18px", textAlign: "left",
                 fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600,
-                color: "#d4cec4", cursor: "pointer",
+                color: isDark ? "#d4cec4" : "rgba(26,14,0,0.88)", cursor: "pointer",
                 transition: "background 0.15s, border-color 0.15s",
                 animation: `cassBoardOptionIn 0.28s ease ${i * 80}ms both`,
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.08)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.4)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
             >
               {col.name}
             </button>
@@ -976,13 +1089,13 @@ export function CassBoardDrawer({
   };
   // eslint-disable-next-line @typescript-eslint/no-shadow
   const USER_B: React.CSSProperties = {
-    background: "#3a3a3a",
+    background: isDark ? "#3a3a3a" : "rgba(26,14,0,0.08)",
     borderRadius: "18px 18px 4px 18px",
     padding: "10px 14px",
     fontFamily: "'Lora', Georgia, serif",
     fontSize: "15px",
     lineHeight: "1.55",
-    color: "#f8f8f6",
+    color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.85)",
     maxWidth: "80%",
   };
 
@@ -1282,6 +1395,9 @@ export function CassBoardDrawer({
             column: t.suggestedColumn,
             context: t.description ?? "",
             rawQuote: "",
+            priority: (t as any).priority ?? null,
+            dueDate: (t as any).dueDate ?? null,
+            assigneeName: (t as any).assigneeName ?? null,
           })),
         });
         // In breakup mode, delete the original task after creating the subtasks
@@ -1489,7 +1605,7 @@ export function CassBoardDrawer({
         {!(mode === "refocus" && rfPhase === "retro") && mode !== "retro" && mode !== "onboarding_welcome" && (
         <div style={{ flexShrink: 0, position: "relative" }}>
           {/* Authored By banner */}
-          <div style={{ background: "#0a0a0a", borderBottom: "1px solid #1e1e1e", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: isDark ? "#0a0a0a" : "#f0ebe0", borderBottom: `1px solid ${isDark ? "#1e1e1e" : "rgba(0,0,0,0.08)"}`, padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <img
               src="/icons/authored-by-tape-icon.png"
               alt="Authored By"
@@ -1513,14 +1629,14 @@ export function CassBoardDrawer({
             {/* Close button */}
             <button
               type="button" onClick={onClose} aria-label="Close"
-              style={{ position: "absolute", top: "50%", right: "16px", transform: "translateY(-50%)", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "rgba(255,255,255,0.06)", color: "#888", border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#d4cec4"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
+              style={{ position: "absolute", top: "50%", right: "16px", transform: "translateY(-50%)", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: btnBg, color: btnColor, border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; e.currentTarget.style.color = btnColorHover; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; e.currentTarget.style.color = btnColor; }}
             ><X size={14} /></button>
           </div>
           {/* Label bar */}
-          <div style={{ background: "#242424", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(248,248,246,0.25)" }}>
+          <div style={{ background: isDark ? "#242424" : "#e8e0d0", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.22em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.35)" }}>
               {mode === "menu" ? "Add something new" :
                chatSubMode === "braindump" ? "Voice Memo" :
                chatSubMode === "move" ? "Reroute Tasks" :
@@ -1544,14 +1660,14 @@ export function CassBoardDrawer({
             {/* Cass avatar — always at top */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
               <CassRecorder animState={mode === "menu" ? headerCassAnim : (isPending ? "playing" : "talking")} size="sm" />
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)" }}>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)" }}>
                 Cass · Story Guide
               </span>
             </div>
 
             {/* Cass question — plain Lora, left-aligned, no bubble */}
             <div style={{ maxWidth: "85%", width: "100%" }}>
-              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: "#f8f8f6", margin: 0 }}>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>
                 {mode === "menu" ? (
                   <>
                     {menuDisplayed}
@@ -1677,6 +1793,9 @@ export function CassBoardDrawer({
                         onColumnChange={(col) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, suggestedColumn: col } : t))}
                         onTitleChange={(title) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, title } : t))}
                         onDescriptionChange={(description) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, description } : t))}
+                        onPriorityChange={(priority) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, priority } : t))}
+                        onDueDateChange={(dueDate) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, dueDate } : t))}
+                        onAssigneeChange={(assigneeName) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, assigneeName } : t))}
                       />
                     ))}
                   </div>
@@ -1734,12 +1853,12 @@ export function CassBoardDrawer({
         {mode === "onboarding_welcome" && (
           <div style={{
             flex: 1, display: "flex", flexDirection: "column",
-            background: "#0a0a0a",
+            background: isDark ? "#0a0a0a" : "#faf9f4",  // body stays warm white; header is #f0ebe0
             backgroundImage: "radial-gradient(ellipse at 20% 50%, rgba(200,168,107,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(42,107,58,0.05) 0%, transparent 50%)",
           }}>
             {/* Authored By header */}
             <div style={{
-              background: "#0a0a0a", borderBottom: "1px solid #1e1e1e",
+              background: isDark ? "#0a0a0a" : "#f0ebe0", borderBottom: `1px solid ${isDark ? "#1e1e1e" : "rgba(0,0,0,0.08)"}`,
               padding: "8px 16px", display: "flex",
               alignItems: "center", justifyContent: "center", flexShrink: 0,
             }}>
@@ -1750,12 +1869,12 @@ export function CassBoardDrawer({
               />
             </div>
             <div style={{
-              background: "#242424", padding: "6px 16px",
+              background: isDark ? "#242424" : "#e8e0d0", padding: "6px 16px",
               display: "flex", justifyContent: "center", alignItems: "center", flexShrink: 0,
             }}>
               <span style={{
                 fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600,
-                letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(248,248,246,0.25)",
+                letterSpacing: "0.22em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.35)",
               }}>
                 Onboarding
               </span>
