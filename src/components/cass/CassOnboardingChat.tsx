@@ -673,18 +673,22 @@ function VoiceInputFooter({
   onSubmit,
   voiceMode = false,
   onRegisterOpenMic,
+  onExitVoiceMode,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSubmit: (text?: string) => void;
   voiceMode?: boolean;
   onRegisterOpenMic?: (fn: () => void) => void;
+  onExitVoiceMode?: () => void;
 }) {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalTranscriptRef = useRef(value);
+  // iOS doesn't support continuous SpeechRecognition — use push-to-talk instead
+  const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // Resize textarea whenever value changes (covers both typing and voice)
   useEffect(() => {
@@ -699,9 +703,9 @@ function VoiceInputFooter({
     if (!listening) finalTranscriptRef.current = value;
   }, [value, listening]);
 
-  // Auto-start mic when entering voice mode
+  // Auto-start mic when entering voice mode (desktop only — iOS uses push-to-talk)
   useEffect(() => {
-    if (voiceMode && !listening) {
+    if (voiceMode && !listening && !isIOS) {
       startListening();
     }
     if (!voiceMode && listening) {
@@ -713,7 +717,8 @@ function VoiceInputFooter({
   // Register our openMic function with parent so TTS can re-open after speaking
   useEffect(() => {
     onRegisterOpenMic?.(() => {
-      if (voiceMode) startListening();
+      // On iOS, don't auto-open mic after TTS — user initiates with a hold
+      if (voiceMode && !isIOS) startListening();
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceMode, onRegisterOpenMic]);
@@ -753,7 +758,7 @@ function VoiceInputFooter({
     onChange("");
 
     const rec: any = new SR();
-    rec.continuous = true;
+    rec.continuous = !isIOS; // iOS doesn't support continuous mode reliably
     rec.interimResults = true;
     rec.lang = "en-US";
     recognitionRef.current = rec;
@@ -775,6 +780,13 @@ function VoiceInputFooter({
     rec.onend = () => {
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
       setListening(false);
+      // On iOS, recognition ends naturally after speech — auto-submit what we captured
+      if (isIOS && finalTranscriptRef.current.trim()) {
+        const text = finalTranscriptRef.current.trim();
+        finalTranscriptRef.current = "";
+        onChange("");
+        onSubmit(text);
+      }
     };
     rec.onerror = () => {
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
@@ -817,21 +829,28 @@ function VoiceInputFooter({
             {value}
           </p>
         )}
-        {/* Mic pulse button */}
+        {/* Mic pulse button — push-to-talk on iOS, tap-to-toggle on desktop */}
         <button
           type="button"
-          onClick={toggleVoice}
+          {...(isIOS ? {
+            onPointerDown: (e) => { e.preventDefault(); if (!listening) startListening(); },
+            onPointerUp:   (e) => { e.preventDefault(); if (listening) stopListening(); },
+            onPointerCancel: () => { if (listening) stopListening(); },
+          } : {
+            onClick: toggleVoice,
+          })}
           aria-label={listening ? "Stop recording" : "Start recording"}
           style={{
-            width: "64px", height: "64px", borderRadius: "50%",
+            width: "96px", height: "96px", borderRadius: "50%",
             background: listening ? "rgba(245,200,74,0.15)" : "rgba(255,255,255,0.06)",
             border: `2px solid ${listening ? "#f5c84a" : "rgba(255,255,255,0.15)"}`,
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
             transition: "all 0.2s",
-            boxShadow: listening ? "0 0 0 8px rgba(245,200,74,0.08), 0 0 0 16px rgba(245,200,74,0.04)" : "none",
+            boxShadow: listening ? "0 0 0 12px rgba(245,200,74,0.08), 0 0 0 24px rgba(245,200,74,0.04)" : "none",
+            userSelect: "none", WebkitUserSelect: "none",
           }}
         >
-          <svg width="20" height="18" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+          <svg width="28" height="24" viewBox="0 0 16 14" fill="none" aria-hidden="true">
             {[
               { x: 0,  h: 4,  y: 5 },
               { x: 3,  h: 8,  y: 3 },
@@ -850,11 +869,31 @@ function VoiceInputFooter({
         <span style={{
           fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px",
           fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase",
-          color: listening ? "#f5c84a" : "#444",
+          color: listening ? "#f5c84a" : "#888",
           transition: "color 0.2s",
         }}>
-          {listening ? "Listening…" : "Tap to speak"}
+          {isIOS
+            ? (listening ? "Release to send" : "Hold to speak")
+            : (listening && value ? "Listening…" : "Start talking...")}
         </span>
+        {/* Exit conversation mode */}
+        <button
+          type="button"
+          onClick={onExitVoiceMode}
+          style={{
+            marginTop: "4px",
+            background: "transparent", border: "none", cursor: "pointer",
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px",
+            fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase",
+            color: "rgba(248,248,246,0.2)",
+            transition: "color 0.15s",
+            padding: "4px 8px",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.5)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.2)"; }}
+        >
+          Exit conversation mode
+        </button>
       </div>
     ) : (
       /* ── Text + optional mic UI ── */
@@ -1596,6 +1635,7 @@ export function CassOnboardingChat({
                   onSubmit={handleChatSubmit}
                   voiceMode={voiceMode}
                   onRegisterOpenMic={(fn) => { openMicRef.current = fn; }}
+                  onExitVoiceMode={toggleVoiceMode}
                 />
               )}
 

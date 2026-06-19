@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ArrowUp, ChevronRight, LoaderCircle, X } from "lucide-react";
 import type { AppUser, Chapter, ProjectMember, ProjectWithChapters, Task, UserProfile } from "@/types";
-import { useAvatar } from "@/lib/avatar-context";
 import { PRESS_TEMPLATES } from "@/lib/press/templates";
 import type { PressTemplate } from "@/lib/press/templates";
 import { ProjectArcRefiner } from "@/components/projects/project-arc-refiner";
 import { ProjectOverviewSettingsDrawer } from "@/components/projects/project-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 import { CassProgressBar } from "@/components/cass/CassProgressBar";
-import { AvatarRecorder, useAvatarName } from "@/components/ui/AvatarRecorder";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
@@ -302,8 +300,6 @@ function CassChronicleDrawer({
   project: ProjectWithChapters;
   onClose: () => void;
 }) {
-  const { setActiveAvatar } = useAvatar();
-
   const [mode, setMode] = useState<DrawerMode>("audience");
   const [selectedAudience, setSelectedAudience] = useState<string | null>(null);
 
@@ -332,8 +328,6 @@ function CassChronicleDrawer({
     setPressError(null);
     setPressReadyToGenerate(false);
     setIsGenerating(false);
-    setActiveAvatar("ty");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   function enterChatMode(audienceId: string) {
@@ -528,16 +522,16 @@ function CassChronicleDrawer({
         {/* ── Audience picker ── */}
         {mode === "audience" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: "16px", scrollbarWidth: "none" }}>
-            {/* Ty FAB — anchored at top of feed */}
+            {/* Cass FAB — anchored at top of feed */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-              <AvatarRecorder animState="idle" size="sm" />
+              <CassRecorder animState="idle" size="sm" />
               <span style={{
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontSize: "10px", fontWeight: 600,
                 letterSpacing: "0.14em", textTransform: "uppercase",
                 color: "rgba(248,248,246,0.35)",
               }}>
-                Ty · Story Publisher
+                Cass · Story Guide
               </span>
             </div>
             <p style={{
@@ -586,16 +580,16 @@ function CassChronicleDrawer({
         {mode === "chat" && (
           <>
             <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "12px", scrollbarWidth: "none" }}>
-              {/* Ty FAB — anchored at top of feed */}
+              {/* Cass FAB — anchored at top of feed */}
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-                <AvatarRecorder animState={isPressLoading ? "playing" : "idle"} size="sm" />
+                <CassRecorder animState={isPressLoading ? "playing" : "idle"} size="sm" />
                 <span style={{
                   fontFamily: "'Barlow Condensed', sans-serif",
                   fontSize: "10px", fontWeight: 600,
                   letterSpacing: "0.14em", textTransform: "uppercase",
                   color: "rgba(248,248,246,0.35)",
                 }}>
-                  Ty · Story Publisher
+                  Cass · Story Guide
                 </span>
               </div>
               {/* Audience label pill */}
@@ -1126,10 +1120,6 @@ export function ProjectOverviewShell({
   const projDateColor       = isDark ? "rgba(200,168,107,0.45)"  : "rgba(0,0,0,0.35)";
   const projChevronColor    = isDark ? "rgba(200,168,107,0.35)"  : "rgba(0,0,0,0.25)";
   const emptyStateColor     = isDark ? "rgba(232,224,208,0.3)"   : "rgba(22,19,15,0.28)";
-
-  // RT-02: Story tab → Ty
-  const { setActiveAvatar } = useAvatar();
-  useEffect(() => { setActiveAvatar("ty"); }, [setActiveAvatar]);
 
   // Scroll to the selected chapter whenever lastChapterId changes
   useEffect(() => {
