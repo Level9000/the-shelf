@@ -22,6 +22,9 @@ export function ProjectShellFrame({
   activeNav,
   mobileBanner,
   onPlanChapters,
+  currentBoardId,
+  currentBoardGoal,
+  currentBoardCreatedAt,
   children,
 }: {
   projects: ProjectWithChapters[];
@@ -37,6 +40,9 @@ export function ProjectShellFrame({
   /** Full-width banner rendered between the header and scrollable content */
   mobileBanner?: React.ReactNode;
   onPlanChapters?: () => void;
+  currentBoardId?: string | null;
+  currentBoardGoal?: string | null;
+  currentBoardCreatedAt?: string | null;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -157,6 +163,9 @@ export function ProjectShellFrame({
         currentProjectName={currentProjectName}
         currentChapterId={currentChapterId}
         currentChapterName={currentChapterName}
+        currentBoardId={currentBoardId}
+        currentBoardGoal={currentBoardGoal}
+        currentBoardCreatedAt={currentBoardCreatedAt}
       />
     </>
   );

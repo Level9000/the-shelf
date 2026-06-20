@@ -9,6 +9,7 @@ import type {
   Project,
   ProjectMember,
   Task,
+  TaskSize,
   WorkflowTemplate,
 } from "@/types";
 import {
@@ -55,7 +56,8 @@ type FormState = {
   title: string;
   description: string;
   assigneeName: string;
-  priority: string;
+  isUrgent: boolean;
+  size: TaskSize;
   dueDate: string;
   columnId: string;
 };
@@ -65,7 +67,8 @@ function getInitialState(columns: BoardColumn[]): FormState {
     title: "",
     description: "",
     assigneeName: "",
-    priority: "",
+    isUrgent: false,
+    size: null,
     dueDate: "",
     columnId: columns[0]?.id ?? "",
   };
@@ -128,7 +131,8 @@ export function ManualTaskModal({
           title: form.title,
           description: form.description,
           assigneeName: form.assigneeName || null,
-          priority: (form.priority || null) as Task["priority"],
+          isUrgent: form.isUrgent,
+          size: form.size,
           dueDate: form.dueDate || null,
         });
         onCreated();
@@ -289,12 +293,15 @@ export function ManualTaskModal({
               title={form.title}
               description={form.description}
               assigneeName={form.assigneeName}
-              priority={form.priority as Task["priority"]}
+              isUrgent={form.isUrgent}
+              size={form.size}
               dueDate={form.dueDate}
               columnId={form.columnId}
               columns={columns}
               assignableMembers={assignableMembers}
               onChange={handleChange}
+              onToggleUrgent={() => setForm((f) => ({ ...f, isUrgent: !f.isUrgent }))}
+              onSizeChange={(s) => setForm((f) => ({ ...f, size: s }))}
             />
             <div className="sticky bottom-0 mt-6 flex flex-wrap justify-center gap-3 border-t border-black/6 bg-[var(--surface)]/95 pt-4 backdrop-blur">
               <TapeButton variant="secondary" size="sm" onClick={() => setMode("chooser")}>

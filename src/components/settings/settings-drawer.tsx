@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { UserProfile } from "@/types";
-import { deleteChapterAction, deleteProjectAction } from "@/lib/actions/project-actions";
+import { deleteChapterAction, deleteProjectAction, updateBoardOverviewFieldAction } from "@/lib/actions/project-actions";
 import { deleteAccountAction } from "@/lib/actions/profile-actions";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { SideDrawer } from "@/components/ui/side-drawer";
@@ -166,6 +166,64 @@ function SubscribePicker() {
   );
 }
 
+// ── Goal editor sub-component ─────────────────────────────────────────────────
+
+function GoalEditor({ projectId, boardId, initialValue, isDark }: { projectId: string; boardId: string; initialValue: string; isDark: boolean }) {
+  const [value, setValue] = useState(initialValue);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function handleSave() {
+    if (!boardId || !value.trim()) return;
+    setError(null);
+    setSaved(false);
+    startTransition(async () => {
+      try {
+        await updateBoardOverviewFieldAction({ projectId, boardId, field: "goal", value: value.trim() });
+        setSaved(true);
+        router.refresh();
+        setTimeout(() => setSaved(false), 2000);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to save.");
+      }
+    });
+  }
+
+  const inputBg = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
+  const inputColor = isDark ? "rgba(248,248,246,0.85)" : "rgba(26,14,0,0.85)";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <textarea
+        value={value}
+        onChange={(e) => { setValue(e.target.value); setSaved(false); }}
+        placeholder="What's the focus of this chapter?"
+        rows={3}
+        style={{
+          width: "100%", background: inputBg, border: "1px solid rgba(200,168,107,0.25)",
+          borderRadius: "10px", padding: "10px 12px", boxSizing: "border-box",
+          fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.55",
+          color: inputColor, outline: "none", resize: "vertical", caretColor: "#c8a86b",
+        }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.55)"; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
+      />
+      {error && <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{error}</p>}
+      <TapeButton
+        variant={saved ? "secondary" : "primary"}
+        size="sm"
+        onClick={handleSave}
+        disabled={isPending || !value.trim() || value.trim() === initialValue}
+        className="w-full justify-center"
+      >
+        {isPending ? "Saving…" : saved ? "Saved ✓" : "Save focus"}
+      </TapeButton>
+    </div>
+  );
+}
+
 // ── Settings content ──────────────────────────────────────────────────────────
 
 export function SettingsContent({
@@ -175,6 +233,9 @@ export function SettingsContent({
   currentProjectName,
   currentChapterId,
   currentChapterName,
+  currentBoardId,
+  currentBoardGoal,
+  currentBoardCreatedAt,
   onClose,
 }: {
   profile: UserProfile;
@@ -183,11 +244,15 @@ export function SettingsContent({
   currentProjectName?: string | null;
   currentChapterId?: string | null;
   currentChapterName?: string | null;
+  currentBoardId?: string | null;
+  currentBoardGoal?: string | null;
+  currentBoardCreatedAt?: string | null;
   onClose?: () => void;
 }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const isDark = theme === "dark";
+  const [page, setPage] = useState<"project" | "app">("project");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -274,6 +339,148 @@ export function SettingsContent({
 
   return (
     <div>
+
+      {/* ── Tab switcher ── */}
+      <div style={{ display: "flex", borderBottom: "1px solid var(--stroke)", padding: "0 16px" }}>
+        {(["project", "app"] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setPage(p)}
+            style={{
+              flex: 1,
+              padding: "12px 8px",
+              background: "transparent",
+              border: "none",
+              borderBottom: `2px solid ${page === p ? "#f5c84a" : "transparent"}`,
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "12px",
+              fontWeight: 700,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: page === p ? "#f5c84a" : isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)",
+              cursor: "pointer",
+              transition: "color 0.15s, border-color 0.15s",
+              marginBottom: "-1px",
+            }}
+          >
+            {p === "project" ? "Project" : "App"}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Project Settings page ── */}
+      {page === "project" && (
+        <div style={{ padding: "24px 16px", display: "flex", flexDirection: "column", gap: "24px" }}>
+          {currentProjectId && currentChapterId ? (
+            <>
+              {/* ── Chapter countdown card ── */}
+              {(() => {
+                const SPRINT_DAYS = 14;
+                const daysOpen = currentBoardCreatedAt
+                  ? Math.floor((Date.now() - new Date(currentBoardCreatedAt).getTime()) / 86_400_000)
+                  : null;
+                const daysLeft = daysOpen !== null ? SPRINT_DAYS - daysOpen : null;
+
+                // Tone: 0-9 days → on track (green), 10-13 → winding down (gold), 14+ → overdue (red)
+                const tone =
+                  daysOpen === null ? "neutral" :
+                  daysOpen < 10 ? "green" :
+                  daysOpen < 14 ? "gold" :
+                  "red";
+
+                const toneColors = {
+                  neutral: { bg: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)", border: "rgba(200,168,107,0.2)", bar: "#c8a86b", barBg: isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.07)" },
+                  green:   { bg: isDark ? "rgba(110,231,183,0.06)" : "rgba(110,231,183,0.1)", border: "rgba(110,231,183,0.25)", bar: "#6ee7b7", barBg: isDark ? "rgba(110,231,183,0.08)" : "rgba(110,231,183,0.12)" },
+                  gold:    { bg: isDark ? "rgba(245,200,74,0.07)" : "rgba(245,200,74,0.1)", border: "rgba(245,200,74,0.3)", bar: "#f5c84a", barBg: isDark ? "rgba(245,200,74,0.1)" : "rgba(245,200,74,0.14)" },
+                  red:     { bg: isDark ? "rgba(248,113,113,0.07)" : "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.3)", bar: "#f87171", barBg: isDark ? "rgba(248,113,113,0.1)" : "rgba(248,113,113,0.12)" },
+                };
+                const c = toneColors[tone];
+
+                const headline =
+                  daysOpen === null ? "Chapter in progress" :
+                  daysLeft !== null && daysLeft > 7 ? `${daysLeft} days left in this chapter` :
+                  daysLeft !== null && daysLeft > 0 ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left — time to wrap up` :
+                  daysLeft === 0 ? "Chapter ends today" :
+                  `Chapter ran ${Math.abs(daysLeft!)} day${Math.abs(daysLeft!) === 1 ? "" : "s"} over`;
+
+                const subtext =
+                  daysOpen === null ? "We recommend 2-week chapters with a recap at the end." :
+                  tone === "green" ? `You're ${daysOpen} day${daysOpen === 1 ? "" : "s"} into a 14-day chapter. Stay focused on your chapter goal.` :
+                  tone === "gold" ? "You're in the home stretch. Start thinking about what to carry over and what to close out." :
+                  tone === "red" ? "Your chapter has run long. A chapter recap helps you reflect and carry momentum forward." :
+                  "";
+
+                const progressPct = daysOpen !== null ? Math.min(100, Math.round((daysOpen / SPRINT_DAYS) * 100)) : 0;
+
+                return (
+                  <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: "14px", padding: "16px" }}>
+                    {/* Header row */}
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "10px" }}>
+                      <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.3)", margin: 0 }}>
+                        Chapter Health
+                      </p>
+                      {daysOpen !== null && (
+                        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", color: isDark ? "rgba(248,248,246,0.4)" : "rgba(26,14,0,0.4)", margin: 0 }}>
+                          Day {daysOpen} of {SPRINT_DAYS}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Progress bar */}
+                    {daysOpen !== null && (
+                      <div style={{ height: "4px", borderRadius: "2px", background: c.barBg, marginBottom: "12px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${progressPct}%`, background: c.bar, borderRadius: "2px", transition: "width 0.4s ease" }} />
+                      </div>
+                    )}
+
+                    {/* Headline */}
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", fontWeight: 600, color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: "0 0 5px", lineHeight: 1.35 }}>
+                      {headline}
+                    </p>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", lineHeight: 1.6, color: isDark ? "rgba(248,248,246,0.5)" : "rgba(26,14,0,0.5)", margin: 0 }}>
+                      {subtext}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* Chapter focus / goal */}
+              <div>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(245,200,74,0.45)" : "rgba(160,100,10,0.55)", marginBottom: "6px" }}>
+                  Chapter Focus
+                </p>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "var(--muted)", margin: "0 0 8px", lineHeight: 1.5 }}>
+                  This appears as a reminder at the top of your board.
+                </p>
+                <GoalEditor
+                  projectId={currentProjectId}
+                  boardId={currentBoardId ?? ""}
+                  initialValue={currentBoardGoal ?? ""}
+                  isDark={isDark}
+                />
+              </div>
+              {/* Chapter name — read only */}
+              <div>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.28)", marginBottom: "6px" }}>Chapter</p>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>{currentChapterName ?? "—"}</p>
+              </div>
+              {/* Project name — read only */}
+              <div>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.28)", marginBottom: "6px" }}>Project</p>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>{currentProjectName ?? "—"}</p>
+              </div>
+            </>
+          ) : (
+            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "var(--muted)", margin: 0 }}>
+              Open a project chapter to see its settings here.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── App Settings page ── */}
+      {page === "app" && <>
 
       {/* ── Appearance ── */}
       <DrawerSection label="Appearance">
@@ -581,6 +788,8 @@ export function SettingsContent({
         </div>
       </div>
 
+      </>}
+
     </div>
   );
 }
@@ -627,6 +836,9 @@ export function SettingsDrawer({
   currentProjectName,
   currentChapterId,
   currentChapterName,
+  currentBoardId,
+  currentBoardGoal,
+  currentBoardCreatedAt,
 }: {
   open: boolean;
   profile: UserProfile;
@@ -636,6 +848,9 @@ export function SettingsDrawer({
   currentProjectName?: string | null;
   currentChapterId?: string | null;
   currentChapterName?: string | null;
+  currentBoardId?: string | null;
+  currentBoardGoal?: string | null;
+  currentBoardCreatedAt?: string | null;
 }) {
   return (
     <SideDrawer open={open} title="" onClose={onClose} side="right" footer={<SignOutButton />}>
@@ -646,6 +861,9 @@ export function SettingsDrawer({
         currentProjectName={currentProjectName}
         currentChapterId={currentChapterId}
         currentChapterName={currentChapterName}
+        currentBoardId={currentBoardId}
+        currentBoardGoal={currentBoardGoal}
+        currentBoardCreatedAt={currentBoardCreatedAt}
         onClose={onClose}
       />
     </SideDrawer>

@@ -23,16 +23,9 @@ const POSTIT_PALETTE: Record<string, { body: string; tab: string }> = {
 
 const DEFAULT_POSTIT = { body: "bg-yellow-100", tab: "bg-yellow-200" };
 
-function priorityDot(priority: Task["priority"]) {
-  if (priority === "high")   return "bg-rose-500";
-  if (priority === "medium") return "bg-amber-500";
-  if (priority === "low")    return "bg-sky-400";
-  return null;
-}
 
 function NoteBody({ task, columnName }: { task: Task; columnName?: string }) {
   const colors = POSTIT_PALETTE[columnName ?? ""] ?? DEFAULT_POSTIT;
-  const dot = priorityDot(task.priority);
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -52,12 +45,6 @@ function NoteBody({ task, columnName }: { task: Task; columnName?: string }) {
       {/* Note body */}
       <div className="flex-1 px-3.5 pb-3 pt-2.5">
         <div className="flex items-start gap-2">
-          {dot && (
-            <span
-              className={cn("mt-[5px] size-2 shrink-0 rounded-full", dot)}
-              title={task.priority ?? undefined}
-            />
-          )}
           <h4 className="text-[13px] font-semibold leading-5" style={{ color: titleColor }}>
             {task.title}
           </h4>
@@ -69,8 +56,30 @@ function NoteBody({ task, columnName }: { task: Task; columnName?: string }) {
           </p>
         ) : null}
 
-        {(task.dueDate || task.assigneeName || task.sourceVoiceCaptureId) ? (
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: metaColor }}>
+        {(task.isUrgent || task.size || task.dueDate || task.assigneeName || task.sourceVoiceCaptureId) ? (
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px]" style={{ color: metaColor }}>
+            {task.isUrgent && (
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em",
+                background: "rgba(248,113,113,0.15)", color: "#ef4444",
+                border: "1px solid rgba(248,113,113,0.35)",
+                borderRadius: "999px", padding: "1px 7px",
+              }}>
+                !
+              </span>
+            )}
+            {task.size && (
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                background: "rgba(110,156,231,0.12)", color: "#3b82f6",
+                border: "1px solid rgba(110,156,231,0.3)",
+                borderRadius: "999px", padding: "1px 7px",
+              }}>
+                {task.size} effort
+              </span>
+            )}
             {task.dueDate && (
               <span className="inline-flex items-center gap-1">
                 <CalendarDays className="size-3" />
@@ -78,7 +87,13 @@ function NoteBody({ task, columnName }: { task: Task; columnName?: string }) {
               </span>
             )}
             {task.assigneeName && (
-              <span className="inline-flex items-center gap-1">
+              <span className="inline-flex items-center gap-1" style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em",
+                background: "rgba(0,0,0,0.06)",
+                border: "1px solid rgba(0,0,0,0.10)",
+                borderRadius: "999px", padding: "1px 7px",
+              }}>
                 <UserRound className="size-3" />
                 {task.assigneeName}
               </span>

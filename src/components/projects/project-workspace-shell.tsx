@@ -123,6 +123,9 @@ export function ProjectWorkspaceShell({
       mobileTitle={snapshot.project.name}
       activeNav="board"
       onPlanChapters={() => router.push(`/projects/${currentProjectId}?plan=true`)}
+      currentBoardId={snapshot.board.id}
+      currentBoardGoal={snapshot.board.goal ?? null}
+      currentBoardCreatedAt={snapshot.board.createdAt ?? null}
     >
       {showAllDoneModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

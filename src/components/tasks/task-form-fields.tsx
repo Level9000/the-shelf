@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import type { BoardColumn, Priority, ProjectMember } from "@/types";
-import { PRIORITY_OPTIONS } from "@/lib/constants";
+import type { BoardColumn, ProjectMember, TaskSize } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -104,22 +103,28 @@ export function TaskFormFields({
   title,
   description,
   assigneeName,
-  priority,
+  isUrgent,
+  size,
   dueDate,
   columnId,
   columns,
   assignableMembers,
   onChange,
+  onToggleUrgent,
+  onSizeChange,
 }: {
   title: string;
   description: string;
   assigneeName: string;
-  priority: Priority;
+  isUrgent: boolean;
+  size: TaskSize;
   dueDate: string;
   columnId: string;
   columns: BoardColumn[];
   assignableMembers: ProjectMember[];
   onChange: (field: string, value: string) => void;
+  onToggleUrgent: () => void;
+  onSizeChange: (size: TaskSize) => void;
 }) {
   const memberOptions = Array.from(
     new Map(
@@ -191,8 +196,8 @@ export function TaskFormFields({
         )}
       </div>
 
-      {/* Due date / Column / Priority */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Due date / Column */}
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Due date</label>
           <Input
@@ -215,19 +220,42 @@ export function TaskFormFields({
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Urgent + Size */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* Urgent toggle */}
         <div>
-          <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Priority</label>
+          <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Urgent</label>
+          <button
+            type="button"
+            onClick={onToggleUrgent}
+            className={cn(
+              "flex h-[46px] w-full items-center gap-3 rounded-2xl border px-4 text-sm font-medium shadow-sm transition",
+              isUrgent
+                ? "border-rose-300 bg-rose-50 text-rose-700"
+                : "border-[var(--border,#e5e7eb)] bg-[var(--field-bg)] text-[var(--muted)] hover:border-rose-200 hover:text-rose-600",
+            )}
+          >
+            <span className={cn(
+              "flex size-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition",
+              isUrgent ? "border-rose-400 bg-rose-500 text-white" : "border-[var(--muted)]/40 text-[var(--muted)]",
+            )}>!</span>
+            <span>{isUrgent ? "Marked urgent" : "Mark as urgent"}</span>
+          </button>
+        </div>
+
+        {/* Size dropdown */}
+        <div>
+          <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Effort size</label>
           <select
-            value={priority ?? ""}
-            onChange={(event) => onChange("priority", event.target.value)}
+            value={size ?? ""}
+            onChange={(e) => onSizeChange((e.target.value as "small" | "big") || null)}
             className="h-[46px] w-full rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
           >
-            <option value="">None</option>
-            {PRIORITY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
+            <option value="">No size</option>
+            <option value="small">Small effort</option>
+            <option value="big">Big effort</option>
           </select>
         </div>
       </div>

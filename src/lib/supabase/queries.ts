@@ -114,6 +114,8 @@ function mapTask(row: Record<string, unknown>): Task {
     description: (row.description as string | null) ?? null,
     assigneeName: (row.assignee_name as string | null) ?? null,
     priority: (row.priority as Task["priority"]) ?? null,
+    isUrgent: Boolean(row.is_urgent ?? false),
+    size: (row.size as Task["size"]) ?? null,
     dueDate: (row.due_date as string | null) ?? null,
     position: Number(row.position),
     sourceVoiceCaptureId: (row.source_voice_capture_id as string | null) ?? null,

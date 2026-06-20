@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Trash2, X } from "lucide-react";
-import type { BoardColumn, ProjectMember, Task } from "@/types";
+import type { BoardColumn, ProjectMember, Task, TaskSize } from "@/types";
 import { deleteTaskAction, updateTaskAction } from "@/lib/actions/task-actions";
 import { TapeButton } from "@/components/ui/tape-button";
 import { Modal } from "@/components/ui/modal";
@@ -12,7 +12,8 @@ type FormState = {
   title: string;
   description: string;
   assigneeName: string;
-  priority: string;
+  isUrgent: boolean;
+  size: TaskSize;
   dueDate: string;
   columnId: string;
 };
@@ -22,7 +23,8 @@ function toFormState(task: Task): FormState {
     title: task.title,
     description: task.description ?? "",
     assigneeName: task.assigneeName ?? "",
-    priority: task.priority ?? "",
+    isUrgent: task.isUrgent ?? false,
+    size: task.size ?? null,
     dueDate: task.dueDate ?? "",
     columnId: task.columnId,
   };
@@ -76,7 +78,8 @@ export function TaskDetailModal({
           title: currentForm.title,
           description: currentForm.description,
           assigneeName: currentForm.assigneeName || null,
-          priority: (currentForm.priority || null) as Task["priority"],
+          isUrgent: currentForm.isUrgent,
+          size: currentForm.size,
           dueDate: currentForm.dueDate || null,
         });
         onSaved();
@@ -156,12 +159,15 @@ export function TaskDetailModal({
           title={currentForm.title}
           description={currentForm.description}
           assigneeName={currentForm.assigneeName}
-          priority={currentForm.priority as Task["priority"]}
+          isUrgent={currentForm.isUrgent}
+          size={currentForm.size}
           dueDate={currentForm.dueDate}
           columnId={currentForm.columnId}
           columns={columns}
           assignableMembers={assignableMembers}
           onChange={handleChange}
+          onToggleUrgent={() => setForm((f) => f ? { ...f, isUrgent: !f.isUrgent } : f)}
+          onSizeChange={(s) => setForm((f) => f ? { ...f, size: s } : f)}
         />
         {error ? (
           <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">

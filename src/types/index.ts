@@ -131,6 +131,8 @@ export type BoardColumn = {
   position: number;
 };
 
+export type TaskSize = "small" | "big" | null;
+
 export type Task = {
   id: string;
   projectId: string;
@@ -140,6 +142,8 @@ export type Task = {
   description: string | null;
   assigneeName: string | null;
   priority: Priority;
+  isUrgent: boolean;
+  size: TaskSize;
   dueDate: string | null;
   position: number;
   sourceVoiceCaptureId: string | null;

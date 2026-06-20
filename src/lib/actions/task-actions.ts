@@ -13,6 +13,8 @@ type TaskMutationInput = {
   description?: string;
   assigneeName?: string | null;
   priority?: Priority;
+  isUrgent?: boolean;
+  size?: "small" | "big" | null;
   dueDate?: string | null;
   sourceVoiceCaptureId?: string | null;
 };
@@ -52,6 +54,8 @@ export async function createTaskAction(input: TaskMutationInput) {
     description: input.description?.trim() || null,
     assignee_name: input.assigneeName?.trim() || null,
     priority: input.priority ?? null,
+    is_urgent: input.isUrgent ?? false,
+    size: input.size ?? null,
     due_date: input.dueDate || null,
     position,
     created_by: user.id,
@@ -76,6 +80,8 @@ export async function updateTaskAction(input: {
   description?: string;
   assigneeName?: string | null;
   priority?: Priority;
+  isUrgent?: boolean;
+  size?: "small" | "big" | null;
   dueDate?: string | null;
 }) {
   const { supabase } = await getAuthenticatedUser();
@@ -87,6 +93,8 @@ export async function updateTaskAction(input: {
       description: input.description?.trim() || null,
       assignee_name: input.assigneeName?.trim() || null,
       priority: input.priority ?? null,
+      is_urgent: input.isUrgent ?? false,
+      size: input.size ?? null,
       due_date: input.dueDate || null,
     })
     .eq("id", input.taskId)

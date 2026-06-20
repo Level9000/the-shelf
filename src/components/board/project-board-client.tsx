@@ -236,6 +236,7 @@ export function ProjectBoardClient({
   subscriptionStatus?: SubscriptionStatus;
 }) {
   const router = useRouter();
+  const { theme } = useTheme();
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: { distance: 8 },
@@ -560,6 +561,13 @@ export function ProjectBoardClient({
     });
   }
 
+  // Chapter age / days remaining
+  const CHAPTER_DAYS = 14;
+  const daysOpen = snapshot.board.createdAt
+    ? Math.floor((Date.now() - new Date(snapshot.board.createdAt).getTime()) / 86_400_000)
+    : null;
+  const daysLeft = daysOpen !== null ? CHAPTER_DAYS - daysOpen : null;
+
   // True whenever any overlay/modal is visible — board drag is locked out while this is true
   const anyModalOpen = Boolean(selectedTask) || manualOpen || reviewOpen || completedAlertOpen;
 
@@ -602,45 +610,82 @@ export function ProjectBoardClient({
             </div>
           ) : null}
           {/* Chapter focus bar — shown when the board has a goal set */}
-          {snapshot.board.goal && (
-            <div style={{
-              borderBottom: "1px solid var(--stroke)",
-              padding: "7px 20px",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              background: "var(--surface-muted)",
-            }}>
-              <span style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontSize: "10px",
-                fontWeight: 700,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--muted)",
-                flexShrink: 0,
+          {snapshot.board.goal && (() => {
+            const isDarkBoard = theme === "dark";
+
+            const healthLabel =
+              daysLeft === null ? null :
+              daysLeft > 0 ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left in this chapter` :
+              daysLeft === 0 ? "Last day of this chapter" :
+              `${Math.abs(daysLeft)} day${Math.abs(daysLeft) === 1 ? "" : "s"} over. Time to wrap up.`;
+
+            const healthColor =
+              daysLeft === null ? "rgba(26,14,0,0.4)" :
+              daysLeft > 4 ? (isDarkBoard ? "rgba(110,231,183,0.7)" : "rgba(22,101,52,0.65)") :
+              daysLeft > 0 ? (isDarkBoard ? "#f5c84a" : "rgba(120,80,0,0.75)") :
+              (isDarkBoard ? "#f87171" : "#b91c1c");
+
+            return (
+              <div style={{
+                borderBottom: `1px solid ${isDarkBoard ? "rgba(200,168,107,0.15)" : "rgba(26,14,0,0.08)"}`,
+                padding: "7px 20px",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                background: isDarkBoard ? "rgba(200,168,107,0.07)" : "#f0ebe0",
               }}>
-                Chapter focus
-              </span>
-              <span style={{
-                width: "1px",
-                height: "12px",
-                background: "var(--stroke)",
-                flexShrink: 0,
-              }} />
-              <span style={{
-                fontFamily: "'Lora', Georgia, serif",
-                fontSize: "13px",
-                color: "var(--ink)",
-                opacity: 0.75,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}>
-                {snapshot.board.goal}
-              </span>
-            </div>
-          )}
+                <span style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: isDarkBoard ? "rgba(200,168,107,0.6)" : "rgba(26,14,0,0.45)",
+                  flexShrink: 0,
+                }}>
+                  Chapter focus
+                </span>
+                <span style={{
+                  width: "1px",
+                  height: "12px",
+                  background: isDarkBoard ? "rgba(200,168,107,0.2)" : "rgba(26,14,0,0.12)",
+                  flexShrink: 0,
+                }} />
+                <span style={{
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "13px",
+                  color: isDarkBoard ? "rgba(232,224,208,0.82)" : "rgba(26,14,0,0.75)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  flex: 1,
+                }}>
+                  {snapshot.board.goal}
+                </span>
+                {healthLabel && (
+                  <>
+                    <span style={{
+                      width: "1px",
+                      height: "12px",
+                      background: isDarkBoard ? "rgba(200,168,107,0.2)" : "rgba(26,14,0,0.12)",
+                      flexShrink: 0,
+                    }} />
+                    <span style={{
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: healthColor,
+                      flexShrink: 0,
+                    }}>
+                      {healthLabel}
+                    </span>
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
           <div style={{ position: "relative", pointerEvents: anyModalOpen ? "none" : "auto" }}>
             <DndContext
@@ -705,7 +750,10 @@ export function ProjectBoardClient({
                         boardCompleted={!!snapshot.board.retroCompletedAt || retroNudge}
                         onOpenCass={
                           !snapshot.board.retroCompletedAt && !retroNudge &&
-                          (column.name === "Do This Week" || column.name === "Do Today" || column.name === "Blocked" || column.name === "Done")
+                          (
+                            (column.name === "Done") ||
+                            ((column.name === "Do This Week" || column.name === "Do Today" || column.name === "Blocked") && (daysLeft === null || daysLeft > 0))
+                          )
                             ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }
                             : undefined
                         }
@@ -730,7 +778,10 @@ export function ProjectBoardClient({
                     boardCompleted={!!snapshot.board.retroCompletedAt || retroNudge}
                     onOpenCass={
                       !snapshot.board.retroCompletedAt && !retroNudge &&
-                      (column.name === "Do This Week" || column.name === "Do Today" || column.name === "Blocked" || column.name === "Done")
+                      (
+                        (column.name === "Done") ||
+                        ((column.name === "Do This Week" || column.name === "Do Today" || column.name === "Blocked") && (daysLeft === null || daysLeft > 0))
+                      )
                         ? () => { setCassCompletedMode(false); setCassBreakupTaskId(null); needsPaywall ? setPaywallOpen(true) : setCassOpen(true); }
                         : undefined
                     }
@@ -868,6 +919,7 @@ export function ProjectBoardClient({
         initialMode={!cassCompletedMode && !cassBreakupTaskId ? initialDrawerMode : undefined}
         fromOnboarding={skipIntro}
         chapterNumber={chapterNumber}
+        chapterDaysLeft={daysLeft}
         onNavigateToLatest={activeChapterUrl ? () => router.push(activeChapterUrl) : undefined}
         onPlanChapters={() => router.push(`/projects/${chapterProjectId}?plan=true`)}
         onRefocus={bannerState.kind === "running_long" ? () => {} : undefined}

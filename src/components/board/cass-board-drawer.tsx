@@ -51,7 +51,7 @@ declare global {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "retro" | "onboarding_welcome";
-type ChatSubMode = "tasks" | "braindump" | "move" | "breakup" | "end_chapter";
+type ChatSubMode = "tasks" | "braindump" | "move" | "breakup" | "end_chapter" | "chronicle";
 type RefocusPhase = "chat" | "triage" | "retro";
 type TriageDecision = "keep" | "move" | "delete";
 type BrainDumpState = "idle" | "recording" | "processing" | "error";
@@ -77,6 +77,7 @@ function AvatarNameLabel() {
 const MENU_OPTIONS: Array<{ key: ChatSubMode; label: string; sub: string }> = [
   { key: "tasks",     label: "Talk it out together. Strategize and create new tasks.", sub: "" },
   { key: "braindump", label: "Voice memo. Turn recorded audio into new tasks.",        sub: "" },
+  { key: "chronicle", label: "Add tasks I've already completed",                       sub: "" },
   { key: "move",      label: "Move some tasks to a future chapter",                    sub: "" },
 ];
 
@@ -86,7 +87,7 @@ const CASS_B: React.CSSProperties = {
   background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
   borderRadius: "12px 12px 12px 2px", padding: "12px 16px",
   fontFamily: "'Literata', Georgia, serif", fontSize: "16px",
-  lineHeight: "1.7", color: "#d4cec4", maxWidth: "92%",
+  lineHeight: "1.7", color: "var(--ink)", maxWidth: "92%",
 };
 const USER_B: React.CSSProperties = {
   background: "rgba(200,168,107,0.1)", border: "1px solid rgba(200,168,107,0.22)",
@@ -123,7 +124,7 @@ const PRIORITY_CHIP_COLORS: Record<string, { bg: string; border: string; text: s
 };
 
 function ProposalCard({
-  task, columns, onRemove, onColumnChange, onTitleChange, onDescriptionChange, onPriorityChange, onDueDateChange, onAssigneeChange,
+  task, columns, onRemove, onColumnChange, onTitleChange, onDescriptionChange, onUrgentChange, onSizeChange, onDueDateChange, onAssigneeChange,
 }: {
   task: ProposedTask;
   columns: BoardColumn[];
@@ -131,7 +132,8 @@ function ProposalCard({
   onColumnChange: (col: string) => void;
   onTitleChange: (title: string) => void;
   onDescriptionChange: (desc: string) => void;
-  onPriorityChange: (p: "low" | "medium" | "high" | null) => void;
+  onUrgentChange: (urgent: boolean) => void;
+  onSizeChange: (size: "small" | "big" | null) => void;
   onDueDateChange: (d: string) => void;
   onAssigneeChange: (a: string) => void;
 }) {
@@ -150,7 +152,8 @@ function ProposalCard({
   function commitAssignee() { onAssigneeChange(localAssignee); }
   function commitDueDate() { onDueDateChange(localDueDate); }
 
-  const currentPriority = (task as any).priority as "low" | "medium" | "high" | null ?? null;
+  const currentUrgent = (task as any).isUrgent as boolean ?? false;
+  const currentSize   = (task as any).size as "small" | "big" | null ?? null;
 
   const cardTextPrimary   = isDark ? "#f8f8f6"               : "rgba(26,14,0,0.88)";
   const cardTextMuted     = isDark ? "rgba(248,248,246,0.45)" : "rgba(26,14,0,0.45)";
@@ -240,31 +243,51 @@ function ProposalCard({
       {expanded && (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingTop: "4px", borderTop: `1px solid ${isDark ? "rgba(200,168,107,0.1)" : "rgba(200,168,107,0.18)"}` }}>
 
-          {/* Priority chips */}
-          <div>
-            <p style={fieldLabel}>Priority</p>
-            <div style={{ display: "flex", gap: "6px" }}>
-              {PRIORITY_OPTIONS.map((p) => {
-                const active = currentPriority === p;
-                const colors = PRIORITY_CHIP_COLORS[p];
-                return (
-                  <button
-                    key={p} type="button"
-                    onClick={() => onPriorityChange(active ? null : p)}
-                    style={{
-                      padding: "4px 12px", borderRadius: "999px", cursor: "pointer",
-                      background: active ? colors.bg : "transparent",
-                      border: `1px solid ${active ? colors.border : cardPriorityInactiveBorder}`,
-                      fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600,
-                      letterSpacing: "0.12em", textTransform: "uppercase",
-                      color: active ? colors.text : cardTextFaint,
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={(e) => { if (!active) { e.currentTarget.style.borderColor = colors.border; e.currentTarget.style.color = colors.text; } }}
-                    onMouseLeave={(e) => { if (!active) { e.currentTarget.style.borderColor = cardPriorityInactiveBorder; e.currentTarget.style.color = cardTextFaint; } }}
-                  >{p}</button>
-                );
-              })}
+          {/* Urgent + Size */}
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {/* Urgent toggle */}
+            <div style={{ flex: 1, minWidth: "120px" }}>
+              <p style={fieldLabel}>Urgent</p>
+              <button
+                type="button"
+                onClick={() => onUrgentChange(!currentUrgent)}
+                style={{
+                  width: "100%", padding: "5px 12px", borderRadius: "999px", cursor: "pointer",
+                  background: currentUrgent ? "rgba(248,113,113,0.15)" : "transparent",
+                  border: `1px solid ${currentUrgent ? "rgba(248,113,113,0.45)" : cardPriorityInactiveBorder}`,
+                  fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700,
+                  letterSpacing: "0.12em", textTransform: "uppercase",
+                  color: currentUrgent ? "#f87171" : cardTextFaint,
+                  transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px",
+                }}
+              >
+                <span>!</span>
+                <span>{currentUrgent ? "Urgent" : "Mark urgent"}</span>
+              </button>
+            </div>
+            {/* Size chips */}
+            <div style={{ flex: 1, minWidth: "140px" }}>
+              <p style={fieldLabel}>Effort size</p>
+              <div style={{ display: "flex", gap: "5px" }}>
+                {(["small", "big"] as const).map((s) => {
+                  const active = currentSize === s;
+                  return (
+                    <button
+                      key={s} type="button"
+                      onClick={() => onSizeChange(active ? null : s)}
+                      style={{
+                        flex: 1, padding: "5px 8px", borderRadius: "999px", cursor: "pointer",
+                        background: active ? "rgba(110,156,231,0.15)" : "transparent",
+                        border: `1px solid ${active ? "rgba(110,156,231,0.4)" : cardPriorityInactiveBorder}`,
+                        fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600,
+                        letterSpacing: "0.1em", textTransform: "uppercase",
+                        color: active ? "#60a5fa" : cardTextFaint,
+                        transition: "all 0.15s",
+                      }}
+                    >{s}</button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -309,9 +332,14 @@ function ProposalCard({
           ))}
         </select>
         {/* Show set values as read-only badges when collapsed */}
-        {!expanded && currentPriority && (
-          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: PRIORITY_CHIP_COLORS[currentPriority].text }}>
-            {currentPriority}
+        {!expanded && currentUrgent && (
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.35)", borderRadius: "999px", padding: "1px 7px" }}>
+            !
+          </span>
+        )}
+        {!expanded && currentSize && (
+          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", background: "rgba(110,156,231,0.12)", color: "#60a5fa", border: "1px solid rgba(110,156,231,0.3)", borderRadius: "999px", padding: "1px 7px" }}>
+            {currentSize} effort
           </span>
         )}
         {!expanded && (task as any).dueDate && (
@@ -337,16 +365,20 @@ function VoiceMemoFlow({
   columns,
   projectId,
   onCardsReady,
+  skipColumnSelect,
+  defaultColumn,
 }: {
   columns: BoardColumn[];
   projectId: string;
   onCardsReady: (tasks: ProposedTask[], transcript: string, columnName: string) => void;
+  skipColumnSelect?: boolean;
+  defaultColumn?: string;
 }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const [phase, setPhase] = useState<VoiceMemoPhase>("column_select");
-  const [selectedColumn, setSelectedColumn] = useState<string>("");
+  const [phase, setPhase] = useState<VoiceMemoPhase>(skipColumnSelect ? "voice" : "column_select");
+  const [selectedColumn, setSelectedColumn] = useState<string>(defaultColumn ?? "");
   const [listening, setListening] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -489,7 +521,7 @@ function VoiceMemoFlow({
   if (phase === "text_input") {
     return (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px 20px 20px", gap: "16px" }}>
-        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: "#f8f8f6", margin: 0 }}>
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>
           Type what you want to capture for <strong style={{ color: "#c8a86b" }}>{selectedColumn}</strong>:
         </p>
         <textarea
@@ -499,10 +531,11 @@ function VoiceMemoFlow({
           placeholder="Describe the tasks or ideas you want to add…"
           style={{
             flex: 1, minHeight: "140px",
-            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(200,168,107,0.22)",
+            background: isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.04)", border: "1px solid rgba(200,168,107,0.22)",
             borderRadius: "10px", padding: "14px 16px",
             fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.6",
-            color: "#d4cec4", outline: "none", resize: "none", caretColor: "#c8a86b",
+            color: isDark ? "#d4cec4" : "rgba(26,14,0,0.88)", outline: "none", resize: "none", caretColor: "#c8a86b",
+            colorScheme: isDark ? "dark" : "light",
           }}
           onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.5)"; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.22)"; }}
@@ -512,7 +545,7 @@ function VoiceMemoFlow({
           <button
             type="button"
             onClick={() => setPhase("voice")}
-            style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.22)", borderRadius: "8px", padding: "10px 16px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(200,168,107,0.55)", cursor: "pointer" }}
+            style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.22)", borderRadius: "8px", padding: "10px 16px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(200,168,107,0.7)", cursor: "pointer" }}
           >
             ← Voice
           </button>
@@ -520,7 +553,7 @@ function VoiceMemoFlow({
             type="button"
             onClick={() => { if (textInput.trim()) processTranscript(textInput.trim()); }}
             disabled={!textInput.trim()}
-            style={{ flex: 1, background: textInput.trim() ? "#f5c84a" : "rgba(255,255,255,0.06)", border: "none", borderRadius: "8px", padding: "10px 16px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: textInput.trim() ? "#1a0e00" : "#555", cursor: textInput.trim() ? "pointer" : "default", transition: "background 0.15s" }}
+            style={{ flex: 1, background: textInput.trim() ? "#f5c84a" : isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.07)", border: "none", borderRadius: "8px", padding: "10px 16px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: textInput.trim() ? "#1a0e00" : isDark ? "#555" : "rgba(26,14,0,0.3)", cursor: textInput.trim() ? "pointer" : "default", transition: "background 0.15s" }}
           >
             Process
           </button>
@@ -530,10 +563,17 @@ function VoiceMemoFlow({
   }
 
   // ── Phase: voice ──
+  const micIdleBg     = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.07)";
+  const micIdleBorder = isDark ? "rgba(255,255,255,0.15)" : "rgba(26,14,0,0.18)";
+  const micIdleFill   = isDark ? "#666" : "rgba(26,14,0,0.45)";
+  const statusIdleColor = isDark ? "#888" : "rgba(26,14,0,0.45)";
+  const switchColor   = isDark ? "rgba(248,248,246,0.2)" : "rgba(26,14,0,0.28)";
+  const switchHover   = isDark ? "rgba(248,248,246,0.5)" : "rgba(26,14,0,0.6)";
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px 24px", gap: "20px" }}>
       {/* Column context */}
-      <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(200,168,107,0.5)", margin: 0 }}>
+      <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(200,168,107,0.65)", margin: 0 }}>
         → {selectedColumn}
       </p>
 
@@ -548,8 +588,8 @@ function VoiceMemoFlow({
         aria-label={listening ? "Stop recording" : "Start recording"}
         style={{
           width: "96px", height: "96px", borderRadius: "50%",
-          background: listening ? "rgba(245,200,74,0.15)" : "rgba(255,255,255,0.06)",
-          border: `2px solid ${listening ? "#f5c84a" : "rgba(255,255,255,0.15)"}`,
+          background: listening ? "rgba(245,200,74,0.15)" : micIdleBg,
+          border: `2px solid ${listening ? "#f5c84a" : micIdleBorder}`,
           cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
           transition: "all 0.2s",
           boxShadow: listening ? "0 0 0 12px rgba(245,200,74,0.08), 0 0 0 24px rgba(245,200,74,0.04)" : "none",
@@ -559,15 +599,15 @@ function VoiceMemoFlow({
         <svg width="28" height="24" viewBox="0 0 16 14" fill="none" aria-hidden="true">
           {[{ x: 0, h: 4, y: 5 }, { x: 3, h: 8, y: 3 }, { x: 6, h: 14, y: 0 }, { x: 9, h: 8, y: 3 }, { x: 12, h: 4, y: 5 }].map((bar, i) => (
             <rect key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
-              fill={listening ? "#f5c84a" : "#666"}
+              fill={listening ? "#f5c84a" : micIdleFill}
               style={listening ? { animation: `chat-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
             />
           ))}
         </svg>
       </button>
 
-      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: listening ? "#f5c84a" : "#888", transition: "color 0.2s" }}>
-        {isIOS ? (listening ? "Release to send" : "Hold to speak") : (listening ? "Listening…" : "Start talking...")}
+      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: listening ? "#f5c84a" : statusIdleColor, transition: "color 0.2s" }}>
+        {isIOS ? (listening ? "Release to send" : "Hold to speak") : (listening ? "Listening…" : "Tap to record")}
       </span>
 
       {error && <p style={{ color: "#ff6b6b", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", margin: 0, textAlign: "center" }}>{error}</p>}
@@ -576,9 +616,9 @@ function VoiceMemoFlow({
       <button
         type="button"
         onClick={() => { stopListening(); setPhase("text_input"); }}
-        style={{ background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(248,248,246,0.2)", transition: "color 0.15s", padding: "4px 8px", marginTop: "4px" }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.5)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.2)"; }}
+        style={{ background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: switchColor, transition: "color 0.15s", padding: "4px 8px", marginTop: "4px" }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = switchHover; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = switchColor; }}
       >
         Switch to typing
       </button>
@@ -664,15 +704,28 @@ function MoveToChapterView({
   }
 
   const selectedCount = selectedIds.size;
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const textPrimary = isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)";
+  const textMuted = isDark ? "rgba(248,248,246,0.4)" : "rgba(26,14,0,0.38)";
+  const taskBorderIdle = isDark ? "rgba(255,255,255,0.08)" : "rgba(26,14,0,0.09)";
+  const taskBgIdle = isDark ? "rgba(255,255,255,0.02)" : "rgba(26,14,0,0.02)";
+  const taskBorderHover = isDark ? "rgba(255,255,255,0.14)" : "rgba(26,14,0,0.15)";
+  const taskBgHover = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.04)";
+  const dividerColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.07)";
 
   // ── Phase: done ──
   if (phase === "done") {
     return (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 24px", gap: "16px" }}>
-        <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "rgba(110,231,183,0.12)", border: "1px solid rgba(110,231,183,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Check size={20} style={{ color: "#6ee7b7" }} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center", padding: "32px 24px", gap: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", background: isDark ? "rgba(110,231,183,0.06)" : "rgba(110,231,183,0.10)", border: "1px solid rgba(110,231,183,0.22)", borderRadius: "14px", width: "100%" }}>
+          <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "rgba(110,231,183,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Check size={13} style={{ color: isDark ? "#6ee7b7" : "#059669" }} />
+          </div>
+          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#a7f3d0" : "#065f46", margin: 0 }}>
+            Done. Those tasks are out of your way.
+          </p>
         </div>
-        <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", color: "#d4cec4", margin: 0, textAlign: "center" }}>Done. Those tasks are out of your way.</p>
         <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Close</TapeButton>
       </div>
     );
@@ -681,13 +734,10 @@ function MoveToChapterView({
   // ── Phase: destination ──
   if (phase === "destination") {
     return (
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
-          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-          <div style={CASS_B}>
-            {selectedCount === 1 ? "Where should this task go?" : `Where should these ${selectedCount} tasks go?`}
-          </div>
-        </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0, maxWidth: "85%" }}>
+          {selectedCount === 1 ? "Where should this task go?" : `Where should these ${selectedCount} tasks go?`}
+        </p>
 
         {availableChapters.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -698,44 +748,44 @@ function MoveToChapterView({
                 disabled={isPending}
                 onClick={() => handleMoveToChapter(chapter.id)}
                 style={{
-                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(200,168,107,0.18)",
+                  background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.02)",
+                  border: `1px solid rgba(200,168,107,0.18)`,
                   borderRadius: "12px", padding: "14px 16px",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   cursor: isPending ? "not-allowed" : "pointer", textAlign: "left", width: "100%",
                   animation: "cassBoardOptionIn 0.28s ease forwards",
                   animationDelay: `${i * 80}ms`, opacity: 0,
+                  transition: "background 0.15s, border-color 0.15s",
                 }}
                 onMouseEnter={(e) => { if (!isPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.02)"; }}
               >
-                <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 600, color: "#d4cec4", margin: 0 }}>{chapter.name}</p>
-                {isPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.4)", flexShrink: 0 }} />}
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: textPrimary, margin: 0 }}>{chapter.name}</p>
+                {isPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
               </button>
             ))}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px", opacity: 0 }} />
-              <div style={{ ...CASS_B, background: "transparent", border: "none", padding: "0", fontFamily: "'Special Elite', cursive", fontSize: "13px", color: "rgba(232,224,208,0.5)" }}>
-                No future chapters exist yet. I can create the next one for you.
-              </div>
-            </div>
+            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textMuted, margin: 0 }}>
+              No future chapters exist yet. I can create the next one for you.
+            </p>
             <button
               type="button"
               disabled={isPending}
               onClick={handleCreateNextChapter}
               style={{
-                background: "rgba(200,168,107,0.08)", border: "1px dashed rgba(200,168,107,0.35)",
+                background: "rgba(200,168,107,0.07)", border: "1px dashed rgba(200,168,107,0.35)",
                 borderRadius: "12px", padding: "14px 16px",
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 cursor: isPending ? "not-allowed" : "pointer", width: "100%",
                 animation: "cassBoardOptionIn 0.28s ease forwards", opacity: 0,
+                transition: "background 0.15s, border-color 0.15s",
               }}
               onMouseEnter={(e) => { if (!isPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.6)"; e.currentTarget.style.background = "rgba(200,168,107,0.12)"; } }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.08)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
             >
-              <p style={{ fontFamily: "var(--font-cass)", fontSize: "12px", fontWeight: 600, color: "#c8a86b", margin: 0 }}>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: "rgba(200,168,107,0.85)", margin: 0 }}>
                 Create Chapter {allChaptersCount + 1} and move there
               </p>
               {isPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
@@ -743,20 +793,14 @@ function MoveToChapterView({
           </div>
         )}
 
-        <div style={{ marginTop: "4px", paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <TapeButton
-            type="button"
-            disabled={isPending}
-            onClick={handleDelete}
-            variant="danger"
-            size="sm"
-          >
+        <div style={{ marginTop: "4px", paddingTop: "12px", borderTop: `1px solid ${dividerColor}` }}>
+          <TapeButton type="button" disabled={isPending} onClick={handleDelete} variant="danger" size="sm">
             <Trash2 size={12} />
             Delete {selectedCount === 1 ? "this task" : `these ${selectedCount} tasks`} instead
           </TapeButton>
         </div>
 
-        {error && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
+        {error && <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "#f87171", margin: 0 }}>{error}</p>}
       </div>
     );
   }
@@ -764,20 +808,17 @@ function MoveToChapterView({
   // ── Phase: select ──
   return (
     <>
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 12px", display: "flex", flexDirection: "column", gap: "14px" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
-          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-          <div style={CASS_B}>
-            {movableTasks.length === 0
-              ? "Everything on the board is either done or… there's nothing here to move."
-              : "Which tasks aren't happening this chapter?"}
-          </div>
-        </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px 20px 12px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0, maxWidth: "85%" }}>
+          {movableTasks.length === 0
+            ? "Everything on the board is either done or… there's nothing here to move."
+            : "Which tasks aren't happening this chapter?"}
+        </p>
 
         {movableTasks.length > 0 && (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2px" }}>
-              <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", letterSpacing: "2px", color: "rgba(200,168,107,0.45)", textTransform: "uppercase", margin: 0 }}>
+              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: textMuted, margin: 0 }}>
                 {selectedCount} selected
               </p>
               <TapeButton
@@ -799,25 +840,25 @@ function MoveToChapterView({
                     onClick={() => toggleTask(task.id)}
                     style={{
                       display: "flex", alignItems: "flex-start", gap: "12px",
-                      background: checked ? "rgba(200,168,107,0.07)" : "rgba(255,255,255,0.02)",
-                      border: `1px solid ${checked ? "rgba(200,168,107,0.35)" : "rgba(255,255,255,0.07)"}`,
+                      background: checked ? "rgba(200,168,107,0.07)" : taskBgIdle,
+                      border: `1px solid ${checked ? "rgba(200,168,107,0.35)" : taskBorderIdle}`,
                       borderRadius: "10px", padding: "12px 14px",
                       cursor: "pointer", textAlign: "left", width: "100%",
                       transition: "background 0.15s, border-color 0.15s",
                     }}
-                    onMouseEnter={(e) => { if (!checked) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; } }}
-                    onMouseLeave={(e) => { if (!checked) { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; } }}
+                    onMouseEnter={(e) => { if (!checked) { e.currentTarget.style.background = taskBgHover; e.currentTarget.style.borderColor = taskBorderHover; } }}
+                    onMouseLeave={(e) => { if (!checked) { e.currentTarget.style.background = taskBgIdle; e.currentTarget.style.borderColor = taskBorderIdle; } }}
                   >
                     <div style={{
-                      width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, marginTop: "1px",
-                      border: `1.5px solid ${checked ? "#c8a86b" : "rgba(200,168,107,0.25)"}`,
-                      background: checked ? "rgba(200,168,107,0.2)" : "transparent",
+                      width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, marginTop: "2px",
+                      border: `1.5px solid ${checked ? "#c8a86b" : "rgba(200,168,107,0.3)"}`,
+                      background: checked ? "rgba(200,168,107,0.18)" : "transparent",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       transition: "all 0.15s",
                     }}>
                       {checked && <Check size={10} style={{ color: "#c8a86b" }} />}
                     </div>
-                    <p style={{ fontFamily: "'Special Elite', cursive", fontSize: "13px", color: checked ? "#d4cec4" : "rgba(232,224,208,0.65)", margin: 0, lineHeight: "1.5", flex: 1 }}>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.5", color: checked ? textPrimary : textMuted, margin: 0, flex: 1, transition: "color 0.15s" }}>
                       {task.title}
                     </p>
                   </button>
@@ -827,12 +868,12 @@ function MoveToChapterView({
           </>
         )}
 
-        {error && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
+        {error && <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "#f87171", margin: 0 }}>{error}</p>}
       </div>
 
       {/* Footer */}
       {movableTasks.length > 0 && (
-        <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px", display: "flex" }}>
+        <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex" }}>
           <TapeButton
             type="button"
             disabled={selectedCount === 0}
@@ -1016,6 +1057,7 @@ export function CassBoardDrawer({
   initialMode,
   fromOnboarding = false,
   chapterNumber = 1,
+  chapterDaysLeft = null,
   onNavigateToLatest,
   onPlanChapters,
   onRefocus,
@@ -1040,6 +1082,7 @@ export function CassBoardDrawer({
   initialMode?: "retro";
   fromOnboarding?: boolean;
   chapterNumber?: number;
+  chapterDaysLeft?: number | null;
   onNavigateToLatest?: () => void;
   onPlanChapters?: () => void;
   onRefocus?: () => void;
@@ -1117,6 +1160,22 @@ export function CassBoardDrawer({
   const [braindumpTranscript, setBraindumpTranscript] = useState<string | null>(null);
   const [braindumpAddingMore, setBraindumpAddingMore] = useState(false);
 
+  // ── Chronicle state ───────────────────────────────────────────────────────────
+  const [chronicleMethod, setChronicleMethod] = useState<"talk" | "voice" | null>(null);
+
+  // ── Inline voice state (braindump + chronicle-voice) ────────────────────────
+  const [voicePhase, setVoicePhase] = useState<"column_select" | "voice" | "text_input" | "processing">("column_select");
+  const [voiceColumn, setVoiceColumn] = useState("");
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [voiceLiveTranscript, setVoiceLiveTranscript] = useState("");
+  const [voiceFinalTranscript, setVoiceFinalTranscript] = useState<string | null>(null);
+  const [voiceTextInput, setVoiceTextInput] = useState("");
+  const voiceRecognitionRef = useRef<any>(null);
+  const voiceTranscriptRef = useRef("");
+  const voicePauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
   // ── Review / confirm state ────────────────────────────────────────────────────
   const [proposedTasks, setProposedTasks] = useState<ProposedTask[]>([]);
   const [reviewTasks, setReviewTasks] = useState<ProposedTask[]>([]);
@@ -1140,6 +1199,13 @@ export function CassBoardDrawer({
   const [rfIsPending, startRfTransition] = useTransition();
   const [rfIsSaving, startRfSaveTransition] = useTransition();
 
+  // ── Move-to-chapter inline state ─────────────────────────────────────────────
+  const [movePhase, setMovePhase] = useState<MovePhase>("select");
+  const [moveSelectedIds, setMoveSelectedIds] = useState<Set<string>>(new Set());
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const [moveAvailableChapters, setMoveAvailableChapters] = useState<Chapter[]>(futureChapters);
+  const [moveIsPending, startMoveTransition] = useTransition();
+
   // Reset on open
   useEffect(() => {
     if (!open) return;
@@ -1156,6 +1222,7 @@ export function CassBoardDrawer({
     setTemplateError(null);
     setBraindumpTranscript(null);
     setBraindumpAddingMore(false);
+    setChronicleMethod(null);
     setRfPhase("chat");
     setRfMessages([]);
     setRfDraft("");
@@ -1230,10 +1297,6 @@ export function CassBoardDrawer({
     setMenuSelected(null);
     setChatSubMode("tasks");
 
-    // Play pre-recorded menu question audio
-    const menuAudio = new Audio("/audio/cass-menu-question.mp3");
-    menuAudio.play().catch(() => {});
-
     let i = 0;
     const id = setInterval(() => {
       i++;
@@ -1243,7 +1306,7 @@ export function CassBoardDrawer({
         setTimeout(() => setOptionsReady(true), 180);
       }
     }, 26);
-    return () => { clearInterval(id); menuAudio.pause(); };
+    return () => { clearInterval(id); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -1276,6 +1339,16 @@ export function CassBoardDrawer({
     setChatSubMode(sub);
     setTimeout(() => setMode("chat"), 320);
 
+    // reset voice state when entering braindump
+    if (sub === "braindump") {
+      setVoicePhase("column_select");
+      setVoiceColumn("");
+      setVoiceListening(false);
+      setVoiceError(null);
+      setVoiceLiveTranscript("");
+      setVoiceFinalTranscript(null);
+    }
+
     if (sub === "tasks") {
       // Send context to the API but don't add the synthetic user message to UI —
       // menuSelected already shows the user's choice as a gray bubble above.
@@ -1292,8 +1365,57 @@ export function CassBoardDrawer({
         });
       }, 340);
     }
+    // chronicle: just enter chat mode — sub-choice screen handles the rest
     // braindump: no initial message — the recorder handles it
-    // move: no AI call — pure UI flow in MoveToChapterView
+    // move: no AI call — pure UI flow inline in chat thread
+    if (sub === "move") {
+      setMovePhase("select");
+      setMoveSelectedIds(new Set());
+      setMoveError(null);
+      setMoveAvailableChapters(futureChapters);
+    }
+  }
+
+  // ── Move-to-chapter action helpers ───────────────────────────────────────────
+  function handleMoveToChapter(targetBoardId: string) {
+    const taskIds = Array.from(moveSelectedIds);
+    setMoveError(null);
+    startMoveTransition(async () => {
+      try {
+        await moveTasksToChapterAction({ projectId: project.id, taskIds, targetBoardId });
+        setMovePhase("done");
+        onTasksAdded();
+      } catch (err) {
+        setMoveError(err instanceof Error ? err.message : "Move failed.");
+      }
+    });
+  }
+
+  function handleMoveDelete() {
+    const taskIds = Array.from(moveSelectedIds);
+    setMoveError(null);
+    startMoveTransition(async () => {
+      try {
+        await moveTasksToChapterAction({ projectId: project.id, taskIds, targetBoardId: "", deleteInstead: true });
+        setMovePhase("done");
+        onTasksAdded();
+      } catch (err) {
+        setMoveError(err instanceof Error ? err.message : "Delete failed.");
+      }
+    });
+  }
+
+  async function handleMoveCreateNextChapter() {
+    setMoveError(null);
+    startMoveTransition(async () => {
+      try {
+        const created = await createNextChapterForDeferAction({ projectId: project.id, currentChapterCount: allChaptersCount });
+        setMoveAvailableChapters([{ ...created, projectId: project.id, goal: null, whyItMatters: null, successLooksLike: null, doneDefinition: null, openingLine: null, retroConversation: null, chapterStory: null, storyLength: null, retroCompletedAt: null, sharedAt: null, shareSlug: null, position: allChaptersCount * 1000, createdAt: new Date().toISOString() } as Chapter]);
+        handleMoveToChapter(created.id);
+      } catch (err) {
+        setMoveError(err instanceof Error ? err.message : "Couldn't create chapter.");
+      }
+    });
   }
 
   // ── Text chat helpers ─────────────────────────────────────────────────────────
@@ -1367,17 +1489,104 @@ export function CassBoardDrawer({
   // ── Voice (braindump) cards ready callback ────────────────────────────────────
   const handleVoiceCardsReady = useCallback((tasks: ProposedTask[], transcript: string, _columnName: string) => {
     const stamped = tasks.map((t, i) => ({ ...t, id: t.id ?? `voice-${i}-${Date.now()}` }));
-    // Inject a Cass reply so the unified container renders the same flow as "talk it out":
-    // Cass message → proposal cards → save button. The proposalsStartRef will anchor to it
-    // and the scroll-to-top-of-Cass behavior kicks in automatically.
-    const cassReply = `Got it. Here's what I captured from your voice memo.`;
-    setMessages([{ role: "assistant", content: cassReply }]);
     setProposedTasks((prev) => [...prev, ...stamped]);
     setReviewTasks((prev) => [...prev, ...stamped]);
     setBraindumpTranscript(transcript);
     setSuggestSaveAsTemplate(false);
     setBraindumpAddingMore(false);
   }, []);
+
+  // ── Inline voice helpers ──────────────────────────────────────────────────────
+  function stopVoiceListening() {
+    if (voicePauseTimerRef.current) clearTimeout(voicePauseTimerRef.current);
+    if (voiceRecognitionRef.current) {
+      voiceRecognitionRef.current.onresult = null;
+      voiceRecognitionRef.current.onend = null;
+      voiceRecognitionRef.current.onerror = null;
+      try { voiceRecognitionRef.current.stop(); } catch { /* ok */ }
+      voiceRecognitionRef.current = null;
+    }
+    setVoiceListening(false);
+    setVoiceLiveTranscript("");
+  }
+
+  function processVoiceTranscript(transcript: string, col: string) {
+    setVoiceFinalTranscript(transcript);
+    setVoiceLiveTranscript("");
+    setVoicePhase("processing");
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/voice/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: project.id, transcript }),
+        });
+        const payload = await res.json() as { tasks?: ProposedTask[]; error?: string };
+        if (!res.ok) throw new Error(payload.error ?? "Processing failed.");
+        const tasks = (payload.tasks ?? []).map((t: ProposedTask, i: number) => ({
+          ...t,
+          id: t.id ?? `voice-${i}`,
+          suggestedColumn: col,
+        }));
+        handleVoiceCardsReady(tasks, transcript, col);
+      } catch (err) {
+        setVoiceError(err instanceof Error ? err.message : "Something went wrong.");
+        setVoicePhase("voice");
+      }
+    });
+  }
+
+  function scheduleVoiceAutoSubmit(text: string, col: string) {
+    if (voicePauseTimerRef.current) clearTimeout(voicePauseTimerRef.current);
+    voicePauseTimerRef.current = setTimeout(() => {
+      if (text.trim()) {
+        stopVoiceListening();
+        processVoiceTranscript(text.trim(), col);
+      }
+    }, 1800);
+  }
+
+  function startVoiceListening() {
+    const voiceCol = voiceColumn; // capture current column
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    if (!SR) { setVoiceError("Speech recognition isn't supported in this browser."); return; }
+    setVoiceError(null);
+    setVoiceLiveTranscript("");
+    voiceTranscriptRef.current = "";
+    const rec = new SR();
+    rec.continuous = !isIOS;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    voiceRecognitionRef.current = rec;
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          voiceTranscriptRef.current += (voiceTranscriptRef.current ? " " : "") + e.results[i][0].transcript.trim();
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      // Show final + any in-progress interim text on screen
+      const display = voiceTranscriptRef.current + (interim ? (voiceTranscriptRef.current ? " " : "") + interim : "");
+      setVoiceLiveTranscript(display);
+      scheduleVoiceAutoSubmit(voiceTranscriptRef.current, voiceCol);
+    };
+    rec.onend = () => {
+      if (voicePauseTimerRef.current) clearTimeout(voicePauseTimerRef.current);
+      setVoiceListening(false);
+      if (isIOS && voiceTranscriptRef.current.trim()) {
+        processVoiceTranscript(voiceTranscriptRef.current.trim(), voiceCol);
+      }
+    };
+    rec.onerror = () => { if (voicePauseTimerRef.current) clearTimeout(voicePauseTimerRef.current); setVoiceListening(false); };
+    rec.start();
+    setVoiceListening(true);
+  }
+
+  function toggleVoiceListening() {
+    if (voiceListening) stopVoiceListening(); else startVoiceListening();
+  }
 
   // ── Save tasks ────────────────────────────────────────────────────────────────
   function handleAddTasks() {
@@ -1547,6 +1756,7 @@ export function CassBoardDrawer({
   const isMoveMode = chatSubMode === "move";
   const isBreakupMode = chatSubMode === "breakup";
   const isEndChapterMode = chatSubMode === "end_chapter";
+  const isChronicleMode = chatSubMode === "chronicle";
 
   // Filter out Done tasks so only movable tasks are shown
   const doneColumnId = columns.find((c) => c.name.toLowerCase() === "done")?.id;
@@ -1620,7 +1830,7 @@ export function CassBoardDrawer({
                     ? () => { setMode("menu"); setMenuSelected(null); }
                     : isBreakupMode
                       ? onClose
-                      : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); }}
+                      : () => { setMode("menu"); setMenuSelected(null); setMessages([]); setAiStatus("chatting"); setProposedTasks([]); setReviewTasks([]); setSavedOk(false); setChronicleMethod(null); }}
                   variant="ghost"
                   size="sm"
                 >{isBreakupMode ? "✕ cancel" : "← back"}</TapeButton>
@@ -1635,12 +1845,13 @@ export function CassBoardDrawer({
             ><X size={14} /></button>
           </div>
           {/* Label bar */}
-          <div style={{ background: isDark ? "#242424" : "#e8e0d0", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.22em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.35)" }}>
+          <div style={{ background: isDark ? "#2a2208" : "#c8a86b", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: isDark ? "rgba(200,168,107,0.85)" : "rgba(255,255,255,0.9)" }}>
               {mode === "menu" ? "Add something new" :
                chatSubMode === "braindump" ? "Voice Memo" :
                chatSubMode === "move" ? "Reroute Tasks" :
                chatSubMode === "end_chapter" ? "End Chapter" :
+               chatSubMode === "chronicle" ? "Already Done" :
                mode === "completed" ? "What's Next" :
                mode === "retro_nudge" ? "Chapter Recap" :
                mode === "refocus" ? "Refocus" :
@@ -1654,7 +1865,7 @@ export function CassBoardDrawer({
         {/* Shared by "menu" mode and "chat" mode (tasks/breakup/braindump proposals).
             The Cass avatar + question stay at the top; selecting an option causes the
             content below it to scroll into view — matching the onboarding scroll feel. */}
-        {(mode === "menu" || (mode === "chat" && !isMoveMode && !isEndChapterMode && !(isBrainDump && (!hasProposals || braindumpAddingMore) && !savedOk))) && (
+        {(mode === "menu" || (mode === "chat" && !isEndChapterMode)) && (
           <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", scrollbarWidth: "none" }}>
 
             {/* Cass avatar — always at top */}
@@ -1697,16 +1908,35 @@ export function CassBoardDrawer({
                   </button>
                 ) : (
                   <>
-                    {MENU_OPTIONS.map((opt, i) => (
-                      <button
-                        key={opt.key} type="button" onClick={() => selectMode(opt.key)}
-                        style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 18px", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${i * 100}ms`, opacity: 0, cursor: "pointer" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
-                      >
-                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: textPrimary, margin: 0 }}>{opt.label}</p>
-                      </button>
-                    ))}
+                    {MENU_OPTIONS.map((opt, i) => {
+                      const isBlocked = chapterDaysLeft !== null && chapterDaysLeft <= 0 && (opt.key === "tasks" || opt.key === "braindump");
+                      return (
+                        <div key={opt.key} style={{ animation: `cassBoardOptionIn 0.28s ease ${i * 100}ms forwards`, opacity: 0 }}>
+                          <button
+                            type="button"
+                            onClick={isBlocked ? undefined : () => selectMode(opt.key)}
+                            disabled={isBlocked}
+                            style={{
+                              background: isBlocked ? (isDark ? "rgba(255,255,255,0.02)" : "rgba(26,14,0,0.02)") : surface,
+                              border: `1px solid ${isBlocked ? (isDark ? "rgba(255,255,255,0.07)" : "rgba(26,14,0,0.08)") : "rgba(200,168,107,0.18)"}`,
+                              borderRadius: "12px", padding: "14px 18px", textAlign: "left", width: "100%",
+                              cursor: isBlocked ? "default" : "pointer",
+                            }}
+                            onMouseEnter={(e) => { if (!isBlocked) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; } }}
+                            onMouseLeave={(e) => { if (!isBlocked) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; } }}
+                          >
+                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: isBlocked ? textMuted : textPrimary, margin: 0 }}>
+                              {opt.label}
+                            </p>
+                            {isBlocked && (
+                              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", lineHeight: "1.5", color: isDark ? "rgba(200,168,107,0.4)" : "rgba(26,14,0,0.38)", margin: "5px 0 0" }}>
+                                We&apos;ve run out of time for this chapter. Finish things up and we&apos;ll add new tasks to the next chapter.
+                              </p>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
                     {onEndChapterConfirmed && (
                       <>
                         <div style={{ margin: "4px 0", height: "1px", background: "rgba(255,255,255,0.06)" }} />
@@ -1729,7 +1959,267 @@ export function CassBoardDrawer({
             {/* Selected option — user gray bubble (shown in both menu transition + chat history) */}
             {menuSelected && (
               <div style={{ display: "flex", justifyContent: "flex-end", width: "100%", maxWidth: "85%" }}>
-                <div style={USER_B}>{menuSelected}</div>
+                <div style={USER_B}>
+                  {isChronicleMode && chronicleMethod === "voice"
+                    ? "Add tasks I've already completed to the done column"
+                    : isBrainDump && voiceColumn && voicePhase !== "column_select"
+                      ? `Record a voice memo that adds tasks into the ${voiceColumn} column`
+                      : menuSelected}
+                </div>
+              </div>
+            )}
+
+            {/* ── Chronicle sub-choice ── */}
+            {mode === "chat" && isChronicleMode && !chronicleMethod && (
+              <div style={{ width: "100%", maxWidth: "85%", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>
+                  How would you like to add them?
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {[
+                    { key: "talk" as const, label: "Talk it out with Cass" },
+                    { key: "voice" as const, label: "Voice memo" },
+                  ].map((opt, i) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => {
+                        setChronicleMethod(opt.key);
+                        if (opt.key === "talk") {
+                          const openingMsg: Msg = { role: "user", content: "I want to add tasks that I've already completed to my Done column." };
+                          setMessages([]);
+                          startTransition(async () => {
+                            const result = await callApi([openingMsg], "tasks");
+                            applyAiResult(result, []);
+                          });
+                        } else {
+                          // voice: skip column select, go straight to Done
+                          const doneCol = columns.find(c => c.name === "Done")?.name ?? "Done";
+                          setVoiceColumn(doneCol);
+                          setVoicePhase("voice");
+                          setVoiceListening(false);
+                          setVoiceError(null);
+                        }
+                      }}
+                      style={{
+                        background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)",
+                        border: "1px solid rgba(200,168,107,0.25)",
+                        borderRadius: "12px", padding: "14px 18px", textAlign: "left",
+                        fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600,
+                        color: isDark ? "#d4cec4" : "rgba(26,14,0,0.88)", cursor: "pointer",
+                        transition: "background 0.15s, border-color 0.15s",
+                        animation: `cassBoardOptionIn 0.28s ease ${i * 80}ms both`,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.08)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.4)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Inline voice flow (braindump + chronicle-voice) ── */}
+            {mode === "chat" && (isBrainDump || (isChronicleMode && chronicleMethod === "voice")) && !savedOk && (
+              <div style={{ width: "100%", maxWidth: "85%", display: "flex", flexDirection: "column", gap: "14px" }}>
+
+                {/* Column select (braindump only — chronicle goes straight to voice) */}
+                {isBrainDump && voicePhase === "column_select" && (
+                  <>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0 }}>
+                      Which column should these go in?
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {columns.filter(c => ["Do Today", "Do This Week", "Blocked", "Done"].includes(c.name)).map((col, i) => (
+                        <button
+                          key={col.id}
+                          type="button"
+                          onClick={() => { setVoiceColumn(col.name); setVoicePhase("voice"); }}
+                          style={{
+                            background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)",
+                            border: "1px solid rgba(200,168,107,0.25)",
+                            borderRadius: "12px", padding: "14px 18px", textAlign: "left",
+                            fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600,
+                            color: textPrimary, cursor: "pointer",
+                            transition: "background 0.15s, border-color 0.15s",
+                            animation: `cassBoardOptionIn 0.28s ease ${i * 80}ms both`,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.08)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.4)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
+                        >
+                          {col.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Column selected — user bubble + recorder */}
+                {voiceColumn && voicePhase !== "column_select" && (
+                  <>
+                    {/* User bubble showing selected column — hidden for all voice flows (already combined into menuSelected bubble above) */}
+
+                    {/* Cass confirms + mic UI */}
+                    {voicePhase === "voice" && (
+                      <>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0 }}>
+                          {isChronicleMode
+                            ? "Tell me about the work you've already completed."
+                            : "Got it. When you're ready, tap the mic and tell me what we need to add."}
+                        </p>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", padding: "12px 0" }}>
+                          {/* Live transcript — appears above mic */}
+                          {voiceLiveTranscript ? (
+                            <p style={{
+                              fontFamily: "'Lora', Georgia, serif",
+                              fontSize: "14px", lineHeight: "1.65",
+                              color: textPrimary,
+                              margin: 0, textAlign: "center",
+                              width: "100%",
+                            }}>
+                              {voiceLiveTranscript}
+                            </p>
+                          ) : (
+                            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: voiceListening ? "#f5c84a" : (isDark ? "#888" : "rgba(26,14,0,0.45)"), margin: 0, transition: "color 0.2s" }}>
+                              {voiceListening ? "Listening…" : "Tap to record"}
+                            </p>
+                          )}
+                          {/* Mic button */}
+                          <button
+                            type="button"
+                            {...(isIOS ? {
+                              onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => { e.preventDefault(); if (!voiceListening) startVoiceListening(); },
+                              onPointerUp:   (e: React.PointerEvent<HTMLButtonElement>) => { e.preventDefault(); if (voiceListening) stopVoiceListening(); },
+                              onPointerCancel: () => { if (voiceListening) stopVoiceListening(); },
+                            } : { onClick: toggleVoiceListening })}
+                            aria-label={voiceListening ? "Stop recording" : "Start recording"}
+                            style={{
+                              width: "88px", height: "88px", borderRadius: "50%",
+                              background: voiceListening ? "rgba(245,200,74,0.15)" : (isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.07)"),
+                              border: `2px solid ${voiceListening ? "#f5c84a" : (isDark ? "rgba(255,255,255,0.15)" : "rgba(26,14,0,0.18)")}`,
+                              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                              transition: "all 0.2s",
+                              boxShadow: voiceListening ? "0 0 0 12px rgba(245,200,74,0.08), 0 0 0 24px rgba(245,200,74,0.04)" : "none",
+                              userSelect: "none", WebkitUserSelect: "none",
+                            }}
+                          >
+                            <svg width="28" height="24" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+                              {[{ x: 0, h: 4, y: 5 }, { x: 3, h: 8, y: 3 }, { x: 6, h: 14, y: 0 }, { x: 9, h: 8, y: 3 }, { x: 12, h: 4, y: 5 }].map((bar, i) => (
+                                <rect key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
+                                  fill={voiceListening ? "#f5c84a" : (isDark ? "#666" : "rgba(26,14,0,0.45)")}
+                                  style={voiceListening ? { animation: `chat-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
+                                />
+                              ))}
+                            </svg>
+                          </button>
+                          {/* Switch to text input */}
+                          <button
+                            type="button"
+                            onClick={() => { stopVoiceListening(); setVoiceTextInput(""); setVoiceFinalTranscript(null); setVoiceLiveTranscript(""); setVoicePhase("text_input"); }}
+                            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.2)" : "rgba(26,14,0,0.28)", transition: "color 0.15s", padding: 0 }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = isDark ? "rgba(248,248,246,0.5)" : "rgba(26,14,0,0.6)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = isDark ? "rgba(248,248,246,0.2)" : "rgba(26,14,0,0.28)"; }}
+                          >
+                            Type it out instead
+                          </button>
+                          {voiceError && <p style={{ color: "#ff6b6b", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", margin: 0, textAlign: "center" }}>{voiceError}</p>}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Captured transcript — persists as user bubble after processing starts */}
+                    {voiceFinalTranscript && (
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <div style={USER_B}>{voiceFinalTranscript}</div>
+                      </div>
+                    )}
+
+                    {/* Processing state — inline Cass message + typing dots */}
+                    {voicePhase === "processing" && !hasProposals && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px", animation: "cassBoardOptionIn 0.3s ease forwards" }}>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0 }}>
+                          Generating your sticky notes…
+                        </p>
+                        <div style={{ display: "flex", gap: "5px", alignItems: "center", paddingLeft: "16px" }}>
+                          {[0, 1, 2].map((d) => (
+                            <span key={d} style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b", display: "block", animation: `cassBoardCaretBlink 1.2s ease-in-out ${d * 0.15}s infinite` }} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Proposal cards — inline in voice flow */}
+                    {hasProposals && !savedOk && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px", animation: "cassBoardOptionIn 0.3s ease forwards" }}>
+                        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.2em", color: textMuted, textTransform: "uppercase", margin: 0 }}>
+                          {reviewTasks.length} card{reviewTasks.length !== 1 ? "s" : ""} captured — review &amp; adjust
+                        </p>
+                        {reviewTasks.map((task, i) => (
+                          <ProposalCard
+                            key={task.id}
+                            task={task}
+                            columns={columns}
+                            onRemove={() => setReviewTasks((prev) => prev.filter((_, idx) => idx !== i))}
+                            onColumnChange={(col) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, suggestedColumn: col } : t))}
+                            onTitleChange={(title) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, title } : t))}
+                            onDescriptionChange={(description) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, description } : t))}
+                            onUrgentChange={(isUrgent) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, isUrgent } : t))}
+                            onSizeChange={(size) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, size } : t))}
+                            onDueDateChange={(dueDate) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, dueDate } : t))}
+                            onAssigneeChange={(assigneeName) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, assigneeName } : t))}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Success state — inline in voice flow */}
+                    {savedOk && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "16px", animation: "cassBoardOptionIn 0.3s ease forwards" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", background: isDark ? "rgba(110,231,183,0.06)" : "rgba(110,231,183,0.10)", border: "1px solid rgba(110,231,183,0.22)", borderRadius: "14px" }}>
+                          <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "rgba(110,231,183,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <Check size={13} style={{ color: isDark ? "#6ee7b7" : "#059669" }} />
+                          </div>
+                          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#a7f3d0" : "#065f46", margin: 0 }}>
+                            {reviewTasks.length} task{reviewTasks.length !== 1 ? "s" : ""} added to the board.
+                          </p>
+                        </div>
+                        {/* Braindump action buttons */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSavedOk(false);
+                              setProposedTasks([]);
+                              setReviewTasks([]);
+                              setBraindumpTranscript("");
+                              setVoicePhase("column_select");
+                              setVoiceColumn("");
+                              setVoiceLiveTranscript("");
+                              setVoiceFinalTranscript(null);
+                              setVoiceTextInput("");
+                              setVoiceListening(false);
+                              setVoiceError(null);
+                              setMessages([]);
+                            }}
+                            style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.45)", borderRadius: "12px", padding: "13px 20px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(200,168,107,0.85)", cursor: "pointer", transition: "background 0.15s, border-color 0.15s" }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.08)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.65)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; }}
+                          >
+                            Record another voice memo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={onClose}
+                            style={{ background: "linear-gradient(135deg, #c8a86b, #a8864e)", border: "none", borderRadius: "12px", padding: "13px 20px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1a0e00", cursor: "pointer" }}
+                          >
+                            That's it for now
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
@@ -1756,7 +2246,7 @@ export function CassBoardDrawer({
                         <p key={j} style={{
                           fontFamily: "'Lora', Georgia, serif",
                           fontSize: "15px", lineHeight: "1.65",
-                          color: "#f8f8f6",
+                          color: textPrimary,
                           margin: j > 0 ? "10px 0 0" : 0,
                         }}>
                           {para}
@@ -1770,7 +2260,7 @@ export function CassBoardDrawer({
                   )
                 ))}
 
-                {isPending && (
+                {isPending && voicePhase !== "processing" && !isBrainDump && !(isChronicleMode && chronicleMethod === "voice") && (
                   <div style={{ display: "flex", gap: "5px", alignItems: "center", paddingLeft: "2px" }}>
                     {[0,1,2].map((d) => (
                       <span key={d} style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b", display: "block", animation: `cassBoardCaretBlink 1.2s ease-in-out ${d * 0.15}s infinite` }} />
@@ -1778,8 +2268,8 @@ export function CassBoardDrawer({
                   </div>
                 )}
 
-                {/* Proposal cards */}
-                {hasProposals && !savedOk && (
+                {/* Proposal cards — for non-voice flows only (voice/braindump handles its own) */}
+                {hasProposals && !savedOk && !isBrainDump && !(isChronicleMode && chronicleMethod === "voice") && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
                     <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.2em", color: "rgba(248,248,246,0.3)", textTransform: "uppercase", margin: 0 }}>
                       {reviewTasks.length} card{reviewTasks.length !== 1 ? "s" : ""} captured — review &amp; adjust
@@ -1793,7 +2283,8 @@ export function CassBoardDrawer({
                         onColumnChange={(col) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, suggestedColumn: col } : t))}
                         onTitleChange={(title) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, title } : t))}
                         onDescriptionChange={(description) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, description } : t))}
-                        onPriorityChange={(priority) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, priority } : t))}
+                        onUrgentChange={(isUrgent) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, isUrgent } : t))}
+                        onSizeChange={(size) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, size } : t))}
                         onDueDateChange={(dueDate) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, dueDate } : t))}
                         onAssigneeChange={(assigneeName) => setReviewTasks((prev) => prev.map((t, idx) => idx === i ? { ...t, assigneeName } : t))}
                       />
@@ -1801,25 +2292,28 @@ export function CassBoardDrawer({
                   </div>
                 )}
 
-                {/* Success + template offer */}
-                {savedOk && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px", background: "rgba(110,231,183,0.06)", border: "1px solid rgba(110,231,183,0.2)", borderRadius: "14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(110,231,183,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <Check size={14} style={{ color: "#6ee7b7" }} />
+                {/* Success + template offer — for non-voice flows only (voice/braindump handles its own) */}
+                {savedOk && !isBrainDump && !(isChronicleMode && chronicleMethod === "voice") && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {/* Success confirmation */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", background: isDark ? "rgba(110,231,183,0.06)" : "rgba(110,231,183,0.10)", border: "1px solid rgba(110,231,183,0.22)", borderRadius: "14px" }}>
+                      <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "rgba(110,231,183,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Check size={13} style={{ color: isDark ? "#6ee7b7" : "#059669" }} />
                       </div>
-                      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#d4cec4", margin: 0 }}>
+                      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#a7f3d0" : "#065f46", margin: 0 }}>
                         {isBreakupMode
                           ? `Broken into ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""}. Original card removed.`
                           : `${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} added to the board.`}
                       </p>
                     </div>
+
+                    {/* Template offer */}
                     {suggestSaveAsTemplate && templateDraft?.name && !templateSaved && (
-                      <div style={{ borderTop: "1px solid rgba(200,168,107,0.1)", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                           <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginTop: "6px" }} />
                           <div>
-                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "#f8f8f6", margin: "0 0 4px", lineHeight: "1.6" }}>
+                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: textPrimary, margin: "0 0 4px", lineHeight: "1.6" }}>
                               This looks like something you&apos;d run again. Want me to save it as a workflow?
                             </p>
                             <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "rgba(200,168,107,0.5)", margin: 0 }}>
@@ -1838,8 +2332,179 @@ export function CassBoardDrawer({
                       </div>
                     )}
                     {templateSaved && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#6ee7b7", margin: 0, letterSpacing: "0.5px" }}>✓ Workflow saved — Cass will suggest it next time.</p>}
-                    <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Done</TapeButton>
+
+                    {/* Braindump-specific actions */}
+                    {isBrainDump && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBraindumpAddingMore(true);
+                            setVoicePhase("column_select");
+                            setVoiceColumn("");
+                            setVoiceListening(false);
+                            setVoiceError(null);
+                            setVoiceLiveTranscript("");
+                            setVoiceFinalTranscript(null);
+                            setProposedTasks([]);
+                            setReviewTasks([]);
+                            setMessages([]);
+                            setSavedOk(false);
+                          }}
+                          style={{ width: "100%", padding: "13px 20px", borderRadius: "28px", border: "1.5px solid #c8a86b", background: "transparent", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "14px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#c8a86b", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.1)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                        >
+                          Record another voice memo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={onClose}
+                          style={{ width: "100%", padding: "13px 20px", borderRadius: "28px", border: "none", background: "#c8a86b", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "14px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1a0e00", cursor: "pointer", transition: "background 0.15s" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "#b8945a"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = "#c8a86b"; }}
+                        >
+                          That&apos;s it for now
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Non-braindump close button */}
+                    {!isBrainDump && (
+                      <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Done</TapeButton>
+                    )}
                   </div>
+                )}
+
+                {/* ── Move to chapter inline flow ── */}
+                {isMoveMode && (
+                  <>
+                    {/* Phase: select — task list */}
+                    {movePhase === "select" && (
+                      <>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0 }}>
+                          {movableTasks.length === 0
+                            ? "Everything on the board is either done or there's nothing here to move."
+                            : "Which tasks aren't happening this chapter?"}
+                        </p>
+                        {movableTasks.length > 0 && (
+                          <>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2px" }}>
+                              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: textMuted, margin: 0 }}>
+                                {moveSelectedIds.size} selected
+                              </p>
+                              <TapeButton
+                                type="button"
+                                onClick={moveSelectedIds.size === movableTasks.length ? () => setMoveSelectedIds(new Set()) : () => setMoveSelectedIds(new Set(movableTasks.map(t => t.id)))}
+                                variant="ghost"
+                                size="sm"
+                              >
+                                {moveSelectedIds.size === movableTasks.length ? "Deselect all" : "Select all"}
+                              </TapeButton>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                              {movableTasks.map((task) => {
+                                const checked = moveSelectedIds.has(task.id);
+                                const borderIdle = isDark ? "rgba(255,255,255,0.08)" : "rgba(26,14,0,0.09)";
+                                const bgIdle = isDark ? "rgba(255,255,255,0.02)" : "rgba(26,14,0,0.02)";
+                                const borderHover = isDark ? "rgba(255,255,255,0.14)" : "rgba(26,14,0,0.15)";
+                                const bgHover = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.04)";
+                                return (
+                                  <button
+                                    key={task.id}
+                                    type="button"
+                                    onClick={() => setMoveSelectedIds((prev) => { const next = new Set(prev); if (next.has(task.id)) next.delete(task.id); else next.add(task.id); return next; })}
+                                    style={{ display: "flex", alignItems: "flex-start", gap: "12px", background: checked ? "rgba(200,168,107,0.07)" : bgIdle, border: `1px solid ${checked ? "rgba(200,168,107,0.35)" : borderIdle}`, borderRadius: "10px", padding: "12px 14px", cursor: "pointer", textAlign: "left", width: "100%", transition: "background 0.15s, border-color 0.15s" }}
+                                    onMouseEnter={(e) => { if (!checked) { e.currentTarget.style.background = bgHover; e.currentTarget.style.borderColor = borderHover; } }}
+                                    onMouseLeave={(e) => { if (!checked) { e.currentTarget.style.background = bgIdle; e.currentTarget.style.borderColor = borderIdle; } }}
+                                  >
+                                    <div style={{ width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, marginTop: "2px", border: `1.5px solid ${checked ? "#c8a86b" : "rgba(200,168,107,0.3)"}`, background: checked ? "rgba(200,168,107,0.18)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
+                                      {checked && <Check size={10} style={{ color: "#c8a86b" }} />}
+                                    </div>
+                                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.5", color: checked ? textPrimary : textMuted, margin: 0, flex: 1, transition: "color 0.15s" }}>
+                                      {task.title}
+                                    </p>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </>
+                    )}
+
+                    {/* Phase: destination — user bubble + chapter options */}
+                    {movePhase === "destination" && (
+                      <>
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                          <div style={USER_B}>Move {moveSelectedIds.size} task{moveSelectedIds.size !== 1 ? "s" : ""}</div>
+                        </div>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0 }}>
+                          {moveSelectedIds.size === 1 ? "Where should this task go?" : `Where should these ${moveSelectedIds.size} tasks go?`}
+                        </p>
+                        {moveAvailableChapters.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            {moveAvailableChapters.map((chapter, i) => (
+                              <button
+                                key={chapter.id}
+                                type="button"
+                                disabled={moveIsPending}
+                                onClick={() => handleMoveToChapter(chapter.id)}
+                                style={{ background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.02)", border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: moveIsPending ? "not-allowed" : "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${i * 80}ms`, opacity: 0, transition: "background 0.15s, border-color 0.15s" }}
+                                onMouseEnter={(e) => { if (!moveIsPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; } }}
+                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.02)"; }}
+                              >
+                                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: textPrimary, margin: 0 }}>{chapter.name}</p>
+                                {moveIsPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textMuted, margin: 0 }}>
+                              No future chapters yet. I can create the next one for you.
+                            </p>
+                            <button
+                              type="button"
+                              disabled={moveIsPending}
+                              onClick={handleMoveCreateNextChapter}
+                              style={{ background: "rgba(200,168,107,0.07)", border: "1px dashed rgba(200,168,107,0.35)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: moveIsPending ? "not-allowed" : "pointer", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", opacity: 0, transition: "background 0.15s, border-color 0.15s" }}
+                              onMouseEnter={(e) => { if (!moveIsPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.6)"; e.currentTarget.style.background = "rgba(200,168,107,0.12)"; } }}
+                              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
+                            >
+                              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: "rgba(200,168,107,0.85)", margin: 0 }}>
+                                Create Chapter {allChaptersCount + 1} and move there
+                              </p>
+                              {moveIsPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
+                            </button>
+                          </div>
+                        )}
+                        <div style={{ paddingTop: "4px", borderTop: `1px solid ${dividerColor}` }}>
+                          <TapeButton type="button" disabled={moveIsPending} onClick={handleMoveDelete} variant="danger" size="sm">
+                            <Trash2 size={12} />
+                            Delete {moveSelectedIds.size === 1 ? "this task" : `these ${moveSelectedIds.size} tasks`} instead
+                          </TapeButton>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Phase: done — success card */}
+                    {movePhase === "done" && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px", animation: "cassBoardOptionIn 0.3s ease forwards" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", background: isDark ? "rgba(110,231,183,0.06)" : "rgba(110,231,183,0.10)", border: "1px solid rgba(110,231,183,0.22)", borderRadius: "14px" }}>
+                          <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "rgba(110,231,183,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <Check size={13} style={{ color: isDark ? "#6ee7b7" : "#059669" }} />
+                          </div>
+                          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#a7f3d0" : "#065f46", margin: 0 }}>
+                            Done. Those tasks are out of your way.
+                          </p>
+                        </div>
+                        <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Close</TapeButton>
+                      </div>
+                    )}
+
+                    {moveError && <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "#f87171", margin: 0 }}>{moveError}</p>}
+                  </>
                 )}
 
                 {chatError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{chatError}</p>}
@@ -2227,39 +2892,50 @@ export function CassBoardDrawer({
           </div>
         )}
 
-        {/* ── Chat mode — specialty sub-modes that own the full content area ── */}
-        {mode === "chat" && (isEndChapterMode || isMoveMode || (isBrainDump && (!hasProposals || braindumpAddingMore) && !savedOk)) && (
-          isEndChapterMode ? (
-            <EndChapterView
-              projectId={project.id}
-              boardId={board.id}
-              tasks={tasks}
-              columns={columns}
-              onConfirm={(nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); setMode("retro"); }}
-              onClose={onClose}
-            />
-          ) : isMoveMode ? (
-            <MoveToChapterView
-              movableTasks={movableTasks}
-              futureChapters={futureChapters}
-              allChaptersCount={allChaptersCount}
-              projectId={project.id}
-              onSuccess={onTasksAdded}
-              onClose={onClose}
-            />
-          ) : (
-            <VoiceMemoFlow
-              columns={columns}
-              projectId={project.id}
-              onCardsReady={handleVoiceCardsReady}
-            />
-          )
+        {/* ── Chat mode — end chapter owns the full content area ── */}
+        {mode === "chat" && isEndChapterMode && (
+          <EndChapterView
+            projectId={project.id}
+            boardId={board.id}
+            tasks={tasks}
+            columns={columns}
+            onConfirm={(nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); setMode("retro"); }}
+            onClose={onClose}
+          />
         )}
 
-        {/* Input bar — text tasks / breakup mode, not when saved */}
-        {mode === "chat" && !isBrainDump && !isMoveMode && !isEndChapterMode && !savedOk && (
+        {/* Move tasks footer — sticky "Move X tasks →" button */}
+        {mode === "chat" && isMoveMode && movePhase === "select" && movableTasks.length > 0 && (
+          <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex" }}>
+            <TapeButton
+              type="button"
+              disabled={moveSelectedIds.size === 0}
+              onClick={() => setMovePhase("destination")}
+              variant="primary"
+              className="w-full"
+            >
+              <ArrowRight size={14} />
+              {moveSelectedIds.size === 0 ? "Select tasks to move" : `Move ${moveSelectedIds.size} task${moveSelectedIds.size !== 1 ? "s" : ""} →`}
+            </TapeButton>
+          </div>
+        )}
+
+        {/* Input bar — text tasks / breakup mode / voice text input, not when saved */}
+        {mode === "chat" && !isMoveMode && !isEndChapterMode && !savedOk && (!(isChronicleMode && chronicleMethod !== "talk") || voicePhase === "text_input") && (!isBrainDump || voicePhase === "text_input") && (
           <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            {hasProposals && reviewTasks.length > 0 && (
+            {/* Voice text mode: back-to-mic link */}
+            {voicePhase === "text_input" && (
+              <button
+                type="button"
+                onClick={() => { setVoiceTextInput(""); setVoiceFinalTranscript(null); setVoiceLiveTranscript(""); setVoicePhase("voice"); }}
+                style={{ background: "none", border: "none", padding: 0, fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(200,168,107,0.6)", cursor: "pointer", textAlign: "left", width: "fit-content" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(200,168,107,0.9)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(200,168,107,0.6)"; }}
+              >
+                ← Switch to voice
+              </button>
+            )}
+            {hasProposals && reviewTasks.length > 0 && voicePhase !== "text_input" && (
               <button
                 type="button" onClick={handleAddTasks} disabled={isSaving}
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px", background: isSaving ? "rgba(245,200,74,0.6)" : "#f5c84a", border: "none", borderRadius: "28px", padding: "13px 28px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "15px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1a0e00", cursor: isSaving ? "not-allowed" : "pointer", transition: "background 0.15s", width: "100%" }}
@@ -2273,24 +2949,42 @@ export function CassBoardDrawer({
                     : `✓ Add ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} to board`}
               </button>
             )}
-            {aiStatus === "chatting" && (
+            {(aiStatus === "chatting" || voicePhase === "text_input") && (
               <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
                 <textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                  placeholder="What needs to get done…"
+                  autoFocus={voicePhase === "text_input"}
+                  value={voicePhase === "text_input" ? voiceTextInput : draft}
+                  onChange={(e) => voicePhase === "text_input" ? setVoiceTextInput(e.target.value) : setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (voicePhase === "text_input") {
+                        if (voiceTextInput.trim()) processVoiceTranscript(voiceTextInput.trim(), voiceColumn);
+                      } else {
+                        sendMessage();
+                      }
+                    }
+                  }}
+                  placeholder={voicePhase === "text_input" ? "Describe the tasks or ideas you want to add…" : "What needs to get done…"}
                   rows={2}
                   disabled={isPending || isSaving}
-                  style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: 1.6, color: "#f8f8f6", outline: "none", boxSizing: "border-box" }}
+                  style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: 1.6, color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", outline: "none", boxSizing: "border-box", colorScheme: isDark ? "dark" : "light" }}
                 />
                 <button
-                  type="button" onClick={sendMessage} disabled={!draft.trim() || isPending || isSaving}
-                  style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%", border: "none", cursor: draft.trim() && !isPending ? "pointer" : "not-allowed", background: draft.trim() && !isPending && !isSaving ? "linear-gradient(135deg, #c8a86b, #a8864e)" : "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
+                  type="button"
+                  onClick={() => {
+                    if (voicePhase === "text_input") {
+                      if (voiceTextInput.trim()) processVoiceTranscript(voiceTextInput.trim(), voiceColumn);
+                    } else {
+                      sendMessage();
+                    }
+                  }}
+                  disabled={voicePhase === "text_input" ? !voiceTextInput.trim() : (!draft.trim() || isPending || isSaving)}
+                  style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%", border: "none", cursor: (voicePhase === "text_input" ? voiceTextInput.trim() : (draft.trim() && !isPending)) ? "pointer" : "not-allowed", background: (voicePhase === "text_input" ? voiceTextInput.trim() : (draft.trim() && !isPending && !isSaving)) ? "linear-gradient(135deg, #c8a86b, #a8864e)" : (isDark ? "rgba(255,255,255,0.08)" : "rgba(26,14,0,0.07)"), display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
                 >
-                  {isPending
+                  {isPending && voicePhase !== "text_input"
                     ? <LoaderCircle size={16} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite" }} />
-                    : <ArrowUp size={16} style={{ color: draft.trim() && !isSaving ? "#0a0a0a" : "#555" }} />}
+                    : <ArrowUp size={16} style={{ color: (voicePhase === "text_input" ? voiceTextInput.trim() : (draft.trim() && !isSaving)) ? "#0a0a0a" : (isDark ? "#555" : "rgba(26,14,0,0.25)") }} />}
                 </button>
               </div>
             )}
@@ -2307,15 +3001,6 @@ export function CassBoardDrawer({
               onMouseLeave={(e) => { if (!isSaving && reviewTasks.length > 0) e.currentTarget.style.background = "#f5c84a"; }}
             >
               {isSaving ? <><LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} />Adding…</> : `✓ Add ${reviewTasks.length} card${reviewTasks.length !== 1 ? "s" : ""} to board`}
-            </button>
-            <button
-              type="button"
-              onClick={() => setBraindumpAddingMore(true)}
-              style={{ background: "transparent", border: "1px solid rgba(200,168,107,0.2)", borderRadius: "8px", padding: "10px 16px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "12px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(200,168,107,0.55)", cursor: "pointer", transition: "border-color 0.15s, color 0.15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.color = "rgba(200,168,107,0.85)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.2)"; e.currentTarget.style.color = "rgba(200,168,107,0.55)"; }}
-            >
-              + Add another voice memo
             </button>
           </div>
         )}
