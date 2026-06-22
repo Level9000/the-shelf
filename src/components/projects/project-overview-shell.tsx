@@ -13,8 +13,6 @@ import { CassRecorder } from "@/components/cass/CassRecorder";
 import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
 import { ShareFab } from "@/components/ui/ShareFab";
-import { PressFab } from "@/components/ui/PressFab";
-import { MobileFab } from "@/components/ui/MobileFab";
 import { renderParagraphs } from "@/lib/render-paragraphs";
 import { useTheme } from "@/lib/theme-context";
 import { TapeButton } from "@/components/ui/tape-button";
@@ -771,8 +769,28 @@ function CassChronicleDrawer({
 
 // ── Chapter entry ─────────────────────────────────────────────────────────────
 
+const CHAPTER_TYPE_LABEL: Record<string, string> = {
+  climb: "Climb",
+  win: "Win",
+  turn: "Turn",
+  fog: "Fog",
+  reframe: "Reframe",
+};
+
+function chapterTypeColor(type: string | null, isDark: boolean): string {
+  switch (type) {
+    case "win": return isDark ? "#c8a86b" : "#9c7a2e";
+    case "fog": return isDark ? "rgba(232,224,208,0.4)" : "rgba(22,19,15,0.4)";
+    case "turn": return isDark ? "#d98c5f" : "#a8552a";
+    case "reframe": return isDark ? "#8fb3c8" : "#3d6e85";
+    case "climb":
+    default: return isDark ? "rgba(200,168,107,0.6)" : "rgba(0,0,0,0.45)";
+  }
+}
+
 function ChapterEntry({
   chapter,
+  previousChapter,
   index,
   projectId,
   isLast,
@@ -780,6 +798,7 @@ function ChapterEntry({
   chapterTasks = [],
 }: {
   chapter: Chapter;
+  previousChapter: Chapter | null;
   index: number;
   projectId: string;
   isLast: boolean;
@@ -789,6 +808,7 @@ function ChapterEntry({
   const status = chapterStatus(chapter);
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const [threadsOpen, setThreadsOpen] = useState(false);
 
   // Theme-aware colors
   const bodyColor       = isDark ? "rgba(232,224,208,0.8)"   : "rgba(22,19,15,0.78)";
@@ -839,15 +859,34 @@ function ChapterEntry({
 
   return (
     <div id={`chapter-${chapter.id}`}>
-      {/* Gold rule divider between chapters */}
+      {/* Divider between chapters — carries the bridge sentence when present */}
       {index > 0 && (
-        <div
-          style={{
-            height: "1px",
-            background: dividerGrad,
-            margin: "48px 0",
-          }}
-        />
+        previousChapter?.bridgeSentence ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", margin: "48px 0" }}>
+            <div style={{ flex: 1, height: "1px", background: dividerGrad }} />
+            <p style={{
+              fontFamily: "'Literata', Georgia, serif",
+              fontStyle: "italic",
+              fontSize: "14px",
+              color: isDark ? "rgba(200,168,107,0.55)" : "rgba(0,0,0,0.45)",
+              margin: 0,
+              textAlign: "center",
+              flexShrink: 0,
+              maxWidth: "60%",
+            }}>
+              {previousChapter.bridgeSentence}
+            </p>
+            <div style={{ flex: 1, height: "1px", background: dividerGrad }} />
+          </div>
+        ) : (
+          <div
+            style={{
+              height: "1px",
+              background: dividerGrad,
+              margin: "48px 0",
+            }}
+          />
+        )
       )}
 
       <div style={{ transition: "opacity 0.2s" }}>
@@ -864,6 +903,16 @@ function ChapterEntry({
           }}>
             Chapter {index + 1}
           </p>
+          {chapter.chapterType && (
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "10px", fontWeight: 700,
+              letterSpacing: "0.12em", textTransform: "uppercase",
+              color: chapterTypeColor(chapter.chapterType, isDark),
+            }}>
+              {CHAPTER_TYPE_LABEL[chapter.chapterType] ?? chapter.chapterType}
+            </span>
+          )}
           {status === "working_on_it" && (
             <span style={{
               fontFamily: "'Barlow Condensed', sans-serif",
@@ -878,7 +927,7 @@ function ChapterEntry({
             </span>
           )}
         </div>
-        {/* Chapter name */}
+        {/* Chapter headline (falls back to working title if not yet generated) */}
         <h2 style={{
           fontFamily: "'Literata', Georgia, serif",
           fontSize: "clamp(22px, 4vw, 30px)",
@@ -888,8 +937,20 @@ function ChapterEntry({
           margin: 0,
           color: isDark ? "rgba(232,224,208,0.92)" : "rgba(22,19,15,0.88)",
         }}>
-          {chapter.name}
+          {chapter.chapterHeadline || chapter.name}
         </h2>
+        {chapter.chapterSubheadline && (
+          <p style={{
+            fontFamily: "'Literata', Georgia, serif",
+            fontStyle: "italic",
+            fontSize: "15px",
+            lineHeight: 1.4,
+            margin: "4px 0 0",
+            color: isDark ? "rgba(232,224,208,0.55)" : "rgba(22,19,15,0.5)",
+          }}>
+            {chapter.chapterSubheadline}
+          </p>
+        )}
 
         {/* Completed: pull quote */}
         {status === "completed" && chapter.openingLine && (
@@ -963,20 +1024,38 @@ function ChapterEntry({
         )}
 
 
-        {/* ── Chat history threads ── */}
+        {/* ── Chat history threads — collapsed behind a single disclosure ── */}
         {threads.length > 0 && (
-          <div style={{ marginTop: "36px" }}>
-            <p style={{
-              fontFamily: "'Literata', Georgia, serif",
-              fontSize: "13px",
-              fontWeight: 700,
-              letterSpacing: "-0.01em",
-              color: isDark ? "rgba(232,224,208,0.5)" : "rgba(22,19,15,0.45)",
-              margin: "0 0 10px",
-            }}>
-              Conversations
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ marginTop: "28px" }}>
+            <button
+              type="button"
+              onClick={() => setThreadsOpen((v) => !v)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                fontFamily: "'Literata', Georgia, serif",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: isDark ? "rgba(232,224,208,0.45)" : "rgba(22,19,15,0.4)",
+              }}
+            >
+              <ChevronRight
+                size={11}
+                style={{
+                  color: chevronColor,
+                  transform: threadsOpen ? "rotate(90deg)" : "none",
+                  transition: "transform 0.15s",
+                }}
+              />
+              {threadsOpen ? "Hide conversations" : `View conversations (${threads.length})`}
+            </button>
+            {threadsOpen && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }}>
               {threads.map((t) => (
                 <button
                   key={t.id}
@@ -1027,6 +1106,7 @@ function ChapterEntry({
                 </button>
               ))}
             </div>
+            )}
           </div>
         )}
       </div>
@@ -1093,8 +1173,6 @@ export function ProjectOverviewShell({
     return !localStorage.getItem(TY_INTRO_KEY);
   });
 
-  // Show PressFab once at least one chapter has been fully completed (retro done)
-  const hasCompletedChapter = project.chapters.some((ch) => ch.retroCompletedAt);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyThread, setHistoryThread] = useState<ChatThread | null>(null);
 
@@ -1393,6 +1471,7 @@ export function ProjectOverviewShell({
                     <ChapterEntry
                       key={chapter.id}
                       chapter={chapter}
+                      previousChapter={i > 0 ? project.chapters[i - 1] : null}
                       index={i}
                       projectId={project.id}
                       isLast={i === project.chapters.length - 1}
@@ -1424,30 +1503,8 @@ export function ProjectOverviewShell({
           </div>
         )}
 
-        {/* ── FAB — Press (after first chapter completed) or Ty ── */}
-        {!refining && hasCompletedChapter && (
-          <>
-            {/* Mobile: plain + button */}
-            <div className="md:hidden">
-              <MobileFab onClick={() => {
-                if (needsPaywall) { setPaywallOpen(true); return; }
-                setCassDrawerOpen(true);
-              }} />
-            </div>
-            {/* Desktop: animated Press avatar */}
-            <div className="hidden md:block">
-              <PressFab
-                onClick={() => {
-                  if (needsPaywall) { setPaywallOpen(true); return; }
-                  setCassDrawerOpen(true);
-                }}
-                hoverText="Publish your story"
-                teaserText="We've captured a great story together. Want help sharing it?"
-              />
-            </div>
-          </>
-        )}
-        {!refining && !hasCompletedChapter && (
+        {/* ── FAB — share circle, styled like the board tab's plus circle ── */}
+        {!refining && (
           <ShareFab onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)} />
         )}
 

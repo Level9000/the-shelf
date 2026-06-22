@@ -92,6 +92,12 @@ function mapBoard(row: Record<string, unknown>): Board {
     position: Number(row.position ?? 1000),
     createdAt: String(row.created_at),
     confirmedThesis: (row.confirmed_thesis as string | null) ?? null,
+    chapterType: (row.chapter_type as import("@/lib/ai/schema").ChapterType | null) ?? null,
+    chapterHeadline: (row.chapter_headline as string | null) ?? null,
+    chapterSubheadline: (row.chapter_subheadline as string | null) ?? null,
+    bridgeSentence: (row.bridge_sentence as string | null) ?? null,
+    storyHealthFlag: (row.story_health_flag as "none" | "recentering_needed" | null) ?? null,
+    recenteringType: (row.recentering_type as string | null) ?? null,
   };
 }
 

@@ -120,6 +120,12 @@ export type Board = {
   createdAt: string;
   boardConversations: BoardConversationEntry[];
   confirmedThesis: string | null;
+  chapterType: import("@/lib/ai/schema").ChapterType | null;
+  chapterHeadline: string | null;
+  chapterSubheadline: string | null;
+  bridgeSentence: string | null;
+  storyHealthFlag: "none" | "recentering_needed" | null;
+  recenteringType: string | null;
 };
 
 export type Chapter = Board;
