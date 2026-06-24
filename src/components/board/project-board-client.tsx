@@ -18,7 +18,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Trash2 } from "lucide-react";
+import { Lock, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { BoardColumn, BoardSnapshot, ProposedTask, Task } from "@/types";
 import {
@@ -32,7 +32,6 @@ import { useTheme } from "@/lib/theme-context";
 import { Badge } from "@/components/ui/badge";
 import { TapeButton } from "@/components/ui/tape-button";
 import { Modal } from "@/components/ui/modal";
-import type { Chapter } from "@/types";
 import { BoardColumnView } from "@/components/board/board-column";
 import { CassBoardDrawer, CassBoardFab } from "@/components/board/cass-board-drawer";
 import { MobileFab } from "@/components/ui/MobileFab";
@@ -204,14 +203,62 @@ function DragCanvas({ active, columns, tasks }: { active: boolean; columns: Boar
   );
 }
 
+// Shown instead of the board when an earlier chapter in this project still
+// hasn't had its retro completed — keeps users from working two chapters at
+// once and losing track of which one they're actually "in."
+function LockedChapterNotice({
+  activeChapterName,
+  activeChapterUrl,
+  hasTasks,
+  theme,
+}: {
+  activeChapterName: string | null;
+  activeChapterUrl: string | null;
+  hasTasks: boolean;
+  theme: string;
+}) {
+  const router = useRouter();
+  const isDark = theme === "dark";
+
+  const finishLine = activeChapterName
+    ? `you need to finish ${activeChapterName} before you can work on this.`
+    : "you need to finish your previous chapter before you can work on this.";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "64px 24px", gap: "16px" }}>
+      <div style={{
+        width: "48px", height: "48px", borderRadius: "50%",
+        background: isDark ? "rgba(200,168,107,0.08)" : "rgba(200,168,107,0.12)",
+        border: `1px solid ${isDark ? "rgba(200,168,107,0.25)" : "rgba(200,168,107,0.3)"}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <Lock size={18} style={{ color: "#c8a86b" }} />
+      </div>
+      <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "18px", fontWeight: 600, color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0, maxWidth: "360px" }}>
+        This chapter isn&apos;t open yet
+      </p>
+      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.6", color: isDark ? "rgba(248,248,246,0.5)" : "rgba(26,14,0,0.5)", margin: 0, maxWidth: "360px" }}>
+        {hasTasks
+          ? `We've moved some tasks from a previous chapter into this one, but ${finishLine}`
+          : `We'll bring this chapter online once you wrap up — ${finishLine}`}
+      </p>
+      {activeChapterUrl && (
+        <TapeButton variant="primary" size="sm" onClick={() => router.push(activeChapterUrl)}>
+          Go to {activeChapterName ?? "current chapter"}
+        </TapeButton>
+      )}
+    </div>
+  );
+}
+
 export function ProjectBoardClient({
   snapshot,
   chapterProjectId,
   chapterId,
   onEndChapterConfirmed,
   activeChapterUrl = null,
-  futureChapters = [],
-  allChaptersCount = 0,
+  isLocked = false,
+  activeChapterName = null,
   onNavigateToStory,
   initialDrawerMode,
   chapterNumber = 1,
@@ -225,8 +272,11 @@ export function ProjectBoardClient({
   chapterId: string;
   onEndChapterConfirmed?: (nextChapterId: string | null) => void;
   activeChapterUrl?: string | null;
-  futureChapters?: Chapter[];
-  allChaptersCount?: number;
+  /** True if an earlier chapter in this project still hasn't had its retro
+   *  completed — this chapter's board is read-only until that happens. */
+  isLocked?: boolean;
+  /** Name of the chapter that needs its recap finished, for the lock message. */
+  activeChapterName?: string | null;
   onNavigateToStory?: () => void;
   initialDrawerMode?: "retro";
   chapterNumber?: number;
@@ -596,6 +646,17 @@ export function ProjectBoardClient({
     bannerState.kind === "completed"       ? "260px" :
     undefined;
 
+  if (isLocked) {
+    return (
+      <LockedChapterNotice
+        activeChapterName={activeChapterName}
+        activeChapterUrl={activeChapterUrl}
+        hasTasks={tasks.length > 0}
+        theme={theme}
+      />
+    );
+  }
+
   return (
     <>
       <section className="flex flex-col">
@@ -910,8 +971,6 @@ export function ProjectBoardClient({
         columns={snapshot.columns}
         tasks={tasks}
         templates={snapshot.workflowTemplates}
-        futureChapters={futureChapters}
-        allChaptersCount={allChaptersCount}
         breakupTask={cassBreakupTaskId ? (tasks.find((t) => t.id === cassBreakupTaskId) ?? null) : null}
         completedChapterMode={cassCompletedMode}
         retroNudge={retroNudge}

@@ -955,7 +955,7 @@ export function CassOnboardingChat({
   type ChatMsg = { role: "user" | "assistant"; content: string };
   const WELCOME_MESSAGE = "Hi, I'm Cass. Authored By is a founder's story engine where we capture your journey chapter by chapter, so the story of what you built is never lost.";
   const OPENING_QUESTION = "Let's start by talking about the project or business you are building. How has that been going?";
-  const CONVO_MODE_NOTE = "I've got conversation mode enabled so we can talk out loud like a normal conversation. If you'd rather type, we can do that too.";
+  const CONVO_MODE_NOTE = "I've got conversation mode enabled so we can talk out loud like a normal conversation. If you'd rather type, exit conversation mode.";
   const initialMessages: ChatMsg[] = [{ role: "assistant", content: OPENING_QUESTION }];
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>(
     existingDraft ? [{ role: "assistant", content: OPENING_QUESTION }] : initialMessages
@@ -1163,6 +1163,19 @@ export function CassOnboardingChat({
     }
   }
 
+  // User opted out of the interview early — wrap up with whatever's been
+  // shared so far, no extra AI call needed.
+  function handleEarlySkip() {
+    if (chatDone || isChatPending) return;
+    setChatMessages((prev) => [...prev, { role: "assistant", content: EARLY_SKIP_MSG }]);
+    setLatestMsgTyped(false);
+    setInputRevealed(false);
+    setChatDone(true);
+    setAnimState("idle");
+    setShowContinue(true);
+  }
+
+  const EARLY_SKIP_MSG = "Sounds good — let's get this into your project board.";
   const FINAL_MSG = "We're writing a really great story here. I've taken some of the action items from our conversation and placed them into your project board. You can use the board to track your work, add new tasks, or chronicle things as you accomplish them. Let's check it out.";
 
   function handleContinue() {
@@ -1240,6 +1253,20 @@ export function CassOnboardingChat({
 
   // Index of the latest assistant message (for typewriter)
   const latestAssistantIndex = chatMessages.reduce((acc, m, i) => m.role === "assistant" ? i : acc, -1);
+
+  // Cass's reply often combines an acknowledgment paragraph with the next
+  // question as separate "\n\n"-delimited paragraphs. They must typewriter
+  // in sequence, not all at once — revealedParaCount tracks how many
+  // paragraphs of the latest message are visible/animating.
+  const [revealedParaCount, setRevealedParaCount] = useState(1);
+  const [prevLatestAssistantIndex, setPrevLatestAssistantIndex] = useState(latestAssistantIndex);
+  if (latestAssistantIndex !== prevLatestAssistantIndex) {
+    setPrevLatestAssistantIndex(latestAssistantIndex);
+    setRevealedParaCount(1);
+  }
+  // Gates the "conversation mode" hint below the opening question so it
+  // only starts typing after that question has finished.
+  const [hintReady, setHintReady] = useState(false);
 
   // ── Main layout ─────────────────────────────────────────────────────────────
   return (
@@ -1513,32 +1540,46 @@ export function CassOnboardingChat({
                       {(() => {
                         const paras = msg.content.split("\n\n");
                         const isLatest = i === latestAssistantIndex;
-                        return paras.map((para, j) => (
-                          <p key={j} style={{
-                            fontFamily: "'Lora', Georgia, serif",
-                            fontSize: "15px", lineHeight: "1.65",
-                            color: "#f8f8f6", margin: j > 0 ? "10px 0 0" : 0,
-                          }}>
-                            {isLatest ? (
-                              <TypewriterText
-                                text={para}
-                                onComplete={j === paras.length - 1 ? () => {
-                                  // i === 0: the convo mode note's onComplete handles setLatestMsgTyped
-                                  // all other messages: set it directly here
-                                  if (i !== 0) setLatestMsgTyped(true);
-                                  // Final message (after board save): reveal the "Let's check it out" chip
-                                  if (boardUrlRef.current && i === latestAssistantIndex) {
-                                    setShowBoardContinue(true);
-                                  }
-                                } : undefined}
-                              />
-                            ) : para}
-                          </p>
-                        ));
+                        // Historical messages: every paragraph is already fully typed.
+                        // Latest message: reveal paragraphs one at a time, in sequence.
+                        const visibleCount = isLatest ? Math.min(revealedParaCount, paras.length) : paras.length;
+                        return paras.slice(0, visibleCount).map((para, j) => {
+                          const isActivePara = isLatest && j === visibleCount - 1;
+                          const isFinalPara = j === paras.length - 1;
+                          return (
+                            <p key={j} style={{
+                              fontFamily: "'Lora', Georgia, serif",
+                              fontSize: "15px", lineHeight: "1.65",
+                              color: "#f8f8f6", margin: j > 0 ? "10px 0 0" : 0,
+                            }}>
+                              {isActivePara ? (
+                                <TypewriterText
+                                  text={para}
+                                  onComplete={() => {
+                                    if (!isFinalPara) {
+                                      // More paragraphs queued — reveal the next one.
+                                      setRevealedParaCount((c) => c + 1);
+                                      return;
+                                    }
+                                    // i === 0: the convo mode note's onComplete handles setLatestMsgTyped
+                                    // all other messages: set it directly here
+                                    if (i !== 0) setLatestMsgTyped(true);
+                                    if (i === 0) setHintReady(true);
+                                    // Final message (after board save): reveal the "Let's check it out" chip
+                                    if (boardUrlRef.current && i === latestAssistantIndex) {
+                                      setShowBoardContinue(true);
+                                    }
+                                  }}
+                                />
+                              ) : para}
+                            </p>
+                          );
+                        });
                       })()}
 
-                      {/* Conversation mode hint — only below the opening question (first assistant msg) */}
-                      {i === 0 && (
+                      {/* Conversation mode hint — only below the opening question (first assistant msg),
+                          and only once that question has finished typing. */}
+                      {i === 0 && (i !== latestAssistantIndex || hintReady) && (
                         <p style={{
                           fontFamily: "'Barlow Condensed', sans-serif",
                           fontSize: "12px", letterSpacing: "0.04em",
@@ -1628,6 +1669,29 @@ export function CassOnboardingChat({
               onRegisterOpenMic={(fn) => { openMicRef.current = fn; }}
               onExitVoiceMode={toggleVoiceMode}
             />
+          )}
+
+          {/* Early-exit link — quiet, always-available once they've answered at least once */}
+          {phase === "interview" && inputRevealed && !isChatPending && latestMsgTyped && !chatDone && userTurns >= 1 && (
+            <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 4px" }}>
+              <button
+                type="button"
+                onClick={handleEarlySkip}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "13px",
+                  color: "rgba(248,248,246,0.35)",
+                  textDecoration: "underline",
+                  textDecorationColor: "rgba(248,248,246,0.2)",
+                }}
+              >
+                I&apos;ve shared enough, build my board
+              </button>
+            </div>
           )}
         </div>
       )}

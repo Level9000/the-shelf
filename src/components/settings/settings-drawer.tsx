@@ -470,6 +470,102 @@ export function SettingsContent({
                 <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.28)", marginBottom: "6px" }}>Project</p>
                 <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>{currentProjectName ?? "—"}</p>
               </div>
+
+              {/* ── Danger zone — delete chapter / delete project ── */}
+              {hasDangerZone && (
+                <div style={{ marginLeft: "-16px", marginRight: "-16px" }}>
+                  <div style={{ padding: "20px 16px 8px" }}>
+                    <span style={{
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      color: "rgba(248,113,113,0.6)",
+                    }}>
+                      Danger Zone
+                    </span>
+                  </div>
+                  <div style={{ padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+                    {/* Delete chapter */}
+                    {currentChapterId && (
+                      <div>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                          Chapter
+                        </p>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
+                          <span style={{ color: strongColor, fontWeight: 600 }}>{currentChapterName ?? "Untitled chapter"}</span>
+                          {" "}— removes its board, columns, and all tasks permanently.
+                        </p>
+                        {confirmingDelete ? (
+                          <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
+                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 4px" }}>Delete this chapter?</p>
+                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "rgba(248,113,113,0.65)", margin: "0 0 12px" }}>This action cannot be undone.</p>
+                            {deleteError && (
+                              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteError}</p>
+                            )}
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+                              <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting} className="w-full justify-center">{isDeleting ? "Deleting…" : "Delete chapter"}</TapeButton>
+                              <TapeButton variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>Cancel</TapeButton>
+                            </div>
+                          </div>
+                        ) : (
+                          <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDelete(true)} className="w-full justify-center">Delete chapter</TapeButton>
+                        )}
+                      </div>
+                    )}
+
+
+                    {/* Delete project */}
+                    {currentProjectName && (
+                      <div>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                          Project
+                        </p>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
+                          <span style={{ color: strongColor, fontWeight: 600 }}>{currentProjectName}</span>
+                          {" "}— permanently deletes all chapters, boards, and tasks.
+                        </p>
+                        {confirmingDeleteProject ? (
+                          <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
+                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 2px" }}>Type the project name to confirm:</p>
+                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "rgba(248,113,113,0.7)", margin: "0 0 10px" }}>{currentProjectName}</p>
+                            <input
+                              type="text"
+                              value={deleteProjectInput}
+                              onChange={(e) => setDeleteProjectInput(e.target.value)}
+                              placeholder={currentProjectName}
+                              style={{
+                                width: "100%",
+                                background: inputBg,
+                                border: "1px solid rgba(248,113,113,0.22)",
+                                borderRadius: "8px",
+                                padding: "9px 12px",
+                                fontFamily: "'Lora', Georgia, serif",
+                                fontSize: "13px",
+                                color: inputColor,
+                                outline: "none",
+                                boxSizing: "border-box",
+                                marginBottom: "12px",
+                              }}
+                            />
+                            {deleteProjectError && (
+                              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteProjectError}</p>
+                            )}
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+                              <TapeButton variant="danger" size="sm" onClick={handleDeleteProject} disabled={isDeletingProject || deleteProjectInput !== currentProjectName} className="w-full justify-center">{isDeletingProject ? "Deleting…" : "Delete project"}</TapeButton>
+                              <TapeButton variant="ghost" size="sm" onClick={() => { setConfirmingDeleteProject(false); setDeleteProjectInput(""); setDeleteProjectError(null); }} disabled={isDeletingProject}>Cancel</TapeButton>
+                            </div>
+                          </div>
+                        ) : (
+                          <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDeleteProject(true)} className="w-full justify-center">Delete project</TapeButton>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "var(--muted)", margin: 0 }}>
@@ -634,102 +730,6 @@ export function SettingsContent({
           <SubscribePicker />
         )}
       </DrawerSection>
-
-      {/* ── Danger zone ── */}
-      {hasDangerZone && (
-        <div>
-          <div style={{ padding: "20px 16px 8px" }}>
-            <span style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: "13px",
-              fontWeight: 700,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "rgba(248,113,113,0.6)",
-            }}>
-              Danger Zone
-            </span>
-          </div>
-          <div style={{ padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "20px" }}>
-
-            {/* Delete chapter */}
-            {currentChapterId && (
-              <div>
-                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Chapter
-                </p>
-                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
-                  <span style={{ color: strongColor, fontWeight: 600 }}>{currentChapterName ?? "Untitled chapter"}</span>
-                  {" "}— removes its board, columns, and all tasks permanently.
-                </p>
-                {confirmingDelete ? (
-                  <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
-                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 4px" }}>Delete this chapter?</p>
-                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "rgba(248,113,113,0.65)", margin: "0 0 12px" }}>This action cannot be undone.</p>
-                    {deleteError && (
-                      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteError}</p>
-                    )}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
-                      <TapeButton variant="danger" size="sm" onClick={handleDeleteChapter} disabled={isDeleting} className="w-full justify-center">{isDeleting ? "Deleting…" : "Delete chapter"}</TapeButton>
-                      <TapeButton variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)} disabled={isDeleting}>Cancel</TapeButton>
-                    </div>
-                  </div>
-                ) : (
-                  <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDelete(true)} className="w-full justify-center">Delete chapter</TapeButton>
-                )}
-              </div>
-            )}
-
-
-            {/* Delete project */}
-            {currentProjectName && (
-              <div>
-                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Project
-                </p>
-                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
-                  <span style={{ color: strongColor, fontWeight: 600 }}>{currentProjectName}</span>
-                  {" "}— permanently deletes all chapters, boards, and tasks.
-                </p>
-                {confirmingDeleteProject ? (
-                  <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
-                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 2px" }}>Type the project name to confirm:</p>
-                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "rgba(248,113,113,0.7)", margin: "0 0 10px" }}>{currentProjectName}</p>
-                    <input
-                      type="text"
-                      value={deleteProjectInput}
-                      onChange={(e) => setDeleteProjectInput(e.target.value)}
-                      placeholder={currentProjectName}
-                      style={{
-                        width: "100%",
-                        background: inputBg,
-                        border: "1px solid rgba(248,113,113,0.22)",
-                        borderRadius: "8px",
-                        padding: "9px 12px",
-                        fontFamily: "'Lora', Georgia, serif",
-                        fontSize: "13px",
-                        color: inputColor,
-                        outline: "none",
-                        boxSizing: "border-box",
-                        marginBottom: "12px",
-                      }}
-                    />
-                    {deleteProjectError && (
-                      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: "0 0 10px" }}>{deleteProjectError}</p>
-                    )}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
-                      <TapeButton variant="danger" size="sm" onClick={handleDeleteProject} disabled={isDeletingProject || deleteProjectInput !== currentProjectName} className="w-full justify-center">{isDeletingProject ? "Deleting…" : "Delete project"}</TapeButton>
-                      <TapeButton variant="ghost" size="sm" onClick={() => { setConfirmingDeleteProject(false); setDeleteProjectInput(""); setDeleteProjectError(null); }} disabled={isDeletingProject}>Cancel</TapeButton>
-                    </div>
-                  </div>
-                ) : (
-                  <TapeButton variant="danger" size="sm" onClick={() => setConfirmingDeleteProject(true)} className="w-full justify-center">Delete project</TapeButton>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ── Delete account — always shown in danger zone ── */}
       <div>

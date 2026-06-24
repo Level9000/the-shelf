@@ -195,14 +195,12 @@ export function ProjectWorkspaceShell({
               ? `/projects/${currentProjectId}/chapters/${activeChapter.id}/board`
               : null;
           })()}
-          futureChapters={(() => {
-            if (!currentProject) return [];
-            const idx = currentProject.chapters.findIndex((c) => c.id === currentChapterId);
-            return currentProject.chapters
-              .slice(idx + 1)
-              .filter((c) => !c.retroCompletedAt);
+          isLocked={(() => {
+            if (snapshot.board.retroCompletedAt) return false;
+            const activeChapter = currentProject?.chapters.find((c) => !c.retroCompletedAt);
+            return Boolean(activeChapter && activeChapter.id !== currentChapterId);
           })()}
-          allChaptersCount={currentProject?.chapters.length ?? 0}
+          activeChapterName={currentProject?.chapters.find((c) => !c.retroCompletedAt)?.name ?? null}
           subscriptionStatus={subscriptionStatus}
         />
       </div>

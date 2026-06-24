@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { ArrowRight, ArrowUp, Check, CheckCircle, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
 import { TapeButton } from "@/components/ui/tape-button";
 import type { AICassBoardDialogue } from "@/lib/ai/schema";
-import type { Board, BoardColumn, BoardConversationEntry, Chapter, Priority, Project, ProposedTask, Task, WorkflowTemplate } from "@/types";
-import { createBrainDumpCardsAction, createNextChapterForDeferAction, deleteTaskAction, moveTasksToChapterAction, saveBoardConversationAction, saveWorkflowTemplateAction } from "@/lib/actions/task-actions";
+import type { Board, BoardColumn, BoardConversationEntry, Priority, Project, ProposedTask, Task, WorkflowTemplate } from "@/types";
+import { createBrainDumpCardsAction, deleteTaskAction, saveBoardConversationAction, saveWorkflowTemplateAction } from "@/lib/actions/task-actions";
 import { deferTasksToNextChapterAction, endChapterEarlyAction } from "@/lib/actions/project-actions";
 import { getChapterAgeDays } from "@/lib/utils";
 import { CassProgressBar } from "@/components/cass/CassProgressBar";
@@ -51,11 +51,10 @@ declare global {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "retro" | "onboarding_welcome";
-type ChatSubMode = "tasks" | "braindump" | "move" | "breakup" | "end_chapter" | "chronicle";
+type ChatSubMode = "tasks" | "braindump" | "breakup" | "end_chapter" | "chronicle";
 type RefocusPhase = "chat" | "triage" | "retro";
 type TriageDecision = "keep" | "move" | "delete";
 type BrainDumpState = "idle" | "recording" | "processing" | "error";
-type MovePhase = "select" | "destination" | "done";
 type Msg = { role: "user" | "assistant"; content: string };
 
 const MENU_QUESTION = "What would you like to add to this chapter?";
@@ -78,7 +77,6 @@ const MENU_OPTIONS: Array<{ key: ChatSubMode; label: string; sub: string }> = [
   { key: "tasks",     label: "Talk it out together. Strategize and create new tasks.", sub: "" },
   { key: "braindump", label: "Voice memo. Turn recorded audio into new tasks.",        sub: "" },
   { key: "chronicle", label: "Add tasks I've already completed",                       sub: "" },
-  { key: "move",      label: "Move some tasks to a future chapter",                    sub: "" },
 ];
 
 // ── Styles ───────────────────────────────────────────────────────────────────
@@ -626,269 +624,6 @@ function VoiceMemoFlow({
   );
 }
 
-// ── Move-to-future-chapter view ───────────────────────────────────────────────
-
-function MoveToChapterView({
-  movableTasks,
-  futureChapters,
-  allChaptersCount,
-  projectId,
-  onSuccess,
-  onClose,
-}: {
-  movableTasks: Task[];
-  futureChapters: Chapter[];
-  allChaptersCount: number;
-  projectId: string;
-  onSuccess: () => void;
-  onClose: () => void;
-}) {
-  const [phase, setPhase] = useState<MovePhase>("select");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [availableChapters, setAvailableChapters] = useState<Chapter[]>(futureChapters);
-
-  function toggleTask(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
-
-  function selectAll() {
-    setSelectedIds(new Set(movableTasks.map((t) => t.id)));
-  }
-
-  function handleMoveToChapter(targetBoardId: string) {
-    const taskIds = Array.from(selectedIds);
-    setError(null);
-    startTransition(async () => {
-      try {
-        await moveTasksToChapterAction({ projectId, taskIds, targetBoardId });
-        setPhase("done");
-        onSuccess();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Move failed.");
-      }
-    });
-  }
-
-  function handleDelete() {
-    const taskIds = Array.from(selectedIds);
-    setError(null);
-    startTransition(async () => {
-      try {
-        await moveTasksToChapterAction({ projectId, taskIds, targetBoardId: "", deleteInstead: true });
-        setPhase("done");
-        onSuccess();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Delete failed.");
-      }
-    });
-  }
-
-  function handleCreateNextChapter() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        const created = await createNextChapterForDeferAction({ projectId, currentChapterCount: allChaptersCount });
-        // Add created chapter to available list and immediately proceed to move
-        setAvailableChapters([{ ...created, projectId, goal: null, whyItMatters: null, successLooksLike: null, doneDefinition: null, openingLine: null, retroConversation: null, chapterStory: null, storyLength: null, retroCompletedAt: null, sharedAt: null, shareSlug: null, position: allChaptersCount * 1000, createdAt: new Date().toISOString() } as Chapter]);
-        handleMoveToChapter(created.id);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Couldn't create chapter.");
-      }
-    });
-  }
-
-  const selectedCount = selectedIds.size;
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const textPrimary = isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)";
-  const textMuted = isDark ? "rgba(248,248,246,0.4)" : "rgba(26,14,0,0.38)";
-  const taskBorderIdle = isDark ? "rgba(255,255,255,0.08)" : "rgba(26,14,0,0.09)";
-  const taskBgIdle = isDark ? "rgba(255,255,255,0.02)" : "rgba(26,14,0,0.02)";
-  const taskBorderHover = isDark ? "rgba(255,255,255,0.14)" : "rgba(26,14,0,0.15)";
-  const taskBgHover = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.04)";
-  const dividerColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.07)";
-
-  // ── Phase: done ──
-  if (phase === "done") {
-    return (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center", padding: "32px 24px", gap: "16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", background: isDark ? "rgba(110,231,183,0.06)" : "rgba(110,231,183,0.10)", border: "1px solid rgba(110,231,183,0.22)", borderRadius: "14px", width: "100%" }}>
-          <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "rgba(110,231,183,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <Check size={13} style={{ color: isDark ? "#6ee7b7" : "#059669" }} />
-          </div>
-          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#a7f3d0" : "#065f46", margin: 0 }}>
-            Done. Those tasks are out of your way.
-          </p>
-        </div>
-        <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Close</TapeButton>
-      </div>
-    );
-  }
-
-  // ── Phase: destination ──
-  if (phase === "destination") {
-    return (
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0, maxWidth: "85%" }}>
-          {selectedCount === 1 ? "Where should this task go?" : `Where should these ${selectedCount} tasks go?`}
-        </p>
-
-        {availableChapters.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {availableChapters.map((chapter, i) => (
-              <button
-                key={chapter.id}
-                type="button"
-                disabled={isPending}
-                onClick={() => handleMoveToChapter(chapter.id)}
-                style={{
-                  background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.02)",
-                  border: `1px solid rgba(200,168,107,0.18)`,
-                  borderRadius: "12px", padding: "14px 16px",
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  cursor: isPending ? "not-allowed" : "pointer", textAlign: "left", width: "100%",
-                  animation: "cassBoardOptionIn 0.28s ease forwards",
-                  animationDelay: `${i * 80}ms`, opacity: 0,
-                  transition: "background 0.15s, border-color 0.15s",
-                }}
-                onMouseEnter={(e) => { if (!isPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.02)"; }}
-              >
-                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: textPrimary, margin: 0 }}>{chapter.name}</p>
-                {isPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textMuted, margin: 0 }}>
-              No future chapters exist yet. I can create the next one for you.
-            </p>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={handleCreateNextChapter}
-              style={{
-                background: "rgba(200,168,107,0.07)", border: "1px dashed rgba(200,168,107,0.35)",
-                borderRadius: "12px", padding: "14px 16px",
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                cursor: isPending ? "not-allowed" : "pointer", width: "100%",
-                animation: "cassBoardOptionIn 0.28s ease forwards", opacity: 0,
-                transition: "background 0.15s, border-color 0.15s",
-              }}
-              onMouseEnter={(e) => { if (!isPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.6)"; e.currentTarget.style.background = "rgba(200,168,107,0.12)"; } }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
-            >
-              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: "rgba(200,168,107,0.85)", margin: 0 }}>
-                Create Chapter {allChaptersCount + 1} and move there
-              </p>
-              {isPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
-            </button>
-          </div>
-        )}
-
-        <div style={{ marginTop: "4px", paddingTop: "12px", borderTop: `1px solid ${dividerColor}` }}>
-          <TapeButton type="button" disabled={isPending} onClick={handleDelete} variant="danger" size="sm">
-            <Trash2 size={12} />
-            Delete {selectedCount === 1 ? "this task" : `these ${selectedCount} tasks`} instead
-          </TapeButton>
-        </div>
-
-        {error && <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "#f87171", margin: 0 }}>{error}</p>}
-      </div>
-    );
-  }
-
-  // ── Phase: select ──
-  return (
-    <>
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 20px 12px", display: "flex", flexDirection: "column", gap: "16px" }}>
-        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0, maxWidth: "85%" }}>
-          {movableTasks.length === 0
-            ? "Everything on the board is either done or… there's nothing here to move."
-            : "Which tasks aren't happening this chapter?"}
-        </p>
-
-        {movableTasks.length > 0 && (
-          <>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2px" }}>
-              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: textMuted, margin: 0 }}>
-                {selectedCount} selected
-              </p>
-              <TapeButton
-                type="button"
-                onClick={selectedCount === movableTasks.length ? () => setSelectedIds(new Set()) : selectAll}
-                variant="ghost"
-                size="sm"
-              >
-                {selectedCount === movableTasks.length ? "Deselect all" : "Select all"}
-              </TapeButton>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {movableTasks.map((task) => {
-                const checked = selectedIds.has(task.id);
-                return (
-                  <button
-                    key={task.id}
-                    type="button"
-                    onClick={() => toggleTask(task.id)}
-                    style={{
-                      display: "flex", alignItems: "flex-start", gap: "12px",
-                      background: checked ? "rgba(200,168,107,0.07)" : taskBgIdle,
-                      border: `1px solid ${checked ? "rgba(200,168,107,0.35)" : taskBorderIdle}`,
-                      borderRadius: "10px", padding: "12px 14px",
-                      cursor: "pointer", textAlign: "left", width: "100%",
-                      transition: "background 0.15s, border-color 0.15s",
-                    }}
-                    onMouseEnter={(e) => { if (!checked) { e.currentTarget.style.background = taskBgHover; e.currentTarget.style.borderColor = taskBorderHover; } }}
-                    onMouseLeave={(e) => { if (!checked) { e.currentTarget.style.background = taskBgIdle; e.currentTarget.style.borderColor = taskBorderIdle; } }}
-                  >
-                    <div style={{
-                      width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, marginTop: "2px",
-                      border: `1.5px solid ${checked ? "#c8a86b" : "rgba(200,168,107,0.3)"}`,
-                      background: checked ? "rgba(200,168,107,0.18)" : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      transition: "all 0.15s",
-                    }}>
-                      {checked && <Check size={10} style={{ color: "#c8a86b" }} />}
-                    </div>
-                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.5", color: checked ? textPrimary : textMuted, margin: 0, flex: 1, transition: "color 0.15s" }}>
-                      {task.title}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {error && <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "#f87171", margin: 0 }}>{error}</p>}
-      </div>
-
-      {/* Footer */}
-      {movableTasks.length > 0 && (
-        <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex" }}>
-          <TapeButton
-            type="button"
-            disabled={selectedCount === 0}
-            onClick={() => setPhase("destination")}
-            variant="primary"
-            className="w-full"
-          >
-            <ArrowRight size={14} />
-            {selectedCount === 0 ? "Select tasks to move" : `Move ${selectedCount} task${selectedCount !== 1 ? "s" : ""} →`}
-          </TapeButton>
-        </div>
-      )}
-    </>
-  );
-}
 
 // ── End chapter view ─────────────────────────────────────────────────────────
 
@@ -907,13 +642,26 @@ function EndChapterView({
   onConfirm: (nextChapterId: string | null) => void;
   onClose: () => void;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const doneColumnId = columns.find((c) => c.name.toLowerCase() === "done")?.id;
   const incompleteTasks = tasks.filter((t) => !doneColumnId || t.columnId !== doneColumnId);
   const hasIncompleteTasks = incompleteTasks.length > 0;
 
-  const [choice, setChoice] = useState<"carry_over" | "delete" | null>(null);
+  const [choice, setChoice] = useState<"carry_over" | "delete" | "select" | null>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
+    () => new Set(incompleteTasks.map((t) => t.id)),
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function toggleSelected(id: string) {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   function handleConfirm() {
     if (hasIncompleteTasks && !choice) return;
@@ -923,7 +671,8 @@ function EndChapterView({
         const { nextChapterId } = await endChapterEarlyAction({
           projectId,
           boardId,
-          handleIncompleteTasks: hasIncompleteTasks ? (choice as "carry_over" | "delete") : "delete",
+          handleIncompleteTasks: hasIncompleteTasks ? (choice as "carry_over" | "delete" | "select") : "delete",
+          selectedTaskIds: choice === "select" ? Array.from(selectedTaskIds) : undefined,
         });
         onConfirm(nextChapterId);
       } catch (err) {
@@ -986,10 +735,92 @@ function EndChapterView({
                 {choice === "carry_over" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b" }} />}
               </div>
               <div>
-                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Carry over to the next chapter</p>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Move all to the next chapter</p>
                 <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Open tasks move into the next chapter&apos;s backlog</p>
               </div>
             </button>
+
+            {/* Select which tasks to move */}
+            <button
+              type="button"
+              onClick={() => setChoice("select")}
+              style={{
+                background: choice === "select" ? "rgba(200,168,107,0.09)" : "rgba(255,255,255,0.03)",
+                border: `1px solid ${choice === "select" ? "rgba(200,168,107,0.5)" : "rgba(200,168,107,0.18)"}`,
+                borderRadius: "12px", padding: "14px 16px",
+                display: "flex", alignItems: "flex-start", gap: "14px",
+                cursor: "pointer", textAlign: "left", width: "100%",
+                transition: "background 0.15s, border-color 0.15s",
+              }}
+              onMouseEnter={(e) => { if (choice !== "select") { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.05)"; } }}
+              onMouseLeave={(e) => { if (choice !== "select") { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
+            >
+              <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${choice === "select" ? "#c8a86b" : "rgba(200,168,107,0.35)"}`, background: choice === "select" ? "rgba(200,168,107,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", marginTop: "2px", transition: "all 0.15s" }}>
+                {choice === "select" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b" }} />}
+              </div>
+              <div>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Select the tasks I want to move</p>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Pick which ones carry over — everything else is deleted</p>
+              </div>
+            </button>
+
+            {/* Task picker — shown once "select" is chosen */}
+            {choice === "select" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingLeft: "4px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2px" }}>
+                  <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(200,168,107,0.45)", margin: 0 }}>
+                    {selectedTaskIds.size} of {incompleteTasks.length} will move
+                  </p>
+                  <TapeButton
+                    type="button"
+                    onClick={selectedTaskIds.size === incompleteTasks.length
+                      ? () => setSelectedTaskIds(new Set())
+                      : () => setSelectedTaskIds(new Set(incompleteTasks.map((t) => t.id)))}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    {selectedTaskIds.size === incompleteTasks.length ? "Deselect all" : "Select all"}
+                  </TapeButton>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {incompleteTasks.map((task) => {
+                    const checked = selectedTaskIds.has(task.id);
+                    const borderIdle = isDark ? "rgba(255,255,255,0.08)" : "rgba(26,14,0,0.09)";
+                    const bgIdle = isDark ? "rgba(255,255,255,0.02)" : "rgba(26,14,0,0.02)";
+                    return (
+                      <button
+                        key={task.id}
+                        type="button"
+                        onClick={() => toggleSelected(task.id)}
+                        style={{
+                          display: "flex", alignItems: "flex-start", gap: "12px",
+                          background: checked ? "rgba(200,168,107,0.07)" : bgIdle,
+                          border: `1px solid ${checked ? "rgba(200,168,107,0.35)" : borderIdle}`,
+                          borderRadius: "10px", padding: "12px 14px",
+                          cursor: "pointer", textAlign: "left", width: "100%",
+                          transition: "background 0.15s, border-color 0.15s",
+                        }}
+                      >
+                        <div style={{
+                          width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, marginTop: "2px",
+                          border: `1.5px solid ${checked ? "#c8a86b" : "rgba(200,168,107,0.3)"}`,
+                          background: checked ? "rgba(200,168,107,0.18)" : "transparent",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          {checked && <Check size={10} style={{ color: "#c8a86b" }} />}
+                        </div>
+                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.5", color: checked ? "#d4cec4" : "rgba(248,248,246,0.4)", margin: 0, flex: 1 }}>
+                          {task.title}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.4)", margin: "2px 0 0" }}>
+                  Unchecked tasks are deleted when you start the recap.
+                </p>
+              </div>
+            )}
 
             {/* Delete */}
             <button
@@ -1048,8 +879,6 @@ export function CassBoardDrawer({
   columns,
   templates,
   tasks,
-  futureChapters,
-  allChaptersCount,
   breakupTask,
   completedChapterMode,
   retroNudge = false,
@@ -1073,8 +902,6 @@ export function CassBoardDrawer({
   columns: BoardColumn[];
   templates: WorkflowTemplate[];
   tasks: Task[];
-  futureChapters: Chapter[];
-  allChaptersCount: number;
   breakupTask?: Task | null;
   completedChapterMode?: boolean;
   retroNudge?: boolean;
@@ -1116,6 +943,16 @@ export function CassBoardDrawer({
   const inputBg       = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.04)";
   const dividerColor  = isDark ? "rgba(200,168,107,0.08)" : "rgba(200,168,107,0.12)";
   const shadowColor   = isDark ? "rgba(0,0,0,0.4)"        : "rgba(0,0,0,0.18)";
+
+  // A chapter whose retro has already been completed — the regular "add
+  // something new" menu should only offer logging missed past work.
+  const isPastChapter = Boolean(board.retroCompletedAt);
+  const menuQuestionText = isPastChapter
+    ? "You've already completed this chapter. Do you need to add something that was missed?"
+    : MENU_QUESTION;
+  const visibleMenuOptions = isPastChapter
+    ? MENU_OPTIONS.filter((opt) => opt.key === "chronicle")
+    : MENU_OPTIONS;
 
   // Shadow module-level constants with theme-aware versions
   // eslint-disable-next-line @typescript-eslint/no-shadow
@@ -1198,13 +1035,6 @@ export function CassBoardDrawer({
   const [rfDoneCount, setRfDoneCount] = useState<{ deleted: number; moved: number } | null>(null);
   const [rfIsPending, startRfTransition] = useTransition();
   const [rfIsSaving, startRfSaveTransition] = useTransition();
-
-  // ── Move-to-chapter inline state ─────────────────────────────────────────────
-  const [movePhase, setMovePhase] = useState<MovePhase>("select");
-  const [moveSelectedIds, setMoveSelectedIds] = useState<Set<string>>(new Set());
-  const [moveError, setMoveError] = useState<string | null>(null);
-  const [moveAvailableChapters, setMoveAvailableChapters] = useState<Chapter[]>(futureChapters);
-  const [moveIsPending, startMoveTransition] = useTransition();
 
   // Reset on open
   useEffect(() => {
@@ -1295,13 +1125,13 @@ export function CassBoardDrawer({
     setMenuDisplayed("");
     setOptionsReady(false);
     setMenuSelected(null);
-    setChatSubMode("tasks");
+    setChatSubMode(isPastChapter ? "chronicle" : "tasks");
 
     let i = 0;
     const id = setInterval(() => {
       i++;
-      setMenuDisplayed(MENU_QUESTION.slice(0, i));
-      if (i >= MENU_QUESTION.length) {
+      setMenuDisplayed(menuQuestionText.slice(0, i));
+      if (i >= menuQuestionText.length) {
         clearInterval(id);
         setTimeout(() => setOptionsReady(true), 180);
       }
@@ -1367,55 +1197,6 @@ export function CassBoardDrawer({
     }
     // chronicle: just enter chat mode — sub-choice screen handles the rest
     // braindump: no initial message — the recorder handles it
-    // move: no AI call — pure UI flow inline in chat thread
-    if (sub === "move") {
-      setMovePhase("select");
-      setMoveSelectedIds(new Set());
-      setMoveError(null);
-      setMoveAvailableChapters(futureChapters);
-    }
-  }
-
-  // ── Move-to-chapter action helpers ───────────────────────────────────────────
-  function handleMoveToChapter(targetBoardId: string) {
-    const taskIds = Array.from(moveSelectedIds);
-    setMoveError(null);
-    startMoveTransition(async () => {
-      try {
-        await moveTasksToChapterAction({ projectId: project.id, taskIds, targetBoardId });
-        setMovePhase("done");
-        onTasksAdded();
-      } catch (err) {
-        setMoveError(err instanceof Error ? err.message : "Move failed.");
-      }
-    });
-  }
-
-  function handleMoveDelete() {
-    const taskIds = Array.from(moveSelectedIds);
-    setMoveError(null);
-    startMoveTransition(async () => {
-      try {
-        await moveTasksToChapterAction({ projectId: project.id, taskIds, targetBoardId: "", deleteInstead: true });
-        setMovePhase("done");
-        onTasksAdded();
-      } catch (err) {
-        setMoveError(err instanceof Error ? err.message : "Delete failed.");
-      }
-    });
-  }
-
-  async function handleMoveCreateNextChapter() {
-    setMoveError(null);
-    startMoveTransition(async () => {
-      try {
-        const created = await createNextChapterForDeferAction({ projectId: project.id, currentChapterCount: allChaptersCount });
-        setMoveAvailableChapters([{ ...created, projectId: project.id, goal: null, whyItMatters: null, successLooksLike: null, doneDefinition: null, openingLine: null, retroConversation: null, chapterStory: null, storyLength: null, retroCompletedAt: null, sharedAt: null, shareSlug: null, position: allChaptersCount * 1000, createdAt: new Date().toISOString() } as Chapter]);
-        handleMoveToChapter(created.id);
-      } catch (err) {
-        setMoveError(err instanceof Error ? err.message : "Couldn't create chapter.");
-      }
-    });
   }
 
   // ── Text chat helpers ─────────────────────────────────────────────────────────
@@ -1753,14 +1534,9 @@ export function CassBoardDrawer({
 
   const hasProposals = proposedTasks.length > 0;
   const isBrainDump = chatSubMode === "braindump";
-  const isMoveMode = chatSubMode === "move";
   const isBreakupMode = chatSubMode === "breakup";
   const isEndChapterMode = chatSubMode === "end_chapter";
   const isChronicleMode = chatSubMode === "chronicle";
-
-  // Filter out Done tasks so only movable tasks are shown
-  const doneColumnId = columns.find((c) => c.name.toLowerCase() === "done")?.id;
-  const movableTasks = tasks.filter((t) => t.columnId !== doneColumnId);
 
   // Cass anim in the header: playing while AI is thinking, talking while typewriting text
   const isTypewriting = menuDisplayed.length > 0 && menuDisplayed.length < MENU_QUESTION.length;
@@ -1849,7 +1625,6 @@ export function CassBoardDrawer({
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: isDark ? "rgba(200,168,107,0.85)" : "rgba(255,255,255,0.9)" }}>
               {mode === "menu" ? "Add something new" :
                chatSubMode === "braindump" ? "Voice Memo" :
-               chatSubMode === "move" ? "Reroute Tasks" :
                chatSubMode === "end_chapter" ? "End Chapter" :
                chatSubMode === "chronicle" ? "Already Done" :
                mode === "completed" ? "What's Next" :
@@ -1882,11 +1657,11 @@ export function CassBoardDrawer({
                 {mode === "menu" ? (
                   <>
                     {menuDisplayed}
-                    {menuDisplayed.length > 0 && menuDisplayed.length < MENU_QUESTION.length && (
+                    {menuDisplayed.length > 0 && menuDisplayed.length < menuQuestionText.length && (
                       <span style={{ opacity: 0.5, animation: "cassBoardCaretBlink 0.9s step-end infinite" }}>▌</span>
                     )}
                   </>
-                ) : MENU_QUESTION}
+                ) : menuQuestionText}
               </p>
             </div>
 
@@ -1908,7 +1683,7 @@ export function CassBoardDrawer({
                   </button>
                 ) : (
                   <>
-                    {MENU_OPTIONS.map((opt, i) => {
+                    {visibleMenuOptions.map((opt, i) => {
                       const isBlocked = chapterDaysLeft !== null && chapterDaysLeft <= 0 && (opt.key === "tasks" || opt.key === "braindump");
                       return (
                         <div key={opt.key} style={{ animation: `cassBoardOptionIn 0.28s ease ${i * 100}ms forwards`, opacity: 0 }}>
@@ -2376,136 +2151,6 @@ export function CassBoardDrawer({
                   </div>
                 )}
 
-                {/* ── Move to chapter inline flow ── */}
-                {isMoveMode && (
-                  <>
-                    {/* Phase: select — task list */}
-                    {movePhase === "select" && (
-                      <>
-                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0 }}>
-                          {movableTasks.length === 0
-                            ? "Everything on the board is either done or there's nothing here to move."
-                            : "Which tasks aren't happening this chapter?"}
-                        </p>
-                        {movableTasks.length > 0 && (
-                          <>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2px" }}>
-                              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: textMuted, margin: 0 }}>
-                                {moveSelectedIds.size} selected
-                              </p>
-                              <TapeButton
-                                type="button"
-                                onClick={moveSelectedIds.size === movableTasks.length ? () => setMoveSelectedIds(new Set()) : () => setMoveSelectedIds(new Set(movableTasks.map(t => t.id)))}
-                                variant="ghost"
-                                size="sm"
-                              >
-                                {moveSelectedIds.size === movableTasks.length ? "Deselect all" : "Select all"}
-                              </TapeButton>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                              {movableTasks.map((task) => {
-                                const checked = moveSelectedIds.has(task.id);
-                                const borderIdle = isDark ? "rgba(255,255,255,0.08)" : "rgba(26,14,0,0.09)";
-                                const bgIdle = isDark ? "rgba(255,255,255,0.02)" : "rgba(26,14,0,0.02)";
-                                const borderHover = isDark ? "rgba(255,255,255,0.14)" : "rgba(26,14,0,0.15)";
-                                const bgHover = isDark ? "rgba(255,255,255,0.04)" : "rgba(26,14,0,0.04)";
-                                return (
-                                  <button
-                                    key={task.id}
-                                    type="button"
-                                    onClick={() => setMoveSelectedIds((prev) => { const next = new Set(prev); if (next.has(task.id)) next.delete(task.id); else next.add(task.id); return next; })}
-                                    style={{ display: "flex", alignItems: "flex-start", gap: "12px", background: checked ? "rgba(200,168,107,0.07)" : bgIdle, border: `1px solid ${checked ? "rgba(200,168,107,0.35)" : borderIdle}`, borderRadius: "10px", padding: "12px 14px", cursor: "pointer", textAlign: "left", width: "100%", transition: "background 0.15s, border-color 0.15s" }}
-                                    onMouseEnter={(e) => { if (!checked) { e.currentTarget.style.background = bgHover; e.currentTarget.style.borderColor = borderHover; } }}
-                                    onMouseLeave={(e) => { if (!checked) { e.currentTarget.style.background = bgIdle; e.currentTarget.style.borderColor = borderIdle; } }}
-                                  >
-                                    <div style={{ width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0, marginTop: "2px", border: `1.5px solid ${checked ? "#c8a86b" : "rgba(200,168,107,0.3)"}`, background: checked ? "rgba(200,168,107,0.18)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
-                                      {checked && <Check size={10} style={{ color: "#c8a86b" }} />}
-                                    </div>
-                                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.5", color: checked ? textPrimary : textMuted, margin: 0, flex: 1, transition: "color 0.15s" }}>
-                                      {task.title}
-                                    </p>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                      </>
-                    )}
-
-                    {/* Phase: destination — user bubble + chapter options */}
-                    {movePhase === "destination" && (
-                      <>
-                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                          <div style={USER_B}>Move {moveSelectedIds.size} task{moveSelectedIds.size !== 1 ? "s" : ""}</div>
-                        </div>
-                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0 }}>
-                          {moveSelectedIds.size === 1 ? "Where should this task go?" : `Where should these ${moveSelectedIds.size} tasks go?`}
-                        </p>
-                        {moveAvailableChapters.length > 0 ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                            {moveAvailableChapters.map((chapter, i) => (
-                              <button
-                                key={chapter.id}
-                                type="button"
-                                disabled={moveIsPending}
-                                onClick={() => handleMoveToChapter(chapter.id)}
-                                style={{ background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.02)", border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: moveIsPending ? "not-allowed" : "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${i * 80}ms`, opacity: 0, transition: "background 0.15s, border-color 0.15s" }}
-                                onMouseEnter={(e) => { if (!moveIsPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; } }}
-                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.02)"; }}
-                              >
-                                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: textPrimary, margin: 0 }}>{chapter.name}</p>
-                                {moveIsPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textMuted, margin: 0 }}>
-                              No future chapters yet. I can create the next one for you.
-                            </p>
-                            <button
-                              type="button"
-                              disabled={moveIsPending}
-                              onClick={handleMoveCreateNextChapter}
-                              style={{ background: "rgba(200,168,107,0.07)", border: "1px dashed rgba(200,168,107,0.35)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: moveIsPending ? "not-allowed" : "pointer", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", opacity: 0, transition: "background 0.15s, border-color 0.15s" }}
-                              onMouseEnter={(e) => { if (!moveIsPending) { e.currentTarget.style.borderColor = "rgba(200,168,107,0.6)"; e.currentTarget.style.background = "rgba(200,168,107,0.12)"; } }}
-                              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
-                            >
-                              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", color: "rgba(200,168,107,0.85)", margin: 0 }}>
-                                Create Chapter {allChaptersCount + 1} and move there
-                              </p>
-                              {moveIsPending ? <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} /> : <ArrowRight size={14} style={{ color: "rgba(200,168,107,0.5)", flexShrink: 0 }} />}
-                            </button>
-                          </div>
-                        )}
-                        <div style={{ paddingTop: "4px", borderTop: `1px solid ${dividerColor}` }}>
-                          <TapeButton type="button" disabled={moveIsPending} onClick={handleMoveDelete} variant="danger" size="sm">
-                            <Trash2 size={12} />
-                            Delete {moveSelectedIds.size === 1 ? "this task" : `these ${moveSelectedIds.size} tasks`} instead
-                          </TapeButton>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Phase: done — success card */}
-                    {movePhase === "done" && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "12px", animation: "cassBoardOptionIn 0.3s ease forwards" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", background: isDark ? "rgba(110,231,183,0.06)" : "rgba(110,231,183,0.10)", border: "1px solid rgba(110,231,183,0.22)", borderRadius: "14px" }}>
-                          <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "rgba(110,231,183,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <Check size={13} style={{ color: isDark ? "#6ee7b7" : "#059669" }} />
-                          </div>
-                          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#a7f3d0" : "#065f46", margin: 0 }}>
-                            Done. Those tasks are out of your way.
-                          </p>
-                        </div>
-                        <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Close</TapeButton>
-                      </div>
-                    )}
-
-                    {moveError && <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "#f87171", margin: 0 }}>{moveError}</p>}
-                  </>
-                )}
 
                 {chatError && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{chatError}</p>}
                 <div ref={messagesEndRef} />
@@ -2904,24 +2549,8 @@ export function CassBoardDrawer({
           />
         )}
 
-        {/* Move tasks footer — sticky "Move X tasks →" button */}
-        {mode === "chat" && isMoveMode && movePhase === "select" && movableTasks.length > 0 && (
-          <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex" }}>
-            <TapeButton
-              type="button"
-              disabled={moveSelectedIds.size === 0}
-              onClick={() => setMovePhase("destination")}
-              variant="primary"
-              className="w-full"
-            >
-              <ArrowRight size={14} />
-              {moveSelectedIds.size === 0 ? "Select tasks to move" : `Move ${moveSelectedIds.size} task${moveSelectedIds.size !== 1 ? "s" : ""} →`}
-            </TapeButton>
-          </div>
-        )}
-
         {/* Input bar — text tasks / breakup mode / voice text input, not when saved */}
-        {mode === "chat" && !isMoveMode && !isEndChapterMode && !savedOk && (!(isChronicleMode && chronicleMethod !== "talk") || voicePhase === "text_input") && (!isBrainDump || voicePhase === "text_input") && (
+        {mode === "chat" && !isEndChapterMode && !savedOk && (!(isChronicleMode && chronicleMethod !== "talk") || voicePhase === "text_input") && (!isBrainDump || voicePhase === "text_input") && (
           <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
             {/* Voice text mode: back-to-mic link */}
             {voicePhase === "text_input" && (

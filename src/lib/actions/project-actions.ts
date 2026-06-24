@@ -774,149 +774,148 @@ export async function updateChapterStoryAfterGenerationAction(input: {
 export async function endChapterEarlyAction(input: {
   projectId: string;
   boardId: string;
-  handleIncompleteTasks: "carry_over" | "delete";
+  handleIncompleteTasks: "carry_over" | "delete" | "select";
+  // Only used when handleIncompleteTasks === "select": these tasks move to
+  // the next chapter, every other incomplete task is deleted.
+  selectedTaskIds?: string[];
 }): Promise<{ nextChapterId: string | null }> {
-  const { supabase, user } = await getAuthenticatedUser();
+  const { supabase } = await getAuthenticatedUser();
 
-  if (input.handleIncompleteTasks === "delete") {
-    // Find the Done column so we can delete everything else
-    const { data: columns, error: columnsError } = await supabase
-      .from("board_columns")
-      .select("id,name")
-      .eq("board_id", input.boardId);
-
-    if (columnsError) {
-      throw new Error(columnsError.message);
-    }
-
-    const doneColumnId = (columns ?? []).find(
-      (col) => String(col.name).toLowerCase() === "done",
-    )?.id;
-
-    const { data: tasks, error: tasksError } = await supabase
-      .from("tasks")
-      .select("id,column_id")
-      .eq("board_id", input.boardId);
-
-    if (tasksError) {
-      throw new Error(tasksError.message);
-    }
-
-    const incompleteTaskIds = (tasks ?? [])
-      .filter((t) => !doneColumnId || String(t.column_id) !== String(doneColumnId))
-      .map((t) => String(t.id));
-
-    if (incompleteTaskIds.length > 0) {
-      const { error: deleteError } = await supabase
-        .from("tasks")
-        .delete()
-        .in("id", incompleteTaskIds);
-
-      if (deleteError) {
-        throw new Error(deleteError.message);
-      }
-    }
-
-    revalidatePath(`/projects/${input.projectId}`);
-    revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
-    revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
-
-    return { nextChapterId: null };
-  }
-
-  // carry_over: create a new chapter and move incomplete tasks there
-  const nextPosition = await getNextBoardPosition(input.projectId);
-  const chapterNumber = Math.max(1, Math.round(nextPosition / 1000));
-
-  const { data: newBoard, error: boardError } = await supabase
-    .from("boards")
-    .insert({
-      project_id: input.projectId,
-      name: `Chapter ${chapterNumber}`,
-      position: nextPosition,
-    })
-    .select("id")
-    .single();
-
-  if (boardError || !newBoard) {
-    throw new Error(boardError?.message ?? "Failed to create next chapter.");
-  }
-
-  const nextChapterId = String(newBoard.id);
-
-  const { data: newColumns, error: columnsError } = await supabase
-    .from("board_columns")
-    .insert(
-      DEFAULT_COLUMNS.map((name, index) => ({
-        board_id: nextChapterId,
-        name,
-        position: (index + 1) * 1000,
-      })),
-    )
-    .select("id,name");
-
-  if (columnsError || !newColumns) {
-    throw new Error(columnsError?.message ?? "Failed to create columns.");
-  }
-
-  // Copy incomplete tasks to the new chapter
-  const { data: sourceColumns } = await supabase
+  const { data: columns, error: columnsError } = await supabase
     .from("board_columns")
     .select("id,name")
     .eq("board_id", input.boardId);
+  if (columnsError) {
+    throw new Error(columnsError.message);
+  }
 
-  const { data: sourceTasks } = await supabase
+  const doneColumnId = (columns ?? []).find(
+    (col) => String(col.name).toLowerCase() === "done",
+  )?.id;
+
+  const { data: allTasks, error: tasksError } = await supabase
     .from("tasks")
-    .select("*")
-    .eq("board_id", input.boardId)
-    .order("position", { ascending: true });
+    .select("id,title,column_id")
+    .eq("board_id", input.boardId);
+  if (tasksError) {
+    throw new Error(tasksError.message);
+  }
 
-  const sourceColumnNameById = new Map(
-    (sourceColumns ?? []).map((col) => [String(col.id), String(col.name)]),
+  const incompleteTasks = (allTasks ?? []).filter(
+    (t) => !doneColumnId || String(t.column_id) !== String(doneColumnId),
   );
-  const targetColumnIdByName = new Map(
-    newColumns.map((col) => [String(col.name), String(col.id)]),
-  );
 
-  const incompleteTasks = (sourceTasks ?? []).filter((task) => {
-    const colName = sourceColumnNameById.get(String(task.column_id));
-    return colName && colName.toLowerCase() !== "done";
-  });
+  const selectedIds = new Set(input.selectedTaskIds ?? []);
+  const moveTasks =
+    input.handleIncompleteTasks === "carry_over" ? incompleteTasks :
+    input.handleIncompleteTasks === "select" ? incompleteTasks.filter((t) => selectedIds.has(String(t.id))) :
+    [];
+  const deleteTasks =
+    input.handleIncompleteTasks === "delete" ? incompleteTasks :
+    input.handleIncompleteTasks === "select" ? incompleteTasks.filter((t) => !selectedIds.has(String(t.id))) :
+    [];
 
-  if (incompleteTasks.length > 0) {
-    const inserts = incompleteTasks.map((task, index) => {
-      const sourceColName =
-        sourceColumnNameById.get(String(task.column_id)) ?? "Do This Week";
-      const targetColId =
-        targetColumnIdByName.get(sourceColName) ??
-        targetColumnIdByName.get("Do This Week");
+  let nextChapterId: string | null = null;
+  let nextChapterName: string | null = null;
 
-      return {
+  if (moveTasks.length > 0) {
+    // Create the next chapter to receive the moved tasks.
+    const nextPosition = await getNextBoardPosition(input.projectId);
+    const chapterNumber = Math.max(1, Math.round(nextPosition / 1000));
+    nextChapterName = `Chapter ${chapterNumber}`;
+
+    const { data: newBoard, error: boardError } = await supabase
+      .from("boards")
+      .insert({
         project_id: input.projectId,
-        board_id: nextChapterId,
-        column_id: targetColId,
-        title: String(task.title),
-        description: (task.description as string | null) ?? null,
-        assignee_name: (task.assignee_name as string | null) ?? null,
-        priority: (task.priority as string | null) ?? null,
-        due_date: (task.due_date as string | null) ?? null,
-        position: (index + 1) * 1000,
-        created_by: user.id,
-        source_voice_capture_id: (task.source_voice_capture_id as string | null) ?? null,
-        source_template_id: (task.source_template_id as string | null) ?? null,
-        source_transcript: (task.source_transcript as string | null) ?? null,
-      };
-    });
+        name: nextChapterName,
+        position: nextPosition,
+      })
+      .select("id")
+      .single();
 
-    const { error: copyError } = await supabase.from("tasks").insert(inserts);
-    if (copyError) {
-      throw new Error(copyError.message);
+    if (boardError || !newBoard) {
+      throw new Error(boardError?.message ?? "Failed to create next chapter.");
+    }
+    nextChapterId = String(newBoard.id);
+
+    const { data: newColumns, error: newColumnsError } = await supabase
+      .from("board_columns")
+      .insert(
+        DEFAULT_COLUMNS.map((name, index) => ({
+          board_id: nextChapterId,
+          name,
+          position: (index + 1) * 1000,
+        })),
+      )
+      .select("id,name");
+
+    if (newColumnsError || !newColumns) {
+      throw new Error(newColumnsError?.message ?? "Failed to create columns.");
+    }
+
+    const sourceColumnNameById = new Map(
+      (columns ?? []).map((col) => [String(col.id), String(col.name)]),
+    );
+    const targetColumnIdByName = new Map(
+      newColumns.map((col) => [String(col.name), String(col.id)]),
+    );
+    const fallbackColumnId = targetColumnIdByName.get("Do This Week") ?? newColumns[0]?.id;
+
+    for (let i = 0; i < moveTasks.length; i++) {
+      const task = moveTasks[i];
+      const sourceColName = sourceColumnNameById.get(String(task.column_id)) ?? "Do This Week";
+      const targetColumnId = targetColumnIdByName.get(sourceColName) ?? fallbackColumnId;
+
+      const { error: moveError } = await supabase
+        .from("tasks")
+        .update({
+          board_id: nextChapterId,
+          column_id: targetColumnId,
+          position: (i + 1) * 1000,
+        })
+        .eq("id", task.id);
+
+      if (moveError) {
+        throw new Error(moveError.message);
+      }
+    }
+  }
+
+  if (deleteTasks.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("tasks")
+      .delete()
+      .in("id", deleteTasks.map((t) => String(t.id)));
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+  }
+
+  // Record what happened to incomplete tasks so the retro/story prompt can
+  // reference moved/deleted work instead of it silently vanishing from this board.
+  if (moveTasks.length > 0 || deleteTasks.length > 0) {
+    const deferredTasks = [
+      ...moveTasks.map((t) => ({ title: String(t.title), action: "moved" as const, toChapter: nextChapterName })),
+      ...deleteTasks.map((t) => ({ title: String(t.title), action: "deleted" as const })),
+    ];
+    const { error: deferredError } = await supabase
+      .from("boards")
+      .update({ deferred_tasks: deferredTasks })
+      .eq("id", input.boardId);
+
+    if (deferredError) {
+      throw new Error(deferredError.message);
     }
   }
 
   revalidatePath(`/projects/${input.projectId}`);
   revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}`);
-  revalidatePath(`/projects/${input.projectId}/chapters/${nextChapterId}`);
+  revalidatePath(`/projects/${input.projectId}/chapters/${input.boardId}/board`);
+  if (nextChapterId) {
+    revalidatePath(`/projects/${input.projectId}/chapters/${nextChapterId}`);
+  }
 
   return { nextChapterId };
 }

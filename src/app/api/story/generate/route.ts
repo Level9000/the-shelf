@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       .select(`
         id,name,position,goal,why_it_matters,success_looks_like,done_definition,
         chapter_story,chapter_type,confirmed_thesis,bridge_sentence,
-        retro_beats,story_health_flag,retro_completed_at
+        retro_beats,story_health_flag,retro_completed_at,deferred_tasks
       `)
       .eq("id", chapterId)
       .eq("project_id", projectId)
@@ -126,6 +126,19 @@ export async function POST(request: Request) {
       added_at:      taskCreated > retroCompletedTimestamp ? "mid_chapter" : "kickoff",
     };
   });
+
+  // Tasks that were moved to a future chapter or deleted when this chapter
+  // ended early (see endChapterEarlyAction) — without this, they'd silently
+  // vanish from the brief since they're no longer on this board's task list.
+  const deferredTasks = (board.deferred_tasks as Array<{ title: string; action: "moved" | "deleted" }> | null) ?? [];
+  for (const t of deferredTasks) {
+    cards.push({
+      title:         t.title,
+      status:        t.action === "moved" ? "deferred" : "dropped",
+      emotional_tag: null,
+      added_at:      "kickoff",
+    });
+  }
 
   // ── 3. Load chapter history for arc context ────────────────────────────────
   const { data: allBoards } = await supabase
