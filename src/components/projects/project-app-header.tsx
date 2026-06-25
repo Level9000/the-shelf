@@ -7,10 +7,25 @@ import type { ProjectWithChapters } from "@/types";
 import { useTheme } from "@/lib/theme-context";
 
 // ── Chapter status ────────────────────────────────────────────────────────────
-function chapterStatus(ch: ProjectWithChapters["chapters"][number]): "completed" | "active" | "planned" {
-  if (ch.retroCompletedAt) return "completed";
-  if (!ch.retroCompletedAt) return "active";
-  return "planned";
+// Exactly one chapter can ever be "active" — the earliest one (by position) that
+// hasn't had its retro completed yet. Anything after that is "planned"; anything
+// with a completed retro is "completed".
+function chapterStatuses(
+  chapters: ProjectWithChapters["chapters"],
+): Map<string, "completed" | "active" | "planned"> {
+  const statuses = new Map<string, "completed" | "active" | "planned">();
+  let activeAssigned = false;
+  for (const ch of chapters) {
+    if (ch.retroCompletedAt) {
+      statuses.set(ch.id, "completed");
+    } else if (!activeAssigned) {
+      statuses.set(ch.id, "active");
+      activeAssigned = true;
+    } else {
+      statuses.set(ch.id, "planned");
+    }
+  }
+  return statuses;
 }
 
 // ── Tape label (Story / Board toggle) ────────────────────────────────────────
@@ -230,7 +245,10 @@ export function ProjectAppHeader({
   function handleProjectClick(p: ProjectWithChapters) {
     if (p.id === currentProjectId) {
       setPendingProject(null);
-    } else if (p.chapters.length === 0) {
+      if (isStory) closeDrawer();
+    } else if (isStory || p.chapters.length === 0) {
+      // Story tab reads continuously across all chapters — no chapter picker needed,
+      // just jump straight to that project's overview.
       router.push(`/projects/${p.id}`);
       closeDrawer();
     } else {
@@ -447,63 +465,71 @@ export function ProjectAppHeader({
             + New Project
           </NavItem>
 
-          {/* Chapters */}
-          <NavSectionHeader isDark={isDark}>
-            {pendingProject ? `Chapters — ${pendingProject.name}` : "Select Chapter"}
-          </NavSectionHeader>
-          {pendingProject && (
-            <div style={{
-              padding: "2px 20px 6px",
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: "10px", letterSpacing: "0.1em",
-              color: isDark ? "rgba(245,200,74,0.3)" : "rgba(160,100,10,0.4)",
-            }}>
-              Pick a chapter to open ↓
-            </div>
-          )}
-          {displayedProject?.chapters.map((ch, i) => {
-            const st = chapterStatus(ch);
-            return (
-              <NavItem
-                key={ch.id}
-                isDark={isDark}
-                active={!pendingProject && ch.id === (currentChapterId ?? navChapterId)}
-                onClick={() => handleSelectChapter(ch)}
-              >
-                <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: "8px" }}>
-                  <span>Chapter {i + 1}</span>
-                  {st === "active" && (
-                    <span style={{
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontSize: "9px", fontWeight: 700,
-                      letterSpacing: "0.12em", textTransform: "uppercase",
-                      color: isDark ? "#c8a86b" : "rgba(22,19,15,0.6)",
-                      border: `1px solid ${isDark ? "rgba(200,168,107,0.3)" : "rgba(0,0,0,0.15)"}`,
-                      borderRadius: "999px",
-                      padding: "1px 6px",
-                      flexShrink: 0,
-                    }}>Active</span>
-                  )}
-                  {st === "planned" && (
-                    <span style={{
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontSize: "9px", fontWeight: 700,
-                      letterSpacing: "0.12em", textTransform: "uppercase",
-                      color: isDark ? "rgba(200,168,107,0.3)" : "rgba(0,0,0,0.25)",
-                      border: `1px solid ${isDark ? "rgba(200,168,107,0.12)" : "rgba(0,0,0,0.08)"}`,
-                      borderRadius: "999px",
-                      padding: "1px 6px",
-                      flexShrink: 0,
-                    }}>Planned</span>
-                  )}
-                </span>
-              </NavItem>
-            );
-          })}
-          {!pendingProject && onPlanChapters && (
-            <NavItem isDark={isDark} muted onClick={() => { onPlanChapters?.(); closeDrawer(); }}>
-              + Plan new chapters
-            </NavItem>
+          {/* Chapters — board tab only. The Story tab reads continuously across every
+              chapter, so picking one to "open" doesn't make sense there. */}
+          {!isStory && (
+            <>
+              <NavSectionHeader isDark={isDark}>
+                {pendingProject ? `Chapters — ${pendingProject.name}` : "Select Chapter"}
+              </NavSectionHeader>
+              {pendingProject && (
+                <div style={{
+                  padding: "2px 20px 6px",
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: "10px", letterSpacing: "0.1em",
+                  color: isDark ? "rgba(245,200,74,0.3)" : "rgba(160,100,10,0.4)",
+                }}>
+                  Pick a chapter to open ↓
+                </div>
+              )}
+              {(() => {
+                const statusMap = displayedProject ? chapterStatuses(displayedProject.chapters) : null;
+                return displayedProject?.chapters.map((ch, i) => {
+                  const st = statusMap?.get(ch.id) ?? "planned";
+                  return (
+                    <NavItem
+                      key={ch.id}
+                      isDark={isDark}
+                      active={!pendingProject && ch.id === (currentChapterId ?? navChapterId)}
+                      onClick={() => handleSelectChapter(ch)}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: "8px" }}>
+                        <span>Chapter {i + 1}</span>
+                        {st === "active" && (
+                          <span style={{
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            fontSize: "9px", fontWeight: 700,
+                            letterSpacing: "0.12em", textTransform: "uppercase",
+                            color: isDark ? "#c8a86b" : "rgba(22,19,15,0.6)",
+                            border: `1px solid ${isDark ? "rgba(200,168,107,0.3)" : "rgba(0,0,0,0.15)"}`,
+                            borderRadius: "999px",
+                            padding: "1px 6px",
+                            flexShrink: 0,
+                          }}>Active</span>
+                        )}
+                        {st === "planned" && (
+                          <span style={{
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            fontSize: "9px", fontWeight: 700,
+                            letterSpacing: "0.12em", textTransform: "uppercase",
+                            color: isDark ? "rgba(200,168,107,0.3)" : "rgba(0,0,0,0.25)",
+                            border: `1px solid ${isDark ? "rgba(200,168,107,0.12)" : "rgba(0,0,0,0.08)"}`,
+                            borderRadius: "999px",
+                            padding: "1px 6px",
+                            flexShrink: 0,
+                          }}>Planned</span>
+                        )}
+                      </span>
+                    </NavItem>
+                  );
+                });
+              })()}
+              {!pendingProject && onPlanChapters && (
+                <NavItem isDark={isDark} muted onClick={() => { onPlanChapters?.(); closeDrawer(); }}>
+                  + New Chapter
+                </NavItem>
+              )}
+            </>
           )}
         </div>
       </div>

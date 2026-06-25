@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { DEFAULT_COLUMNS } from "@/lib/constants";
+import { refreshBackstoryGapSignal } from "@/lib/ai/backstory-gap";
 
 export async function updateProjectBriefAction(
   projectId: string,
@@ -716,6 +717,12 @@ export async function completeChapterRetroAction(input: {
     if (projectError) {
       throw new Error(projectError.message);
     }
+  }
+
+  try {
+    await refreshBackstoryGapSignal(supabase, input.projectId);
+  } catch (err) {
+    console.error("completeChapterRetroAction: backstory gap refresh failed", err);
   }
 
   revalidatePath(`/projects/${input.projectId}`);

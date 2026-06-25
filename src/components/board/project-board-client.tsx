@@ -266,6 +266,7 @@ export function ProjectBoardClient({
   onStartRetro,
   onRetroComplete,
   subscriptionStatus,
+  onDrawerClosed,
 }: {
   snapshot: BoardSnapshot;
   chapterProjectId: string;
@@ -278,12 +279,16 @@ export function ProjectBoardClient({
   /** Name of the chapter that needs its recap finished, for the lock message. */
   activeChapterName?: string | null;
   onNavigateToStory?: () => void;
-  initialDrawerMode?: "retro";
+  initialDrawerMode?: "retro" | "new_chapter";
   chapterNumber?: number;
   retroNudge?: boolean;
   onStartRetro?: () => void;
   onRetroComplete?: (data: { chapterStory: string; pullQuote: string; headline?: string; subheadline?: string; chapterType?: string }) => void;
   subscriptionStatus?: SubscriptionStatus;
+  /** Called whenever the Cass drawer closes — lets the parent clear one-shot
+   *  initialDrawerMode triggers (e.g. "new_chapter") so a later normal open
+   *  via the FAB doesn't get hijacked by a stale forced mode. */
+  onDrawerClosed?: () => void;
 }) {
   const router = useRouter();
   const { theme } = useTheme();
@@ -984,7 +989,7 @@ export function ProjectBoardClient({
         onRefocus={bannerState.kind === "running_long" ? () => {} : undefined}
         onEndChapterConfirmed={!snapshot.board.retroCompletedAt ? (nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); refreshData(); } : undefined}
         onRetroComplete={(data) => { onRetroComplete?.(data); refreshData(); }}
-        onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); setCassCompletedMode(false); }}
+        onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); setCassCompletedMode(false); onDrawerClosed?.(); }}
         onTasksAdded={refreshData}
         onTaskDeleted={refreshData}
       />

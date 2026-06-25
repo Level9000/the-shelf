@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { runChapterRefocusDialogue } from "@/lib/ai/anthropic";
 import { strategicDialogueMessageSchema } from "@/lib/ai/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { loadCassStoryContext } from "@/lib/ai/cass-context";
 
 export const runtime = "nodejs";
 
@@ -102,6 +103,8 @@ export async function POST(request: Request) {
     ? Math.floor((Date.now() - new Date(board.created_at as string).getTime()) / (1000 * 60 * 60 * 24))
     : 0;
 
+  const storyContext = await loadCassStoryContext(supabase, projectId);
+
   try {
     const result = await runChapterRefocusDialogue({
       messages,
@@ -111,6 +114,10 @@ export async function POST(request: Request) {
       openingLine: (board.opening_line as string | null) ?? null,
       goal: (board.goal as string | null) ?? null,
       incompleteTasks,
+      storyContext: {
+        northStar: storyContext.northStar,
+        accumulativeStory: storyContext.accumulativeStory,
+      },
     });
 
     return NextResponse.json(result);

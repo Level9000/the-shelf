@@ -55,6 +55,7 @@ export function ProjectWorkspaceShell({
 
   const [retroOpen, setRetroOpen] = useState(false);
   const [allDoneDismissed, setAllDoneDismissed] = useState(false);
+  const [newChapterPromptOpen, setNewChapterPromptOpen] = useState(false);
 
   const [paywallOpen, setPaywallOpen] = useState(
     subscriptionStatus === "trial_ended" || subscriptionStatus === "expired",
@@ -85,7 +86,11 @@ export function ProjectWorkspaceShell({
   // lock the board in a nudge state until they actually kick off the retro.
   const retroNudge = allDone && allDoneDismissed && !retroOpen;
 
-  const drawerMode: "retro" | undefined = retroOpen ? "retro" : undefined;
+  const drawerMode: "retro" | "new_chapter" | undefined = retroOpen
+    ? "retro"
+    : newChapterPromptOpen
+    ? "new_chapter"
+    : undefined;
 
   function handleAllDoneStartRetro() {
     setAllDoneDismissed(true);
@@ -122,7 +127,7 @@ export function ProjectWorkspaceShell({
       mobileEyebrow={snapshot.board.name}
       mobileTitle={snapshot.project.name}
       activeNav="board"
-      onPlanChapters={() => router.push(`/projects/${currentProjectId}?plan=true`)}
+      onPlanChapters={() => setNewChapterPromptOpen(true)}
       currentBoardId={snapshot.board.id}
       currentBoardGoal={snapshot.board.goal ?? null}
       currentBoardCreatedAt={snapshot.board.createdAt ?? null}
@@ -184,6 +189,7 @@ export function ProjectWorkspaceShell({
           chapterProjectId={currentProjectId}
           chapterId={currentChapterId}
           initialDrawerMode={drawerMode}
+          onDrawerClosed={() => setNewChapterPromptOpen(false)}
           chapterNumber={chapterNumber}
           retroNudge={retroNudge}
           onStartRetro={handleAllDoneStartRetro}

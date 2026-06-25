@@ -161,6 +161,40 @@ export const aiRefocusDialogueSchema = z.object({
 
 export type AIRefocusDialogue = z.infer<typeof aiRefocusDialogueSchema>;
 
+export const aiFoundationDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  done: z.boolean(),
+  /** Synthesized backstory paragraph — only populated when done is true. */
+  foundationSummary: z.string().trim().max(3000).default(""),
+});
+
+export type AIFoundationDialogue = z.infer<typeof aiFoundationDialogueSchema>;
+
+export const aiChapterContextDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  done: z.boolean(),
+  /** Raw material captured this turn — only populated when done is true. */
+  capturedNote: z.string().trim().max(3000).default(""),
+});
+
+export type AIChapterContextDialogue = z.infer<typeof aiChapterContextDialogueSchema>;
+
+export const aiFragmentExtractionSchema = z.object({
+  hasFragment: z.boolean(),
+  /** The raw material in the founder's own words, not a summary. Empty when hasFragment is false. */
+  fragment: z.string().trim().max(2000).default(""),
+});
+
+export type AIFragmentExtraction = z.infer<typeof aiFragmentExtractionSchema>;
+
+export const aiBackstoryGapDetectionSchema = z.object({
+  hasGap: z.boolean(),
+  /** A specific, named gap in plain language — e.g. "Sam is mentioned in three chapters but how they met or what he does is never explained." */
+  gap: z.string().trim().max(400).default(""),
+});
+
+export type AIBackstoryGapDetection = z.infer<typeof aiBackstoryGapDetectionSchema>;
+
 export const aiChapterPlannerDialogueSchema = z.object({
   reply: z.string().trim().min(1).max(4000),
   done: z.boolean(),

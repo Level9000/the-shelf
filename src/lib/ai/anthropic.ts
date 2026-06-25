@@ -1,7 +1,11 @@
 import {
   aiArcDialogueSchema,
   aiCassBoardDialogueSchema,
+  aiBackstoryGapDetectionSchema,
+  aiChapterContextDialogueSchema,
   aiChapterPlannerDialogueSchema,
+  aiFoundationDialogueSchema,
+  aiFragmentExtractionSchema,
   aiKickoffDialogueSchema,
   aiProjectKickoffDialogueSchema,
   aiRefocusDialogueSchema,
@@ -20,9 +24,13 @@ import {
   type NarrativeEngineOutput,
 } from "@/lib/ai/schema";
 import {
+  buildBackstoryGapDetectionPrompt,
   buildCassBoardPrompt,
+  buildCassChapterContextPrompt,
   buildCassChapterKickoffPrompt,
+  buildCassFoundationPrompt,
   buildCassOnboardingPrompt,
+  buildFragmentExtractionPrompt,
   buildCassRetroPrompt,
   buildCassStoryShareRefinementPrompt,
   buildTyChapterKickoffPrompt,
@@ -477,6 +485,26 @@ export async function extractTasksFromTranscript(input: {
   );
 }
 
+export async function extractFragmentFromTranscript(input: { transcript: string }) {
+  return runJsonDialogue(
+    buildFragmentExtractionPrompt(input),
+    [{ role: "user", content: "Scan the transcript above for anything worth keeping." }],
+    (text) => aiFragmentExtractionSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
+export async function runBackstoryGapDetection(input: {
+  chapterHighlights: string[];
+  fragmentContents: string[];
+  accumulativeStory?: string | null;
+}) {
+  return runJsonDialogue(
+    buildBackstoryGapDetectionPrompt(input),
+    [{ role: "user", content: "Scan the material above for a recurring, unexplained gap." }],
+    (text) => aiBackstoryGapDetectionSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
 export async function runStrategicTextDialogue(input: {
   messages: StrategicDialogueMessage[];
   projectName: string;
@@ -564,6 +592,11 @@ export async function runCassBoardDialogue(input: {
     title: string;
     description: string | null;
     columnName: string;
+  } | null;
+  storyContext?: {
+    northStar: string | null;
+    accumulativeStory: string | null;
+    fragments?: string[];
   } | null;
 }) {
   const apiKey = requireAnthropicKey();
@@ -724,6 +757,10 @@ export async function runChapterRefocusDialogue(input: {
   openingLine: string | null;
   goal: string | null;
   incompleteTasks: Array<{ id: string; title: string; columnName: string }>;
+  storyContext?: {
+    northStar: string | null;
+    accumulativeStory: string | null;
+  } | null;
 }) {
   const apiKey = requireAnthropicKey();
   const systemPrompt = buildChapterRefocusPrompt(input);
@@ -1201,6 +1238,7 @@ export async function runCassRetroDialogue(input: {
   incompleteTasks: Array<{ title: string }>;
   recenteringType?: string | null;
   avatar?: string | null;
+  pastRetroHighlights?: string[];
 }) {
   const apiKey = requireAnthropicKey();
   const systemPrompt =
@@ -1252,6 +1290,37 @@ export async function runCassRetroDialogue(input: {
   console.warn("[retro] JSON parse failed — returning raw text fallback");
   const cleanText = rawText.replace(/<retro_data>[\s\S]*?<\/retro_data>/g, "").trim();
   return { reply: cleanText.slice(0, 4000) || "Sorry, I lost my train of thought. What were you saying?", done: false, currentBeat: "accounting" as const };
+}
+
+export async function runCassFoundationDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  northStar?: string | null;
+  pastChapterNames?: string[];
+  chapterHighlights?: string[];
+  existingFoundation?: string | null;
+  gapHint?: string | null;
+}) {
+  return runJsonDialogue(
+    buildCassFoundationPrompt(input),
+    input.messages,
+    (text) => aiFoundationDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
+export async function runCassChapterContextDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  chapterName: string;
+  chapterStory?: string | null;
+  chapterGoal?: string | null;
+  existingNotes?: string[];
+}) {
+  return runJsonDialogue(
+    buildCassChapterContextPrompt(input),
+    input.messages,
+    (text) => aiChapterContextDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
 }
 
 // ── Narrative Engine ──────────────────────────────────────────────────────────

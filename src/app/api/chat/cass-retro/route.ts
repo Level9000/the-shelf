@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { runCassRetroDialogue } from "@/lib/ai/anthropic";
 import { strategicDialogueMessageSchema } from "@/lib/ai/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { loadCassStoryContext, summarizeChapterHighlight } from "@/lib/ai/cass-context";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
@@ -102,6 +103,13 @@ export async function POST(request: Request) {
     ? (board.recentering_type as string | null) ?? null
     : null;
 
+  const storyContext = await loadCassStoryContext(supabase, projectId);
+  const pastRetroHighlights = storyContext.chapterSummaries
+    .filter((c) => c.id !== chapterId)
+    .map(summarizeChapterHighlight)
+    .filter((h): h is string => Boolean(h))
+    .slice(-5);
+
   try {
     const result = await runCassRetroDialogue({
       messages,
@@ -121,6 +129,7 @@ export async function POST(request: Request) {
       completedTasks:  completedTasks.map((t) => ({ title: String(t.title) })),
       incompleteTasks: incompleteTasks.map((t) => ({ title: String(t.title) })),
       recenteringType,
+      pastRetroHighlights,
     });
 
     return NextResponse.json(result);

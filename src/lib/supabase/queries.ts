@@ -38,6 +38,11 @@ function mapProject(row: Record<string, unknown>): Project {
       (row.planning_conversations as Array<{ completedAt: string; messages: Array<{ role: string; content: string }> }>) ?? [],
     accumulativeStory: (row.accumulative_story as string | null) ?? null,
     storyUpdatedAt: (row.story_updated_at as string | null) ?? null,
+    storyFoundation: (row.story_foundation as string | null) ?? null,
+    storyFoundationUpdatedAt: (row.story_foundation_updated_at as string | null) ?? null,
+    backstoryGapNote: (row.backstory_gap_note as string | null) ?? null,
+    backstoryGapDetectedAt: (row.backstory_gap_detected_at as string | null) ?? null,
+    backstoryNudgeSessionCount: (row.backstory_nudge_session_count as number | null) ?? 0,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };

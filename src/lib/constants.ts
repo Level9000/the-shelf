@@ -4,6 +4,10 @@ import type { Priority } from "@/types";
  *  Users whose stored terms_version differs will be re-prompted on next login. */
 export const CURRENT_TERMS_VERSION = "2026-05-30";
 
+/** How many Story-tab sessions must pass before the backstory-gap nudge can show again
+ *  after being shown or dismissed. Tune freely — this isn't meant to be precise, just low. */
+export const BACKSTORY_NUDGE_SESSION_CAP = 3;
+
 export const DEFAULT_COLUMNS = [
   "Do This Week",
   "Do Today",

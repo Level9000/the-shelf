@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
+import { extractFragmentFromConversation } from "@/lib/ai/fragment-extraction";
 import type { BoardConversationEntry, Priority, ProposedTask } from "@/types";
 
 type TaskMutationInput = {
@@ -610,5 +611,20 @@ export async function saveBoardConversationAction(input: {
 
   if (updateError) {
     console.error("saveBoardConversationAction: failed to persist", updateError.message);
+    return;
+  }
+
+  // Scan the finished conversation for raw material that didn't make it onto a task.
+  // Non-critical — never block or fail the conversation save over this.
+  try {
+    await extractFragmentFromConversation(supabase, {
+      userId: user.id,
+      projectId: input.projectId,
+      chapterId: input.boardId,
+      source: "board_conversation",
+      messages: input.entry.messages,
+    });
+  } catch (err) {
+    console.error("saveBoardConversationAction: fragment extraction failed", err);
   }
 }

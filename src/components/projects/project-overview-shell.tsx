@@ -18,6 +18,9 @@ import { useTheme } from "@/lib/theme-context";
 import { TapeButton } from "@/components/ui/tape-button";
 import { PaywallModal } from "@/components/paywall/paywall-modal";
 import { StoryWelcomeDrawer } from "@/components/ui/StoryWelcomeDrawer";
+import { StoryFoundationSection } from "@/components/projects/story-foundation";
+import { BackstoryNudgeBanner } from "@/components/projects/backstory-nudge-banner";
+import { ChapterContextPill } from "@/components/projects/chapter-context";
 import type { SubscriptionStatus } from "@/lib/subscription";
 
 const TY_INTRO_KEY = "ty_story_intro_seen";
@@ -790,7 +793,6 @@ function chapterTypeColor(type: string | null, isDark: boolean): string {
 
 function ChapterEntry({
   chapter,
-  previousChapter,
   index,
   projectId,
   isLast,
@@ -798,7 +800,6 @@ function ChapterEntry({
   chapterTasks = [],
 }: {
   chapter: Chapter;
-  previousChapter: Chapter | null;
   index: number;
   projectId: string;
   isLast: boolean;
@@ -859,34 +860,15 @@ function ChapterEntry({
 
   return (
     <div id={`chapter-${chapter.id}`}>
-      {/* Divider between chapters — carries the bridge sentence when present */}
+      {/* Divider between chapters */}
       {index > 0 && (
-        previousChapter?.bridgeSentence ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", margin: "48px 0" }}>
-            <div style={{ flex: 1, height: "1px", background: dividerGrad }} />
-            <p style={{
-              fontFamily: "'Literata', Georgia, serif",
-              fontStyle: "italic",
-              fontSize: "14px",
-              color: isDark ? "rgba(200,168,107,0.55)" : "rgba(0,0,0,0.45)",
-              margin: 0,
-              textAlign: "center",
-              flexShrink: 0,
-              maxWidth: "60%",
-            }}>
-              {previousChapter.bridgeSentence}
-            </p>
-            <div style={{ flex: 1, height: "1px", background: dividerGrad }} />
-          </div>
-        ) : (
-          <div
-            style={{
-              height: "1px",
-              background: dividerGrad,
-              margin: "48px 0",
-            }}
-          />
-        )
+        <div
+          style={{
+            height: "1px",
+            background: dividerGrad,
+            margin: "48px 0",
+          }}
+        />
       )}
 
       <div style={{ transition: "opacity 0.2s" }}>
@@ -1023,6 +1005,22 @@ function ChapterEntry({
           </div>
         )}
 
+        {/* Bridge into the next chapter — sits just above the action buttons */}
+        {chapter.bridgeSentence && (
+          <p style={{
+            fontFamily: "'Literata', Georgia, serif",
+            fontStyle: "italic",
+            fontSize: "14px",
+            lineHeight: 1.6,
+            color: isDark ? "rgba(200,168,107,0.55)" : "rgba(0,0,0,0.45)",
+            margin: "24px 0 0",
+            textAlign: "center",
+          }}>
+            {chapter.bridgeSentence}
+          </p>
+        )}
+
+        <ChapterContextPill projectId={projectId} chapter={chapter} isDark={isDark} />
 
         {/* ── Chat history threads — collapsed behind a single disclosure ── */}
         {threads.length > 0 && (
@@ -1376,6 +1374,9 @@ export function ProjectOverviewShell({
                 />
               </header>
 
+              <BackstoryNudgeBanner project={project} isDark={isDark} />
+              <StoryFoundationSection project={project} isDark={isDark} />
+
               {/* ── Project-level conversations ── */}
               {(() => {
                 const projectThreads: ChatThread[] = [];
@@ -1471,7 +1472,6 @@ export function ProjectOverviewShell({
                     <ChapterEntry
                       key={chapter.id}
                       chapter={chapter}
-                      previousChapter={i > 0 ? project.chapters[i - 1] : null}
                       index={i}
                       projectId={project.id}
                       isLast={i === project.chapters.length - 1}

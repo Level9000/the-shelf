@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { ArrowRight, ArrowUp, Check, CheckCircle, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
+import { ArrowUp, Check, CheckCircle, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
 import { TapeButton } from "@/components/ui/tape-button";
 import type { AICassBoardDialogue } from "@/lib/ai/schema";
 import type { Board, BoardColumn, BoardConversationEntry, Priority, Project, ProposedTask, Task, WorkflowTemplate } from "@/types";
@@ -50,7 +50,7 @@ declare global {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "retro" | "onboarding_welcome";
+type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "retro" | "onboarding_welcome" | "new_chapter_prompt";
 type ChatSubMode = "tasks" | "braindump" | "breakup" | "end_chapter" | "chronicle";
 type RefocusPhase = "chat" | "triage" | "retro";
 type TriageDecision = "keep" | "move" | "delete";
@@ -644,6 +644,9 @@ function EndChapterView({
 }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const textPrimary  = isDark ? "#d4cec4"               : "rgba(26,14,0,0.88)";
+  const surface       = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)";
+  const surfaceGold   = isDark ? "rgba(200,168,107,0.07)" : "rgba(200,168,107,0.10)";
   const doneColumnId = columns.find((c) => c.name.toLowerCase() === "done")?.id;
   const incompleteTasks = tasks.filter((t) => !doneColumnId || t.columnId !== doneColumnId);
   const hasIncompleteTasks = incompleteTasks.length > 0;
@@ -685,14 +688,13 @@ function EndChapterView({
     <>
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 12px", display: "flex", flexDirection: "column", gap: "14px" }}>
 
-        {/* Cass message */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
-          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-          <div style={CASS_B}>
+        {/* Cass message — plain text, no bubble, matching the menu's question style */}
+        <div style={{ maxWidth: "85%", width: "100%" }}>
+          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>
             {hasIncompleteTasks
               ? `${incompleteTasks.length} task${incompleteTasks.length === 1 ? "" : "s"} still open. What should happen to ${incompleteTasks.length === 1 ? "it" : "them"}?`
-              : "All tasks are done. Ready to write this chapteru2019s story?"}
-          </div>
+              : "All tasks are done. Ready to write this chapter’s story?"}
+          </p>
         </div>
 
         {hasIncompleteTasks && (
@@ -724,20 +726,15 @@ function EndChapterView({
                 background: choice === "carry_over" ? "rgba(200,168,107,0.09)" : "rgba(255,255,255,0.03)",
                 border: `1px solid ${choice === "carry_over" ? "rgba(200,168,107,0.5)" : "rgba(200,168,107,0.18)"}`,
                 borderRadius: "12px", padding: "14px 16px",
-                display: "flex", alignItems: "flex-start", gap: "14px",
-                cursor: "pointer", textAlign: "left", width: "100%",
+                textAlign: "left", width: "100%",
+                cursor: "pointer",
                 transition: "background 0.15s, border-color 0.15s",
               }}
               onMouseEnter={(e) => { if (choice !== "carry_over") { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.05)"; } }}
               onMouseLeave={(e) => { if (choice !== "carry_over") { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
             >
-              <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${choice === "carry_over" ? "#c8a86b" : "rgba(200,168,107,0.35)"}`, background: choice === "carry_over" ? "rgba(200,168,107,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", marginTop: "2px", transition: "all 0.15s" }}>
-                {choice === "carry_over" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b" }} />}
-              </div>
-              <div>
-                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Move all to the next chapter</p>
-                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Open tasks move into the next chapter&apos;s backlog</p>
-              </div>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: textPrimary, margin: 0 }}>Move all to the next chapter</p>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.5)", margin: "5px 0 0" }}>Open tasks move into the next chapter&apos;s backlog</p>
             </button>
 
             {/* Select which tasks to move */}
@@ -748,20 +745,15 @@ function EndChapterView({
                 background: choice === "select" ? "rgba(200,168,107,0.09)" : "rgba(255,255,255,0.03)",
                 border: `1px solid ${choice === "select" ? "rgba(200,168,107,0.5)" : "rgba(200,168,107,0.18)"}`,
                 borderRadius: "12px", padding: "14px 16px",
-                display: "flex", alignItems: "flex-start", gap: "14px",
-                cursor: "pointer", textAlign: "left", width: "100%",
+                textAlign: "left", width: "100%",
+                cursor: "pointer",
                 transition: "background 0.15s, border-color 0.15s",
               }}
               onMouseEnter={(e) => { if (choice !== "select") { e.currentTarget.style.borderColor = "rgba(200,168,107,0.35)"; e.currentTarget.style.background = "rgba(200,168,107,0.05)"; } }}
               onMouseLeave={(e) => { if (choice !== "select") { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
             >
-              <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${choice === "select" ? "#c8a86b" : "rgba(200,168,107,0.35)"}`, background: choice === "select" ? "rgba(200,168,107,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", marginTop: "2px", transition: "all 0.15s" }}>
-                {choice === "select" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b" }} />}
-              </div>
-              <div>
-                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "#d4cec4", margin: 0, lineHeight: "1.3" }}>Select the tasks I want to move</p>
-                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Pick which ones carry over — everything else is deleted</p>
-              </div>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: textPrimary, margin: 0 }}>Select the tasks I want to move</p>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.5)", margin: "5px 0 0" }}>Pick which ones carry over — everything else is deleted</p>
             </button>
 
             {/* Task picker — shown once "select" is chosen */}
@@ -830,41 +822,46 @@ function EndChapterView({
                 background: choice === "delete" ? "rgba(248,113,113,0.07)" : "rgba(255,255,255,0.03)",
                 border: `1px solid ${choice === "delete" ? "rgba(248,113,113,0.35)" : "rgba(200,168,107,0.18)"}`,
                 borderRadius: "12px", padding: "14px 16px",
-                display: "flex", alignItems: "flex-start", gap: "14px",
-                cursor: "pointer", textAlign: "left", width: "100%",
+                textAlign: "left", width: "100%",
+                cursor: "pointer",
                 transition: "background 0.15s, border-color 0.15s",
               }}
               onMouseEnter={(e) => { if (choice !== "delete") { e.currentTarget.style.borderColor = "rgba(248,113,113,0.25)"; e.currentTarget.style.background = "rgba(248,113,113,0.04)"; } }}
               onMouseLeave={(e) => { if (choice !== "delete") { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; } }}
             >
-              <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${choice === "delete" ? "rgba(248,113,113,0.7)" : "rgba(200,168,107,0.35)"}`, background: choice === "delete" ? "rgba(248,113,113,0.2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", marginTop: "2px", transition: "all 0.15s" }}>
-                {choice === "delete" && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#f87171" }} />}
-              </div>
-              <div>
-                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: choice === "delete" ? "#fca5a5" : "#d4cec4", margin: 0, lineHeight: "1.3" }}>Remove them — this chapter is done</p>
-                <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Incomplete tasks are deleted. The chapter closes clean.</p>
-              </div>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: choice === "delete" ? "#fca5a5" : textPrimary, margin: 0 }}>Remove them — this chapter is done</p>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.5)", margin: "5px 0 0" }}>Incomplete tasks are deleted. The chapter closes clean.</p>
             </button>
           </>
         )}
 
         {error && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#f87171", margin: 0 }}>{error}</p>}
-      </div>
 
-      {/* Footer */}
-      <div style={{ flexShrink: 0, borderTop: "1px solid rgba(200,168,107,0.1)", padding: "10px 16px 14px", display: "flex" }}>
-        <TapeButton
+        {/* Start the recap — same plain card style as the menu options */}
+        <button
           type="button"
           onClick={handleConfirm}
           disabled={isPending || (hasIncompleteTasks && !choice)}
-          variant="primary"
-          className="w-full"
+          style={{
+            background: isPending || (hasIncompleteTasks && !choice) ? surface : surfaceGold,
+            border: `1px solid rgba(200,168,107,${isPending || (hasIncompleteTasks && !choice) ? "0.12" : "0.45"})`,
+            borderRadius: "12px", padding: "14px 16px",
+            display: "flex", alignItems: "center", gap: "10px",
+            cursor: isPending || (hasIncompleteTasks && !choice) ? "default" : "pointer",
+            textAlign: "left", width: "100%",
+            transition: "background 0.15s, border-color 0.15s",
+            opacity: isPending || (hasIncompleteTasks && !choice) ? 0.5 : 1,
+          }}
+          onMouseEnter={(e) => { if (!isPending && !(hasIncompleteTasks && !choice)) e.currentTarget.style.background = "rgba(200,168,107,0.16)"; }}
+          onMouseLeave={(e) => { if (!isPending && !(hasIncompleteTasks && !choice)) e.currentTarget.style.background = surfaceGold; }}
         >
-          {isPending
-            ? <LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} />
-            : <ArrowRight size={14} />}
-          {isPending ? "Working…" : "Start the recap"}
-        </TapeButton>
+          {isPending && <LoaderCircle size={14} style={{ color: "#c8a86b", animation: "cassBoardSpin 1s linear infinite", flexShrink: 0 }} />}
+          <div>
+            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: textPrimary, margin: 0 }}>
+              {isPending ? "Working…" : "Start the recap"}
+            </p>
+          </div>
+        </button>
       </div>
     </>
   );
@@ -906,7 +903,7 @@ export function CassBoardDrawer({
   completedChapterMode?: boolean;
   retroNudge?: boolean;
   onStartRetro?: () => void;
-  initialMode?: "retro";
+  initialMode?: "retro" | "new_chapter";
   fromOnboarding?: boolean;
   chapterNumber?: number;
   chapterDaysLeft?: number | null;
@@ -969,13 +966,14 @@ export function CassBoardDrawer({
   };
   // eslint-disable-next-line @typescript-eslint/no-shadow
   const USER_B: React.CSSProperties = {
-    background: isDark ? "#3a3a3a" : "rgba(26,14,0,0.08)",
+    background: "rgba(200,168,107,0.1)",
+    border: "1px solid rgba(200,168,107,0.22)",
     borderRadius: "18px 18px 4px 18px",
     padding: "10px 14px",
     fontFamily: "'Lora', Georgia, serif",
     fontSize: "15px",
     lineHeight: "1.55",
-    color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.85)",
+    color: isDark ? "#e8c789" : "#8a6d2f",
     maxWidth: "80%",
   };
 
@@ -1020,6 +1018,7 @@ export function CassBoardDrawer({
   const [suggestSaveAsTemplate, setSuggestSaveAsTemplate] = useState(false);
   const [isSaving, startSaveTransition] = useTransition();
   const [savedOk, setSavedOk] = useState(false);
+  const [newChapterDeclined, setNewChapterDeclined] = useState(false);
 
   // ── Template save state ───────────────────────────────────────────────────────
   const [templateSaving, startTemplateSaveTransition] = useTransition();
@@ -1059,6 +1058,7 @@ export function CassBoardDrawer({
     setRfTriageMap({});
     setRfError(null);
     setRfDoneCount(null);
+    setNewChapterDeclined(false);
 
     // If arriving from onboarding, show the welcome message first
     if (fromOnboarding) {
@@ -1072,6 +1072,16 @@ export function CassBoardDrawer({
     // If forced into retro mode, skip straight to that experience
     if (initialMode === "retro") {
       setMode("retro");
+      setMenuDisplayed("");
+      setOptionsReady(false);
+      setMenuSelected(null);
+      return;
+    }
+
+    // Starting a new chapter requires ending the current one first — explain that
+    // before anything else, rather than dropping them into the normal menu.
+    if (initialMode === "new_chapter") {
+      setMode("new_chapter_prompt");
       setMenuDisplayed("");
       setOptionsReady(false);
       setMenuSelected(null);
@@ -1630,6 +1640,7 @@ export function CassBoardDrawer({
                mode === "completed" ? "What's Next" :
                mode === "retro_nudge" ? "Chapter Recap" :
                mode === "refocus" ? "Refocus" :
+               mode === "new_chapter_prompt" ? "New Chapter" :
                "Add Tasks"}
             </span>
           </div>
@@ -2021,7 +2032,7 @@ export function CassBoardDrawer({
                         <p key={j} style={{
                           fontFamily: "'Lora', Georgia, serif",
                           fontSize: "15px", lineHeight: "1.65",
-                          color: textPrimary,
+                          color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)",
                           margin: j > 0 ? "10px 0 0" : 0,
                         }}>
                           {para}
@@ -2496,6 +2507,56 @@ export function CassBoardDrawer({
             </div>
           );
         })()}
+
+        {/* ── New chapter prompt — starting a new chapter means ending this one first ── */}
+        {mode === "new_chapter_prompt" && (
+          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
+              <div style={CASS_B}>
+                {newChapterDeclined
+                  ? "Sounds good."
+                  : "To start a new chapter, we'll need to end the one you're working on now. Want to do that?"}
+              </div>
+            </div>
+            {!newChapterDeclined && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => selectMode("end_chapter")}
+                  style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
+                >
+                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
+                  <div><p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>End this chapter early</p></div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewChapterDeclined(true)}
+                  style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "100ms", opacity: 0 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
+                >
+                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
+                  <div><p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>No thanks</p></div>
+                </button>
+              </div>
+            )}
+            {newChapterDeclined && (
+              <button
+                type="button"
+                onClick={onClose}
+                style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
+              >
+                <X size={14} style={{ color: textSecondary, flexShrink: 0 }} />
+                <div><p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Close</p></div>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* ── Retro nudge mode ── */}
         {mode === "retro_nudge" && (

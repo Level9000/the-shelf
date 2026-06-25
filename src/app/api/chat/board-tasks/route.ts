@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { runCassBoardDialogue } from "@/lib/ai/anthropic";
 import { strategicDialogueMessageSchema } from "@/lib/ai/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { loadCassStoryContext } from "@/lib/ai/cass-context";
 
 export const runtime = "nodejs";
 
@@ -118,6 +119,9 @@ export async function POST(request: Request) {
       .map((s) => s.title),
   }));
 
+  // ── Shared story context (north star, accumulative story, health) ─────────────
+  const storyContext = await loadCassStoryContext(supabase, projectId);
+
   // ── Call AI ───────────────────────────────────────────────────────────────────
   try {
     const result = await runCassBoardDialogue({
@@ -129,6 +133,11 @@ export async function POST(request: Request) {
       existingTasks,
       existingTemplates,
       breakupTask,
+      storyContext: {
+        northStar: storyContext.northStar,
+        accumulativeStory: storyContext.accumulativeStory,
+        fragments: storyContext.fragments.slice(0, 10).map((f) => f.content),
+      },
     });
 
     return NextResponse.json(result);

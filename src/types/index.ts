@@ -66,6 +66,11 @@ export type Project = {
   }>;
   accumulativeStory: string | null;
   storyUpdatedAt: string | null;
+  storyFoundation: string | null;
+  storyFoundationUpdatedAt: string | null;
+  backstoryGapNote: string | null;
+  backstoryGapDetectedAt: string | null;
+  backstoryNudgeSessionCount: number;
   createdAt: string;
   updatedAt: string;
 };
