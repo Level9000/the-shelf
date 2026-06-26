@@ -461,115 +461,121 @@ function CassChronicleDrawer({
         <CassProgressBar percent={progressPercent} />
 
         {/* Header */}
-        <div style={{
-          background: "#0a0a0a",
-          borderBottom: "1px solid #1e1e1e",
-          padding: "10px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-          flexShrink: 0,
-        }}>
-          {mode === "chat" && (
+        <div style={{ flexShrink: 0, position: "relative" }}>
+          {/* Authored By banner */}
+          <div style={{
+            background: "#0a0a0a",
+            borderBottom: "1px solid #1e1e1e",
+            padding: "8px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative",
+          }}>
+            {mode === "chat" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("audience");
+                  setSelectedAudience(null);
+                  setPressTemplate(null);
+                  setPressMessages([]);
+                  setPressDraft("");
+                  setPressReadyToGenerate(false);
+                }}
+                style={{
+                  position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)",
+                  background: "transparent", border: "none", cursor: "pointer",
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: "12px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase",
+                  color: "rgba(248,248,246,0.35)", padding: "4px 6px",
+                  transition: "color 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.75)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.35)"; }}
+              >
+                ← back
+              </button>
+            )}
+            <img
+              src="/icons/authored-by-tape-icon.png"
+              alt="Authored By"
+              style={{ height: "52px", width: "auto", objectFit: "contain" }}
+            />
             <button
               type="button"
-              onClick={() => {
-                setMode("audience");
-                setSelectedAudience(null);
-                setPressTemplate(null);
-                setPressMessages([]);
-                setPressDraft("");
-                setPressReadyToGenerate(false);
-              }}
+              onClick={onClose}
+              aria-label="Close"
               style={{
-                position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)",
-                background: "transparent", border: "none", cursor: "pointer",
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontSize: "12px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase",
-                color: "rgba(248,248,246,0.35)", padding: "4px 6px",
-                transition: "color 0.15s",
+                position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)",
+                width: "32px", height: "32px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.06)",
+                color: "#888", border: "none", cursor: "pointer",
+                transition: "background 0.15s, color 0.15s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.75)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.35)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
             >
-              ← back
+              <X size={14} />
             </button>
-          )}
-          <img
-            src="/icons/authored-by-tape-icon.png"
-            alt="Authored By"
-            style={{ height: "40px", width: "auto", objectFit: "contain" }}
-          />
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            style={{
-              position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)",
-              background: "transparent", border: "none", cursor: "pointer",
-              color: "rgba(248,248,246,0.3)", padding: "4px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "color 0.2s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.8)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.3)"; }}
-          >
-            <X size={15} />
-          </button>
+          </div>
+          {/* Label bar */}
+          <div style={{ background: "#2a2208", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(200,168,107,0.85)" }}>
+              {mode === "audience" ? "Share Your Story" : "Authored By"}
+            </span>
+          </div>
         </div>
 
         {/* ── Audience picker ── */}
         {mode === "audience" && (
-          <div style={{ flex: 1, overflowY: "auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: "16px", scrollbarWidth: "none" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", scrollbarWidth: "none" }}>
             {/* Cass FAB — anchored at top of feed */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
               <CassRecorder animState="idle" size="sm" />
               <span style={{
                 fontFamily: "'Barlow Condensed', sans-serif",
-                fontSize: "10px", fontWeight: 600,
+                fontSize: "11px", fontWeight: 600,
                 letterSpacing: "0.14em", textTransform: "uppercase",
                 color: "rgba(248,248,246,0.35)",
               }}>
                 Cass · Story Guide
               </span>
             </div>
-            <p style={{
-              fontFamily: "'Lora', Georgia, serif",
-              fontSize: "17px",
-              lineHeight: "1.55",
-              color: "rgba(248,248,246,0.85)",
-              margin: 0,
-              padding: "0 2px",
-            }}>
-              Who would you like to share your story with?
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {AUDIENCE_OPTIONS.map(({ id, label, description }, i) => (
+            <div style={{ maxWidth: "85%", width: "100%" }}>
+              <p style={{
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: "15px",
+                lineHeight: "1.65",
+                color: "#f8f8f6",
+                margin: 0,
+              }}>
+                Who would you like to share your story with?
+              </p>
+            </div>
+            <div style={{ width: "100%", maxWidth: "85%", display: "flex", flexDirection: "column", gap: "8px" }}>
+              {AUDIENCE_OPTIONS.map(({ id, label }, i) => (
                 <button
                   key={id}
                   type="button"
                   onClick={() => enterChatMode(id)}
                   style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(245,200,74,0.15)",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(200,168,107,0.18)",
                     borderRadius: "12px",
-                    padding: "14px 16px",
-                    display: "flex", alignItems: "center", gap: "14px",
-                    cursor: "pointer", textAlign: "left", width: "100%",
-                    transition: "border-color 0.15s, background 0.15s",
+                    padding: "14px 18px",
+                    textAlign: "left", width: "100%",
+                    cursor: "pointer",
                     animation: "chronicleOptionIn 0.28s ease forwards",
                     animationDelay: `${i * 80}ms`,
                     opacity: 0,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(245,200,74,0.4)"; e.currentTarget.style.background = "rgba(245,200,74,0.06)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(245,200,74,0.15)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
                 >
-                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(245,200,74,0.4)", background: "transparent" }} />
-                  <div>
-                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", fontWeight: 600, color: "rgba(248,248,246,0.9)", margin: 0, lineHeight: "1.3" }}>{label}</p>
-                    <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "12px", letterSpacing: "0.05em", color: "rgba(248,248,246,0.4)", margin: "3px 0 0" }}>{description}</p>
-                  </div>
+                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: "#d4cec4", margin: 0 }}>{label}</p>
                 </button>
               ))}
             </div>
