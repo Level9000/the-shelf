@@ -51,7 +51,7 @@ declare global {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "retro" | "onboarding_welcome" | "new_chapter_prompt";
-type ChatSubMode = "tasks" | "braindump" | "breakup" | "end_chapter" | "chronicle";
+type ChatSubMode = "tasks" | "breakup" | "end_chapter" | "chronicle";
 type RefocusPhase = "chat" | "triage" | "retro";
 type TriageDecision = "keep" | "move" | "delete";
 type BrainDumpState = "idle" | "recording" | "processing" | "error";
@@ -74,9 +74,8 @@ function AvatarNameLabel() {
 }
 
 const MENU_OPTIONS: Array<{ key: ChatSubMode; label: string; sub: string }> = [
-  { key: "tasks",     label: "Talk it out together. Strategize and create new tasks.", sub: "" },
-  { key: "braindump", label: "Voice memo. Turn recorded audio into new tasks.",        sub: "" },
-  { key: "chronicle", label: "Add tasks I've already completed",                       sub: "" },
+  { key: "tasks",     label: "Tell me what's on your mind", sub: "" },
+  { key: "chronicle", label: "Add tasks I've already completed", sub: "" },
 ];
 
 // ── Styles ───────────────────────────────────────────────────────────────────
@@ -903,7 +902,7 @@ export function CassBoardDrawer({
   completedChapterMode?: boolean;
   retroNudge?: boolean;
   onStartRetro?: () => void;
-  initialMode?: "retro" | "new_chapter";
+  initialMode?: "retro" | "new_chapter" | "end_chapter";
   fromOnboarding?: boolean;
   chapterNumber?: number;
   chapterDaysLeft?: number | null;
@@ -949,7 +948,7 @@ export function CassBoardDrawer({
     : MENU_QUESTION;
   const visibleMenuOptions = isPastChapter
     ? MENU_OPTIONS.filter((opt) => opt.key === "chronicle")
-    : MENU_OPTIONS;
+    : MENU_OPTIONS.filter((opt) => opt.key !== "chronicle");
 
   // Shadow module-level constants with theme-aware versions
   // eslint-disable-next-line @typescript-eslint/no-shadow
@@ -991,14 +990,10 @@ export function CassBoardDrawer({
   const [chatError, setChatError] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<AICassBoardDialogue["status"]>("chatting");
 
-  // ── Braindump transcript (for Chronicle history) ──────────────────────────────
-  const [braindumpTranscript, setBraindumpTranscript] = useState<string | null>(null);
-  const [braindumpAddingMore, setBraindumpAddingMore] = useState(false);
-
   // ── Chronicle state ───────────────────────────────────────────────────────────
   const [chronicleMethod, setChronicleMethod] = useState<"talk" | "voice" | null>(null);
 
-  // ── Inline voice state (braindump + chronicle-voice) ────────────────────────
+  // ── Inline voice state (chronicle-voice — logging already-completed work) ────
   const [voicePhase, setVoicePhase] = useState<"column_select" | "voice" | "text_input" | "processing">("column_select");
   const [voiceColumn, setVoiceColumn] = useState("");
   const [voiceListening, setVoiceListening] = useState(false);
@@ -1010,6 +1005,12 @@ export function CassBoardDrawer({
   const voiceTranscriptRef = useRef("");
   const voicePauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // ── Dictation into the chat textarea (tasks/braindump mode) ──────────────────
+  const [chatMicListening, setChatMicListening] = useState(false);
+  const chatMicRecognitionRef = useRef<any>(null);
+  const chatMicTranscriptRef = useRef("");
+  const chatMicPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Review / confirm state ────────────────────────────────────────────────────
   const [proposedTasks, setProposedTasks] = useState<ProposedTask[]>([]);
@@ -1049,8 +1050,6 @@ export function CassBoardDrawer({
     setSavedOk(false);
     setTemplateSaved(false);
     setTemplateError(null);
-    setBraindumpTranscript(null);
-    setBraindumpAddingMore(false);
     setChronicleMethod(null);
     setRfPhase("chat");
     setRfMessages([]);
@@ -1082,6 +1081,17 @@ export function CassBoardDrawer({
     // before anything else, rather than dropping them into the normal menu.
     if (initialMode === "new_chapter") {
       setMode("new_chapter_prompt");
+      setMenuDisplayed("");
+      setOptionsReady(false);
+      setMenuSelected(null);
+      return;
+    }
+
+    // Triggered from the chapter-focus-bar "End chapter" link — skip the
+    // additive "add something" menu entirely and go straight there.
+    if (initialMode === "end_chapter") {
+      setChatSubMode("end_chapter");
+      setMode("chat");
       setMenuDisplayed("");
       setOptionsReady(false);
       setMenuSelected(null);
@@ -1179,25 +1189,17 @@ export function CassBoardDrawer({
     setChatSubMode(sub);
     setTimeout(() => setMode("chat"), 320);
 
-    // reset voice state when entering braindump
-    if (sub === "braindump") {
-      setVoicePhase("column_select");
-      setVoiceColumn("");
-      setVoiceListening(false);
-      setVoiceError(null);
-      setVoiceLiveTranscript("");
-      setVoiceFinalTranscript(null);
-    }
-
     if (sub === "tasks") {
       // Send context to the API but don't add the synthetic user message to UI —
       // menuSelected already shows the user's choice as a gray bubble above.
-      const openingMsg: Msg = { role: "user", content: "I want to add some specific tasks." };
+      // "braindump" mode: Cass listens and only clarifies when something's too
+      // vague, rather than running a structured interview.
+      const openingMsg: Msg = { role: "user", content: "I have some things on my mind for this chapter." };
       setTimeout(() => {
         setMessages([]);
         startTransition(async () => {
           try {
-            const result = await callApi([openingMsg], "tasks");
+            const result = await callApi([openingMsg], "braindump");
             applyAiResult(result, []);
           } catch (err) {
             setChatError(err instanceof Error ? err.message : "Something went wrong.");
@@ -1206,12 +1208,19 @@ export function CassBoardDrawer({
       }, 340);
     }
     // chronicle: just enter chat mode — sub-choice screen handles the rest
-    // braindump: no initial message — the recorder handles it
   }
 
   // ── Text chat helpers ─────────────────────────────────────────────────────────
+  // The merged "tell me what's on your mind" entry point uses the "braindump"
+  // dialogue mode — Cass listens and only asks a clarifying question when
+  // something is too vague, rather than running a structured interview.
+  // Chronicle's "talk it out" sub-flow keeps the more deliberate "tasks" prompt.
   function sendMessage() {
-    const content = draft.trim();
+    sendMessageWithText(draft);
+  }
+
+  function sendMessageWithText(text: string) {
+    const content = text.trim();
     if (!content || isPending || isSaving) return;
     const next: Msg[] = [...messages, { role: "user", content }];
     setMessages(next);
@@ -1221,7 +1230,7 @@ export function CassBoardDrawer({
       try {
         const result = chatSubMode === "breakup"
           ? await callApiBreakup(next)
-          : await callApi(next, "tasks");
+          : await callApi(next, chatSubMode === "chronicle" ? "tasks" : "braindump");
         applyAiResult(result, next);
       } catch (err) {
         setChatError(err instanceof Error ? err.message : "Something went wrong.");
@@ -1229,7 +1238,71 @@ export function CassBoardDrawer({
     });
   }
 
-  async function callApi(msgs: Msg[], sub: ChatSubMode): Promise<AICassBoardDialogue> {
+  // ── Dictation into the chat textarea ──────────────────────────────────────────
+  // Lets the user speak their brain dump instead of typing it. Auto-sends after
+  // a pause, same feel as the old dedicated voice-memo recorder.
+  function stopChatMic() {
+    if (chatMicPauseTimerRef.current) clearTimeout(chatMicPauseTimerRef.current);
+    if (chatMicRecognitionRef.current) {
+      chatMicRecognitionRef.current.onresult = null;
+      chatMicRecognitionRef.current.onend = null;
+      chatMicRecognitionRef.current.onerror = null;
+      try { chatMicRecognitionRef.current.stop(); } catch { /* ok */ }
+      chatMicRecognitionRef.current = null;
+    }
+    setChatMicListening(false);
+  }
+
+  function scheduleChatMicAutoSend(text: string) {
+    if (chatMicPauseTimerRef.current) clearTimeout(chatMicPauseTimerRef.current);
+    chatMicPauseTimerRef.current = setTimeout(() => {
+      if (text.trim()) {
+        stopChatMic();
+        sendMessageWithText(text.trim());
+      }
+    }, 1800);
+  }
+
+  function startChatMic() {
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    if (!SR) { setChatError("Speech recognition isn't supported in this browser."); return; }
+    setChatError(null);
+    chatMicTranscriptRef.current = "";
+    setDraft("");
+    const rec = new SR();
+    rec.continuous = !isIOS;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    chatMicRecognitionRef.current = rec;
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          chatMicTranscriptRef.current += (chatMicTranscriptRef.current ? " " : "") + e.results[i][0].transcript.trim();
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      setDraft(chatMicTranscriptRef.current + (interim ? (chatMicTranscriptRef.current ? " " : "") + interim : ""));
+      scheduleChatMicAutoSend(chatMicTranscriptRef.current);
+    };
+    rec.onend = () => {
+      if (chatMicPauseTimerRef.current) clearTimeout(chatMicPauseTimerRef.current);
+      setChatMicListening(false);
+      if (isIOS && chatMicTranscriptRef.current.trim()) {
+        sendMessageWithText(chatMicTranscriptRef.current.trim());
+      }
+    };
+    rec.onerror = () => { if (chatMicPauseTimerRef.current) clearTimeout(chatMicPauseTimerRef.current); setChatMicListening(false); };
+    rec.start();
+    setChatMicListening(true);
+  }
+
+  function toggleChatMic() {
+    if (chatMicListening) stopChatMic(); else startChatMic();
+  }
+
+  async function callApi(msgs: Msg[], sub: "tasks" | "braindump" | "breakup"): Promise<AICassBoardDialogue> {
     const res = await fetch("/api/chat/board-tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1277,14 +1350,12 @@ export function CassBoardDrawer({
     }
   }
 
-  // ── Voice (braindump) cards ready callback ────────────────────────────────────
-  const handleVoiceCardsReady = useCallback((tasks: ProposedTask[], transcript: string, _columnName: string) => {
+  // ── Voice (chronicle) cards ready callback ────────────────────────────────────
+  const handleVoiceCardsReady = useCallback((tasks: ProposedTask[], _transcript: string, _columnName: string) => {
     const stamped = tasks.map((t, i) => ({ ...t, id: t.id ?? `voice-${i}-${Date.now()}` }));
     setProposedTasks((prev) => [...prev, ...stamped]);
     setReviewTasks((prev) => [...prev, ...stamped]);
-    setBraindumpTranscript(transcript);
     setSuggestSaveAsTemplate(false);
-    setBraindumpAddingMore(false);
   }, []);
 
   // ── Inline voice helpers ──────────────────────────────────────────────────────
@@ -1301,7 +1372,8 @@ export function CassBoardDrawer({
     setVoiceLiveTranscript("");
   }
 
-  function processVoiceTranscript(transcript: string, col: string) {
+  // Used by chronicle's "already done" voice memo, which always forces Done.
+  function processVoiceTranscript(transcript: string, forcedColumn?: string) {
     setVoiceFinalTranscript(transcript);
     setVoiceLiveTranscript("");
     setVoicePhase("processing");
@@ -1310,16 +1382,16 @@ export function CassBoardDrawer({
         const res = await fetch("/api/voice/process", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, transcript }),
+          body: JSON.stringify({ projectId: project.id, boardId: board.id, transcript }),
         });
         const payload = await res.json() as { tasks?: ProposedTask[]; error?: string };
         if (!res.ok) throw new Error(payload.error ?? "Processing failed.");
         const tasks = (payload.tasks ?? []).map((t: ProposedTask, i: number) => ({
           ...t,
           id: t.id ?? `voice-${i}`,
-          suggestedColumn: col,
+          suggestedColumn: forcedColumn || t.suggestedColumn,
         }));
-        handleVoiceCardsReady(tasks, transcript, col);
+        handleVoiceCardsReady(tasks, transcript, forcedColumn ?? "");
       } catch (err) {
         setVoiceError(err instanceof Error ? err.message : "Something went wrong.");
         setVoicePhase("voice");
@@ -1411,25 +1483,15 @@ export function CassBoardDrawer({
         }
 
         // Persist conversation to board history (fire-and-forget, non-blocking)
-        const conversationMessages: Array<{ role: string; content: string }> =
-          chatSubMode === "braindump" && braindumpTranscript
-            ? [
-                { role: "user", content: braindumpTranscript },
-                { role: "assistant", content: `Pulled ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} from your brain dump.` },
-              ]
-            : messages;
-
-        if (conversationMessages.length > 0) {
+        if (messages.length > 0) {
           const entry: BoardConversationEntry = {
             id: crypto.randomUUID(),
             mode: chatSubMode as BoardConversationEntry["mode"],
-            label: chatSubMode === "braindump"
-              ? "Voice Brain Dump"
-              : chatSubMode === "breakup" && breakupTask
+            label: chatSubMode === "breakup" && breakupTask
               ? `Broke up: "${breakupTask.title}"`
               : "Task Planning",
             completedAt: new Date().toISOString(),
-            messages: conversationMessages,
+            messages,
             taskCount: reviewTasks.length,
           };
           saveBoardConversationAction({ boardId: board.id, projectId: project.id, entry }).catch(() => {/* non-critical */});
@@ -1543,7 +1605,6 @@ export function CassBoardDrawer({
   }
 
   const hasProposals = proposedTasks.length > 0;
-  const isBrainDump = chatSubMode === "braindump";
   const isBreakupMode = chatSubMode === "breakup";
   const isEndChapterMode = chatSubMode === "end_chapter";
   const isChronicleMode = chatSubMode === "chronicle";
@@ -1561,7 +1622,6 @@ export function CassBoardDrawer({
     mode === "refocus" && rfPhase === "retro"  ? 80 :
     mode === "menu" ? 15 :
     mode === "completed" ? 100 :
-    mode === "retro_nudge" ? 85 :
     savedOk ? 90 :
     aiStatus === "ready_for_review" ? 72 :
     55;
@@ -1595,7 +1655,7 @@ export function CassBoardDrawer({
         aria-hidden={!open}
       >
         {/* Progress bar — only for retro/refocus/lifecycle flows, not for menu/chat task flows */}
-        {(mode === "refocus" || mode === "completed" || mode === "retro_nudge") && <CassProgressBar percent={progressPercent} />}
+        {(mode === "refocus" || mode === "completed") && <CassProgressBar percent={progressPercent} />}
 
         {/* ── Header — hidden during retro/onboarding_welcome (those components own the stage) ── */}
         {!(mode === "refocus" && rfPhase === "retro") && mode !== "retro" && mode !== "onboarding_welcome" && (
@@ -1634,7 +1694,6 @@ export function CassBoardDrawer({
           <div style={{ background: isDark ? "#2a2208" : "#c8a86b", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: isDark ? "rgba(200,168,107,0.85)" : "rgba(255,255,255,0.9)" }}>
               {mode === "menu" ? "Add something new" :
-               chatSubMode === "braindump" ? "Voice Memo" :
                chatSubMode === "end_chapter" ? "End Chapter" :
                chatSubMode === "chronicle" ? "Already Done" :
                mode === "completed" ? "What's Next" :
@@ -1648,7 +1707,7 @@ export function CassBoardDrawer({
         )}
 
         {/* ── Unified menu + chat scroll container ── */}
-        {/* Shared by "menu" mode and "chat" mode (tasks/breakup/braindump proposals).
+        {/* Shared by "menu" mode and "chat" mode (tasks/breakup proposals).
             The Cass avatar + question stay at the top; selecting an option causes the
             content below it to scroll into view — matching the onboarding scroll feel. */}
         {(mode === "menu" || (mode === "chat" && !isEndChapterMode)) && (
@@ -1695,7 +1754,7 @@ export function CassBoardDrawer({
                 ) : (
                   <>
                     {visibleMenuOptions.map((opt, i) => {
-                      const isBlocked = chapterDaysLeft !== null && chapterDaysLeft <= 0 && (opt.key === "tasks" || opt.key === "braindump");
+                      const isBlocked = chapterDaysLeft !== null && chapterDaysLeft <= 0 && opt.key === "tasks";
                       return (
                         <div key={opt.key} style={{ animation: `cassBoardOptionIn 0.28s ease ${i * 100}ms forwards`, opacity: 0 }}>
                           <button
@@ -1723,20 +1782,6 @@ export function CassBoardDrawer({
                         </div>
                       );
                     })}
-                    {onEndChapterConfirmed && (
-                      <>
-                        <div style={{ margin: "4px 0", height: "1px", background: "rgba(255,255,255,0.06)" }} />
-                        <button
-                          type="button"
-                          onClick={() => selectMode("end_chapter")}
-                          style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 18px", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: `${MENU_OPTIONS.length * 100 + 40}ms`, opacity: 0, cursor: "pointer" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
-                        >
-                          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: textSecondary, margin: 0 }}>End this chapter early</p>
-                        </button>
-                      </>
-                    )}
                   </>
                 )}
               </div>
@@ -1748,9 +1793,7 @@ export function CassBoardDrawer({
                 <div style={USER_B}>
                   {isChronicleMode && chronicleMethod === "voice"
                     ? "Add tasks I've already completed to the done column"
-                    : isBrainDump && voiceColumn && voicePhase !== "column_select"
-                      ? `Record a voice memo that adds tasks into the ${voiceColumn} column`
-                      : menuSelected}
+                    : menuSelected}
                 </div>
               </div>
             )}
@@ -1806,43 +1849,12 @@ export function CassBoardDrawer({
               </div>
             )}
 
-            {/* ── Inline voice flow (braindump + chronicle-voice) ── */}
-            {mode === "chat" && (isBrainDump || (isChronicleMode && chronicleMethod === "voice")) && !savedOk && (
+            {/* ── Inline voice flow (chronicle-voice — logging already-completed work) ── */}
+            {mode === "chat" && isChronicleMode && chronicleMethod === "voice" && !savedOk && (
               <div style={{ width: "100%", maxWidth: "85%", display: "flex", flexDirection: "column", gap: "14px" }}>
 
-                {/* Column select (braindump only — chronicle goes straight to voice) */}
-                {isBrainDump && voicePhase === "column_select" && (
-                  <>
-                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0 }}>
-                      Which column should these go in?
-                    </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {columns.filter(c => ["Do Today", "Do This Week", "Blocked", "Done"].includes(c.name)).map((col, i) => (
-                        <button
-                          key={col.id}
-                          type="button"
-                          onClick={() => { setVoiceColumn(col.name); setVoicePhase("voice"); }}
-                          style={{
-                            background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)",
-                            border: "1px solid rgba(200,168,107,0.25)",
-                            borderRadius: "12px", padding: "14px 18px", textAlign: "left",
-                            fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600,
-                            color: textPrimary, cursor: "pointer",
-                            transition: "background 0.15s, border-color 0.15s",
-                            animation: `cassBoardOptionIn 0.28s ease ${i * 80}ms both`,
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.08)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.4)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)"; e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
-                        >
-                          {col.name}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {/* Column selected — user bubble + recorder */}
-                {voiceColumn && voicePhase !== "column_select" && (
+                {/* Recorder — Cass sorts each task into a column automatically */}
+                {voicePhase !== "column_select" && (
                   <>
                     {/* User bubble showing selected column — hidden for all voice flows (already combined into menuSelected bubble above) */}
 
@@ -1850,9 +1862,7 @@ export function CassBoardDrawer({
                     {voicePhase === "voice" && (
                       <>
                         <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: textPrimary, margin: 0 }}>
-                          {isChronicleMode
-                            ? "Tell me about the work you've already completed."
-                            : "Got it. When you're ready, tap the mic and tell me what we need to add."}
+                          Tell me about the work you&apos;ve already completed.
                         </p>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", padding: "12px 0" }}>
                           {/* Live transcript — appears above mic */}
@@ -1970,7 +1980,7 @@ export function CassBoardDrawer({
                             {reviewTasks.length} task{reviewTasks.length !== 1 ? "s" : ""} added to the board.
                           </p>
                         </div>
-                        {/* Braindump action buttons */}
+                        {/* Voice-memo action buttons */}
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                           <button
                             type="button"
@@ -1978,8 +1988,7 @@ export function CassBoardDrawer({
                               setSavedOk(false);
                               setProposedTasks([]);
                               setReviewTasks([]);
-                              setBraindumpTranscript("");
-                              setVoicePhase("column_select");
+                              setVoicePhase("voice");
                               setVoiceColumn("");
                               setVoiceLiveTranscript("");
                               setVoiceFinalTranscript(null);
@@ -2046,7 +2055,7 @@ export function CassBoardDrawer({
                   )
                 ))}
 
-                {isPending && voicePhase !== "processing" && !isBrainDump && !(isChronicleMode && chronicleMethod === "voice") && (
+                {isPending && voicePhase !== "processing" && !(isChronicleMode && chronicleMethod === "voice") && (
                   <div style={{ display: "flex", gap: "5px", alignItems: "center", paddingLeft: "2px" }}>
                     {[0,1,2].map((d) => (
                       <span key={d} style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#c8a86b", display: "block", animation: `cassBoardCaretBlink 1.2s ease-in-out ${d * 0.15}s infinite` }} />
@@ -2054,8 +2063,8 @@ export function CassBoardDrawer({
                   </div>
                 )}
 
-                {/* Proposal cards — for non-voice flows only (voice/braindump handles its own) */}
-                {hasProposals && !savedOk && !isBrainDump && !(isChronicleMode && chronicleMethod === "voice") && (
+                {/* Proposal cards — chronicle-voice renders its own inline */}
+                {hasProposals && !savedOk && !(isChronicleMode && chronicleMethod === "voice") && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
                     <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.2em", color: "rgba(248,248,246,0.3)", textTransform: "uppercase", margin: 0 }}>
                       {reviewTasks.length} card{reviewTasks.length !== 1 ? "s" : ""} captured — review &amp; adjust
@@ -2078,8 +2087,8 @@ export function CassBoardDrawer({
                   </div>
                 )}
 
-                {/* Success + template offer — for non-voice flows only (voice/braindump handles its own) */}
-                {savedOk && !isBrainDump && !(isChronicleMode && chronicleMethod === "voice") && (
+                {/* Success + template offer — chronicle-voice renders its own inline */}
+                {savedOk && !(isChronicleMode && chronicleMethod === "voice") && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                     {/* Success confirmation */}
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", background: isDark ? "rgba(110,231,183,0.06)" : "rgba(110,231,183,0.10)", border: "1px solid rgba(110,231,183,0.22)", borderRadius: "14px" }}>
@@ -2119,46 +2128,7 @@ export function CassBoardDrawer({
                     )}
                     {templateSaved && <p style={{ fontFamily: "var(--font-cass)", fontSize: "11px", color: "#6ee7b7", margin: 0, letterSpacing: "0.5px" }}>✓ Workflow saved — Cass will suggest it next time.</p>}
 
-                    {/* Braindump-specific actions */}
-                    {isBrainDump && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBraindumpAddingMore(true);
-                            setVoicePhase("column_select");
-                            setVoiceColumn("");
-                            setVoiceListening(false);
-                            setVoiceError(null);
-                            setVoiceLiveTranscript("");
-                            setVoiceFinalTranscript(null);
-                            setProposedTasks([]);
-                            setReviewTasks([]);
-                            setMessages([]);
-                            setSavedOk(false);
-                          }}
-                          style={{ width: "100%", padding: "13px 20px", borderRadius: "28px", border: "1.5px solid #c8a86b", background: "transparent", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "14px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#c8a86b", cursor: "pointer", transition: "background 0.15s, color 0.15s" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.1)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                        >
-                          Record another voice memo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={onClose}
-                          style={{ width: "100%", padding: "13px 20px", borderRadius: "28px", border: "none", background: "#c8a86b", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "14px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1a0e00", cursor: "pointer", transition: "background 0.15s" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "#b8945a"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "#c8a86b"; }}
-                        >
-                          That&apos;s it for now
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Non-braindump close button */}
-                    {!isBrainDump && (
-                      <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Done</TapeButton>
-                    )}
+                    <TapeButton type="button" onClick={onClose} variant="secondary" size="sm">Done</TapeButton>
                   </div>
                 )}
 
@@ -2560,40 +2530,41 @@ export function CassBoardDrawer({
 
         {/* ── Retro nudge mode ── */}
         {mode === "retro_nudge" && (
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "10px", maxWidth: "92%" }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a86b", flexShrink: 0, marginBottom: "10px" }} />
-              <div style={CASS_B}>Everything&apos;s in the done column. Time to reflect on the work and write this chapter&apos;s story.</div>
+          <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
+            {/* Cass avatar — same treatment as menu/chat modes */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+              <CassRecorder animState="talking" size="sm" />
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)" }}>
+                Cass · Story Guide
+              </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+
+            {/* Cass question — plain Lora, left-aligned, no bubble */}
+            <div style={{ maxWidth: "85%", width: "100%" }}>
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>
+                Everything&apos;s in the done column. Time to wrap up and get ready for our next chapter.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "center" }}>
               <button
                 type="button"
                 onClick={() => { onStartRetro?.(); onClose(); }}
-                style={{ background: surface, border: "1px solid rgba(200,168,107,0.18)", borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "0ms", opacity: 0 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = surfaceGold; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = surface; }}
+                style={{
+                  display: "inline-flex", alignItems: "center",
+                  background: "#f5c84a", border: "1px solid #f5c84a",
+                  borderRadius: "28px", padding: "12px 28px",
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: "15px", fontWeight: 600, letterSpacing: "0.12em",
+                  textTransform: "uppercase", color: "#1a0e00", cursor: "pointer",
+                  transition: "background 0.15s", whiteSpace: "nowrap",
+                  animation: "cassBoardOptionIn 0.28s ease forwards", opacity: 0,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#f0c040"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "#f5c84a"; }}
               >
-                <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: "1.5px solid rgba(200,168,107,0.5)", background: "transparent" }} />
-                <div>
-                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textPrimary, margin: 0, lineHeight: "1.3" }}>Start the recap</p>
-                  <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: "rgba(200,168,107,0.45)", margin: "3px 0 0" }}>Reflect on the work and write this chapter&apos;s story</p>
-                </div>
+                Start the recap →
               </button>
-              {onNavigateToLatest && (
-                <button
-                  type="button"
-                  onClick={() => { onNavigateToLatest(); onClose(); }}
-                  style={{ background: surface, border: `1px solid ${borderSubtle}`, borderRadius: "12px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px", cursor: "pointer", textAlign: "left", width: "100%", animation: "cassBoardOptionIn 0.28s ease forwards", animationDelay: "100ms", opacity: 0 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.16)" : "rgba(26,14,0,0.18)"; e.currentTarget.style.background = btnBgHover; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = borderSubtle; e.currentTarget.style.background = surface; }}
-                >
-                  <div style={{ width: "18px", height: "18px", flexShrink: 0, borderRadius: "50%", border: `1.5px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(26,14,0,0.2)"}`, background: "transparent" }} />
-                  <div>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "15px", fontWeight: 600, color: textSecondary, margin: 0, lineHeight: "1.3" }}>Go to current chapter</p>
-                    <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12px", color: textMuted, margin: "3px 0 0" }}>Jump to where the active work is happening</p>
-                  </div>
-                </button>
-              )}
             </div>
           </div>
         )}
@@ -2611,7 +2582,7 @@ export function CassBoardDrawer({
         )}
 
         {/* Input bar — text tasks / breakup mode / voice text input, not when saved */}
-        {mode === "chat" && !isEndChapterMode && !savedOk && (!(isChronicleMode && chronicleMethod !== "talk") || voicePhase === "text_input") && (!isBrainDump || voicePhase === "text_input") && (
+        {mode === "chat" && !isEndChapterMode && !savedOk && (!(isChronicleMode && chronicleMethod !== "talk") || voicePhase === "text_input") && (
           <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
             {/* Voice text mode: back-to-mic link */}
             {voicePhase === "text_input" && (
@@ -2641,6 +2612,29 @@ export function CassBoardDrawer({
             )}
             {(aiStatus === "chatting" || voicePhase === "text_input") && (
               <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
+                {chatSubMode === "tasks" && voicePhase !== "text_input" && (
+                  <button
+                    type="button"
+                    onClick={toggleChatMic}
+                    aria-label={chatMicListening ? "Stop dictating" : "Dictate your message"}
+                    style={{
+                      width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%",
+                      border: `1px solid ${chatMicListening ? "#f5c84a" : (isDark ? "rgba(255,255,255,0.15)" : "rgba(26,14,0,0.18)")}`,
+                      background: chatMicListening ? "rgba(245,200,74,0.15)" : (isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.07)"),
+                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+                      {[{ x: 0, h: 4, y: 5 }, { x: 3, h: 8, y: 3 }, { x: 6, h: 14, y: 0 }, { x: 9, h: 8, y: 3 }, { x: 12, h: 4, y: 5 }].map((bar, i) => (
+                        <rect key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
+                          fill={chatMicListening ? "#f5c84a" : (isDark ? "#888" : "rgba(26,14,0,0.45)")}
+                          style={chatMicListening ? { animation: `chat-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
+                        />
+                      ))}
+                    </svg>
+                  </button>
+                )}
                 <textarea
                   autoFocus={voicePhase === "text_input"}
                   value={voicePhase === "text_input" ? voiceTextInput : draft}
@@ -2655,7 +2649,7 @@ export function CassBoardDrawer({
                       }
                     }
                   }}
-                  placeholder={voicePhase === "text_input" ? "Describe the tasks or ideas you want to add…" : "What needs to get done…"}
+                  placeholder={voicePhase === "text_input" ? "Describe the tasks or ideas you want to add…" : chatMicListening ? "Listening…" : "What's on your mind…"}
                   rows={2}
                   disabled={isPending || isSaving}
                   style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: 1.6, color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", outline: "none", boxSizing: "border-box", colorScheme: isDark ? "dark" : "light" }}
@@ -2681,19 +2675,6 @@ export function CassBoardDrawer({
           </div>
         )}
 
-        {/* Braindump footer — save + add more, after voice proposals arrive */}
-        {mode === "chat" && isBrainDump && hasProposals && !braindumpAddingMore && !savedOk && (
-          <div style={{ flexShrink: 0, borderTop: `1px solid ${dividerColor}`, padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <button
-              type="button" onClick={handleAddTasks} disabled={isSaving || reviewTasks.length === 0}
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px", background: (isSaving || reviewTasks.length === 0) ? "rgba(245,200,74,0.5)" : "#f5c84a", border: "none", borderRadius: "28px", padding: "13px 28px", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "15px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1a0e00", cursor: (isSaving || reviewTasks.length === 0) ? "not-allowed" : "pointer", transition: "background 0.15s", width: "100%" }}
-              onMouseEnter={(e) => { if (!isSaving && reviewTasks.length > 0) e.currentTarget.style.background = "#f0c040"; }}
-              onMouseLeave={(e) => { if (!isSaving && reviewTasks.length > 0) e.currentTarget.style.background = "#f5c84a"; }}
-            >
-              {isSaving ? <><LoaderCircle size={14} style={{ animation: "cassBoardSpin 1s linear infinite" }} />Adding…</> : `✓ Add ${reviewTasks.length} card${reviewTasks.length !== 1 ? "s" : ""} to board`}
-            </button>
-          </div>
-        )}
       </div>
     </>
   );

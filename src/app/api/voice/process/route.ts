@@ -16,10 +16,12 @@ export async function POST(request: Request) {
 
   const payload = (await request.json()) as {
     projectId?: string;
+    boardId?: string;
     transcript?: string;
   };
 
   const projectId = String(payload.projectId ?? "");
+  const boardId = payload.boardId ? String(payload.boardId) : null;
   const transcript = (payload.transcript ?? "").trim();
 
   if (!projectId) {
@@ -38,6 +40,19 @@ export async function POST(request: Request) {
 
   if (projectError || !project) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  }
+
+  let columnNames: string[] = [];
+  const defaultColumnName = "Do This Week";
+
+  if (boardId) {
+    const { data: columnRows } = await supabase
+      .from("board_columns")
+      .select("name")
+      .eq("board_id", boardId)
+      .order("position", { ascending: true });
+
+    columnNames = (columnRows ?? []).map((c) => c.name);
   }
 
   const { data: capture, error: captureError } = await supabase
@@ -69,7 +84,20 @@ export async function POST(request: Request) {
       transcript,
       projectName: project.name,
       projectDescription: project.description,
+      columnNames,
+      defaultColumnName,
     });
+
+    // Guard against the model returning a column name that doesn't exist on this board.
+    if (columnNames.length > 0) {
+      const validNames = new Set(columnNames.map((n) => n.toLowerCase()));
+      parsed.tasks = parsed.tasks.map((task) => ({
+        ...task,
+        suggestedColumn: validNames.has(task.suggestedColumn.toLowerCase())
+          ? task.suggestedColumn
+          : defaultColumnName,
+      }));
+    }
 
     const { error: updateError } = await supabase
       .from("voice_captures")

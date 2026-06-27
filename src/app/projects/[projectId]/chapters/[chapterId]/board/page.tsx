@@ -33,7 +33,7 @@ export default async function ChapterBoardPage({
   const canAuthor = isProjectAuthor && hasAuthorAccess(subscription.status);
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[1600px] lg:p-0" style={{ background: "#0a0a0a" }}>
+    <main className="min-h-screen w-full lg:p-0">
       <ProjectWorkspaceShell
         snapshot={snapshot}
         projects={projects}

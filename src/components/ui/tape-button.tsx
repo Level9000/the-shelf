@@ -106,8 +106,7 @@ export function TapeButton({
         transition: "background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s",
         whiteSpace: "nowrap",
         letterSpacing: "0.01em",
-        textDecoration: isGhost ? "none" : "none",
-        borderBottom: isGhost ? `1px solid ${hover ? "rgba(200,168,107,0.7)" : "rgba(200,168,107,0.3)"}` : undefined,
+        textDecoration: "none",
       }}
     >
       {children}

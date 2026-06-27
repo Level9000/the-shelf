@@ -62,6 +62,8 @@ export async function extractTasksFromTranscript(input: {
   transcript: string;
   projectName: string;
   projectDescription?: string | null;
+  columnNames: string[];
+  defaultColumnName: string;
 }) {
   const apiKey = requireOpenAiKey();
   const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {

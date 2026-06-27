@@ -145,11 +145,11 @@ export function ProjectShellFrame({
         {/* Scrollable content */}
         <div
           className="min-h-0 flex-1 overflow-y-auto"
-          style={theme === "dark" ? { background: "#161616" } : undefined}
+          style={{ background: theme === "dark" ? "#1a1814" : "#f0ebe0" }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          {children}
+          <div className="mx-auto h-full w-full max-w-[1600px]">{children}</div>
         </div>
       </div>
 

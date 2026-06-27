@@ -331,6 +331,9 @@ export function ProjectBoardClient({
   );
   const [cassBreakupTaskId, setCassBreakupTaskId] = useState<string | null>(null);
   const [cassCompletedMode, setCassCompletedMode] = useState(false);
+  // Set when "End chapter" is clicked from the chapter-focus bar, so the drawer
+  // opens directly into that flow instead of the additive "add something" menu.
+  const [endChapterRequested, setEndChapterRequested] = useState(false);
 
   // Re-open drawer when a forced mode is set from outside (e.g., "all done" → retro)
   useEffect(() => {
@@ -699,6 +702,9 @@ export function ProjectBoardClient({
                 alignItems: "center",
                 gap: "10px",
                 background: isDarkBoard ? "rgba(200,168,107,0.07)" : "#f0ebe0",
+                width: "100vw",
+                marginLeft: "calc(50% - 50vw)",
+                marginRight: "calc(50% - 50vw)",
               }}>
                 <span style={{
                   fontFamily: "'Barlow Condensed', sans-serif",
@@ -747,6 +753,38 @@ export function ProjectBoardClient({
                     }}>
                       {healthLabel}
                     </span>
+                  </>
+                )}
+                {!snapshot.board.retroCompletedAt && (
+                  <>
+                    <span style={{
+                      width: "1px",
+                      height: "12px",
+                      background: isDarkBoard ? "rgba(200,168,107,0.2)" : "rgba(26,14,0,0.12)",
+                      flexShrink: 0,
+                    }} />
+                    <button
+                      type="button"
+                      onClick={() => { setCassCompletedMode(false); setCassBreakupTaskId(null); setEndChapterRequested(true); setCassOpen(true); }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: isDarkBoard ? "rgba(200,168,107,0.4)" : "rgba(26,14,0,0.32)",
+                        flexShrink: 0,
+                        transition: "color 0.15s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = isDarkBoard ? "rgba(200,168,107,0.7)" : "rgba(26,14,0,0.55)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = isDarkBoard ? "rgba(200,168,107,0.4)" : "rgba(26,14,0,0.32)"; }}
+                    >
+                      End chapter
+                    </button>
                   </>
                 )}
               </div>
@@ -980,7 +1018,13 @@ export function ProjectBoardClient({
         completedChapterMode={cassCompletedMode}
         retroNudge={retroNudge}
         onStartRetro={onStartRetro}
-        initialMode={!cassCompletedMode && !cassBreakupTaskId ? initialDrawerMode : undefined}
+        initialMode={
+          endChapterRequested
+            ? "end_chapter"
+            : !cassCompletedMode && !cassBreakupTaskId
+              ? initialDrawerMode
+              : undefined
+        }
         fromOnboarding={skipIntro}
         chapterNumber={chapterNumber}
         chapterDaysLeft={daysLeft}
@@ -989,7 +1033,7 @@ export function ProjectBoardClient({
         onRefocus={bannerState.kind === "running_long" ? () => {} : undefined}
         onEndChapterConfirmed={!snapshot.board.retroCompletedAt ? (nextChapterId) => { onEndChapterConfirmed?.(nextChapterId); refreshData(); } : undefined}
         onRetroComplete={(data) => { onRetroComplete?.(data); refreshData(); }}
-        onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); setCassCompletedMode(false); onDrawerClosed?.(); }}
+        onClose={() => { setCassOpen(false); setCassBreakupTaskId(null); setCassCompletedMode(false); setEndChapterRequested(false); onDrawerClosed?.(); }}
         onTasksAdded={refreshData}
         onTaskDeleted={refreshData}
       />

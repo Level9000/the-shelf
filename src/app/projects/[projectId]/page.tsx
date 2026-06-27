@@ -39,7 +39,7 @@ export default async function ProjectPage({
     chapter && project.chapters.some((ch) => ch.id === chapter) ? chapter : null;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[1600px] lg:p-0">
+    <main className="min-h-screen w-full lg:p-0">
       <ProjectOverviewShell
         project={project}
         projects={projects}

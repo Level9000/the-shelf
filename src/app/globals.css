@@ -97,10 +97,6 @@ body {
     Helvetica,
     Arial,
     sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(47, 111, 103, 0.08), transparent 34%),
-    radial-gradient(circle at top right, rgba(184, 164, 137, 0.12), transparent 28%),
-    linear-gradient(180deg, #f8f5f0 0%, #f3efe8 48%, #efebe4 100%);
 }
 
 h1,

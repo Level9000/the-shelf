@@ -477,6 +477,8 @@ export async function extractTasksFromTranscript(input: {
   transcript: string;
   projectName: string;
   projectDescription?: string | null;
+  columnNames: string[];
+  defaultColumnName: string;
 }) {
   return runJsonDialogue(
     buildTaskExtractionPrompt(input),

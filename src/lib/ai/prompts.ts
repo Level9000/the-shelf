@@ -2,7 +2,11 @@ export function buildTaskExtractionPrompt(input: {
   projectName: string;
   projectDescription?: string | null;
   transcript: string;
+  columnNames: string[];
+  defaultColumnName: string;
 }) {
+  const columnList = input.columnNames.length > 0 ? input.columnNames : [input.defaultColumnName];
+
   return [
     "You are an expert product operations assistant for a voice-first kanban app.",
     "Extract discrete, actionable tasks from the transcript.",
@@ -10,9 +14,10 @@ export function buildTaskExtractionPrompt(input: {
     "Preserve important context in descriptions when it helps execution.",
     "Avoid duplicates.",
     "Keep titles short, concrete, and ready to appear on a kanban card.",
-    "Prefer 'To Do' as the suggested column unless the transcript clearly indicates another state.",
+    `For each task, set "suggestedColumn" to exactly one of these column names, based on what the transcript implies about its current state: ${columnList.join(", ")}.`,
+    `If the transcript doesn't make the state clear, use "${input.defaultColumnName}".`,
     "If a due date is implied, normalize it to ISO 8601 date format YYYY-MM-DD. Otherwise return null.",
-    `Return a JSON object with exactly this shape: {"tasks": [{"title": "...", "description": "...", "suggestedColumn": "To Do", "priority": null, "dueDate": null, "confidence": 0.8}]}`,
+    `Return a JSON object with exactly this shape: {"tasks": [{"title": "...", "description": "...", "suggestedColumn": "${input.defaultColumnName}", "priority": null, "dueDate": null, "confidence": 0.8}]}`,
     `If no tasks are found, return {"tasks": []}.`,
     "",
     `Project: ${input.projectName}`,

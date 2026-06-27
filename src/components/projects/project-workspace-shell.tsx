@@ -2,14 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAvatar } from "@/lib/avatar-context";
+import { useTheme } from "@/lib/theme-context";
 import { useRouter } from "next/navigation";
 import type { BoardSnapshot, ProjectWithChapters, UserProfile } from "@/types";
 import type { SubscriptionStatus } from "@/lib/subscription";
 import { ProjectBoardClient } from "@/components/board/project-board-client";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 import { PaywallModal } from "@/components/paywall/paywall-modal";
+import { Modal } from "@/components/ui/modal";
 import { TapeButton } from "@/components/ui/tape-button";
 import { OnboardingNudge } from "@/components/cass/OnboardingNudge";
+import { CassRecorder } from "@/components/cass/CassRecorder";
 import { X, ArrowRight } from "lucide-react";
 
 function classifyTasks(snapshot: BoardSnapshot) {
@@ -45,6 +48,8 @@ export function ProjectWorkspaceShell({
 }) {
   const router = useRouter();
   const { setActiveAvatar } = useAvatar();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [mounted, setMounted] = useState(false);
 
   // RT-02: Board tab → Cass
@@ -132,53 +137,59 @@ export function ProjectWorkspaceShell({
       currentBoardGoal={snapshot.board.goal ?? null}
       currentBoardCreatedAt={snapshot.board.createdAt ?? null}
     >
-      {showAllDoneModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setAllDoneDismissed(true)}
-            aria-hidden="true"
-          />
-          {/* Modal */}
-          <div className="relative z-10 w-full max-w-lg rounded-[2rem] bg-[var(--surface)] shadow-2xl ring-1 ring-black/8 overflow-hidden">
-            {/* Header */}
-            <div className="bg-[var(--accent-soft)] px-7 pt-8 pb-6 text-center rounded-t-[2rem] relative">
-              <button
-                type="button"
-                onClick={() => setAllDoneDismissed(true)}
-                aria-label="Close"
-                style={{ fontFamily: "'Literata', Georgia, serif" }}
-                className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-black/8 hover:text-[var(--ink)]"
-              >
-                <X className="size-4" />
-              </button>
-              <h2 className="text-2xl font-bold text-[var(--ink)] font-literata">The work is done.</h2>
-            </div>
-            {/* Body */}
-            <div className="px-7 py-6 space-y-4 rounded-b-[2rem] bg-[var(--surface)]">
-              <p className="text-sm leading-6 text-[var(--muted)] text-center">
-                You finished every task that you had planned for this chapter. Let&apos;s reflect on the hard work and write your chapter&apos;s ending.
-              </p>
-              <div className="flex justify-center pt-2">
-                <TapeButton variant="primary" size="lg" onClick={handleAllDoneStartRetro} className="justify-center">
-                  <ArrowRight className="size-4" />
-                  Start the recap
-                </TapeButton>
-              </div>
-              <TapeButton
-                variant="ghost"
-                size="sm"
-                onClick={() => setAllDoneDismissed(true)}
-                className="flex w-full items-center justify-center gap-1.5"
-              >
-                <X className="size-3" />
-                Not right now
-              </TapeButton>
-            </div>
+      <Modal
+        open={showAllDoneModal}
+        onClose={() => setAllDoneDismissed(true)}
+        title="Time to wrap up this chapter."
+        hideHeader
+      >
+        <div className="px-6 pt-6 text-center">
+          {/* Cass avatar — same treatment as the chat drawer's header avatar */}
+          <div className="flex flex-col items-center gap-2">
+            <CassRecorder animState="talking" size="sm" />
+            <span
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "11px",
+                fontWeight: 600,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)",
+              }}
+            >
+              Cass · Story Guide
+            </span>
           </div>
+
+          <h1 className="mt-4 text-2xl font-semibold" style={{ fontFamily: "var(--font-cass)" }}>
+            Time to wrap up this chapter.
+          </h1>
+          <p
+            style={{ fontFamily: "'Lora', Georgia, serif" }}
+            className="mt-2 text-sm leading-6 text-[var(--muted)]"
+          >
+            You finished every task that you had planned for this chapter. Let&apos;s reflect on the hard work and write your chapter&apos;s ending.
+          </p>
         </div>
-      )}
+
+        <div className="space-y-3 px-6 pb-6 pt-5">
+          <div className="flex justify-center">
+            <TapeButton variant="primary" size="lg" onClick={handleAllDoneStartRetro} className="justify-center">
+              <ArrowRight className="size-4" />
+              Start the recap
+            </TapeButton>
+          </div>
+          <TapeButton
+            variant="ghost"
+            size="sm"
+            onClick={() => setAllDoneDismissed(true)}
+            className="flex w-full items-center justify-center gap-1.5"
+          >
+            <X className="size-3" />
+            Not right now
+          </TapeButton>
+        </div>
+      </Modal>
 
       <div className="space-y-5">
         {canAuthor && missingCount > 0 && (

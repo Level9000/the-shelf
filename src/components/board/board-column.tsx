@@ -27,12 +27,13 @@ const COLUMN_BG_LIGHT: Record<string, string> = {
   "Done":         "#f3faf6",
 };
 
-// Dark base (#1a1a1a) tinted with each column's accent at ~4%
+// Lighter gray base tinted with each column's accent so the hue reads clearly
+// against the near-black app background, instead of disappearing into it.
 const COLUMN_BG_DARK: Record<string, string> = {
-  "Do This Week": "#1c1b16",
-  "Do Today":     "#151820",
-  "Blocked":      "#1e1519",
-  "Done":         "#151e18",
+  "Do This Week": "#2e291f",
+  "Do Today":     "#232b39",
+  "Blocked":      "#32232b",
+  "Done":         "#22332a",
 };
 
 const EMPTY_STATE_MESSAGES: Record<string, string> = {
