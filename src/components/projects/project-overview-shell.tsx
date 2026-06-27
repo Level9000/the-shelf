@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowUp, ChevronRight, LoaderCircle, X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import type { AppUser, Chapter, ProjectMember, ProjectWithChapters, Task, UserProfile } from "@/types";
 import { PRESS_TEMPLATES } from "@/lib/press/templates";
 import type { PressTemplate } from "@/lib/press/templates";
@@ -21,6 +21,7 @@ import { StoryWelcomeDrawer } from "@/components/ui/StoryWelcomeDrawer";
 import { StoryFoundationSection } from "@/components/projects/story-foundation";
 import { BackstoryNudgeBanner } from "@/components/projects/backstory-nudge-banner";
 import { ChapterContextPill } from "@/components/projects/chapter-context";
+import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
 import type { SubscriptionStatus } from "@/lib/subscription";
 
 const TY_INTRO_KEY = "ty_story_intro_seen";
@@ -313,9 +314,82 @@ function CassChronicleDrawer({
   const [isPressLoading, startPressTransition] = useTransition();
   const pressEndRef = useRef<HTMLDivElement | null>(null);
 
+  // ── Conversation (voice) mode ──
+  const [conversationMode, setConversationMode] = useState(false);
+  const conversationModeRef = useRef(false);
+  const [isCassSpeaking, setIsCassSpeaking] = useState(false);
+  const cassAudioRef = useRef<HTMLAudioElement | null>(null);
+  const openMicRef = useRef<(() => void) | null>(null);
+
+  function stopCassAudio() {
+    if (cassAudioRef.current) {
+      cassAudioRef.current.pause();
+      cassAudioRef.current = null;
+    }
+    setIsCassSpeaking(false);
+  }
+
+  async function speakCassReply(text: string) {
+    stopCassAudio();
+    try {
+      const res = await fetch("/api/tts/cass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      cassAudioRef.current = audio;
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        if (cassAudioRef.current === audio) cassAudioRef.current = null;
+        setIsCassSpeaking(false);
+        if (conversationModeRef.current) openMicRef.current?.();
+      };
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      setIsCassSpeaking(true);
+      await audio.play();
+    } catch {
+      setIsCassSpeaking(false);
+    }
+  }
+
+  function toggleConversationMode(next: boolean) {
+    conversationModeRef.current = next;
+    setConversationMode(next);
+    if (next) {
+      const greeting = "Go ahead and talk out loud. I'm listening.";
+      setPressMessages((prev) => [...prev, { role: "assistant", content: greeting }]);
+      speakCassReply(greeting);
+    } else {
+      stopCassAudio();
+    }
+  }
+
   useEffect(() => {
     queueMicrotask(() => pressEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
   }, [pressMessages, isPressLoading]);
+
+  // Closing the drawer (or navigating away) must end any live conversation-mode
+  // thread — otherwise Cass keeps talking/listening after it's off-screen.
+  useEffect(() => {
+    if (open) return;
+    conversationModeRef.current = false;
+    setConversationMode(false);
+    stopCassAudio();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    return () => {
+      conversationModeRef.current = false;
+      stopCassAudio();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reset on open
   useEffect(() => {
@@ -328,6 +402,9 @@ function CassChronicleDrawer({
     setPressError(null);
     setPressReadyToGenerate(false);
     setIsGenerating(false);
+    conversationModeRef.current = false;
+    setConversationMode(false);
+    stopCassAudio();
   }, [open]);
 
   function enterChatMode(audienceId: string) {
@@ -359,14 +436,15 @@ function CassChronicleDrawer({
         if (!reply) throw new Error("No response.");
         setPressMessages([{ role: "assistant", content: reply }]);
         if (data.ready_to_generate) setPressReadyToGenerate(true);
+        if (conversationModeRef.current) speakCassReply(reply);
       } catch (err) {
         setPressError(err instanceof Error ? err.message : "Signal lost. Stand by.");
       }
     });
   }
 
-  function handlePressSend() {
-    const content = pressDraft.trim();
+  function handlePressSend(textOverride?: string) {
+    const content = (textOverride ?? pressDraft).trim();
     if (!content || isPressLoading || !pressTemplate) return;
     const next: PlanMessage[] = [...pressMessages, { role: "user", content }];
     setPressMessages(next);
@@ -384,6 +462,7 @@ function CassChronicleDrawer({
         const reply = data.reply?.trim() ?? "";
         setPressMessages((m) => [...m, { role: "assistant", content: reply }]);
         if (data.ready_to_generate) setPressReadyToGenerate(true);
+        if (conversationModeRef.current) speakCassReply(reply);
       } catch (err) {
         setPressError(err instanceof Error ? err.message : "Signal lost. Stand by.");
       }
@@ -720,54 +799,16 @@ function CassChronicleDrawer({
 
             {/* Input */}
             {!pressReadyToGenerate && (
-              <div style={{ flexShrink: 0, borderTop: "1px solid #2e2e2e", padding: "12px 14px 16px" }}>
-                <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
-                  <textarea
-                    value={pressDraft}
-                    onChange={(e) => setPressDraft(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePressSend(); } }}
-                    placeholder="Fill in the gaps…"
-                    rows={2}
-                    disabled={isPressLoading}
-                    style={{
-                      flex: 1,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "12px",
-                      padding: "10px 14px",
-                      resize: "none",
-                      fontFamily: "'Lora', Georgia, serif",
-                      fontSize: "14px",
-                      lineHeight: "1.5",
-                      color: "rgba(248,248,246,0.85)",
-                      caretColor: "#f5c84a",
-                      outline: "none",
-                      transition: "border-color 0.15s",
-                      boxSizing: "border-box",
-                    }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(245,200,74,0.35)"; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handlePressSend}
-                    disabled={!pressDraft.trim() || isPressLoading}
-                    style={{
-                      width: "40px", height: "40px", flexShrink: 0,
-                      borderRadius: "50%", border: "none",
-                      background: pressDraft.trim() && !isPressLoading ? "#f5c84a" : "rgba(255,255,255,0.08)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      cursor: pressDraft.trim() && !isPressLoading ? "pointer" : "not-allowed",
-                      transition: "background 0.15s",
-                    }}
-                  >
-                    {isPressLoading
-                      ? <LoaderCircle size={16} style={{ color: "#f5c84a", animation: "spin 1s linear infinite" }} />
-                      : <ArrowUp size={16} style={{ color: pressDraft.trim() ? "#0a0a0a" : "rgba(255,255,255,0.3)" }} />
-                    }
-                  </button>
-                </div>
-              </div>
+              <VoiceInputFooter
+                value={pressDraft}
+                onChange={setPressDraft}
+                onSubmit={(text) => handlePressSend(text)}
+                voiceMode={conversationMode}
+                isCassSpeaking={isCassSpeaking}
+                onRegisterOpenMic={(fn) => { openMicRef.current = fn; }}
+                onEnterVoiceMode={() => toggleConversationMode(true)}
+                onExitVoiceMode={() => toggleConversationMode(false)}
+              />
             )}
           </>
         )}

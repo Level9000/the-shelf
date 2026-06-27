@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowUp, LoaderCircle, Pencil, X } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import type { ProjectWithChapters } from "@/types";
 import { CassRecorder } from "@/components/cass/CassRecorder";
+import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
 
 type FoundationMessage = { role: "user" | "assistant"; content: string };
 
@@ -106,17 +107,83 @@ export function CassFoundationDrawer({
   const [isLoading, startTransition] = useTransition();
   const endRef = useRef<HTMLDivElement | null>(null);
   const openedRef = useRef(false);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // ── Conversation (voice) mode ──
+  const [conversationMode, setConversationMode] = useState(false);
+  const conversationModeRef = useRef(false);
+  const [isCassSpeaking, setIsCassSpeaking] = useState(false);
+  const cassAudioRef = useRef<HTMLAudioElement | null>(null);
+  const openMicRef = useRef<(() => void) | null>(null);
+
+  function stopCassAudio() {
+    if (cassAudioRef.current) {
+      cassAudioRef.current.pause();
+      cassAudioRef.current = null;
+    }
+    setIsCassSpeaking(false);
+  }
+
+  async function speakCassReply(text: string) {
+    stopCassAudio();
+    try {
+      const res = await fetch("/api/tts/cass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      cassAudioRef.current = audio;
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        if (cassAudioRef.current === audio) cassAudioRef.current = null;
+        setIsCassSpeaking(false);
+        if (conversationModeRef.current) openMicRef.current?.();
+      };
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      setIsCassSpeaking(true);
+      await audio.play();
+    } catch {
+      setIsCassSpeaking(false);
+    }
+  }
+
+  function toggleConversationMode(next: boolean) {
+    conversationModeRef.current = next;
+    setConversationMode(next);
+    if (next) {
+      const greeting = "Go ahead and talk out loud. I'm listening.";
+      setMessages((prev) => [...prev, { role: "assistant", content: greeting }]);
+      speakCassReply(greeting);
+    } else {
+      stopCassAudio();
+    }
+  }
 
   useEffect(() => {
     queueMicrotask(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
   }, [messages, isLoading]);
 
+  // Closing the drawer (or navigating away) must end any live conversation-mode
+  // thread — otherwise Cass keeps talking/listening after it's off-screen.
   useEffect(() => {
-    if (draft === "" && textareaRef.current) {
-      textareaRef.current.style.height = "40px";
-    }
-  }, [draft]);
+    if (open) return;
+    conversationModeRef.current = false;
+    setConversationMode(false);
+    stopCassAudio();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    return () => {
+      conversationModeRef.current = false;
+      stopCassAudio();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -130,6 +197,9 @@ export function CassFoundationDrawer({
     setDraft("");
     setError(null);
     setDone(false);
+    conversationModeRef.current = false;
+    setConversationMode(false);
+    stopCassAudio();
 
     startTransition(async () => {
       try {
@@ -147,6 +217,7 @@ export function CassFoundationDrawer({
         setError(err instanceof Error ? err.message : "Signal lost. Stand by.");
       }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, project.id, gapHint]);
 
   function send(content: string) {
@@ -175,6 +246,7 @@ export function CassFoundationDrawer({
           setDone(true);
           if (data.foundationSummary) onSaved(data.foundationSummary);
         }
+        if (conversationModeRef.current) speakCassReply(reply);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Signal lost. Stand by.");
       }
@@ -335,61 +407,16 @@ export function CassFoundationDrawer({
               </button>
             </div>
             )}
-            <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
-              <textarea
-                ref={textareaRef}
-                value={draft}
-                onChange={(e) => {
-                  setDraft(e.target.value);
-                  const el = e.currentTarget;
-                  el.style.height = "auto";
-                  el.style.height = `${el.scrollHeight}px`;
-                }}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(draft); } }}
-                placeholder="Type here…"
-                rows={1}
-                disabled={isLoading}
-                style={{
-                  flex: 1,
-                  height: "40px",
-                  maxHeight: "120px",
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "12px",
-                  padding: "10px 14px",
-                  resize: "none",
-                  overflow: "auto",
-                  fontFamily: "'Lora', Georgia, serif",
-                  fontSize: "14px",
-                  lineHeight: "1.5",
-                  color: "rgba(248,248,246,0.85)",
-                  caretColor: "#f5c84a",
-                  outline: "none",
-                  transition: "border-color 0.15s",
-                  boxSizing: "border-box",
-                }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(245,200,74,0.35)"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
-              />
-              <button
-                type="button"
-                onClick={() => send(draft)}
-                disabled={!draft.trim() || isLoading}
-                style={{
-                  width: "40px", height: "40px", flexShrink: 0,
-                  borderRadius: "50%", border: "none",
-                  background: draft.trim() && !isLoading ? "#f5c84a" : "rgba(255,255,255,0.08)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: draft.trim() && !isLoading ? "pointer" : "not-allowed",
-                  transition: "background 0.15s",
-                }}
-              >
-                {isLoading
-                  ? <LoaderCircle size={16} style={{ color: "#f5c84a", animation: "spin 1s linear infinite" }} />
-                  : <ArrowUp size={16} style={{ color: draft.trim() ? "#0a0a0a" : "rgba(255,255,255,0.3)" }} />
-                }
-              </button>
-            </div>
+            <VoiceInputFooter
+              value={draft}
+              onChange={setDraft}
+              onSubmit={(text) => send(text ?? draft)}
+              voiceMode={conversationMode}
+              isCassSpeaking={isCassSpeaking}
+              onRegisterOpenMic={(fn) => { openMicRef.current = fn; }}
+              onEnterVoiceMode={() => toggleConversationMode(true)}
+              onExitVoiceMode={() => toggleConversationMode(false)}
+            />
           </div>
         )}
       </div>

@@ -13,6 +13,7 @@ export function VoiceInputFooter({
   onChange,
   onSubmit,
   voiceMode = false,
+  isCassSpeaking = false,
   onRegisterOpenMic,
   onEnterVoiceMode,
   onExitVoiceMode,
@@ -22,6 +23,8 @@ export function VoiceInputFooter({
   onChange: (v: string) => void;
   onSubmit: (text?: string) => void;
   voiceMode?: boolean;
+  /** True while Cass's spoken reply is playing — drives the bottom glow alongside `listening`. */
+  isCassSpeaking?: boolean;
   onRegisterOpenMic?: (fn: () => void) => void;
   /** When provided, the inline "Voice" button enters full voice mode instead of just dictating into the bar. */
   onEnterVoiceMode?: () => void;
@@ -163,6 +166,10 @@ export function VoiceInputFooter({
           0%, 100% { opacity: 0.2; transform: translateY(0); }
           50%       { opacity: 1;   transform: translateY(-3px); }
         }
+        @keyframes voice-input-glow-pulse {
+          0%, 100% { opacity: 0.5; transform: scaleY(0.85); }
+          50%       { opacity: 1;   transform: scaleY(1); }
+        }
         .voice-input-send-btn {
           width: 36px; height: 36px; border-radius: 50%;
           background: #f5c84a; border: none; cursor: pointer;
@@ -187,6 +194,7 @@ export function VoiceInputFooter({
         .voice-input-textarea:focus { border-color: #f5c84a; }
       `}</style>
       <div style={{
+        position: "relative",
         padding: "12px 16px 20px",
         flexShrink: 0,
         animation: "cass-fade-up 0.25s ease forwards",
@@ -195,9 +203,28 @@ export function VoiceInputFooter({
         margin: "0 auto",
         boxSizing: "border-box",
       }}>
+      {voiceMode && (listening || isCassSpeaking) && (
+        /* Pulsating gold glow — active while the user is talking (input) or Cass is talking (output) */
+        <div
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            left: 0,
+            bottom: 0,
+            width: "100vw",
+            height: "25vh",
+            pointerEvents: "none",
+            background: "radial-gradient(ellipse 70% 100% at 50% 100%, rgba(200,168,107,0.55) 0%, rgba(200,168,107,0.3) 45%, rgba(200,168,107,0) 80%)",
+            filter: "blur(10px)",
+            transformOrigin: "bottom center",
+            animation: "voice-input-glow-pulse 1.6s ease-in-out infinite",
+            zIndex: 0,
+          }}
+        />
+      )}
       {voiceMode ? (
         /* ── Full voice mode UI ── */
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+        <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
           {/* Transcript preview */}
           {value && (
             <p style={{

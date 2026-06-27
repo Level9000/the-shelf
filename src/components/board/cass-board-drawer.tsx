@@ -1013,6 +1013,7 @@ export function CassBoardDrawer({
   // feels like a call rather than a tap-each-turn exchange. ──
   const [conversationMode, setConversationMode] = useState(false);
   const conversationModeRef = useRef(false);
+  const [isCassSpeaking, setIsCassSpeaking] = useState(false);
   const cassAudioRef = useRef<HTMLAudioElement | null>(null);
   const openMicRef = useRef<(() => void) | null>(null);
 
@@ -1039,6 +1040,25 @@ export function CassBoardDrawer({
   const [rfDoneCount, setRfDoneCount] = useState<{ deleted: number; moved: number } | null>(null);
   const [rfIsPending, startRfTransition] = useTransition();
   const [rfIsSaving, startRfSaveTransition] = useTransition();
+
+  // Closing the drawer (or navigating away) must end any live conversation-mode
+  // thread — otherwise Cass keeps talking/listening after it's off-screen.
+  useEffect(() => {
+    if (open) return;
+    conversationModeRef.current = false;
+    setConversationMode(false);
+    stopCassAudio();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Belt-and-suspenders: also stop on full unmount (e.g. navigating to another tab).
+  useEffect(() => {
+    return () => {
+      conversationModeRef.current = false;
+      stopCassAudio();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reset on open
   useEffect(() => {
@@ -1250,6 +1270,7 @@ export function CassBoardDrawer({
       cassAudioRef.current.pause();
       cassAudioRef.current = null;
     }
+    setIsCassSpeaking(false);
   }
 
   async function speakCassReply(text: string) {
@@ -1268,14 +1289,17 @@ export function CassBoardDrawer({
       const cleanup = () => {
         URL.revokeObjectURL(url);
         if (cassAudioRef.current === audio) cassAudioRef.current = null;
+        setIsCassSpeaking(false);
         // Reopen VoiceInputFooter's mic automatically so it feels like a real
         // conversation, unless the user has since exited conversation mode.
         if (conversationModeRef.current) openMicRef.current?.();
       };
       audio.onended = cleanup;
       audio.onerror = cleanup;
+      setIsCassSpeaking(true);
       await audio.play();
     } catch {
+      setIsCassSpeaking(false);
       // Silent failure — text reply is already on screen either way.
     }
   }
@@ -1285,7 +1309,7 @@ export function CassBoardDrawer({
     setConversationMode(next);
     if (next) {
       // Confirms conversation mode is on — said once, right when it's entered.
-      const greeting = "Go ahead — I'm listening.";
+      const greeting = "Go ahead and talk out loud. I'm listening.";
       setMessages((prev) => [...prev, { role: "assistant", content: greeting }]);
       speakCassReply(greeting);
     } else {
@@ -2612,6 +2636,7 @@ export function CassBoardDrawer({
                   onChange={setDraft}
                   onSubmit={(text) => sendMessageWithText(text ?? draft)}
                   voiceMode={conversationMode}
+                  isCassSpeaking={isCassSpeaking}
                   onRegisterOpenMic={(fn) => { openMicRef.current = fn; }}
                   onEnterVoiceMode={() => toggleConversationMode(true)}
                   onExitVoiceMode={() => toggleConversationMode(false)}
