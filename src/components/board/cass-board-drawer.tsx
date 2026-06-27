@@ -12,6 +12,7 @@ import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { AvatarRecorder, useAvatarName } from "@/components/ui/AvatarRecorder";
 import { CassRetroChat } from "@/components/cass/CassRetroChat";
+import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
 import type { CassAnimState } from "@/components/cass/cassVoice";
 import { useTheme } from "@/lib/theme-context";
 
@@ -1006,11 +1007,14 @@ export function CassBoardDrawer({
   const voicePauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // ── Dictation into the chat textarea (tasks/braindump mode) ──────────────────
-  const [chatMicListening, setChatMicListening] = useState(false);
-  const chatMicRecognitionRef = useRef<any>(null);
-  const chatMicTranscriptRef = useRef("");
-  const chatMicPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── "Talk it out loud" conversation mode (tasks/braindump) — same component
+  // and idea as onboarding's voice conversation: Cass's replies are spoken
+  // aloud via TTS, and VoiceInputFooter reopens its own mic afterward so it
+  // feels like a call rather than a tap-each-turn exchange. ──
+  const [conversationMode, setConversationMode] = useState(false);
+  const conversationModeRef = useRef(false);
+  const cassAudioRef = useRef<HTMLAudioElement | null>(null);
+  const openMicRef = useRef<(() => void) | null>(null);
 
   // ── Review / confirm state ────────────────────────────────────────────────────
   const [proposedTasks, setProposedTasks] = useState<ProposedTask[]>([]);
@@ -1043,6 +1047,9 @@ export function CassBoardDrawer({
     setDraft("");
     setChatError(null);
     setAiStatus("chatting");
+    conversationModeRef.current = false;
+    setConversationMode(false);
+    stopCassAudio();
     setProposedTasks([]);
     setReviewTasks([]);
     setTemplateDraft(null);
@@ -1141,22 +1148,37 @@ export function CassBoardDrawer({
       return;
     }
 
-    setMode("menu");
-    setMenuDisplayed("");
-    setOptionsReady(false);
-    setMenuSelected(null);
-    setChatSubMode(isPastChapter ? "chronicle" : "tasks");
+    // Past chapters still need the menu (chronicle's "log missed work" choice),
+    // and a chapter that's out of time still needs the explanatory blocked card.
+    // Otherwise, skip the tap-to-confirm menu and drop straight into conversation.
+    const isTasksBlocked = chapterDaysLeft !== null && chapterDaysLeft <= 0;
+    if (isPastChapter || isTasksBlocked) {
+      setMode("menu");
+      setMenuDisplayed("");
+      setOptionsReady(false);
+      setMenuSelected(null);
+      setChatSubMode(isPastChapter ? "chronicle" : "tasks");
 
-    let i = 0;
-    const id = setInterval(() => {
-      i++;
-      setMenuDisplayed(menuQuestionText.slice(0, i));
-      if (i >= menuQuestionText.length) {
-        clearInterval(id);
-        setTimeout(() => setOptionsReady(true), 180);
-      }
-    }, 26);
-    return () => { clearInterval(id); };
+      let i = 0;
+      const id = setInterval(() => {
+        i++;
+        setMenuDisplayed(menuQuestionText.slice(0, i));
+        if (i >= menuQuestionText.length) {
+          clearInterval(id);
+          setTimeout(() => setOptionsReady(true), 180);
+        }
+      }, 26);
+      return () => { clearInterval(id); };
+    }
+
+    // Skip straight into an empty conversation — no auto-greeting in text mode.
+    // Conversation (voice) mode shows its own "Go ahead — I'm listening." cue
+    // when it's actually entered (see toggleConversationMode).
+    setChatSubMode("tasks");
+    setMode("chat");
+    setMenuSelected(null);
+    setMessages([]);
+    return;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -1183,30 +1205,14 @@ export function CassBoardDrawer({
   }, [mode]);
 
   // ── Mode selection from menu ──────────────────────────────────────────────────
+  // Used for "chronicle" (past chapters' menu option) and "end_chapter" (the
+  // chapter-focus-bar link) — the normal "tasks" entry point bypasses the menu
+  // entirely (see the effect above).
   function selectMode(sub: ChatSubMode) {
     const label = MENU_OPTIONS.find((o) => o.key === sub)?.label ?? sub;
     setMenuSelected(label);
     setChatSubMode(sub);
     setTimeout(() => setMode("chat"), 320);
-
-    if (sub === "tasks") {
-      // Send context to the API but don't add the synthetic user message to UI —
-      // menuSelected already shows the user's choice as a gray bubble above.
-      // "braindump" mode: Cass listens and only clarifies when something's too
-      // vague, rather than running a structured interview.
-      const openingMsg: Msg = { role: "user", content: "I have some things on my mind for this chapter." };
-      setTimeout(() => {
-        setMessages([]);
-        startTransition(async () => {
-          try {
-            const result = await callApi([openingMsg], "braindump");
-            applyAiResult(result, []);
-          } catch (err) {
-            setChatError(err instanceof Error ? err.message : "Something went wrong.");
-          }
-        });
-      }, 340);
-    }
     // chronicle: just enter chat mode — sub-choice screen handles the rest
   }
 
@@ -1239,67 +1245,52 @@ export function CassBoardDrawer({
   }
 
   // ── Dictation into the chat textarea ──────────────────────────────────────────
-  // Lets the user speak their brain dump instead of typing it. Auto-sends after
-  // a pause, same feel as the old dedicated voice-memo recorder.
-  function stopChatMic() {
-    if (chatMicPauseTimerRef.current) clearTimeout(chatMicPauseTimerRef.current);
-    if (chatMicRecognitionRef.current) {
-      chatMicRecognitionRef.current.onresult = null;
-      chatMicRecognitionRef.current.onend = null;
-      chatMicRecognitionRef.current.onerror = null;
-      try { chatMicRecognitionRef.current.stop(); } catch { /* ok */ }
-      chatMicRecognitionRef.current = null;
+  function stopCassAudio() {
+    if (cassAudioRef.current) {
+      cassAudioRef.current.pause();
+      cassAudioRef.current = null;
     }
-    setChatMicListening(false);
   }
 
-  function scheduleChatMicAutoSend(text: string) {
-    if (chatMicPauseTimerRef.current) clearTimeout(chatMicPauseTimerRef.current);
-    chatMicPauseTimerRef.current = setTimeout(() => {
-      if (text.trim()) {
-        stopChatMic();
-        sendMessageWithText(text.trim());
-      }
-    }, 1800);
+  async function speakCassReply(text: string) {
+    stopCassAudio();
+    try {
+      const res = await fetch("/api/tts/cass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      cassAudioRef.current = audio;
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        if (cassAudioRef.current === audio) cassAudioRef.current = null;
+        // Reopen VoiceInputFooter's mic automatically so it feels like a real
+        // conversation, unless the user has since exited conversation mode.
+        if (conversationModeRef.current) openMicRef.current?.();
+      };
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      await audio.play();
+    } catch {
+      // Silent failure — text reply is already on screen either way.
+    }
   }
 
-  function startChatMic() {
-    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
-    if (!SR) { setChatError("Speech recognition isn't supported in this browser."); return; }
-    setChatError(null);
-    chatMicTranscriptRef.current = "";
-    setDraft("");
-    const rec = new SR();
-    rec.continuous = !isIOS;
-    rec.interimResults = true;
-    rec.lang = "en-US";
-    chatMicRecognitionRef.current = rec;
-    rec.onresult = (e: any) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          chatMicTranscriptRef.current += (chatMicTranscriptRef.current ? " " : "") + e.results[i][0].transcript.trim();
-        } else {
-          interim += e.results[i][0].transcript;
-        }
-      }
-      setDraft(chatMicTranscriptRef.current + (interim ? (chatMicTranscriptRef.current ? " " : "") + interim : ""));
-      scheduleChatMicAutoSend(chatMicTranscriptRef.current);
-    };
-    rec.onend = () => {
-      if (chatMicPauseTimerRef.current) clearTimeout(chatMicPauseTimerRef.current);
-      setChatMicListening(false);
-      if (isIOS && chatMicTranscriptRef.current.trim()) {
-        sendMessageWithText(chatMicTranscriptRef.current.trim());
-      }
-    };
-    rec.onerror = () => { if (chatMicPauseTimerRef.current) clearTimeout(chatMicPauseTimerRef.current); setChatMicListening(false); };
-    rec.start();
-    setChatMicListening(true);
-  }
-
-  function toggleChatMic() {
-    if (chatMicListening) stopChatMic(); else startChatMic();
+  function toggleConversationMode(next: boolean) {
+    conversationModeRef.current = next;
+    setConversationMode(next);
+    if (next) {
+      // Confirms conversation mode is on — said once, right when it's entered.
+      const greeting = "Go ahead — I'm listening.";
+      setMessages((prev) => [...prev, { role: "assistant", content: greeting }]);
+      speakCassReply(greeting);
+    } else {
+      stopCassAudio();
+    }
   }
 
   async function callApi(msgs: Msg[], sub: "tasks" | "braindump" | "breakup"): Promise<AICassBoardDialogue> {
@@ -1339,6 +1330,9 @@ export function CassBoardDrawer({
   function applyAiResult(result: AICassBoardDialogue, prevMsgs: Msg[]) {
     setAiStatus(result.status);
     setMessages([...prevMsgs, { role: "assistant", content: result.reply }]);
+    if (conversationModeRef.current && chatSubMode === "tasks") {
+      speakCassReply(result.reply);
+    }
     if (result.status === "ready_for_review" && result.tasks.length > 0) {
       const stamped = result.tasks.map((t, i) => ({ ...t, id: `proposed-${i}` }));
       setProposedTasks(stamped);
@@ -1667,8 +1661,9 @@ export function CassBoardDrawer({
               alt="Authored By"
               style={{ width: "auto", height: "52px", objectFit: "contain" }}
             />
-            {/* Back button */}
-            {((mode === "chat" && !savedOk) || (mode === "refocus" && rfPhase === "chat")) && (
+            {/* Back button — hidden for the merged "tasks" conversation, since
+                there's no menu to go back to anymore (it's the only entry point). */}
+            {((mode === "chat" && !savedOk && chatSubMode !== "tasks") || (mode === "refocus" && rfPhase === "chat")) && (
               <div style={{ position: "absolute", top: "50%", left: "16px", transform: "translateY(-50%)" }}>
                 <TapeButton
                   type="button"
@@ -2610,31 +2605,20 @@ export function CassBoardDrawer({
                     : `✓ Add ${reviewTasks.length} task${reviewTasks.length !== 1 ? "s" : ""} to board`}
               </button>
             )}
-            {(aiStatus === "chatting" || voicePhase === "text_input") && (
+            {chatSubMode === "tasks" && voicePhase !== "text_input" ? (
+              (aiStatus === "chatting") && (
+                <VoiceInputFooter
+                  value={draft}
+                  onChange={setDraft}
+                  onSubmit={(text) => sendMessageWithText(text ?? draft)}
+                  voiceMode={conversationMode}
+                  onRegisterOpenMic={(fn) => { openMicRef.current = fn; }}
+                  onEnterVoiceMode={() => toggleConversationMode(true)}
+                  onExitVoiceMode={() => toggleConversationMode(false)}
+                />
+              )
+            ) : (aiStatus === "chatting" || voicePhase === "text_input") && (
               <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
-                {chatSubMode === "tasks" && voicePhase !== "text_input" && (
-                  <button
-                    type="button"
-                    onClick={toggleChatMic}
-                    aria-label={chatMicListening ? "Stop dictating" : "Dictate your message"}
-                    style={{
-                      width: "40px", height: "40px", flexShrink: 0, borderRadius: "50%",
-                      border: `1px solid ${chatMicListening ? "#f5c84a" : (isDark ? "rgba(255,255,255,0.15)" : "rgba(26,14,0,0.18)")}`,
-                      background: chatMicListening ? "rgba(245,200,74,0.15)" : (isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.07)"),
-                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">
-                      {[{ x: 0, h: 4, y: 5 }, { x: 3, h: 8, y: 3 }, { x: 6, h: 14, y: 0 }, { x: 9, h: 8, y: 3 }, { x: 12, h: 4, y: 5 }].map((bar, i) => (
-                        <rect key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
-                          fill={chatMicListening ? "#f5c84a" : (isDark ? "#888" : "rgba(26,14,0,0.45)")}
-                          style={chatMicListening ? { animation: `chat-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
-                        />
-                      ))}
-                    </svg>
-                  </button>
-                )}
                 <textarea
                   autoFocus={voicePhase === "text_input"}
                   value={voicePhase === "text_input" ? voiceTextInput : draft}
@@ -2649,7 +2633,7 @@ export function CassBoardDrawer({
                       }
                     }
                   }}
-                  placeholder={voicePhase === "text_input" ? "Describe the tasks or ideas you want to add…" : chatMicListening ? "Listening…" : "What's on your mind…"}
+                  placeholder={voicePhase === "text_input" ? "Describe the tasks or ideas you want to add…" : "What needs to get done…"}
                   rows={2}
                   disabled={isPending || isSaving}
                   style={{ flex: 1, background: inputBg, border: "1px solid rgba(200,168,107,0.2)", borderRadius: "12px", padding: "10px 14px", resize: "none", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: 1.6, color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", outline: "none", boxSizing: "border-box", colorScheme: isDark ? "dark" : "light" }}

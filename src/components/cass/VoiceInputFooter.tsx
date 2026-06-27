@@ -1,0 +1,368 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+// ── Voice input footer ──────────────────────────────────────────────────────────
+// Shared input bar + full voice-mode screen used by onboarding and by the Cass
+// chat drawer (board + story tabs). Two visual states:
+//  - Text mode: a pill text input with an inline "Voice" toggle and a send button.
+//  - Voice mode: a full centered mic button ("talking out loud", like a call).
+
+export function VoiceInputFooter({
+  value,
+  onChange,
+  onSubmit,
+  voiceMode = false,
+  onRegisterOpenMic,
+  onEnterVoiceMode,
+  onExitVoiceMode,
+  textRowMarginLeft,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: (text?: string) => void;
+  voiceMode?: boolean;
+  onRegisterOpenMic?: (fn: () => void) => void;
+  /** When provided, the inline "Voice" button enters full voice mode instead of just dictating into the bar. */
+  onEnterVoiceMode?: () => void;
+  /** Onboarding indents the bar to align with its avatar gutter — leave unset elsewhere. */
+  textRowMarginLeft?: string;
+  onExitVoiceMode?: () => void;
+}) {
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finalTranscriptRef = useRef(value);
+  // iOS doesn't support continuous SpeechRecognition — use push-to-talk instead
+  const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // Resize textarea whenever value changes (covers both typing and voice)
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  }, [value]);
+
+  // Keep finalTranscriptRef in sync with value when not listening
+  useEffect(() => {
+    if (!listening) finalTranscriptRef.current = value;
+  }, [value, listening]);
+
+  // Auto-start mic when entering voice mode (desktop only — iOS uses push-to-talk)
+  useEffect(() => {
+    if (voiceMode && !listening && !isIOS) {
+      startListening();
+    }
+    if (!voiceMode && listening) {
+      stopListening();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceMode]);
+
+  // Register our openMic function with parent so TTS can re-open after speaking
+  useEffect(() => {
+    onRegisterOpenMic?.(() => {
+      // On iOS, don't auto-open mic after TTS — user initiates with a hold
+      if (voiceMode && !isIOS) startListening();
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceMode, onRegisterOpenMic]);
+
+  function scheduleAutoSubmit(text: string) {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = setTimeout(() => {
+      if (text.trim()) {
+        stopListening();
+        onSubmit(text); // pass text directly — avoids stale state closure
+      }
+    }, 1800);
+  }
+
+  function stopListening() {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+    recognitionRef.current?.stop();
+    setListening(false);
+  }
+
+  function startListening() {
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    // Tear down any existing instance before creating a new one.
+    // Without this, the old recognition keeps firing onresult and both instances
+    // append to finalTranscriptRef — causing the transcript to repeat itself.
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.onend = null;
+      recognitionRef.current.onerror = null;
+      try { recognitionRef.current.stop(); } catch { /* already stopped */ }
+      recognitionRef.current = null;
+    }
+
+    finalTranscriptRef.current = "";
+    onChange("");
+
+    const rec: any = new SR();
+    rec.continuous = !isIOS; // iOS doesn't support continuous mode reliably
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    recognitionRef.current = rec;
+
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalTranscriptRef.current += (finalTranscriptRef.current ? " " : "") + e.results[i][0].transcript.trim();
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      const combined = finalTranscriptRef.current + (interim ? " " + interim : "");
+      onChange(combined);
+      scheduleAutoSubmit(finalTranscriptRef.current);
+    };
+
+    rec.onend = () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      setListening(false);
+      // On iOS, recognition ends naturally after speech — auto-submit what we captured
+      if (isIOS && finalTranscriptRef.current.trim()) {
+        const text = finalTranscriptRef.current.trim();
+        finalTranscriptRef.current = "";
+        onChange("");
+        onSubmit(text);
+      }
+    };
+    rec.onerror = () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      setListening(false);
+    };
+
+    rec.start();
+    setListening(true);
+  }
+
+  function toggleVoice() {
+    if (onEnterVoiceMode && !voiceMode) {
+      onEnterVoiceMode();
+      return;
+    }
+    if (listening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }
+
+  return (
+    <>
+      <style>{`
+        @keyframes voice-input-dot-pulse {
+          0%, 100% { opacity: 0.2; transform: translateY(0); }
+          50%       { opacity: 1;   transform: translateY(-3px); }
+        }
+        .voice-input-send-btn {
+          width: 36px; height: 36px; border-radius: 50%;
+          background: #f5c84a; border: none; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0; transition: background 0.15s;
+        }
+        .voice-input-send-btn:disabled { background: #2e2e2e; cursor: default; }
+        .voice-input-send-btn:not(:disabled):hover { background: #f0c040; }
+        .voice-input-send-btn .material-icons { font-size: 18px; color: #0a0a0a; }
+        .voice-input-send-btn:disabled .material-icons { color: #555; }
+        .voice-input-textarea {
+          flex: 1; background: #2e2e2e;
+          border: 1px solid #3a3a3a; border-radius: 22px;
+          padding: 9px 16px;
+          font-family: 'Lora', Georgia, serif; font-size: 14px; color: #f8f8f6;
+          caret-color: #f5c84a; outline: none; resize: none;
+          min-height: 40px; max-height: 120px; line-height: 1.5;
+          transition: border-color 0.15s;
+          scrollbar-width: none;
+        }
+        .voice-input-textarea::placeholder { color: #666; }
+        .voice-input-textarea:focus { border-color: #f5c84a; }
+      `}</style>
+      <div style={{
+        padding: "12px 16px 20px",
+        flexShrink: 0,
+        animation: "cass-fade-up 0.25s ease forwards",
+        maxWidth: "600px",
+        width: "100%",
+        margin: "0 auto",
+        boxSizing: "border-box",
+      }}>
+      {voiceMode ? (
+        /* ── Full voice mode UI ── */
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+          {/* Transcript preview */}
+          {value && (
+            <p style={{
+              fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.6",
+              color: "rgba(248,248,246,0.55)", textAlign: "center",
+              margin: 0, maxWidth: "360px",
+              animation: "cass-fade-in 0.2s ease",
+            }}>
+              {value}
+            </p>
+          )}
+          {/* Mic pulse button — push-to-talk on iOS, tap-to-toggle on desktop */}
+          <button
+            type="button"
+            {...(isIOS ? {
+              onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => { e.preventDefault(); if (!listening) startListening(); },
+              onPointerUp:   (e: React.PointerEvent<HTMLButtonElement>) => { e.preventDefault(); if (listening) stopListening(); },
+              onPointerCancel: () => { if (listening) stopListening(); },
+            } : {
+              onClick: toggleVoice,
+            })}
+            aria-label={listening ? "Stop recording" : "Start recording"}
+            style={{
+              width: "96px", height: "96px", borderRadius: "50%",
+              background: listening ? "rgba(245,200,74,0.15)" : "rgba(255,255,255,0.06)",
+              border: `2px solid ${listening ? "#f5c84a" : "rgba(255,255,255,0.15)"}`,
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.2s",
+              boxShadow: listening ? "0 0 0 12px rgba(245,200,74,0.08), 0 0 0 24px rgba(245,200,74,0.04)" : "none",
+              userSelect: "none", WebkitUserSelect: "none",
+            }}
+          >
+            <svg width="28" height="24" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+              {[
+                { x: 0,  h: 4,  y: 5 },
+                { x: 3,  h: 8,  y: 3 },
+                { x: 6,  h: 14, y: 0 },
+                { x: 9,  h: 8,  y: 3 },
+                { x: 12, h: 4,  y: 5 },
+              ].map((bar, i) => (
+                <rect
+                  key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
+                  fill={listening ? "#f5c84a" : "#666"}
+                  style={listening ? { animation: `voice-input-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
+                />
+              ))}
+            </svg>
+          </button>
+          <span style={{
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px",
+            fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase",
+            color: listening ? "#f5c84a" : "#888",
+            transition: "color 0.2s",
+          }}>
+            {isIOS
+              ? (listening ? "Release to send" : "Hold to speak")
+              : (listening && value ? "Listening…" : "Start talking...")}
+          </span>
+          {/* Exit conversation mode */}
+          <button
+            type="button"
+            onClick={onExitVoiceMode}
+            style={{
+              marginTop: "4px",
+              background: "transparent", border: "none", cursor: "pointer",
+              fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px",
+              fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase",
+              color: "rgba(248,248,246,0.2)",
+              transition: "color 0.15s",
+              padding: "4px 8px",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.5)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.2)"; }}
+          >
+            Exit conversation mode
+          </button>
+        </div>
+      ) : (
+        /* ── Text + optional mic UI ── */
+        <div style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "10px",
+          marginLeft: textRowMarginLeft,
+        }}>
+          {/* Input bar with inline Voice button */}
+          <div style={{
+            flex: 1, display: "flex", alignItems: "flex-end",
+            background: "#2e2e2e", border: `1px solid ${listening ? "#f5c84a" : "#3a3a3a"}`,
+            borderRadius: "22px", overflow: "hidden",
+            transition: "border-color 0.15s",
+            boxShadow: listening ? "0 0 0 3px rgba(245,200,74,0.15)" : "none",
+          }}>
+            <textarea
+              ref={textareaRef}
+              autoFocus
+              className="voice-input-textarea"
+              value={value}
+              rows={1}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (value.trim()) onSubmit();
+                }
+              }}
+              placeholder="Type or tap voice…"
+              style={{ flex: 1, background: "transparent", border: "none", borderRadius: 0, padding: "9px 4px 9px 16px" }}
+            />
+            {/* Inline Voice button — hidden once user starts typing */}
+            <button
+              type="button"
+              onClick={toggleVoice}
+              aria-label={listening ? "Stop recording" : "Voice input"}
+              style={{
+                display: value.trim() && !listening ? "none" : "flex", alignItems: "center", gap: "5px",
+                background: listening ? "rgba(245,200,74,0.15)" : "transparent",
+                border: "none", borderLeft: `1px solid ${listening ? "rgba(245,200,74,0.3)" : "#3a3a3a"}`,
+                padding: "0 14px", height: "100%", minHeight: "40px",
+                cursor: "pointer", flexShrink: 0,
+                transition: "background 0.15s, border-color 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!listening) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+              onMouseLeave={(e) => { if (!listening) e.currentTarget.style.background = "transparent"; }}
+            >
+              <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">
+                {[
+                  { x: 0,  h: 4,  y: 5 },
+                  { x: 3,  h: 8,  y: 3 },
+                  { x: 6,  h: 14, y: 0 },
+                  { x: 9,  h: 8,  y: 3 },
+                  { x: 12, h: 4,  y: 5 },
+                ].map((bar, i) => (
+                  <rect
+                    key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
+                    fill={listening ? "#f5c84a" : "#888"}
+                    style={listening ? { animation: `voice-input-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
+                  />
+                ))}
+              </svg>
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: listening ? "#f5c84a" : "#888",
+                transition: "color 0.15s",
+              }}>
+                {listening ? "Stop" : "Voice"}
+              </span>
+            </button>
+          </div>
+
+          {/* Send button */}
+          <button
+            type="button"
+            className="voice-input-send-btn"
+            onClick={() => onSubmit()}
+            disabled={!value.trim()}
+            aria-label="Send"
+          >
+            <span className="material-icons">arrow_upward</span>
+          </button>
+        </div>
+      )}
+      </div>
+    </>
+  );
+}
