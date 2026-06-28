@@ -19,7 +19,7 @@ import { TapeButton } from "@/components/ui/tape-button";
 import { PaywallModal } from "@/components/paywall/paywall-modal";
 import { StoryWelcomeDrawer } from "@/components/ui/StoryWelcomeDrawer";
 import { StoryFoundationSection } from "@/components/projects/story-foundation";
-import { BackstoryNudgeBanner } from "@/components/projects/backstory-nudge-banner";
+import { StoryTabNudges } from "@/components/projects/story-tab-nudges";
 import { ChapterContextPill } from "@/components/projects/chapter-context";
 import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
 import type { SubscriptionStatus } from "@/lib/subscription";
@@ -291,6 +291,35 @@ type DrawerMode = "audience" | "chat";
 type PlanMessage = { role: "user" | "assistant"; content: string };
 
 // ── Cass Chronicle drawer ─────────────────────────────────────────────────────
+
+function NeedsReviewShareWarning({ project }: { project: ProjectWithChapters }) {
+  const [dismissed, setDismissed] = useState(false);
+  const flagged = project.chapters.filter((c) => c.needsReviewReason);
+  if (flagged.length === 0 || dismissed) return null;
+
+  return (
+    <div style={{
+      width: "100%", maxWidth: "85%",
+      background: "rgba(245,200,74,0.07)",
+      border: "1px solid rgba(245,200,74,0.25)",
+      borderRadius: "12px",
+      padding: "12px 14px",
+      display: "flex", alignItems: "flex-start", gap: "8px",
+    }}>
+      <p style={{ flex: 1, fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: 1.55, color: "rgba(248,248,246,0.8)", margin: 0 }}>
+        Hey, let&rsquo;s make sure this is dialed in first — {flagged.map((c) => c.name).join(", ")} could use a second look. You can still share now if you&rsquo;d like.
+      </p>
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss"
+        style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(245,200,74,0.6)", flexShrink: 0, padding: "2px" }}
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
 
 function CassChronicleDrawer({
   open,
@@ -611,6 +640,7 @@ function CassChronicleDrawer({
         {/* ── Audience picker ── */}
         {mode === "audience" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", scrollbarWidth: "none" }}>
+            <NeedsReviewShareWarning project={project} />
             {/* Cass FAB — anchored at top of feed */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
               <CassRecorder animState="idle" size="sm" />
@@ -857,6 +887,7 @@ function ChapterEntry({
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [threadsOpen, setThreadsOpen] = useState(false);
+  const [refineOpen, setRefineOpen] = useState(false);
 
   // Theme-aware colors
   const bodyColor       = isDark ? "rgba(232,224,208,0.8)"   : "rgba(22,19,15,0.78)";
@@ -954,6 +985,26 @@ function ChapterEntry({
             }}>
               Active
             </span>
+          )}
+          {chapter.needsReviewReason && (
+            <button
+              type="button"
+              onClick={() => setRefineOpen(true)}
+              title={chapter.needsReviewReason}
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "10px", fontWeight: 700,
+                letterSpacing: "0.12em", textTransform: "uppercase",
+                color: "#f5c84a",
+                background: "rgba(245,200,74,0.1)",
+                border: "1px solid rgba(245,200,74,0.4)",
+                borderRadius: "999px",
+                padding: "2px 8px",
+                cursor: "pointer",
+              }}
+            >
+              Needs review
+            </button>
           )}
         </div>
         {/* Chapter headline (falls back to working title if not yet generated) */}
@@ -1067,7 +1118,13 @@ function ChapterEntry({
           </p>
         )}
 
-        <ChapterContextPill projectId={projectId} chapter={chapter} isDark={isDark} />
+        <ChapterContextPill
+          projectId={projectId}
+          chapter={chapter}
+          isDark={isDark}
+          open={refineOpen}
+          onOpenChange={setRefineOpen}
+        />
 
         {/* ── Chat history threads — collapsed behind a single disclosure ── */}
         {threads.length > 0 && (
@@ -1284,14 +1341,6 @@ export function ProjectOverviewShell({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function openDrawerForPlanning() {
-    if (needsPaywall) {
-      setPaywallOpen(true);
-    } else {
-      setCassDrawerOpen(true);
-    }
-  }
-
   return (
     <>
       <ProjectShellFrame
@@ -1302,7 +1351,6 @@ export function ProjectOverviewShell({
         activeNav="story"
         mobileEyebrow="Overview"
         mobileTitle={project.name}
-        onPlanChapters={openDrawerForPlanning}
       >
         {refining ? (
           <div style={{ background: "var(--background, #faf9f7)", flex: 1 }}>
@@ -1421,7 +1469,7 @@ export function ProjectOverviewShell({
                 />
               </header>
 
-              <BackstoryNudgeBanner project={project} isDark={isDark} />
+              <StoryTabNudges project={project} />
               <StoryFoundationSection project={project} isDark={isDark} />
 
               {/* ── Project-level conversations ── */}

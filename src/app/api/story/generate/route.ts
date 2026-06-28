@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   ] = await Promise.all([
     supabase
       .from("projects")
-      .select("id,name,north_star,accumulative_story,project_kickoff_conversation")
+      .select("id,name,north_star,accumulative_story,project_kickoff_conversation,voice_profile")
       .eq("id", projectId)
       .maybeSingle(),
     supabase
@@ -235,6 +235,7 @@ export async function POST(request: Request) {
       chapterBriefText: briefText,
       chapterType,
       stitchingPattern,
+      voiceProfile: (project.voice_profile as string | null) ?? null,
     });
   } catch (err) {
     console.error("Narrative engine failed", err);

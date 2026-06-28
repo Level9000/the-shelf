@@ -68,6 +68,10 @@ export type Project = {
   storyUpdatedAt: string | null;
   storyFoundation: string | null;
   storyFoundationUpdatedAt: string | null;
+  voiceProfile: string | null;
+  voiceProfileUpdatedAt: string | null;
+  voiceProfileConversation: Array<{ role: string; content: string }> | null;
+  voiceProfileDismissedAt: string | null;
   backstoryGapNote: string | null;
   backstoryGapDetectedAt: string | null;
   backstoryNudgeSessionCount: number;
@@ -131,6 +135,7 @@ export type Board = {
   bridgeSentence: string | null;
   storyHealthFlag: "none" | "recentering_needed" | null;
   recenteringType: string | null;
+  needsReviewReason: string | null;
 };
 
 export type Chapter = Board;

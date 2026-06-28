@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { runStoryHealthCheck, type HealthCheckChapter } from "@/lib/ai/story-health";
-import type { RetroBeats, StoryHealthReport } from "@/lib/ai/schema";
+import type { ChapterType, RetroBeats, StoryHealthReport } from "@/lib/ai/schema";
 
 function condenseRetroHighlight(retroBeats: RetroBeats | null): string | null {
   if (!retroBeats) return null;
@@ -26,6 +26,7 @@ export interface ChapterSummary {
   headline: string | null;
   subheadline: string | null;
   confirmedThesis: string | null;
+  chapterType: ChapterType | null;
   /** Short excerpt of the written chapter, if any — not the full text, to keep prompts bounded. */
   storyExcerpt: string | null;
   /** Condensed from retro_beats (most_proud_of + biggest_surprise + new_knowledge) — not the raw retro transcript. */
@@ -103,6 +104,7 @@ export async function loadCassStoryContext(
       headline: (c.chapter_headline as string | null) ?? null,
       subheadline: (c.chapter_subheadline as string | null) ?? null,
       confirmedThesis: (c.confirmed_thesis as string | null) ?? null,
+      chapterType: (c.chapter_type as ChapterType | null) ?? null,
       storyExcerpt: story ? story.slice(0, STORY_EXCERPT_LIMIT) : null,
       retroHighlight: condenseRetroHighlight((c.retro_beats as RetroBeats | null) ?? null),
     };

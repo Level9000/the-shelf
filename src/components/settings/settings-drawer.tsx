@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { UserProfile } from "@/types";
@@ -11,6 +11,8 @@ import { SideDrawer } from "@/components/ui/side-drawer";
 import { useTheme } from "@/lib/theme-context";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { TapeButton } from "@/components/ui/tape-button";
+import { getVoiceProfileSummaryAction } from "@/lib/actions/voice-profile-actions";
+import { ToneVoiceRefinerDrawer } from "@/components/projects/tone-voice-refiner-chat";
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
 
@@ -35,6 +37,69 @@ function DrawerSection({ label, children, danger = false }: { label: string; chi
         {children}
       </div>
     </div>
+  );
+}
+
+// ── Tone of voice section ────────────────────────────────────────────────────
+
+function ToneOfVoiceSection({ projectId }: { projectId: string }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const [voiceProfile, setVoiceProfile] = useState<string | null>(null);
+  const [voiceProfileUpdatedAt, setVoiceProfileUpdatedAt] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    getVoiceProfileSummaryAction(projectId)
+      .then((res) => {
+        setVoiceProfile(res.voiceProfile);
+        setVoiceProfileUpdatedAt(res.voiceProfileUpdatedAt);
+      })
+      .catch(() => undefined);
+  }, [projectId]);
+
+  return (
+    <DrawerSection label="Tone of Voice">
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <p style={{
+          fontFamily: "'Lora', Georgia, serif",
+          fontSize: "13px",
+          color: isDark ? "rgba(248,248,246,0.6)" : "rgba(26,14,0,0.6)",
+          margin: 0,
+          lineHeight: 1.55,
+        }}>
+          {voiceProfile
+            ? "Cass writes every chapter in your calibrated voice."
+            : "Refine how Cass writes your story, in your vocabulary, your phrasing."}
+        </p>
+        {voiceProfile && voiceProfileUpdatedAt && (
+          <p style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontSize: "11px",
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            color: isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.35)",
+            margin: 0,
+            textTransform: "uppercase",
+          }}>
+            Last refined {new Date(voiceProfileUpdatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </p>
+        )}
+        <TapeButton variant={voiceProfile ? "secondary" : "primary"} size="sm" onClick={() => setDrawerOpen(true)}>
+          {voiceProfile ? "Edit voice profile" : "Create profile"}
+        </TapeButton>
+      </div>
+
+      <ToneVoiceRefinerDrawer
+        open={drawerOpen}
+        projectId={projectId}
+        onClose={() => setDrawerOpen(false)}
+        onSaved={(profile) => {
+          setVoiceProfile(profile);
+          setVoiceProfileUpdatedAt(new Date().toISOString());
+        }}
+      />
+    </DrawerSection>
   );
 }
 
@@ -372,6 +437,11 @@ export function SettingsContent({
       {/* ── Project Settings page ── */}
       {page === "project" && (
         <div style={{ padding: "24px 16px", display: "flex", flexDirection: "column", gap: "24px" }}>
+          {currentProjectId && (
+            <div style={{ marginLeft: "-16px", marginRight: "-16px" }}>
+              <ToneOfVoiceSection projectId={currentProjectId} />
+            </div>
+          )}
           {currentProjectId && currentChapterId ? (
             <>
               {/* ── Chapter countdown card ── */}

@@ -1,12 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { MessageCirclePlus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, MessageCirclePlus, X } from "lucide-react";
 import type { Chapter } from "@/types";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
+import { clearChapterReviewFlagAction } from "@/lib/actions/project-actions";
 
-type ContextMessage = { role: "user" | "assistant"; content: string };
+type ProposedParagraph = { originalText: string; newText: string };
+type Reframe = { newChapterType: string; rationale: string };
+type AffectedChapter = { chapterId: string; chapterName: string; reason: string };
+
+type ContextMessage = {
+  role: "user" | "assistant";
+  content: string;
+  proposedParagraph?: ProposedParagraph | null;
+  reframe?: Reframe | null;
+  affectedChapters?: AffectedChapter[];
+  resolved?: boolean;
+};
+
+const CHAPTER_TYPE_LABEL: Record<string, string> = {
+  climb: "Climb",
+  win: "Win",
+  turn: "Turn",
+  fog: "Fog",
+  reframe: "Reframe",
+};
 
 // ── Pill (sits below each chapter's content) ──────────────────────────────────
 
@@ -14,12 +35,19 @@ export function ChapterContextPill({
   projectId,
   chapter,
   isDark,
+  open,
+  onOpenChange,
 }: {
   projectId: string;
   chapter: Chapter;
   isDark: boolean;
+  /** When provided (e.g. by the "Needs review" badge), controls the drawer externally. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const drawerOpen = open ?? internalOpen;
+  const setDrawerOpen = onOpenChange ?? setInternalOpen;
 
   const pillBg = "rgba(200,168,107,0.12)";
   const pillBorder = isDark ? "rgba(200,168,107,0.45)" : "rgba(180,140,60,0.4)";
@@ -57,7 +85,7 @@ export function ChapterContextPill({
         }}
       >
         <MessageCirclePlus size={13} />
-        Add to this chapter
+        Refine this chapter
       </button>
 
       <CassChapterContextDrawer
@@ -83,6 +111,7 @@ function CassChapterContextDrawer({
   chapter: Chapter;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [messages, setMessages] = useState<ContextMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +119,7 @@ function CassChapterContextDrawer({
   const [isLoading, startTransition] = useTransition();
   const endRef = useRef<HTMLDivElement | null>(null);
   const openedRef = useRef(false);
+  const hadReviewFlagRef = useRef(false);
 
   // ── Conversation (voice) mode ──
   const [conversationMode, setConversationMode] = useState(false);
@@ -168,7 +198,6 @@ function CassChapterContextDrawer({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
   useEffect(() => {
     if (!open) {
       openedRef.current = false;
@@ -184,6 +213,7 @@ function CassChapterContextDrawer({
     conversationModeRef.current = false;
     setConversationMode(false);
     stopCassAudio();
+    hadReviewFlagRef.current = Boolean(chapter.needsReviewReason);
 
     startTransition(async () => {
       try {
@@ -204,9 +234,19 @@ function CassChapterContextDrawer({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, projectId, chapter.id]);
 
-  function send(content: string) {
-    if (!content.trim() || isLoading || done) return;
-    const next: ContextMessage[] = [...messages, { role: "user", content: content.trim() }];
+  function send(
+    content: string,
+    extra?: {
+      acceptedParagraph?: ProposedParagraph;
+      acceptedReframe?: { newChapterType: string };
+      approvedAffectedChapters?: AffectedChapter[];
+    },
+  ) {
+    if (isLoading || done) return;
+    const showUserBubble = content.trim().length > 0;
+    const next: ContextMessage[] = showUserBubble
+      ? [...messages, { role: "user", content: content.trim() }]
+      : messages;
     setMessages(next);
     setDraft("");
     setError(null);
@@ -215,24 +255,76 @@ function CassChapterContextDrawer({
         const res = await fetch("/api/chat/cass-chapter-context", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId, chapterId: chapter.id, messages: next }),
+          body: JSON.stringify({
+            projectId,
+            chapterId: chapter.id,
+            messages: next,
+            ...extra,
+          }),
         });
         const data = (await res.json()) as {
           reply?: string;
           done?: boolean;
           capturedNote?: string;
+          proposedParagraph?: ProposedParagraph | null;
+          reframe?: Reframe | null;
+          affectedChapters?: AffectedChapter[];
           error?: string;
         };
         if (!res.ok) throw new Error(data.error ?? "Chapter context chat failed.");
         const reply = data.reply?.trim() ?? "";
-        setMessages((m) => [...m, { role: "assistant", content: reply }]);
-        if (data.done) setDone(true);
+        setMessages((m) => [...m, {
+          role: "assistant",
+          content: reply,
+          proposedParagraph: data.proposedParagraph ?? null,
+          reframe: data.reframe ?? null,
+          affectedChapters: data.affectedChapters ?? [],
+        }]);
+        if (data.done) {
+          setDone(true);
+          if (hadReviewFlagRef.current) {
+            clearChapterReviewFlagAction({ projectId, boardId: chapter.id })
+              .then(() => router.refresh())
+              .catch(() => undefined);
+          }
+        }
         if (conversationModeRef.current) speakCassReply(reply);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Signal lost. Stand by.");
       }
     });
   }
+
+  function resolveMessage(index: number) {
+    setMessages((m) => m.map((msg, i) => (i === index ? { ...msg, resolved: true } : msg)));
+  }
+
+  function acceptParagraph(index: number, p: ProposedParagraph) {
+    resolveMessage(index);
+    send("", { acceptedParagraph: p });
+  }
+
+  function rejectParagraph(index: number) {
+    resolveMessage(index);
+    send("Let's keep that paragraph as it was.");
+  }
+
+  function confirmReframe(index: number, r: Reframe) {
+    resolveMessage(index);
+    send("", { acceptedReframe: { newChapterType: r.newChapterType } });
+  }
+
+  function keepMechanic(index: number) {
+    resolveMessage(index);
+    send("No, the mechanic is right as it is.");
+  }
+
+  function approveAffected(index: number, chapters: AffectedChapter[]) {
+    resolveMessage(index);
+    send("", { approvedAffectedChapters: chapters });
+  }
+
+  const paragraphs = (chapter.chapterStory ?? "").split("\n\n").filter((p) => p.trim());
 
   return (
     <div
@@ -299,33 +391,136 @@ function CassChapterContextDrawer({
             </span>
           </div>
 
-          {messages.map((msg, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
-              {msg.role === "assistant" ? (
-                <p style={{
-                  fontFamily: "'Lora', Georgia, serif",
-                  fontSize: "15px",
-                  lineHeight: "1.65",
-                  color: "rgba(248,248,246,0.82)",
-                  margin: 0,
-                  maxWidth: "92%",
-                }}>
-                  {msg.content}
+          {/* Current chapter text — read-only reference while editing */}
+          {paragraphs.length > 0 && (
+            <div style={{
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(200,168,107,0.12)",
+              borderRadius: "12px",
+              padding: "14px 16px",
+              marginBottom: "8px",
+            }}>
+              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(200,168,107,0.4)", margin: "0 0 8px" }}>
+                Chapter as written
+              </p>
+              {paragraphs.map((p, i) => (
+                <p key={i} style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: 1.6, color: "rgba(248,248,246,0.55)", margin: i === 0 ? "0 0 8px" : "8px 0" }}>
+                  {p}
                 </p>
-              ) : (
+              ))}
+            </div>
+          )}
+
+          {messages.map((msg, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
+                {msg.role === "assistant" ? (
+                  <p style={{
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "15px",
+                    lineHeight: "1.65",
+                    color: "rgba(248,248,246,0.82)",
+                    margin: 0,
+                    maxWidth: "92%",
+                    whiteSpace: "pre-wrap",
+                  }}>
+                    {msg.content}
+                  </p>
+                ) : (
+                  <div style={{
+                    background: "rgba(200,168,107,0.1)",
+                    border: "1px solid rgba(200,168,107,0.22)",
+                    borderRadius: "18px 18px 4px 18px",
+                    padding: "10px 14px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px",
+                    lineHeight: "1.55",
+                    color: "#e8c789",
+                    maxWidth: "80%",
+                    whiteSpace: "pre-wrap",
+                  }}>
+                    {msg.content}
+                  </div>
+                )}
+              </div>
+
+              {/* Proposed paragraph edit */}
+              {msg.proposedParagraph && (
                 <div style={{
-                  background: "rgba(200,168,107,0.1)",
-                  border: "1px solid rgba(200,168,107,0.22)",
-                  borderRadius: "18px 18px 4px 18px",
-                  padding: "10px 14px",
-                  fontFamily: "'Lora', Georgia, serif",
-                  fontSize: "14px",
-                  lineHeight: "1.55",
-                  color: "#e8c789",
-                  maxWidth: "80%",
-                  whiteSpace: "pre-wrap",
+                  background: "rgba(245,200,74,0.05)",
+                  border: "1px solid rgba(245,200,74,0.18)",
+                  borderRadius: "12px",
+                  padding: "12px 14px",
+                  opacity: msg.resolved ? 0.5 : 1,
                 }}>
-                  {msg.content}
+                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", lineHeight: 1.6, color: "rgba(248,113,113,0.6)", textDecoration: "line-through", margin: "0 0 6px" }}>
+                    {msg.proposedParagraph.originalText}
+                  </p>
+                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: 1.6, color: "#f5c84a", margin: "0 0 10px" }}>
+                    {msg.proposedParagraph.newText}
+                  </p>
+                  {!msg.resolved && (
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button type="button" onClick={() => acceptParagraph(i, msg.proposedParagraph!)} style={pillBtnStyle("#f5c84a", "#1a0e00")}>
+                        <Check size={12} /> Accept
+                      </button>
+                      <button type="button" onClick={() => rejectParagraph(i)} style={pillBtnStyle("transparent", "rgba(248,248,246,0.5)", "rgba(248,248,246,0.2)")}>
+                        <X size={12} /> Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Reframe proposal */}
+              {msg.reframe && (
+                <div style={{
+                  background: "rgba(248,113,113,0.05)",
+                  border: "1px solid rgba(248,113,113,0.2)",
+                  borderRadius: "12px",
+                  padding: "12px 14px",
+                  opacity: msg.resolved ? 0.5 : 1,
+                }}>
+                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: 1.6, color: "rgba(248,248,246,0.8)", margin: "0 0 10px" }}>
+                    Change this chapter&rsquo;s mechanic to <strong>{CHAPTER_TYPE_LABEL[msg.reframe.newChapterType] ?? msg.reframe.newChapterType}</strong>{msg.reframe.rationale ? ` — ${msg.reframe.rationale}` : ""}?
+                  </p>
+                  {!msg.resolved && (
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button type="button" onClick={() => confirmReframe(i, msg.reframe!)} style={pillBtnStyle("#f87171", "#1a0e00")}>
+                        <Check size={12} /> Change it
+                      </button>
+                      <button type="button" onClick={() => keepMechanic(i)} style={pillBtnStyle("transparent", "rgba(248,248,246,0.5)", "rgba(248,248,246,0.2)")}>
+                        <X size={12} /> Keep as is
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Affected chapters summary */}
+              {msg.affectedChapters && msg.affectedChapters.length > 0 && (
+                <div style={{
+                  background: "rgba(200,168,107,0.05)",
+                  border: "1px solid rgba(200,168,107,0.18)",
+                  borderRadius: "12px",
+                  padding: "12px 14px",
+                  opacity: msg.resolved ? 0.5 : 1,
+                }}>
+                  <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(200,168,107,0.55)", margin: "0 0 8px" }}>
+                    This may affect
+                  </p>
+                  {msg.affectedChapters.map((c) => (
+                    <p key={c.chapterId} style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: 1.55, color: "rgba(248,248,246,0.75)", margin: "0 0 6px" }}>
+                      <strong>{c.chapterName}</strong> — {c.reason}
+                    </p>
+                  ))}
+                  {!msg.resolved && (
+                    <div style={{ display: "flex", marginTop: "6px" }}>
+                      <button type="button" onClick={() => approveAffected(i, msg.affectedChapters!)} style={pillBtnStyle("#f5c84a", "#1a0e00")}>
+                        <Check size={12} /> Got it, flag these
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -352,7 +547,7 @@ function CassChapterContextDrawer({
               marginTop: "4px",
             }}>
               <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "rgba(74,222,128,0.8)", margin: 0, lineHeight: 1.6 }}>
-                Saved. This will feed into how this chapter gets written.
+                Saved. Come back anytime to refine this chapter further.
               </p>
             </div>
           )}
@@ -405,4 +600,22 @@ function CassChapterContextDrawer({
       `}</style>
     </div>
   );
+}
+
+function pillBtnStyle(bg: string, color: string, border?: string): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    background: bg,
+    color,
+    border: border ? `1px solid ${border}` : "none",
+    borderRadius: "999px",
+    padding: "6px 14px",
+    fontFamily: "'Barlow Condensed', sans-serif",
+    fontSize: "12px",
+    fontWeight: 700,
+    letterSpacing: "0.05em",
+    cursor: "pointer",
+  };
 }

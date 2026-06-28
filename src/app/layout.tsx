@@ -9,20 +9,24 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Authored By",
     description: "AI-guided storytelling for your work, one chapter at a time.",
-    images: [{ url: "/icons/authored_by_app_icon.png" }],
+    images: [{ url: "/icons/authored_by_app_icon_square.png" }],
   },
   icons: {
     icon: [
-      { url: "/icons/authored-by-tape-icon.png", type: "image/png" },
+      { url: "/icons/authored_by_app_icon_square.png", type: "image/png" },
     ],
-    shortcut: "/icons/authored-by-tape-icon.png",
-    apple: "/icons/authored-by-tape-icon.png",
+    shortcut: "/icons/authored_by_app_icon_square.png",
+    apple: "/icons/authored_by_app_icon_square.png",
     other: [
       {
         rel: "apple-touch-icon-precomposed",
-        url: "/icons/authored-by-tape-icon.png",
+        url: "/icons/authored_by_app_icon_square.png",
       },
     ],
+  },
+  other: {
+    "msapplication-TileImage": "/icons/authored_by_app_icon_square.png",
+    "msapplication-TileColor": "#1a0e00",
   },
 };
 

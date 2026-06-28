@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ArrowRight, X } from "lucide-react";
+import { TapeButton } from "@/components/ui/tape-button";
 
 // ── Voice input footer ──────────────────────────────────────────────────────────
 // Shared input bar + full voice-mode screen used by onboarding and by the Cass
@@ -33,12 +35,16 @@ export function VoiceInputFooter({
   onExitVoiceMode?: () => void;
 }) {
   const [listening, setListening] = useState(false);
+  const [showMobileConversationNotice, setShowMobileConversationNotice] = useState(false);
   const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalTranscriptRef = useRef(value);
   // iOS doesn't support continuous SpeechRecognition — use push-to-talk instead
   const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // Mobile browsers (iOS + Android) handle mic access for conversation mode poorly —
+  // point people to the app instead of dropping them into a broken voice-mode screen.
+  const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   // Resize textarea whenever value changes (covers both typing and voice)
   useEffect(() => {
@@ -149,6 +155,10 @@ export function VoiceInputFooter({
 
   function toggleVoice() {
     if (onEnterVoiceMode && !voiceMode) {
+      if (isMobile) {
+        setShowMobileConversationNotice(true);
+        return;
+      }
       onEnterVoiceMode();
       return;
     }
@@ -390,6 +400,67 @@ export function VoiceInputFooter({
         </div>
       )}
       </div>
+      {showMobileConversationNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowMobileConversationNotice(false)}
+            aria-hidden="true"
+          />
+
+          {/* Modal */}
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="relative z-10 w-full max-w-lg rounded-[2rem] bg-[var(--surface)] shadow-2xl ring-1 ring-black/8 overflow-hidden"
+          >
+            {/* Header */}
+            <div className="bg-[var(--accent-soft)] px-7 pt-8 pb-6 text-center rounded-t-[2rem] relative">
+              <button
+                type="button"
+                onClick={() => setShowMobileConversationNotice(false)}
+                aria-label="Close"
+                style={{ fontFamily: "'Literata', Georgia, serif" }}
+                className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-black/8 hover:text-[var(--ink)]"
+              >
+                <X className="size-4" />
+              </button>
+              <h2 className="text-2xl font-bold text-[var(--ink)] font-literata">
+                Conversation mode lives in the app
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Mobile browsers don&apos;t handle voice well. Download the Shelf app for the full talk-it-out experience.
+              </p>
+            </div>
+
+            {/* Body */}
+            <div className="px-7 py-6 space-y-4 rounded-b-[2rem] bg-[var(--surface)]">
+              <div className="flex justify-center pt-2">
+                <TapeButton
+                  variant="primary"
+                  size="lg"
+                  onClick={() => setShowMobileConversationNotice(false)}
+                  className="justify-center"
+                >
+                  <ArrowRight className="size-4" />
+                  Got it
+                </TapeButton>
+              </div>
+
+              <TapeButton
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMobileConversationNotice(false)}
+                className="flex w-full items-center justify-center gap-1.5"
+              >
+                <X className="size-3" />
+                Close
+              </TapeButton>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

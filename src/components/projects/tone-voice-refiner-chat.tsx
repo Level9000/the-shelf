@@ -1,109 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Pencil, X } from "lucide-react";
-import type { ProjectWithChapters } from "@/types";
+import { X } from "lucide-react";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
 
-type FoundationMessage = { role: "user" | "assistant"; content: string };
-
-// ── Pill + paragraph (sits above Chapter 1) ───────────────────────────────────
-
-export function StoryFoundationSection({
-  project,
-  isDark,
-}: {
-  project: ProjectWithChapters;
-  isDark: boolean;
-}) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [foundation, setFoundation] = useState(project.storyFoundation ?? null);
-
-  const textColor = isDark ? "rgba(232,224,208,0.78)" : "rgba(22,19,15,0.78)";
-  const placeholderColor = isDark ? "rgba(200,168,107,0.4)" : "rgba(0,0,0,0.32)";
-  const pillBg = isDark ? "rgba(200,168,107,0.12)" : "rgba(200,168,107,0.12)";
-  const pillBorder = isDark ? "rgba(200,168,107,0.45)" : "rgba(180,140,60,0.4)";
-  const pillColor = isDark ? "#e8c789" : "#8a6d2f";
-
-  return (
-    <div style={{ marginBottom: "44px" }}>
-      <p
-        style={{
-          fontFamily: "'Literata', Georgia, serif",
-          fontSize: "16px",
-          lineHeight: 1.75,
-          fontStyle: foundation ? "normal" : "italic",
-          color: foundation ? textColor : placeholderColor,
-          margin: "0 0 18px",
-        }}
-      >
-        {foundation ?? "The story behind the story hasn't been written yet."}
-      </p>
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "7px",
-            background: pillBg,
-            border: `1px solid ${pillBorder}`,
-            borderRadius: "999px",
-            padding: "9px 22px",
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontSize: "13px",
-            fontWeight: 700,
-            letterSpacing: "0.05em",
-            color: pillColor,
-            cursor: "pointer",
-            boxShadow: isDark ? "0 2px 10px rgba(200,168,107,0.12)" : "0 2px 10px rgba(180,140,60,0.12)",
-            transition: "background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = isDark ? "rgba(200,168,107,0.2)" : "rgba(200,168,107,0.2)";
-            e.currentTarget.style.transform = "translateY(-1px)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = pillBg;
-            e.currentTarget.style.transform = "translateY(0)";
-          }}
-        >
-          <Pencil size={12} />
-          Refine the backstory
-        </button>
-      </div>
-
-      <CassFoundationDrawer
-        open={drawerOpen}
-        project={project}
-        onClose={() => setDrawerOpen(false)}
-        onSaved={(summary) => setFoundation(summary)}
-      />
-    </div>
-  );
-}
+type ToneVoiceMessage = { role: "user" | "assistant"; content: string };
 
 // ── Drawer ─────────────────────────────────────────────────────────────────────
+// Standalone tone-of-voice calibration conversation with Cass. Mirrors
+// CassFoundationDrawer (story-foundation.tsx) — same shell, same VoiceInputFooter
+// wiring for conversation mode — but produces a persistent voice profile instead
+// of a backstory paragraph.
 
-export function CassFoundationDrawer({
+export function ToneVoiceRefinerDrawer({
   open,
-  project,
+  projectId,
   onClose,
   onSaved,
-  gapHint = null,
   onPartialClose,
 }: {
   open: boolean;
-  project: ProjectWithChapters;
+  projectId: string;
   onClose: () => void;
-  onSaved: (summary: string) => void;
-  gapHint?: string | null;
+  onSaved: (voiceProfile: string) => void;
   /** Called with the in-progress conversation when the drawer is closed before completion. */
-  onPartialClose?: (conversation: FoundationMessage[]) => void;
+  onPartialClose?: (conversation: ToneVoiceMessage[]) => void;
 }) {
-  const [messages, setMessages] = useState<FoundationMessage[]>([]);
+  const [messages, setMessages] = useState<ToneVoiceMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -170,8 +94,6 @@ export function CassFoundationDrawer({
     queueMicrotask(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
   }, [messages, isLoading]);
 
-  // Closing the drawer (or navigating away) must end any live conversation-mode
-  // thread — otherwise Cass keeps talking/listening after it's off-screen.
   useEffect(() => {
     if (open) return;
     conversationModeRef.current = false;
@@ -206,10 +128,10 @@ export function CassFoundationDrawer({
 
     startTransition(async () => {
       try {
-        const res = await fetch("/api/chat/cass-foundation", {
+        const res = await fetch("/api/chat/tone-voice-refiner", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, messages: [], gapHint }),
+          body: JSON.stringify({ projectId, messages: [] }),
         });
         const data = (await res.json()) as { reply?: string; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Couldn't connect.");
@@ -221,7 +143,7 @@ export function CassFoundationDrawer({
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, project.id, gapHint]);
+  }, [open, projectId]);
 
   function handleClose() {
     if (!done) onPartialClose?.(messages);
@@ -230,29 +152,29 @@ export function CassFoundationDrawer({
 
   function send(content: string) {
     if (!content.trim() || isLoading || done) return;
-    const next: FoundationMessage[] = [...messages, { role: "user", content: content.trim() }];
+    const next: ToneVoiceMessage[] = [...messages, { role: "user", content: content.trim() }];
     setMessages(next);
     setDraft("");
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch("/api/chat/cass-foundation", {
+        const res = await fetch("/api/chat/tone-voice-refiner", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, messages: next }),
+          body: JSON.stringify({ projectId, messages: next }),
         });
         const data = (await res.json()) as {
           reply?: string;
           done?: boolean;
-          foundationSummary?: string;
+          voiceProfile?: string;
           error?: string;
         };
-        if (!res.ok) throw new Error(data.error ?? "Foundation chat failed.");
+        if (!res.ok) throw new Error(data.error ?? "Tone of voice chat failed.");
         const reply = data.reply?.trim() ?? "";
         setMessages((m) => [...m, { role: "assistant", content: reply }]);
         if (data.done) {
           setDone(true);
-          if (data.foundationSummary) onSaved(data.foundationSummary);
+          if (data.voiceProfile) onSaved(data.voiceProfile);
         }
         if (conversationModeRef.current) speakCassReply(reply);
       } catch (err) {
@@ -287,7 +209,6 @@ export function CassFoundationDrawer({
       >
         {/* Header */}
         <div style={{ flexShrink: 0, position: "relative" }}>
-          {/* Authored By banner */}
           <div style={{
             background: "#0a0a0a",
             borderBottom: "1px solid #1e1e1e",
@@ -311,17 +232,15 @@ export function CassFoundationDrawer({
               <X size={14} />
             </button>
           </div>
-          {/* Label bar */}
           <div style={{ background: "#2a2208", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(200,168,107,0.85)" }}>
-              Before Chapter One
+              Tone Of Voice
             </span>
           </div>
         </div>
 
         {/* Messages */}
         <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-          {/* Cass avatar — always at top, matching the board drawer */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
             <CassRecorder animState={isLoading ? "playing" : "talking"} size="sm" />
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)" }}>
@@ -339,6 +258,7 @@ export function CassFoundationDrawer({
                   color: "rgba(248,248,246,0.82)",
                   margin: 0,
                   maxWidth: "92%",
+                  whiteSpace: "pre-wrap",
                 }}>
                   {msg.content}
                 </p>
@@ -364,7 +284,7 @@ export function CassFoundationDrawer({
           {isLoading && (
             <div style={{ display: "flex", gap: "5px", alignItems: "center", padding: "4px 2px" }}>
               {[0, 1, 2].map((d) => (
-                <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#f5c84a", opacity: 0.4, animation: `foundationDotPulse 1.1s ease-in-out ${d * 0.18}s infinite` }} />
+                <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#f5c84a", opacity: 0.4, animation: `toneVoiceDotPulse 1.1s ease-in-out ${d * 0.18}s infinite` }} />
               ))}
             </div>
           )}
@@ -382,7 +302,7 @@ export function CassFoundationDrawer({
               marginTop: "4px",
             }}>
               <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "rgba(74,222,128,0.8)", margin: 0, lineHeight: 1.6 }}>
-                Saved. You can come back and add more to this anytime.
+                Saved. Every chapter Cass writes from here on will sound like you. Come back anytime to refine it further.
               </p>
             </div>
           )}
@@ -393,28 +313,6 @@ export function CassFoundationDrawer({
         {/* Input */}
         {!done && (
           <div style={{ flexShrink: 0, borderTop: "1px solid #2e2e2e", padding: "12px 14px 16px" }}>
-            {messages.some((m) => m.role === "user") && (
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "10px" }}>
-              <button
-                type="button"
-                onClick={() => send("That's enough for now.")}
-                disabled={isLoading}
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  fontFamily: "'Lora', Georgia, serif",
-                  fontSize: "12px",
-                  color: "rgba(200,168,107,0.5)",
-                  cursor: isLoading ? "not-allowed" : "pointer",
-                  textDecoration: "underline",
-                  textUnderlineOffset: "2px",
-                }}
-              >
-                That&rsquo;s enough for now
-              </button>
-            </div>
-            )}
             <VoiceInputFooter
               value={draft}
               onChange={setDraft}
@@ -430,8 +328,7 @@ export function CassFoundationDrawer({
       </div>
 
       <style>{`
-        @keyframes foundationDotPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.9; } }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes toneVoiceDotPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.9; } }
       `}</style>
     </div>
   );

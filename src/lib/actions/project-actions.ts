@@ -1266,6 +1266,22 @@ export async function createChapterAction(input: {
   };
 }
 
+export async function clearChapterReviewFlagAction(input: {
+  projectId: string;
+  boardId: string;
+}): Promise<void> {
+  const { supabase } = await getAuthenticatedUser();
+  const { error } = await supabase
+    .from("boards")
+    .update({ needs_review_reason: null })
+    .eq("id", input.boardId)
+    .eq("project_id", input.projectId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/projects/${input.projectId}`);
+}
+
 export async function updateChapterStoryAction(input: {
   projectId: string;
   boardId: string;

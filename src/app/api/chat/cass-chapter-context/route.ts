@@ -3,6 +3,7 @@ import { runCassChapterContextDialogue } from "@/lib/ai/anthropic";
 import { strategicDialogueMessageSchema } from "@/lib/ai/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { refreshBackstoryGapSignal } from "@/lib/ai/backstory-gap";
+import { loadCassStoryContext } from "@/lib/ai/cass-context";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,9 @@ export async function POST(request: Request) {
     projectId?: string;
     chapterId?: string;
     messages?: Array<{ role?: string; content?: string }>;
+    acceptedParagraph?: { originalText?: string; newText?: string };
+    acceptedReframe?: { newChapterType?: string };
+    approvedAffectedChapters?: Array<{ chapterId?: string; chapterName?: string; reason?: string }>;
   };
 
   const projectId = String(payload.projectId ?? "");
@@ -38,7 +42,7 @@ export async function POST(request: Request) {
     supabase.from("projects").select("id, name").eq("id", projectId).maybeSingle(),
     supabase
       .from("boards")
-      .select("id, name, chapter_story, goal")
+      .select("id, name, chapter_story, goal, chapter_type")
       .eq("id", chapterId)
       .eq("project_id", projectId)
       .maybeSingle(),
@@ -46,6 +50,48 @@ export async function POST(request: Request) {
 
   if (projectError || !project || boardError || !board) {
     return NextResponse.json({ error: "Chapter not found." }, { status: 404 });
+  }
+
+  // ── Apply any action the founder already confirmed in the UI, before this turn's dialogue ──
+  if (payload.acceptedParagraph?.originalText && payload.acceptedParagraph.newText) {
+    const currentStory = (board.chapter_story as string | null) ?? "";
+    if (currentStory.includes(payload.acceptedParagraph.originalText)) {
+      const updatedStory = currentStory.replace(
+        payload.acceptedParagraph.originalText,
+        payload.acceptedParagraph.newText,
+      );
+      const { error: storyError } = await supabase
+        .from("boards")
+        .update({ chapter_story: updatedStory })
+        .eq("id", chapterId)
+        .eq("project_id", projectId);
+      if (storyError) throw new Error(storyError.message);
+      board.chapter_story = updatedStory;
+    }
+  }
+
+  if (payload.acceptedReframe?.newChapterType) {
+    const { error: typeError } = await supabase
+      .from("boards")
+      .update({ chapter_type: payload.acceptedReframe.newChapterType })
+      .eq("id", chapterId)
+      .eq("project_id", projectId);
+    if (typeError) throw new Error(typeError.message);
+    board.chapter_type = payload.acceptedReframe.newChapterType;
+  }
+
+  if (payload.approvedAffectedChapters && payload.approvedAffectedChapters.length > 0) {
+    await Promise.all(
+      payload.approvedAffectedChapters
+        .filter((c) => c.chapterId && c.reason)
+        .map((c) =>
+          supabase
+            .from("boards")
+            .update({ needs_review_reason: c.reason })
+            .eq("id", c.chapterId)
+            .eq("project_id", projectId),
+        ),
+    );
   }
 
   const { data: fragmentRows } = await supabase
@@ -57,15 +103,26 @@ export async function POST(request: Request) {
     .limit(10);
 
   const existingNotes = (fragmentRows ?? []).map((f) => String(f.content));
+  const storyContext = await loadCassStoryContext(supabase, projectId);
+  const arcContext = storyContext.chapterSummaries.map((c) => ({
+    id: c.id,
+    name: c.name,
+    chapterType: c.chapterType,
+    headline: c.headline,
+    storyExcerpt: c.storyExcerpt,
+  }));
 
   try {
     const result = await runCassChapterContextDialogue({
       messages,
       projectName: String(project.name),
       chapterName: String(board.name),
+      chapterId,
+      chapterType: (board.chapter_type as string | null) ?? null,
       chapterStory: (board.chapter_story as string | null) ?? null,
       chapterGoal: (board.goal as string | null) ?? null,
       existingNotes,
+      arcContext,
     });
 
     if (result.done && result.capturedNote) {

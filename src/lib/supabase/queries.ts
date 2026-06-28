@@ -40,6 +40,11 @@ function mapProject(row: Record<string, unknown>): Project {
     storyUpdatedAt: (row.story_updated_at as string | null) ?? null,
     storyFoundation: (row.story_foundation as string | null) ?? null,
     storyFoundationUpdatedAt: (row.story_foundation_updated_at as string | null) ?? null,
+    voiceProfile: (row.voice_profile as string | null) ?? null,
+    voiceProfileUpdatedAt: (row.voice_profile_updated_at as string | null) ?? null,
+    voiceProfileConversation:
+      (row.voice_profile_conversation as Array<{ role: string; content: string }> | null) ?? null,
+    voiceProfileDismissedAt: (row.voice_profile_dismissed_at as string | null) ?? null,
     backstoryGapNote: (row.backstory_gap_note as string | null) ?? null,
     backstoryGapDetectedAt: (row.backstory_gap_detected_at as string | null) ?? null,
     backstoryNudgeSessionCount: (row.backstory_nudge_session_count as number | null) ?? 0,
@@ -103,6 +108,7 @@ function mapBoard(row: Record<string, unknown>): Board {
     bridgeSentence: (row.bridge_sentence as string | null) ?? null,
     storyHealthFlag: (row.story_health_flag as "none" | "recentering_needed" | null) ?? null,
     recenteringType: (row.recentering_type as string | null) ?? null,
+    needsReviewReason: (row.needs_review_reason as string | null) ?? null,
   };
 }
 

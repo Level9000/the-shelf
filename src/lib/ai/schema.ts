@@ -170,11 +170,36 @@ export const aiFoundationDialogueSchema = z.object({
 
 export type AIFoundationDialogue = z.infer<typeof aiFoundationDialogueSchema>;
 
+export const aiVoiceProfileDialogueSchema = z.object({
+  reply: z.string().trim().min(1).max(4000),
+  done: z.boolean(),
+  /** Synthesized voice guide — only populated when done is true. */
+  voiceProfile: z.string().trim().max(3000).default(""),
+});
+
+export type AIVoiceProfileDialogue = z.infer<typeof aiVoiceProfileDialogueSchema>;
+
 export const aiChapterContextDialogueSchema = z.object({
   reply: z.string().trim().min(1).max(4000),
   done: z.boolean(),
   /** Raw material captured this turn — only populated when done is true. */
   capturedNote: z.string().trim().max(3000).default(""),
+  /** A concrete paragraph-level rewrite Cass is proposing — shown for accept/reject before it's saved. */
+  proposedParagraph: z.object({
+    originalText: z.string().trim().min(1),
+    newText: z.string().trim().min(1),
+  }).nullable().default(null),
+  /** Only populated when the founder explicitly reframes the chapter's meaning. */
+  reframe: z.object({
+    newChapterType: z.enum(["climb", "win", "turn", "fog", "reframe"]),
+    rationale: z.string().trim().min(1).max(500),
+  }).nullable().default(null),
+  /** Other chapters this edit may make inconsistent — flagged for later review, never auto-rewritten. */
+  affectedChapters: z.array(z.object({
+    chapterId: z.string(),
+    chapterName: z.string(),
+    reason: z.string().trim().min(1).max(300),
+  })).default([]),
 });
 
 export type AIChapterContextDialogue = z.infer<typeof aiChapterContextDialogueSchema>;

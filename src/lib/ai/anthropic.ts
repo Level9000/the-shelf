@@ -5,6 +5,7 @@ import {
   aiChapterContextDialogueSchema,
   aiChapterPlannerDialogueSchema,
   aiFoundationDialogueSchema,
+  aiVoiceProfileDialogueSchema,
   aiFragmentExtractionSchema,
   aiKickoffDialogueSchema,
   aiProjectKickoffDialogueSchema,
@@ -29,6 +30,7 @@ import {
   buildCassChapterContextPrompt,
   buildCassChapterKickoffPrompt,
   buildCassFoundationPrompt,
+  buildToneVoiceRefinerPrompt,
   buildCassOnboardingPrompt,
   buildFragmentExtractionPrompt,
   buildCassRetroPrompt,
@@ -1310,13 +1312,29 @@ export async function runCassFoundationDialogue(input: {
   );
 }
 
+export async function runToneVoiceRefinerDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  sampleExcerpts?: string[];
+  existingProfile?: string | null;
+}) {
+  return runJsonDialogue(
+    buildToneVoiceRefinerPrompt(input),
+    input.messages,
+    (text) => aiVoiceProfileDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
 export async function runCassChapterContextDialogue(input: {
   messages: StrategicDialogueMessage[];
   projectName: string;
   chapterName: string;
+  chapterId: string;
+  chapterType?: string | null;
   chapterStory?: string | null;
   chapterGoal?: string | null;
   existingNotes?: string[];
+  arcContext?: Array<{ id: string; name: string; chapterType: string | null; headline: string | null; storyExcerpt: string | null }>;
 }) {
   return runJsonDialogue(
     buildCassChapterContextPrompt(input),
@@ -1335,6 +1353,7 @@ export async function runNarrativeEnginePass1(input: {
   chapterBriefText: string;
   chapterType: ChapterType;
   stitchingPattern: StitchingPattern | null;
+  voiceProfile?: string | null;
 }): Promise<string> {
   const apiKey = requireAnthropicKey();
   const systemPrompt = buildNarrativeEnginePass1Prompt(input);
@@ -1376,6 +1395,7 @@ export async function runNarrativeEnginePass1(input: {
 export async function runNarrativeEnginePass2(input: {
   pass1Draft: string;
   chapterBriefText: string;
+  voiceProfile?: string | null;
 }): Promise<string> {
   const apiKey = requireAnthropicKey();
   const systemPrompt = buildNarrativeEnginePass2Prompt(input);
@@ -1448,11 +1468,13 @@ export async function runNarrativeEngine(input: {
   chapterBriefText: string;
   chapterType: ChapterType;
   stitchingPattern: StitchingPattern | null;
+  voiceProfile?: string | null;
 }): Promise<NarrativeEngineOutput> {
   const pass1Draft = await runNarrativeEnginePass1(input);
   const finalText  = await runNarrativeEnginePass2({
     pass1Draft,
     chapterBriefText: input.chapterBriefText,
+    voiceProfile: input.voiceProfile,
   });
   return parseNarrativeEngineOutput(finalText, input.chapterType);
 }
