@@ -8,7 +8,6 @@ import type { PressTemplate } from "@/lib/press/templates";
 import { ProjectArcRefiner } from "@/components/projects/project-arc-refiner";
 import { ProjectOverviewSettingsDrawer } from "@/components/projects/project-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
-import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
@@ -70,6 +69,29 @@ function ChatHistoryDrawer({
 }) {
   const open = Boolean(thread);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const drawerBg      = isDark ? "#0d0c09" : "#f5f0e8";
+  const drawerBorder  = isDark ? "rgba(200,168,107,0.12)" : "rgba(200,168,107,0.25)";
+  const headerBorder  = isDark ? "rgba(200,168,107,0.08)" : "rgba(200,168,107,0.2)";
+  const archiveLabel  = isDark ? "rgba(200,168,107,0.45)" : "rgba(160,120,50,0.85)";
+  const titleColor    = isDark ? "#d4cec4" : "rgba(26,14,0,0.88)";
+  const closeColor    = isDark ? "rgba(200,168,107,0.5)" : "rgba(26,14,0,0.4)";
+  const cassTextColor = isDark ? "rgba(248,248,246,0.82)" : "rgba(26,14,0,0.82)";
+  const userBubbleBg  = isDark ? "rgba(200,168,107,0.09)" : "rgba(200,168,107,0.12)";
+  const userBubbleBdr = isDark ? "rgba(200,168,107,0.14)" : "rgba(200,168,107,0.3)";
+  const userBubbleTxt = isDark ? "#c8a86b" : "rgba(26,14,0,0.82)";
+  const taskCardBg    = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)";
+  const taskCardBdr   = isDark ? "rgba(200,168,107,0.1)" : "rgba(200,168,107,0.2)";
+  const taskTitle     = isDark ? "rgba(232,224,208,0.85)" : "rgba(26,14,0,0.85)";
+  const taskDesc      = isDark ? "rgba(232,224,208,0.45)" : "rgba(26,14,0,0.45)";
+  const taskMeta      = isDark ? "rgba(200,168,107,0.5)" : "rgba(200,168,107,0.7)";
+  const cardsLabel    = isDark ? "rgba(200,168,107,0.55)" : "rgba(200,168,107,0.7)";
+  const footerBorder  = isDark ? "rgba(200,168,107,0.08)" : "rgba(200,168,107,0.15)";
+  const endedBg       = isDark ? "rgba(255,255,255,0.02)" : "rgba(26,14,0,0.03)";
+  const endedBdr      = isDark ? "rgba(200,168,107,0.07)" : "rgba(200,168,107,0.15)";
+  const endedTxt      = isDark ? "rgba(200,168,107,0.28)" : "rgba(200,168,107,0.5)";
 
   // Scroll to bottom whenever a thread opens
   useEffect(() => {
@@ -104,8 +126,8 @@ function ChatHistoryDrawer({
           position: "absolute", right: 0, top: 0, bottom: 0,
           width: "min(480px, 100vw)",
           display: "flex", flexDirection: "column",
-          background: "#0d0c09",
-          borderLeft: "1px solid rgba(200,168,107,0.12)",
+          background: drawerBg,
+          borderLeft: `1px solid ${drawerBorder}`,
           transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)",
           transform: open ? "translateX(0)" : "translateX(100%)",
         }}
@@ -113,7 +135,7 @@ function ChatHistoryDrawer({
         {/* Header */}
         <div style={{
           padding: "20px 20px 16px",
-          borderBottom: "1px solid rgba(200,168,107,0.08)",
+          borderBottom: `1px solid ${headerBorder}`,
           display: "flex", alignItems: "flex-start",
           justifyContent: "space-between", gap: "12px",
         }}>
@@ -121,14 +143,14 @@ function ChatHistoryDrawer({
             <p style={{
               fontFamily: "var(--font-cass)",
               fontSize: "11px", letterSpacing: "3px",
-              color: "rgba(200,168,107,0.45)", textTransform: "uppercase", marginBottom: "5px",
+              color: archiveLabel, textTransform: "uppercase", marginBottom: "5px",
             }}>
               Cass · Archived
             </p>
             <p style={{
               fontFamily: "'Literata', Georgia, serif",
               fontSize: "21px", fontWeight: 700, letterSpacing: "-0.02em",
-              color: "#d4cec4", lineHeight: 1.2,
+              color: titleColor, lineHeight: 1.2,
             }}>
               {thread?.label ?? ""}
             </p>
@@ -137,7 +159,7 @@ function ChatHistoryDrawer({
             type="button" onClick={onClose}
             style={{
               padding: "4px", background: "none", border: "none",
-              cursor: "pointer", color: "rgba(200,168,107,0.5)", flexShrink: 0, marginTop: "2px",
+              cursor: "pointer", color: closeColor, flexShrink: 0, marginTop: "2px",
               fontFamily: "'Literata', Georgia, serif",
             }}
           >
@@ -154,7 +176,7 @@ function ChatHistoryDrawer({
           <p style={{
             fontFamily: "'Literata', Georgia, serif",
             fontSize: "14px",
-            color: "rgba(74,222,128,0.75)", margin: 0,
+            color: isDark ? "rgba(74,222,128,0.75)" : "rgba(22,130,62,0.85)", margin: 0,
           }}>
             ✓&nbsp; this conversation completed on {completedDate}
           </p>
@@ -171,19 +193,31 @@ function ChatHistoryDrawer({
             const isUser = msg.role === "user";
             return (
               <div key={i} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start" }}>
-                <div style={{
-                  maxWidth: "85%",
-                  background: isUser ? "rgba(200,168,107,0.09)" : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${isUser ? "rgba(200,168,107,0.14)" : "rgba(255,255,255,0.06)"}`,
-                  borderRadius: isUser ? "16px 16px 4px 16px" : "4px 16px 16px 16px",
-                  padding: "10px 14px",
-                  fontFamily: "'Literata', Georgia, serif",
-                  fontSize: "14px", lineHeight: 1.7,
-                  color: isUser ? "#c8a86b" : "rgba(232,224,208,0.88)",
-                  whiteSpace: "pre-wrap",
-                }}>
-                  {content}
-                </div>
+                {isUser ? (
+                  <div style={{
+                    maxWidth: "85%",
+                    background: userBubbleBg,
+                    border: `1px solid ${userBubbleBdr}`,
+                    borderRadius: "18px 18px 4px 18px",
+                    padding: "10px 14px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px", lineHeight: 1.55,
+                    color: userBubbleTxt,
+                    whiteSpace: "pre-wrap",
+                  }}>
+                    {content}
+                  </div>
+                ) : (
+                  <p style={{
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "15px", lineHeight: "1.65",
+                    color: cassTextColor,
+                    margin: 0, maxWidth: "92%",
+                    whiteSpace: "pre-wrap",
+                  }}>
+                    {content}
+                  </p>
+                )}
               </div>
             );
           })}
@@ -192,9 +226,9 @@ function ChatHistoryDrawer({
           {thread?.tasks && thread.tasks.length > 0 && (
             <div style={{ marginTop: "8px" }}>
               <p style={{
-                fontFamily: "'Literata', Georgia, serif",
-                fontSize: "13px", fontWeight: 700, letterSpacing: "-0.01em",
-                color: "rgba(200,168,107,0.55)", margin: "0 0 10px",
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: "13px", fontWeight: 700,
+                color: cardsLabel, margin: "0 0 10px",
               }}>
                 Cards created
               </p>
@@ -203,24 +237,24 @@ function ChatHistoryDrawer({
                   <div
                     key={task.id}
                     style={{
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid rgba(200,168,107,0.1)",
+                      background: taskCardBg,
+                      border: `1px solid ${taskCardBdr}`,
                       borderRadius: "10px",
                       padding: "10px 14px",
                     }}
                   >
                     <p style={{
-                      fontFamily: "'Literata', Georgia, serif",
+                      fontFamily: "'Lora', Georgia, serif",
                       fontSize: "13px", fontWeight: 600, lineHeight: 1.4,
-                      color: "rgba(232,224,208,0.85)", margin: 0,
+                      color: taskTitle, margin: 0,
                     }}>
                       {task.title}
                     </p>
                     {task.description && (
                       <p style={{
-                        fontFamily: "'Literata', Georgia, serif",
+                        fontFamily: "'Lora', Georgia, serif",
                         fontSize: "12px", lineHeight: 1.55,
-                        color: "rgba(232,224,208,0.45)", margin: "4px 0 0",
+                        color: taskDesc, margin: "4px 0 0",
                       }}>
                         {task.description}
                       </p>
@@ -228,15 +262,15 @@ function ChatHistoryDrawer({
                     <div style={{ display: "flex", gap: "8px", marginTop: "6px", flexWrap: "wrap" }}>
                       {task.assigneeName && (
                         <span style={{
-                          fontFamily: "'Literata', Georgia, serif",
-                          fontSize: "11px", color: "rgba(200,168,107,0.5)",
+                          fontFamily: "'Lora', Georgia, serif",
+                          fontSize: "11px", color: taskMeta,
                         }}>
                           {task.assigneeName}
                         </span>
                       )}
                       {task.priority && (
                         <span style={{
-                          fontFamily: "'Literata', Georgia, serif",
+                          fontFamily: "'Lora', Georgia, serif",
                           fontSize: "11px",
                           color: task.priority === "high" ? "rgba(248,113,113,0.65)"
                             : task.priority === "medium" ? "rgba(251,191,36,0.55)"
@@ -255,16 +289,16 @@ function ChatHistoryDrawer({
         </div>
 
         {/* Disabled input area */}
-        <div style={{ padding: "14px 20px 28px", borderTop: "1px solid rgba(200,168,107,0.08)" }}>
+        <div style={{ padding: "14px 20px 28px", borderTop: `1px solid ${footerBorder}` }}>
           <div style={{
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(200,168,107,0.07)",
+            background: endedBg,
+            border: `1px solid ${endedBdr}`,
             borderRadius: "12px", padding: "14px 16px", textAlign: "center",
           }}>
             <p style={{
               fontFamily: "var(--font-cass)",
               fontSize: "11px", letterSpacing: "1px",
-              color: "rgba(200,168,107,0.28)", margin: 0,
+              color: endedTxt, margin: 0,
             }}>
               this conversation has ended
             </p>
@@ -330,6 +364,31 @@ function CassChronicleDrawer({
   project: ProjectWithChapters;
   onClose: () => void;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const drawerBg     = isDark ? "#242424" : "#f5f0e8";
+  const headerBg     = isDark ? "#0a0a0a" : "#f0ebe0";
+  const headerBorder = isDark ? "#1e1e1e" : "rgba(26,14,0,0.1)";
+  const labelBarBg   = isDark ? "#2a2208" : "rgba(200,168,107,0.15)";
+  const textPrimary  = isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)";
+  const textMuted    = isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.4)";
+  const textBody     = isDark ? "rgba(248,248,246,0.82)" : "rgba(26,14,0,0.8)";
+  const closeBtn     = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.06)";
+  const closeBtnHov  = isDark ? "rgba(255,255,255,0.1)" : "rgba(26,14,0,0.1)";
+  const closeIcon    = isDark ? "#888" : "rgba(26,14,0,0.4)";
+  const closeIconHov = isDark ? "#d4cec4" : "rgba(26,14,0,0.75)";
+  const optionBg     = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)";
+  const optionBgHov  = isDark ? "rgba(200,168,107,0.07)" : "rgba(200,168,107,0.1)";
+  const optionBdr    = isDark ? "rgba(200,168,107,0.18)" : "rgba(200,168,107,0.3)";
+  const optionBdrHov = isDark ? "rgba(200,168,107,0.45)" : "rgba(200,168,107,0.6)";
+  const optionText   = isDark ? "#d4cec4" : "rgba(26,14,0,0.82)";
+  const userBubbleBg = isDark ? "rgba(245,200,74,0.1)" : "rgba(200,168,107,0.12)";
+  const userBubbleBdr= isDark ? "rgba(245,200,74,0.2)" : "rgba(200,168,107,0.3)";
+  const userBubbleTxt= isDark ? "rgba(248,248,246,0.8)" : "rgba(26,14,0,0.8)";
+  const backBtnColor = isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)";
+  const backBtnHov   = isDark ? "rgba(248,248,246,0.75)" : "rgba(26,14,0,0.75)";
+
   const [mode, setMode] = useState<DrawerMode>("audience");
   const [selectedAudience, setSelectedAudience] = useState<string | null>(null);
 
@@ -532,12 +591,6 @@ function CassChronicleDrawer({
     }
   }
 
-  const progressPercent =
-    mode === "chat" && pressReadyToGenerate ? 90 :
-    mode === "chat" && pressMessages.length > 2 ? 60 :
-    mode === "chat" ? 30 :
-    10;
-
   const audienceLabel = AUDIENCE_OPTIONS.find((a) => a.id === selectedAudience)?.label;
 
   return (
@@ -559,21 +612,19 @@ function CassChronicleDrawer({
       <div
         className="fixed inset-y-0 right-0 z-50 flex w-full flex-col lg:w-[30%] lg:min-w-[360px]"
         style={{
-          background: "#242424",
+          background: drawerBg,
           transform: open ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
           boxShadow: open ? "-8px 0 40px rgba(0,0,0,0.5)" : "none",
         }}
         aria-hidden={!open}
       >
-        <CassProgressBar percent={progressPercent} />
-
         {/* Header */}
         <div style={{ flexShrink: 0, position: "relative" }}>
           {/* Authored By banner */}
           <div style={{
-            background: "#0a0a0a",
-            borderBottom: "1px solid #1e1e1e",
+            background: headerBg,
+            borderBottom: `1px solid ${headerBorder}`,
             padding: "8px 16px",
             display: "flex",
             alignItems: "center",
@@ -596,11 +647,11 @@ function CassChronicleDrawer({
                   background: "transparent", border: "none", cursor: "pointer",
                   fontFamily: "'Barlow Condensed', sans-serif",
                   fontSize: "12px", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase",
-                  color: "rgba(248,248,246,0.35)", padding: "4px 6px",
+                  color: backBtnColor, padding: "4px 6px",
                   transition: "color 0.15s",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.75)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.35)"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = backBtnHov; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = backBtnColor; }}
               >
                 ← back
               </button>
@@ -619,18 +670,18 @@ function CassChronicleDrawer({
                 width: "32px", height: "32px",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 borderRadius: "50%",
-                background: "rgba(255,255,255,0.06)",
-                color: "#888", border: "none", cursor: "pointer",
+                background: closeBtn,
+                color: closeIcon, border: "none", cursor: "pointer",
                 transition: "background 0.15s, color 0.15s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#d4cec4"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#888"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = closeBtnHov; e.currentTarget.style.color = closeIconHov; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = closeBtn; e.currentTarget.style.color = closeIcon; }}
             >
               <X size={14} />
             </button>
           </div>
           {/* Label bar */}
-          <div style={{ background: "#2a2208", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ background: labelBarBg, padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(200,168,107,0.85)" }}>
               {mode === "audience" ? "Share Your Story" : "Authored By"}
             </span>
@@ -648,7 +699,7 @@ function CassChronicleDrawer({
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontSize: "11px", fontWeight: 600,
                 letterSpacing: "0.14em", textTransform: "uppercase",
-                color: "rgba(248,248,246,0.35)",
+                color: textMuted,
               }}>
                 Cass · Story Guide
               </span>
@@ -658,7 +709,7 @@ function CassChronicleDrawer({
                 fontFamily: "'Lora', Georgia, serif",
                 fontSize: "15px",
                 lineHeight: "1.65",
-                color: "#f8f8f6",
+                color: textPrimary,
                 margin: 0,
               }}>
                 Who would you like to share your story with?
@@ -671,8 +722,8 @@ function CassChronicleDrawer({
                   type="button"
                   onClick={() => enterChatMode(id)}
                   style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(200,168,107,0.18)",
+                    background: optionBg,
+                    border: `1px solid ${optionBdr}`,
                     borderRadius: "12px",
                     padding: "14px 18px",
                     textAlign: "left", width: "100%",
@@ -681,10 +732,10 @@ function CassChronicleDrawer({
                     animationDelay: `${i * 80}ms`,
                     opacity: 0,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.45)"; e.currentTarget.style.background = "rgba(200,168,107,0.07)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.18)"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = optionBdrHov; e.currentTarget.style.background = optionBgHov; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = optionBdr; e.currentTarget.style.background = optionBg; }}
                 >
-                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: "#d4cec4", margin: 0 }}>{label}</p>
+                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: optionText, margin: 0 }}>{label}</p>
                 </button>
               ))}
             </div>
@@ -702,7 +753,7 @@ function CassChronicleDrawer({
                   fontFamily: "'Barlow Condensed', sans-serif",
                   fontSize: "10px", fontWeight: 600,
                   letterSpacing: "0.14em", textTransform: "uppercase",
-                  color: "rgba(248,248,246,0.35)",
+                  color: textMuted,
                 }}>
                   Cass · Story Guide
                 </span>
@@ -739,7 +790,7 @@ function CassChronicleDrawer({
                       fontFamily: "'Lora', Georgia, serif",
                       fontSize: "15px",
                       lineHeight: "1.65",
-                      color: "rgba(248,248,246,0.82)",
+                      color: textBody,
                       margin: 0,
                       maxWidth: "92%",
                     }}>
@@ -747,14 +798,14 @@ function CassChronicleDrawer({
                     </p>
                   ) : (
                     <div style={{
-                      background: "rgba(245,200,74,0.1)",
-                      border: "1px solid rgba(245,200,74,0.2)",
+                      background: userBubbleBg,
+                      border: `1px solid ${userBubbleBdr}`,
                       borderRadius: "16px 16px 4px 16px",
                       padding: "10px 14px",
                       fontFamily: "'Lora', Georgia, serif",
                       fontSize: "14px",
                       lineHeight: "1.55",
-                      color: "rgba(248,248,246,0.8)",
+                      color: userBubbleTxt,
                       maxWidth: "80%",
                     }}>
                       {msg.content}
@@ -793,7 +844,7 @@ function CassChronicleDrawer({
                   }}>
                     Ready to generate
                   </p>
-                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: "rgba(248,248,246,0.5)", margin: "0 0 16px", lineHeight: "1.5" }}>
+                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: textBody, margin: "0 0 16px", lineHeight: "1.5" }}>
                     Download your {pressTemplate?.label.toLowerCase()} as a .{pressTemplate?.format} file.
                   </p>
                   <button

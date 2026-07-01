@@ -4,25 +4,34 @@ import {
   getProjectsWithChapters,
   getAuthenticatedUser,
 } from "@/lib/supabase/queries";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserSubscription, hasAuthorAccess } from "@/lib/subscription";
 import { ProjectWorkspaceShell } from "@/components/projects/project-workspace-shell";
+import { ensureMinDuration } from "@/lib/utils";
+
+// Keeps the Cass loading screen on-screen long enough to read the
+// typewriter message, even when the fetch resolves quickly.
+const MIN_LOADING_MS = 4000;
 
 export default async function ChapterBoardPage({
   params,
 }: {
   params: Promise<{ projectId: string; chapterId: string }>;
 }) {
+  const start = Date.now();
   const { projectId, chapterId } = await params;
-  const [snapshot, projects, profile, { user }] = await Promise.all([
+
+  // getAuthenticatedUser() is React-cache()'d, so this dedupes with the
+  // internal auth lookups made by the queries below into a single auth call.
+  const { supabase, user } = await getAuthenticatedUser();
+
+  const [snapshot, projects, profile, subscription] = await Promise.all([
     getProjectBoardSnapshot(projectId, chapterId),
     getProjectsWithChapters(),
     getCurrentUserProfile(),
-    getAuthenticatedUser(),
+    getUserSubscription(supabase, user.id),
   ]);
 
-  const supabase = await createSupabaseServerClient();
-  const subscription = await getUserSubscription(supabase, user.id);
+  await ensureMinDuration(start, MIN_LOADING_MS);
 
   // User is an author on this project if they're the owner or have the author role
   const memberEntry = snapshot.projectMembers.find((m) => m.userId === user.id);

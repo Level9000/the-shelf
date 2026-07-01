@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
+import { useTheme } from "@/lib/theme-context";
 
 type ToneVoiceMessage = { role: "user" | "assistant"; content: string };
 
@@ -27,6 +29,24 @@ export function ToneVoiceRefinerDrawer({
   /** Called with the in-progress conversation when the drawer is closed before completion. */
   onPartialClose?: (conversation: ToneVoiceMessage[]) => void;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const isMobileBrowser = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  const drawerBg     = isDark ? "#0d0c09" : "#f5f0e8";
+  const drawerBorder = isDark ? "rgba(200,168,107,0.12)" : "rgba(200,168,107,0.25)";
+  const headerBg     = isDark ? "#0a0a0a" : "#f0ebe0";
+  const headerBorder = isDark ? "#1e1e1e" : "rgba(26,14,0,0.1)";
+  const labelBarBg   = isDark ? "#2a2208" : "rgba(200,168,107,0.15)";
+  const textMuted    = isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.4)";
+  const textBody     = isDark ? "rgba(248,248,246,0.82)" : "rgba(26,14,0,0.82)";
+  const userBubbleBg = isDark ? "rgba(200,168,107,0.1)" : "rgba(200,168,107,0.12)";
+  const userBubbleBdr= isDark ? "rgba(200,168,107,0.22)" : "rgba(200,168,107,0.3)";
+  const userBubbleTxt= isDark ? "#e8c789" : "rgba(26,14,0,0.82)";
+  const closeBtnBg   = isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.06)";
+  const closeColor   = isDark ? "rgba(200,168,107,0.6)" : "rgba(26,14,0,0.4)";
+  const inputBorder  = isDark ? "#2e2e2e" : "rgba(26,14,0,0.1)";
+
   const [messages, setMessages] = useState<ToneVoiceMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +158,11 @@ export function ToneVoiceRefinerDrawer({
         const reply = data.reply?.trim() ?? "";
         if (!reply) throw new Error("No response.");
         setMessages([{ role: "assistant", content: reply }]);
+        if (!isMobileBrowser) {
+          conversationModeRef.current = true;
+          setConversationMode(true);
+          setTimeout(() => speakCassReply(reply), 80);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Signal lost. Stand by.");
       }
@@ -183,9 +208,9 @@ export function ToneVoiceRefinerDrawer({
     });
   }
 
-  return (
+  const drawer = (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 50, pointerEvents: open ? "auto" : "none" }}
+      style={{ position: "fixed", inset: 0, zIndex: 200, pointerEvents: open ? "auto" : "none" }}
       aria-hidden={!open}
     >
       <div
@@ -201,8 +226,8 @@ export function ToneVoiceRefinerDrawer({
           position: "absolute", right: 0, top: 0, bottom: 0,
           width: "min(480px, 100vw)",
           display: "flex", flexDirection: "column",
-          background: "#0d0c09",
-          borderLeft: "1px solid rgba(200,168,107,0.12)",
+          background: drawerBg,
+          borderLeft: `1px solid ${drawerBorder}`,
           transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)",
           transform: open ? "translateX(0)" : "translateX(100%)",
         }}
@@ -210,8 +235,8 @@ export function ToneVoiceRefinerDrawer({
         {/* Header */}
         <div style={{ flexShrink: 0, position: "relative" }}>
           <div style={{
-            background: "#0a0a0a",
-            borderBottom: "1px solid #1e1e1e",
+            background: headerBg,
+            borderBottom: `1px solid ${headerBorder}`,
             padding: "8px 16px",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
@@ -225,14 +250,14 @@ export function ToneVoiceRefinerDrawer({
               style={{
                 position: "absolute", top: "50%", right: "16px", transform: "translateY(-50%)",
                 width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center",
-                borderRadius: "50%", background: "rgba(255,255,255,0.06)", color: "rgba(200,168,107,0.6)",
+                borderRadius: "50%", background: closeBtnBg, color: closeColor,
                 border: "none", cursor: "pointer", transition: "background 0.15s, color 0.15s",
               }}
             >
               <X size={14} />
             </button>
           </div>
-          <div style={{ background: "#2a2208", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ background: labelBarBg, padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(200,168,107,0.85)" }}>
               Tone Of Voice
             </span>
@@ -242,8 +267,8 @@ export function ToneVoiceRefinerDrawer({
         {/* Messages */}
         <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-            <CassRecorder animState={isLoading ? "playing" : "talking"} size="sm" />
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)" }}>
+            <CassRecorder animState={isLoading ? "playing" : "idle"} size="sm" />
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: textMuted }}>
               Cass · Story Guide
             </span>
           </div>
@@ -255,7 +280,7 @@ export function ToneVoiceRefinerDrawer({
                   fontFamily: "'Lora', Georgia, serif",
                   fontSize: "15px",
                   lineHeight: "1.65",
-                  color: "rgba(248,248,246,0.82)",
+                  color: textBody,
                   margin: 0,
                   maxWidth: "92%",
                   whiteSpace: "pre-wrap",
@@ -264,14 +289,14 @@ export function ToneVoiceRefinerDrawer({
                 </p>
               ) : (
                 <div style={{
-                  background: "rgba(200,168,107,0.1)",
-                  border: "1px solid rgba(200,168,107,0.22)",
+                  background: userBubbleBg,
+                  border: `1px solid ${userBubbleBdr}`,
                   borderRadius: "18px 18px 4px 18px",
                   padding: "10px 14px",
                   fontFamily: "'Lora', Georgia, serif",
                   fontSize: "14px",
                   lineHeight: "1.55",
-                  color: "#e8c789",
+                  color: userBubbleTxt,
                   maxWidth: "80%",
                   whiteSpace: "pre-wrap",
                 }}>
@@ -312,7 +337,7 @@ export function ToneVoiceRefinerDrawer({
 
         {/* Input */}
         {!done && (
-          <div style={{ flexShrink: 0, borderTop: "1px solid #2e2e2e", padding: "12px 14px 16px" }}>
+          <div style={{ flexShrink: 0, borderTop: `1px solid ${inputBorder}`, padding: "12px 14px 16px" }}>
             <VoiceInputFooter
               value={draft}
               onChange={setDraft}
@@ -332,4 +357,7 @@ export function ToneVoiceRefinerDrawer({
       `}</style>
     </div>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(drawer, document.body);
 }

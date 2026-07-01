@@ -1810,9 +1810,9 @@ export function buildCassChapterContextPrompt(input: {
     "",
     "OPENING (do this first, before anything else, every time this conversation starts):",
     hasStory && typeLabel
-      ? `State plainly, in one or two sentences, why this chapter is a ${typeLabel}, grounded in something specific from the chapter itself (not a generic definition of the mechanic). Then ask an OPEN invitation: something like 'What would you like to change?' or 'What's on your mind about this chapter?'. Do NOT propose an edit yet.`
+      ? `Start with exactly: "Take a look above at the chapter as it's currently written. We originally wrote this because" — then complete that sentence in one clause that names the specific real-world moment or decision in the chapter that makes it a ${typeLabel} (grounded in the chapter text, not the generic mechanic definition). Follow with one open invitation: something like "What would you like to change?" or "What's on your mind about this chapter?" Do NOT propose an edit yet.`
       : hasStory
-      ? "Quote or reference something specific and genuinely good from the chapter as written, to build confidence that it's landing well. Then ask an OPEN invitation. Do NOT point at a specific gap yet."
+      ? `Start with exactly: "Take a look above at the chapter as it's currently written." Then quote or reference one genuinely strong line or moment from it. Follow with an open invitation. Do NOT point at a specific gap yet.`
       : "This chapter hasn't been written yet. Ask what's happening in it right now that's worth remembering. Keep this open, do not suggest a specific topic yet.",
     "",
     "MECHANIC IS LOCKED:",

@@ -88,6 +88,18 @@ export function CassRecorder({
     isTalking   ? "▶ PLAYBACK"  :
     isPlaying   ? "▶ PLAYING"   : "■ STANDBY";
 
+  // Brand label swaps to the current state — sized to keep each word fitting
+  // the same fixed-width label plate.
+  const brandLabel =
+    isRecording || isListening ? "LISTENING" :
+    isTalking || isPlaying     ? "TALKING"   : "READY";
+  const brandFontSize =
+    brandLabel === "LISTENING" ? 8.5 :
+    brandLabel === "TALKING"   ? 10  : 12;
+  const brandLetterSpacing =
+    brandLabel === "LISTENING" ? 1 :
+    brandLabel === "TALKING"   ? 2 : 4;
+
   // Same palette in both light and dark — the lighter gray looks great everywhere.
   const c = {
     body:         "#787878",
@@ -136,13 +148,20 @@ export function CassRecorder({
 
         {/* Brand label */}
         <rect x="30" y="34" width="102" height="19" rx="3" fill={c.labelBg} />
-        <text x="38" y="49" fontFamily="var(--font-cass)" fontSize="12" fill="#c8a86b" letterSpacing="2">
-          CASS
+        <text
+          x="81" y="49"
+          fontFamily="var(--font-cass)"
+          fontSize={brandFontSize}
+          fill="#c8a86b"
+          letterSpacing={brandLetterSpacing}
+          textAnchor="middle"
+        >
+          {brandLabel}
         </text>
 
-        {/* REC indicator dot */}
-        <circle cx="148" cy="45" r="5" fill={isRecording ? "#ff3b30" : c.recOff}>
-          {isRecording && (
+        {/* Status indicator dot — green while ready/listening, red while talking */}
+        <circle cx="148" cy="45" r="5" fill={isTalking || isPlaying ? "#ff3b30" : "#34c759"}>
+          {isActive && (
             <animate attributeName="opacity" values="1;0.2;1" dur="1s" repeatCount="indefinite" />
           )}
         </circle>
@@ -153,23 +172,17 @@ export function CassRecorder({
         {/* Cassette window */}
         <rect x="38" y="72" width="124" height="78" rx="8" fill={c.windowBg} stroke={c.windowStroke} strokeWidth="1" />
 
+        {/* Tape path — behind the reels */}
+        <path
+          d="M 62 132 Q 75 138 100 138 Q 125 138 138 132"
+          stroke="#c8a86b" strokeWidth="1.5" fill="none" opacity="0.6"
+        />
+
         {/* Left reel */}
         <Reel cx={75} cy={111} spinDuration={spinDuration} colors={c.reel} />
 
         {/* Right reel */}
         <Reel cx={125} cy={111} spinDuration={spinDuration} colors={c.reel} />
-
-        {/* Tape path */}
-        <path
-          d="M 51 128 Q 75 134 100 134 Q 125 134 149 128"
-          stroke="#c8a86b" strokeWidth="1.5" fill="none" opacity="0.6"
-        />
-
-        {/* Cassette status label */}
-        <rect x="60" y="78" width="80" height="22" rx="3" fill="#c8a86b" opacity="0.12" />
-        <text x="100" y="91" fontFamily="var(--font-cass)" fontSize="6" fill="#c8a86b" textAnchor="middle" opacity="0.7">
-          {statusLabel}
-        </text>
 
         {/* Button row */}
         <rect x="30" y="162" width="140" height="26" rx="4" fill={c.buttonRow} />
@@ -199,7 +212,7 @@ export function CassRecorder({
           [0, 1, 2, 3, 4, 5].map((col) => (
             <circle
               key={`${row}-${col}`}
-              cx={36 + col * 8} cy={202 + row * 6} r="1.2"
+              cx={40 + col * 8} cy={202 + row * 6} r="1.2"
               fill={isActive ? c.speakerOn : c.speakerOff}
             >
               {(isTalking || isListening || isPlaying) && (

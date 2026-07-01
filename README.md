@@ -1,6 +1,6 @@
-# Shelf
+# Authored By
 
-Shelf is a voice-first AI kanban MVP built with Next.js, TypeScript, Tailwind CSS, Supabase, and an OpenAI-backed transcription/task-extraction flow.
+Authored By is a voice-first AI kanban MVP built with Next.js, TypeScript, Tailwind CSS, Supabase, and an OpenAI-backed transcription/task-extraction flow.
 
 The product flow is:
 

@@ -38,6 +38,18 @@ export function getFileExtension(filename: string) {
 }
 
 /**
+ * Delays until at least `ms` has elapsed since `start`. Used to keep a
+ * loading screen on-screen long enough to read (e.g. the Cass typewriter
+ * line) without adding delay on top of fetches that are already slow.
+ */
+export async function ensureMinDuration(start: number, ms: number) {
+  const remaining = ms - (Date.now() - start);
+  if (remaining > 0) {
+    await new Promise((resolve) => setTimeout(resolve, remaining));
+  }
+}
+
+/**
  * Returns the number of whole days since a chapter was created.
  * Returns null if the chapter has no createdAt timestamp.
  */

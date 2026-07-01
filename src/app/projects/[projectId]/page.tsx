@@ -7,8 +7,12 @@ import {
   getTasksForProject,
   getAuthenticatedUser,
 } from "@/lib/supabase/queries";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserSubscription } from "@/lib/subscription";
+import { ensureMinDuration } from "@/lib/utils";
+
+// Keeps the Cass loading screen on-screen long enough to read the
+// typewriter message, even when the fetch resolves quickly.
+const MIN_LOADING_MS = 4000;
 
 export default async function ProjectPage({
   params,
@@ -17,26 +21,35 @@ export default async function ProjectPage({
   params: Promise<{ projectId: string }>;
   searchParams: Promise<{ chapter?: string; plan?: string }>;
 }) {
+  const start = Date.now();
   const [{ projectId }, { chapter, plan }] = await Promise.all([params, searchParams]);
-  const [projects, profile, access, { user }, projectTasks] = await Promise.all([
+
+  // getAuthenticatedUser() is React-cache()'d, so this dedupes with the
+  // internal auth lookups made by the queries below into a single auth call.
+  const { supabase, user } = await getAuthenticatedUser();
+
+  const [projects, profile, access, projectTasks, subscription] = await Promise.all([
     getProjectsWithChapters(),
     getCurrentUserProfile(),
     getProjectAccessSnapshot(projectId),
-    getAuthenticatedUser(),
     getTasksForProject(projectId),
+    getUserSubscription(supabase, user.id),
   ]);
 
-  const supabase = await createSupabaseServerClient();
-  const subscription = await getUserSubscription(supabase, user.id);
+  await ensureMinDuration(start, MIN_LOADING_MS);
+
   const project = projects.find((item) => item.id === projectId) ?? null;
 
   if (!project) {
     redirect("/projects");
   }
 
-  // Validate that the chapter param actually belongs to this project
+  // Validate that the chapter param actually belongs to this project,
+  // or fall back to the first chapter so the Board toggle is never disabled.
   const lastChapterId =
-    chapter && project.chapters.some((ch) => ch.id === chapter) ? chapter : null;
+    chapter && project.chapters.some((ch) => ch.id === chapter)
+      ? chapter
+      : (project.chapters[0]?.id ?? null);
 
   return (
     <main className="min-h-screen w-full lg:p-0">

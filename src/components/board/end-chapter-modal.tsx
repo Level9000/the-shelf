@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { ArrowRight, LoaderCircle, X } from "lucide-react";
 import { endChapterEarlyAction } from "@/lib/actions/project-actions";
 import { TapeButton } from "@/components/ui/tape-button";
+import { Modal } from "@/components/ui/modal";
+import { CassRecorder } from "@/components/cass/CassRecorder";
+import { useTheme } from "@/lib/theme-context";
 
 type IncompleteTaskChoice = "carry_over" | "delete" | null;
 
@@ -22,19 +25,13 @@ export function EndChapterModal({
   boardId: string;
   incompleteTasks: { count: number; titles: string[] };
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [choice, setChoice] = useState<IncompleteTaskChoice>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const hasIncompleteTasks = incompleteCount > 0;
-
-  // Lock body scroll while open
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
 
   function handleClose() {
     if (isPending) return;
@@ -64,43 +61,46 @@ export function EndChapterModal({
     });
   }
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleClose}
-        aria-hidden="true"
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg rounded-[2rem] bg-[var(--surface)] shadow-2xl ring-1 ring-black/8 overflow-hidden">
-
-        {/* Header */}
-        <div className="bg-[var(--accent-soft)] px-7 pt-8 pb-6 text-center rounded-t-[2rem] relative">
-          <button
-            type="button"
-            onClick={handleClose}
-            aria-label="Close"
-            style={{ fontFamily: "'Literata', Georgia, serif" }}
-            className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-black/8 hover:text-[var(--ink)]"
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title={hasIncompleteTasks ? "End this chapter early?" : "The work is done."}
+      hideHeader
+    >
+      <div className="px-6 pt-6 text-center">
+        {/* Cass avatar — same treatment as the chat drawer's header avatar */}
+        <div className="flex flex-col items-center gap-2">
+          <CassRecorder animState="talking" size="sm" />
+          <span
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)",
+            }}
           >
-            <X className="size-4" />
-          </button>
-          <h2 className="text-2xl font-bold text-[var(--ink)] font-literata">
-            {hasIncompleteTasks ? "End this chapter early?" : "The work is done."}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            {hasIncompleteTasks
-              ? `${incompleteCount} task${incompleteCount === 1 ? "" : "s"} still in progress. What should happen to ${incompleteCount === 1 ? "it" : "them"}?`
-              : "You've completed all your tasks. Ready to write this chapter's story?"}
-          </p>
+            Cass · Story Guide
+          </span>
         </div>
 
-        {/* Body */}
-        <div className="px-7 py-6 space-y-4 rounded-b-[2rem] bg-[var(--surface)]">
+        <h1 className="mt-4 text-2xl font-semibold" style={{ fontFamily: "var(--font-cass)" }}>
+          {hasIncompleteTasks ? "End this chapter early?" : "The work is done."}
+        </h1>
+        <p
+          style={{ fontFamily: "'Lora', Georgia, serif" }}
+          className="mt-2 text-sm leading-6 text-[var(--muted)]"
+        >
+          {hasIncompleteTasks
+            ? `${incompleteCount} task${incompleteCount === 1 ? "" : "s"} still in progress. What should happen to ${incompleteCount === 1 ? "it" : "them"}?`
+            : "You've completed all your tasks. Ready to write this chapter's story?"}
+        </p>
+      </div>
+
+      {/* Body */}
+      <div className="space-y-4 px-6 pb-6 pt-5">
 
           {hasIncompleteTasks ? (
             <>
@@ -212,8 +212,7 @@ export function EndChapterModal({
             <X className="size-3" />
             Cancel
           </TapeButton>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, X } from "lucide-react";
 import { TapeButton } from "@/components/ui/tape-button";
+import { Modal } from "@/components/ui/modal";
+import { CassRecorder } from "@/components/cass/CassRecorder";
+import { useTheme } from "@/lib/theme-context";
 
 // ── Voice input footer ──────────────────────────────────────────────────────────
 // Shared input bar + full voice-mode screen used by onboarding and by the Cass
@@ -34,6 +37,8 @@ export function VoiceInputFooter({
   textRowMarginLeft?: string;
   onExitVoiceMode?: () => void;
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [listening, setListening] = useState(false);
   const [showMobileConversationNotice, setShowMobileConversationNotice] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -180,28 +185,16 @@ export function VoiceInputFooter({
           0%, 100% { opacity: 0.5; transform: scaleY(0.85); }
           50%       { opacity: 1;   transform: scaleY(1); }
         }
-        .voice-input-send-btn {
-          width: 36px; height: 36px; border-radius: 50%;
-          background: #f5c84a; border: none; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0; transition: background 0.15s;
-        }
-        .voice-input-send-btn:disabled { background: #2e2e2e; cursor: default; }
-        .voice-input-send-btn:not(:disabled):hover { background: #f0c040; }
-        .voice-input-send-btn .material-icons { font-size: 18px; color: #0a0a0a; }
-        .voice-input-send-btn:disabled .material-icons { color: #555; }
         .voice-input-textarea {
-          flex: 1; background: #2e2e2e;
-          border: 1px solid #3a3a3a; border-radius: 22px;
-          padding: 9px 16px;
-          font-family: 'Lora', Georgia, serif; font-size: 14px; color: #f8f8f6;
+          flex: 1; background: transparent; border: none; border-radius: 0;
+          padding: 9px 4px 9px 16px;
+          font-family: 'Lora', Georgia, serif; font-size: 14px;
           caret-color: #f5c84a; outline: none; resize: none;
           min-height: 40px; max-height: 120px; line-height: 1.5;
-          transition: border-color 0.15s;
           scrollbar-width: none;
         }
-        .voice-input-textarea::placeholder { color: #666; }
-        .voice-input-textarea:focus { border-color: #f5c84a; }
+        .voice-input-textarea--dark::placeholder { color: #666; }
+        .voice-input-textarea--light::placeholder { color: rgba(26,14,0,0.35); }
       `}</style>
       <div style={{
         position: "relative",
@@ -259,8 +252,10 @@ export function VoiceInputFooter({
             aria-label={listening ? "Stop recording" : "Start recording"}
             style={{
               width: "96px", height: "96px", borderRadius: "50%",
-              background: listening ? "rgba(245,200,74,0.15)" : "rgba(255,255,255,0.06)",
-              border: `2px solid ${listening ? "#f5c84a" : "rgba(255,255,255,0.15)"}`,
+              background: listening
+                ? "rgba(245,200,74,0.15)"
+                : isDark ? "rgba(255,255,255,0.06)" : "rgba(26,14,0,0.04)",
+              border: `2px solid ${listening ? "#f5c84a" : isDark ? "rgba(255,255,255,0.15)" : "rgba(200,168,107,0.5)"}`,
               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
               transition: "all 0.2s",
               boxShadow: listening ? "0 0 0 12px rgba(245,200,74,0.08), 0 0 0 24px rgba(245,200,74,0.04)" : "none",
@@ -277,7 +272,7 @@ export function VoiceInputFooter({
               ].map((bar, i) => (
                 <rect
                   key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
-                  fill={listening ? "#f5c84a" : "#666"}
+                  fill={listening ? "#f5c84a" : isDark ? "#666" : "rgba(26,14,0,0.35)"}
                   style={listening ? { animation: `voice-input-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
                 />
               ))}
@@ -286,7 +281,7 @@ export function VoiceInputFooter({
           <span style={{
             fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px",
             fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase",
-            color: listening ? "#f5c84a" : "#888",
+            color: listening ? "#f5c84a" : isDark ? "#888" : "rgba(26,14,0,0.9)",
             transition: "color 0.2s",
           }}>
             {isIOS
@@ -302,12 +297,12 @@ export function VoiceInputFooter({
               background: "transparent", border: "none", cursor: "pointer",
               fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px",
               fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase",
-              color: "rgba(248,248,246,0.2)",
+              color: isDark ? "rgba(200,168,107,0.6)" : "rgba(26,14,0,0.5)",
               transition: "color 0.15s",
               padding: "4px 8px",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.5)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(248,248,246,0.2)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = isDark ? "rgba(200,168,107,0.9)" : "rgba(26,14,0,0.8)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = isDark ? "rgba(200,168,107,0.6)" : "rgba(26,14,0,0.5)"; }}
           >
             Exit conversation mode
           </button>
@@ -323,7 +318,8 @@ export function VoiceInputFooter({
           {/* Input bar with inline Voice button */}
           <div style={{
             flex: 1, display: "flex", alignItems: "flex-end",
-            background: "#2e2e2e", border: `1px solid ${listening ? "#f5c84a" : "#3a3a3a"}`,
+            background: isDark ? "#2e2e2e" : "rgba(26,14,0,0.06)",
+            border: `1px solid ${listening ? "#f5c84a" : isDark ? "#3a3a3a" : "rgba(26,14,0,0.15)"}`,
             borderRadius: "22px", overflow: "hidden",
             transition: "border-color 0.15s",
             boxShadow: listening ? "0 0 0 3px rgba(245,200,74,0.15)" : "none",
@@ -331,7 +327,7 @@ export function VoiceInputFooter({
             <textarea
               ref={textareaRef}
               autoFocus
-              className="voice-input-textarea"
+              className={`voice-input-textarea ${isDark ? "voice-input-textarea--dark" : "voice-input-textarea--light"}`}
               value={value}
               rows={1}
               onChange={(e) => onChange(e.target.value)}
@@ -342,7 +338,10 @@ export function VoiceInputFooter({
                 }
               }}
               placeholder="Type or tap voice…"
-              style={{ flex: 1, background: "transparent", border: "none", borderRadius: 0, padding: "9px 4px 9px 16px" }}
+              style={{
+                color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)",
+                colorScheme: isDark ? "dark" : "light",
+              }}
             />
             {/* Inline Voice button — hidden once user starts typing */}
             <button
@@ -352,12 +351,13 @@ export function VoiceInputFooter({
               style={{
                 display: value.trim() && !listening ? "none" : "flex", alignItems: "center", gap: "5px",
                 background: listening ? "rgba(245,200,74,0.15)" : "transparent",
-                border: "none", borderLeft: `1px solid ${listening ? "rgba(245,200,74,0.3)" : "#3a3a3a"}`,
+                border: "none",
+                borderLeft: `1px solid ${listening ? "rgba(245,200,74,0.3)" : isDark ? "#3a3a3a" : "rgba(26,14,0,0.12)"}`,
                 padding: "0 14px", height: "100%", minHeight: "40px",
                 cursor: "pointer", flexShrink: 0,
                 transition: "background 0.15s, border-color 0.15s",
               }}
-              onMouseEnter={(e) => { if (!listening) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+              onMouseEnter={(e) => { if (!listening) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(26,14,0,0.05)"; }}
               onMouseLeave={(e) => { if (!listening) e.currentTarget.style.background = "transparent"; }}
             >
               <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true">
@@ -370,7 +370,7 @@ export function VoiceInputFooter({
                 ].map((bar, i) => (
                   <rect
                     key={i} x={bar.x} y={bar.y} width="2" height={bar.h} rx="1"
-                    fill={listening ? "#f5c84a" : "#888"}
+                    fill={listening ? "#f5c84a" : isDark ? "#888" : "rgba(26,14,0,0.4)"}
                     style={listening ? { animation: `voice-input-dot-pulse 0.8s ease-in-out ${i * 0.12}s infinite` } : {}}
                   />
                 ))}
@@ -379,7 +379,7 @@ export function VoiceInputFooter({
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                color: listening ? "#f5c84a" : "#888",
+                color: listening ? "#f5c84a" : isDark ? "#888" : "rgba(26,14,0,0.4)",
                 transition: "color 0.15s",
               }}>
                 {listening ? "Stop" : "Voice"}
@@ -387,80 +387,85 @@ export function VoiceInputFooter({
             </button>
           </div>
 
-          {/* Send button */}
+          {/* Send button — matches input height (40px) */}
           <button
             type="button"
-            className="voice-input-send-btn"
             onClick={() => onSubmit()}
             disabled={!value.trim()}
             aria-label="Send"
+            style={{
+              width: "40px", height: "40px", borderRadius: "50%", flexShrink: 0,
+              background: value.trim() ? "#f5c84a" : isDark ? "#2e2e2e" : "rgba(26,14,0,0.08)",
+              border: "none", cursor: value.trim() ? "pointer" : "default",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => { if (value.trim()) e.currentTarget.style.background = "#f0c040"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = value.trim() ? "#f5c84a" : isDark ? "#2e2e2e" : "rgba(26,14,0,0.08)"; }}
           >
-            <span className="material-icons">arrow_upward</span>
+            <span className="material-icons" style={{ fontSize: "18px", color: value.trim() ? "#0a0a0a" : isDark ? "#555" : "rgba(26,14,0,0.25)" }}>arrow_upward</span>
           </button>
         </div>
       )}
       </div>
-      {showMobileConversationNotice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowMobileConversationNotice(false)}
-            aria-hidden="true"
-          />
-
-          {/* Modal */}
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="relative z-10 w-full max-w-lg rounded-[2rem] bg-[var(--surface)] shadow-2xl ring-1 ring-black/8 overflow-hidden"
-          >
-            {/* Header */}
-            <div className="bg-[var(--accent-soft)] px-7 pt-8 pb-6 text-center rounded-t-[2rem] relative">
-              <button
-                type="button"
-                onClick={() => setShowMobileConversationNotice(false)}
-                aria-label="Close"
-                style={{ fontFamily: "'Literata', Georgia, serif" }}
-                className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full bg-black/5 text-[var(--muted)] transition hover:bg-black/8 hover:text-[var(--ink)]"
-              >
-                <X className="size-4" />
-              </button>
-              <h2 className="text-2xl font-bold text-[var(--ink)] font-literata">
-                Conversation mode lives in the app
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Mobile browsers don&apos;t handle voice well. Download the Shelf app for the full talk-it-out experience.
-              </p>
-            </div>
-
-            {/* Body */}
-            <div className="px-7 py-6 space-y-4 rounded-b-[2rem] bg-[var(--surface)]">
-              <div className="flex justify-center pt-2">
-                <TapeButton
-                  variant="primary"
-                  size="lg"
-                  onClick={() => setShowMobileConversationNotice(false)}
-                  className="justify-center"
-                >
-                  <ArrowRight className="size-4" />
-                  Got it
-                </TapeButton>
-              </div>
-
-              <TapeButton
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowMobileConversationNotice(false)}
-                className="flex w-full items-center justify-center gap-1.5"
-              >
-                <X className="size-3" />
-                Close
-              </TapeButton>
-            </div>
+      <Modal
+        open={showMobileConversationNotice}
+        onClose={() => setShowMobileConversationNotice(false)}
+        title="Conversation mode lives in the app"
+        hideHeader
+      >
+        <div className="px-6 pt-6 text-center">
+          {/* Cass avatar — same treatment as the chat drawer's header avatar */}
+          <div className="flex flex-col items-center gap-2">
+            <CassRecorder animState="talking" size="sm" />
+            <span
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "11px",
+                fontWeight: 600,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)",
+              }}
+            >
+              Cass · Story Guide
+            </span>
           </div>
+
+          <h1 className="mt-4 text-2xl font-semibold" style={{ fontFamily: "var(--font-cass)" }}>
+            Conversation mode lives in the app
+          </h1>
+          <p
+            style={{ fontFamily: "'Lora', Georgia, serif" }}
+            className="mt-2 text-sm leading-6 text-[var(--muted)]"
+          >
+            Mobile browsers don&apos;t handle voice well. Download the Authored By app for the full talk-it-out experience.
+          </p>
         </div>
-      )}
+
+        <div className="space-y-3 px-6 pb-6 pt-5">
+          <div className="flex justify-center">
+            <TapeButton
+              variant="primary"
+              size="lg"
+              onClick={() => setShowMobileConversationNotice(false)}
+              className="justify-center"
+            >
+              <ArrowRight className="size-4" />
+              Got it
+            </TapeButton>
+          </div>
+          <TapeButton
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowMobileConversationNotice(false)}
+            className="flex w-full items-center justify-center gap-1.5"
+          >
+            <X className="size-3" />
+            Close
+          </TapeButton>
+        </div>
+      </Modal>
     </>
   );
 }

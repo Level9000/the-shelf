@@ -1191,13 +1191,19 @@ export function CassBoardDrawer({
       return () => { clearInterval(id); };
     }
 
-    // Skip straight into an empty conversation — no auto-greeting in text mode.
-    // Conversation (voice) mode shows its own "Go ahead — I'm listening." cue
-    // when it's actually entered (see toggleConversationMode).
+    // Drop straight into conversation mode (voice on desktop, text on mobile).
+    const isMobileBrowser = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const greeting = "What's on your mind? I'll sort your thoughts into the proper board columns for you.";
     setChatSubMode("tasks");
     setMode("chat");
     setMenuSelected(null);
-    setMessages([]);
+    setMessages([{ role: "assistant", content: greeting }]);
+    if (!isMobileBrowser) {
+      // Enter conversation mode immediately so the mic opens after Cass speaks.
+      conversationModeRef.current = true;
+      setConversationMode(true);
+      setTimeout(() => { speakCassReply(greeting); }, 80);
+    }
     return;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -1734,25 +1740,27 @@ export function CassBoardDrawer({
 
             {/* Cass avatar — always at top */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-              <CassRecorder animState={mode === "menu" ? headerCassAnim : (isPending ? "playing" : "talking")} size="sm" />
+              <CassRecorder animState={mode === "menu" ? headerCassAnim : (isPending ? "playing" : "idle")} size="sm" />
               <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)" }}>
                 Cass · Story Guide
               </span>
             </div>
 
             {/* Cass question — plain Lora, left-aligned, no bubble */}
-            <div style={{ maxWidth: "85%", width: "100%" }}>
-              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>
-                {mode === "menu" ? (
-                  <>
-                    {menuDisplayed}
-                    {menuDisplayed.length > 0 && menuDisplayed.length < menuQuestionText.length && (
-                      <span style={{ opacity: 0.5, animation: "cassBoardCaretBlink 0.9s step-end infinite" }}>▌</span>
-                    )}
-                  </>
-                ) : menuQuestionText}
-              </p>
-            </div>
+            {(mode === "menu" || (mode === "chat" && chatSubMode !== "tasks")) && (
+              <div style={{ maxWidth: "85%", width: "100%" }}>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>
+                  {mode === "menu" ? (
+                    <>
+                      {menuDisplayed}
+                      {menuDisplayed.length > 0 && menuDisplayed.length < menuQuestionText.length && (
+                        <span style={{ opacity: 0.5, animation: "cassBoardCaretBlink 0.9s step-end infinite" }}>▌</span>
+                      )}
+                    </>
+                  ) : menuQuestionText}
+                </p>
+              </div>
+            )}
 
             {/* Options — shown only in menu mode, before selection */}
             {mode === "menu" && optionsReady && !menuSelected && (
@@ -2552,7 +2560,7 @@ export function CassBoardDrawer({
           <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
             {/* Cass avatar — same treatment as menu/chat modes */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-              <CassRecorder animState="talking" size="sm" />
+              <CassRecorder animState="idle" size="sm" />
               <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)" }}>
                 Cass · Story Guide
               </span>

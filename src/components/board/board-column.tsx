@@ -9,16 +9,6 @@ import { TapeButton } from "@/components/ui/tape-button";
 import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
 
-const TAPE_CLIP = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
-
-// Tape colour matches the post-it body colour for each column
-const TAPE_COLORS: Record<string, string> = {
-  "Do This Week": "#fde68a",
-  "Do Today":     "#bfdbfe",
-  "Blocked":      "#fbcfe8",
-  "Done":         "#bbf7d0",
-};
-
 // Warm cream base (#faf9f4) tinted with each column's accent at ~10%
 const COLUMN_BG_LIGHT: Record<string, string> = {
   "Do This Week": "#faf7ec",
@@ -81,68 +71,50 @@ export function BoardColumnView({
     ? (COLUMN_BG_DARK[column.name] ?? "#1a1a1a")
     : (COLUMN_BG_LIGHT[column.name] ?? "#faf9f4");
 
-  const cardCountStyle: React.CSSProperties = {
-    fontFamily: "'Barlow Condensed', sans-serif",
-    fontSize: "10px",
-    fontWeight: 600,
-    letterSpacing: "0.14em",
-    textTransform: "uppercase",
-    color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.3)",
-  };
 
   return (
     <>
-      {/* Mobile: full-width tape header */}
-      <div className="mb-3 lg:hidden">
-        {/* Full-width tape strip — + button lives inside the tape */}
-        <div style={{
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "var(--font-cass)",
-          fontSize: "24px",
-          fontWeight: 700,
-          padding: "7px 16px 9px",
-          background: TAPE_COLORS[column.name] ?? "#e8dfc0",
-          clipPath: TAPE_CLIP,
-          boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-          color: "#1a0e00",
-          textTransform: "uppercase",
-          width: "100%",
-          boxSizing: "border-box",
-        }}>
-          {column.name}
+      {/* Mobile: editorial column header */}
+      <div className="mb-3 lg:hidden" style={{ padding: "4px 0 8px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "11px", fontWeight: 600, letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)",
+            }}>
+              {column.name}
+            </span>
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "11px", fontWeight: 400, letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.22)",
+              marginLeft: "10px",
+            }}>
+              {tasks.length} {tasks.length === 1 ? "card" : "cards"}
+            </span>
+          </div>
           {onOpenCass && (
             <button
               type="button"
               onClick={onOpenCass}
               aria-label={`Add task to ${column.name}`}
               style={{
-                position: "absolute",
-                right: "14px",
-                width: "28px", height: "28px",
+                width: "26px", height: "26px",
                 borderRadius: "50%",
-                background: "rgba(0,0,0,0.15)",
-                border: "none",
+                background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
                 cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#1a0e00",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)",
                 flexShrink: 0,
-                fontFamily: "'Literata', Georgia, serif",
               }}
             >
-              <Plus size={14} />
+              <Plus size={12} />
             </button>
           )}
-        </div>
-        {/* Card count */}
-        <div style={{ padding: "6px 4px 0" }}>
-          <span style={cardCountStyle}>
-            {tasks.length} card{tasks.length === 1 ? "" : "s"}
-          </span>
         </div>
       </div>
 
@@ -157,56 +129,46 @@ export function BoardColumnView({
           boxShadow: "0 24px 80px rgba(28,24,20,0.06)",
         }}
       >
-        {/* Desktop: full-width tape header */}
-        <div className="hidden flex-col lg:flex -mx-4 mb-2">
-          {/* Full-width tape strip — + button lives inside the tape */}
-          <div style={{
-            position: "relative",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontFamily: "var(--font-cass)",
-            fontSize: "24px",
-            fontWeight: 700,
-            padding: "10px 16px 12px",
-            background: TAPE_COLORS[column.name] ?? "#e8dfc0",
-            clipPath: TAPE_CLIP,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            color: "#1a0e00",
-            textTransform: "uppercase",
-          }}>
-            {column.name}
-            {onOpenCass && (
-              <button
-                type="button"
-                onClick={onOpenCass}
-                aria-label={`Add task to ${column.name}`}
-                style={{
-                  position: "absolute",
-                  right: "14px",
-                  width: "28px", height: "28px",
-                  borderRadius: "50%",
-                  background: "rgba(0,0,0,0.15)",
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "'Literata', Georgia, serif",
-                  color: "#1a0e00",
-                  flexShrink: 0,
-                }}
-              >
-                <Plus size={14} />
-              </button>
-            )}
-          </div>
-          {/* Card count */}
-          <div style={{ padding: "6px 4px 0" }}>
-            <span style={cardCountStyle}>
-              {tasks.length} card{tasks.length === 1 ? "" : "s"}
+        {/* Desktop: editorial column header */}
+        <div className="hidden lg:flex mb-4" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 0 0" }}>
+          <div>
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "11px", fontWeight: 600, letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)",
+            }}>
+              {column.name}
+            </span>
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "11px", fontWeight: 400, letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.22)",
+              marginLeft: "10px",
+            }}>
+              {tasks.length} {tasks.length === 1 ? "card" : "cards"}
             </span>
           </div>
+          {onOpenCass && (
+            <button
+              type="button"
+              onClick={onOpenCass}
+              aria-label={`Add task to ${column.name}`}
+              style={{
+                width: "26px", height: "26px",
+                borderRadius: "50%",
+                background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
+                cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)",
+                flexShrink: 0,
+              }}
+            >
+              <Plus size={12} />
+            </button>
+          )}
         </div>
 
         {/* Mobile: full-width add button */}

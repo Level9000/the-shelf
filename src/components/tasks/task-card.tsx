@@ -45,13 +45,13 @@ function NoteBody({ task, columnName }: { task: Task; columnName?: string }) {
       {/* Note body */}
       <div className="flex-1 px-3.5 pb-3 pt-2.5">
         <div className="flex items-start gap-2">
-          <h4 className="text-[13px] font-semibold leading-5" style={{ color: titleColor }}>
+          <h4 className="text-[13px] font-semibold leading-5" style={{ color: titleColor, fontFamily: "'Lora', Georgia, serif" }}>
             {task.title}
           </h4>
         </div>
 
         {task.description ? (
-          <p className="mt-2 line-clamp-3 text-[13px] leading-5" style={{ color: descColor }}>
+          <p className="mt-2 line-clamp-3 text-[13px] leading-5" style={{ color: descColor, fontFamily: "'Lora', Georgia, serif" }}>
             {task.description}
           </p>
         ) : null}
