@@ -13,7 +13,7 @@ export function ShareFab({ onClick }: { onClick: () => void }) {
       style={{
         position: "fixed",
         bottom: "24px",
-        right: "24px",
+        left: "24px",
         zIndex: 40,
         width: "56px",
         height: "56px",

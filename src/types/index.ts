@@ -109,6 +109,12 @@ export type BoardConversationEntry = {
   taskCount: number;
 };
 
+export type DeferredTask = {
+  title: string;
+  action: "moved" | "deleted";
+  toChapter?: string;
+};
+
 export type Board = {
   id: string;
   projectId: string;
@@ -136,6 +142,7 @@ export type Board = {
   storyHealthFlag: "none" | "recentering_needed" | null;
   recenteringType: string | null;
   needsReviewReason: string | null;
+  deferredTasks: DeferredTask[] | null;
 };
 
 export type Chapter = Board;
@@ -145,6 +152,14 @@ export type BoardColumn = {
   boardId: string;
   name: string;
   position: number;
+};
+
+export type DroppedTaskFragment = {
+  id: string;
+  chapterId: string | null;
+  taskTitle: string | null;
+  reason: string | null;
+  createdAt: string;
 };
 
 export type TaskSize = "small" | "big" | null;

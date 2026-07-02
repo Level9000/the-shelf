@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
-import { ChevronRight, X } from "lucide-react";
-import type { AppUser, Chapter, ProjectMember, ProjectWithChapters, Task, UserProfile } from "@/types";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Check, ChevronRight, X } from "lucide-react";
+import type { AppUser, BoardColumn, Chapter, DroppedTaskFragment, ProjectMember, ProjectWithChapters, Task, UserProfile, WorkflowTemplate } from "@/types";
 import { PRESS_TEMPLATES } from "@/lib/press/templates";
 import type { PressTemplate } from "@/lib/press/templates";
 import { ProjectArcRefiner } from "@/components/projects/project-arc-refiner";
@@ -12,6 +13,10 @@ import { CassRecorder } from "@/components/cass/CassRecorder";
 import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
 import { ShareFab } from "@/components/ui/ShareFab";
+import { MobileFab } from "@/components/ui/MobileFab";
+import { CassBoardDrawer } from "@/components/board/cass-board-drawer";
+import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
+import { ChapterTaskList } from "@/components/projects/chapter-task-list";
 import { renderParagraphs } from "@/lib/render-paragraphs";
 import { useTheme } from "@/lib/theme-context";
 import { TapeButton } from "@/components/ui/tape-button";
@@ -21,6 +26,8 @@ import { StoryFoundationSection } from "@/components/projects/story-foundation";
 import { StoryTabNudges } from "@/components/projects/story-tab-nudges";
 import { ChapterContextPill } from "@/components/projects/chapter-context";
 import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
+import { deleteTaskAction, moveTaskAction } from "@/lib/actions/task-actions";
+import { addStoryFragmentAction } from "@/lib/actions/story-fragment-actions";
 import type { SubscriptionStatus } from "@/lib/subscription";
 
 const TY_INTRO_KEY = "ty_story_intro_seen";
@@ -926,6 +933,15 @@ function ChapterEntry({
   isLast,
   onOpenThread,
   chapterTasks = [],
+  columns,
+  onTaskCompleted,
+  onTaskDropped,
+  onOpenTask,
+  chapterColumns = [],
+  droppedFragments = [],
+  isActiveChapter = false,
+  onEndChapterRequested,
+  chapterDaysLeft,
 }: {
   chapter: Chapter;
   index: number;
@@ -933,11 +949,21 @@ function ChapterEntry({
   isLast: boolean;
   onOpenThread: (t: ChatThread) => void;
   chapterTasks?: Task[];
+  columns?: BoardColumn[];
+  onTaskCompleted?: (taskId: string) => void;
+  onTaskDropped?: (taskId: string, reason: string) => void;
+  onOpenTask?: (taskId: string) => void;
+  chapterColumns?: BoardColumn[];
+  droppedFragments?: DroppedTaskFragment[];
+  isActiveChapter?: boolean;
+  chapterDaysLeft?: number | null;
+  onEndChapterRequested?: () => void;
 }) {
   const status = chapterStatus(chapter);
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [threadsOpen, setThreadsOpen] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
   const [refineOpen, setRefineOpen] = useState(false);
 
   // Theme-aware colors
@@ -987,6 +1013,19 @@ function ChapterEntry({
     });
   }
 
+  // Historical "Chapter tasks" groups — completed / dropped / left behind.
+  const doneColumnId = chapterColumns.find((col) => col.name.toLowerCase() === "done")?.id;
+  const completedTasks = doneColumnId
+    ? chapterTasks.filter((t) => t.columnId === doneColumnId)
+    : [];
+  const droppedTasks = droppedFragments;
+  const leftBehindTasks = chapter.deferredTasks ?? [];
+  // The active chapter already shows its completed tasks in the always-visible
+  // "Things I've completed" section above — omit them here to avoid duplicates.
+  const completedTasksForDisclosure = isActiveChapter ? [] : completedTasks;
+  const chapterTaskHistoryCount =
+    completedTasksForDisclosure.length + droppedTasks.length + leftBehindTasks.length;
+
   return (
     <div id={`chapter-${chapter.id}`}>
       {/* Divider between chapters */}
@@ -1035,6 +1074,35 @@ function ChapterEntry({
               padding: "2px 8px",
             }}>
               Active
+            </span>
+          )}
+          {status === "working_on_it" && chapterDaysLeft != null && (
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "10px", fontWeight: 700,
+              letterSpacing: "0.12em", textTransform: "uppercase",
+              color: isDark ? "rgba(200,168,107,0.6)" : "rgba(22,19,15,0.5)",
+              border: `1px solid ${isDark ? "rgba(200,168,107,0.25)" : "rgba(0,0,0,0.13)"}`,
+              borderRadius: "999px",
+              padding: "2px 8px",
+            }}>
+              {chapterDaysLeft > 0
+                ? `${chapterDaysLeft} day${chapterDaysLeft === 1 ? "" : "s"} left`
+                : chapterDaysLeft === 0
+                  ? "Due today"
+                  : `${Math.abs(chapterDaysLeft)} day${Math.abs(chapterDaysLeft) === 1 ? "" : "s"} over`}
+            </span>
+          )}
+          {status === "completed" && (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: "4px",
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "10px", fontWeight: 700,
+              letterSpacing: "0.12em", textTransform: "uppercase",
+              color: isDark ? "rgba(200,168,107,0.4)" : "rgba(22,19,15,0.4)",
+            }}>
+              <Check size={11} strokeWidth={2.5} />
+              Chapter complete
             </span>
           )}
           {chapter.needsReviewReason && (
@@ -1154,6 +1222,18 @@ function ChapterEntry({
           </div>
         )}
 
+        {status === "working_on_it" && columns && columns.length > 0 && (
+          <div style={{
+            marginTop: "18px",
+            padding: "18px 20px",
+            borderRadius: "1.5rem",
+            border: `1px solid ${isDark ? "rgba(245,200,74,0.28)" : "rgba(245,200,74,0.35)"}`,
+            background: isDark ? "rgba(245,200,74,0.05)" : "rgba(245,200,74,0.06)",
+          }}>
+            <ChapterTaskList tasks={chapterTasks} columns={columns} onComplete={onTaskCompleted} onDelete={onTaskDropped} onOpenTask={onOpenTask} />
+          </div>
+        )}
+
         {/* Bridge into the next chapter — sits just above the action buttons */}
         {chapter.bridgeSentence && (
           <p style={{
@@ -1176,6 +1256,32 @@ function ChapterEntry({
           open={refineOpen}
           onOpenChange={setRefineOpen}
         />
+
+        {status === "working_on_it" && isActiveChapter && (
+          <div style={{ marginTop: "14px", textAlign: "center" }}>
+            <button
+              type="button"
+              onClick={() => onEndChapterRequested?.()}
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "10px",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: mutedColor,
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                transition: "color 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = threadLabelColor; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = mutedColor; }}
+            >
+              End chapter
+            </button>
+          </div>
+        )}
 
         {/* ── Chat history threads — collapsed behind a single disclosure ── */}
         {threads.length > 0 && (
@@ -1262,6 +1368,143 @@ function ChapterEntry({
             )}
           </div>
         )}
+
+        {/* ── Chapter task history — completed / dropped / left behind ── */}
+        {chapterTaskHistoryCount > 0 && (
+          <div style={{ marginTop: "16px" }}>
+            <button
+              type="button"
+              onClick={() => setTasksOpen((v) => !v)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                fontFamily: "'Literata', Georgia, serif",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: isDark ? "rgba(232,224,208,0.45)" : "rgba(22,19,15,0.4)",
+              }}
+            >
+              <ChevronRight
+                size={11}
+                style={{
+                  color: chevronColor,
+                  transform: tasksOpen ? "rotate(90deg)" : "none",
+                  transition: "transform 0.15s",
+                }}
+              />
+              {tasksOpen ? "Hide chapter tasks" : `View chapter tasks (${chapterTaskHistoryCount})`}
+            </button>
+            {tasksOpen && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "10px" }}>
+                {completedTasksForDisclosure.length > 0 && (
+                  <TaskGroupSection
+                    label="Completed"
+                    rows={completedTasksForDisclosure.map((t) => ({ key: t.id, primary: t.title, secondary: null }))}
+                    threadBg={threadBg}
+                    threadBorder={threadBorder}
+                    threadLabelColor={threadLabelColor}
+                    mutedColor={mutedColor}
+                  />
+                )}
+                {droppedTasks.length > 0 && (
+                  <TaskGroupSection
+                    label="Dropped"
+                    rows={droppedTasks.map((f) => ({
+                      key: f.id,
+                      primary: f.taskTitle ?? "(untitled task)",
+                      secondary: f.reason,
+                    }))}
+                    threadBg={threadBg}
+                    threadBorder={threadBorder}
+                    threadLabelColor={threadLabelColor}
+                    mutedColor={mutedColor}
+                  />
+                )}
+                {leftBehindTasks.length > 0 && (
+                  <TaskGroupSection
+                    label="Left behind"
+                    rows={leftBehindTasks.map((dt, i) => ({
+                      key: `${dt.title}-${i}`,
+                      primary: dt.title,
+                      secondary:
+                        dt.action === "moved"
+                          ? dt.toChapter
+                            ? `Moved to ${dt.toChapter}`
+                            : "Moved to next chapter"
+                          : "Deleted",
+                    }))}
+                    threadBg={threadBg}
+                    threadBorder={threadBorder}
+                    threadLabelColor={threadLabelColor}
+                    mutedColor={mutedColor}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Chapter task history rows ─────────────────────────────────────────────────
+
+function TaskGroupSection({
+  label,
+  rows,
+  threadBg,
+  threadBorder,
+  threadLabelColor,
+  mutedColor,
+}: {
+  label: string;
+  rows: Array<{ key: string; primary: string; secondary: string | null }>;
+  threadBg: string;
+  threadBorder: string;
+  threadLabelColor: string;
+  mutedColor: string;
+}) {
+  return (
+    <div>
+      <p style={{
+        fontFamily: "'Barlow Condensed', sans-serif",
+        fontSize: "10px",
+        fontWeight: 700,
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+        color: mutedColor,
+        margin: "0 0 6px",
+      }}>
+        {label}
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        {rows.map((row) => (
+          <div
+            key={row.key}
+            style={{
+              background: threadBg,
+              border: `1px solid ${threadBorder}`,
+              borderRadius: "10px",
+              padding: "10px 14px",
+              fontFamily: "'Literata', Georgia, serif",
+            }}
+          >
+            <div style={{ fontSize: "13px", fontWeight: 600, color: threadLabelColor }}>
+              {row.primary}
+            </div>
+            {row.secondary && (
+              <div style={{ fontSize: "12px", marginTop: "2px", color: mutedColor, fontStyle: "italic" }}>
+                {row.secondary}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1306,6 +1549,10 @@ export function ProjectOverviewShell({
   initialPlanning = false,
   subscriptionStatus,
   projectTasks = [],
+  activeChapterId = null,
+  activeChapterTemplates = [],
+  allChapterColumns = {},
+  droppedTaskFragments = [],
 }: {
   project: ProjectWithChapters;
   projects: ProjectWithChapters[];
@@ -1316,11 +1563,80 @@ export function ProjectOverviewShell({
   initialPlanning?: boolean;
   subscriptionStatus?: SubscriptionStatus;
   projectTasks?: Task[];
+  activeChapterId?: string | null;
+  activeChapterTemplates?: WorkflowTemplate[];
+  allChapterColumns?: Record<string, BoardColumn[]>;
+  droppedTaskFragments?: DroppedTaskFragment[];
 }) {
+  const router = useRouter();
   const needsPaywall = subscriptionStatus === "trial_ended" || subscriptionStatus === "expired";
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [refining, setRefining] = useState(false);
   const [cassDrawerOpen, setCassDrawerOpen] = useState(initialPlanning && !needsPaywall);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const [endChapterRequested, setEndChapterRequested] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<Task[]>(projectTasks);
+  const [, startTaskTransition] = useTransition();
+  const activeChapterColumns = allChapterColumns[activeChapterId ?? ""] ?? [];
+  const activeChapter = project.chapters.find((c) => c.id === activeChapterId);
+  const CHAPTER_DAYS = 14;
+  const daysOpen = activeChapter?.createdAt
+    ? Math.floor((Date.now() - new Date(activeChapter.createdAt).getTime()) / 86_400_000)
+    : null;
+  const chapterDaysLeft = daysOpen !== null ? CHAPTER_DAYS - daysOpen : null;
+
+  useEffect(() => {
+    setTasks(projectTasks);
+  }, [projectTasks]);
+
+  function handleTaskCompleted(taskId: string) {
+    const doneColumnId = activeChapterColumns.find(
+      (col) => col.name.toLowerCase() === "done",
+    )?.id;
+    if (!doneColumnId || !activeChapterId) return;
+
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    startTaskTransition(async () => {
+      try {
+        await moveTaskAction({
+          taskId,
+          projectId: project.id,
+          boardId: activeChapterId,
+          targetColumnId: doneColumnId,
+        });
+        router.refresh();
+      } catch {
+        setTasks(projectTasks);
+      }
+    });
+  }
+
+  function handleTaskDropped(taskId: string, reason: string) {
+    if (!activeChapterId) return;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const content = `Dropped "${task.title}" — ${reason}`;
+
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    startTaskTransition(async () => {
+      try {
+        await addStoryFragmentAction({
+          projectId: project.id,
+          chapterId: activeChapterId,
+          source: "task_dropped",
+          content,
+          taskTitle: task.title,
+          reason,
+        });
+        await deleteTaskAction({ taskId, projectId: project.id, boardId: activeChapterId });
+        router.refresh();
+      } catch {
+        setTasks(projectTasks);
+      }
+    });
+  }
   const [showTyIntro, setShowTyIntro] = useState(() => {
     if (typeof window === "undefined") return false;
     return !localStorage.getItem(TY_INTRO_KEY);
@@ -1622,7 +1938,20 @@ export function ProjectOverviewShell({
                       projectId={project.id}
                       isLast={i === project.chapters.length - 1}
                       onOpenThread={setHistoryThread}
-                      chapterTasks={projectTasks.filter((t) => t.boardId === chapter.id)}
+                      chapterTasks={tasks.filter((t) => t.boardId === chapter.id)}
+                      columns={chapter.id === activeChapterId ? activeChapterColumns : undefined}
+                      onTaskCompleted={chapter.id === activeChapterId ? handleTaskCompleted : undefined}
+                      onTaskDropped={chapter.id === activeChapterId ? handleTaskDropped : undefined}
+                      onOpenTask={chapter.id === activeChapterId ? setSelectedTaskId : undefined}
+                      chapterColumns={allChapterColumns[chapter.id] ?? []}
+                      droppedFragments={droppedTaskFragments.filter((f) => f.chapterId === chapter.id)}
+                      isActiveChapter={chapter.id === activeChapterId}
+                      onEndChapterRequested={
+                        chapter.id === activeChapterId
+                          ? () => { setEndChapterRequested(true); setCaptureOpen(true); }
+                          : undefined
+                      }
+                      chapterDaysLeft={chapter.id === activeChapterId ? chapterDaysLeft : undefined}
                     />
                   ))}
                 </div>
@@ -1654,7 +1983,46 @@ export function ProjectOverviewShell({
           <ShareFab onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)} />
         )}
 
+        {/* ── FAB — capture circle, scoped to the active chapter ── */}
+        {!refining && activeChapterId && (
+          <MobileFab onClick={() => needsPaywall ? setPaywallOpen(true) : setCaptureOpen(true)} />
+        )}
+
       </ProjectShellFrame>
+
+      {activeChapterId && activeChapter && (
+        <CassBoardDrawer
+          open={captureOpen}
+          project={project}
+          board={activeChapter}
+          columns={activeChapterColumns}
+          templates={activeChapterTemplates}
+          tasks={tasks.filter((t) => t.boardId === activeChapterId)}
+          chapterNumber={project.chapters.findIndex((c) => c.id === activeChapterId) + 1}
+          initialMode={endChapterRequested ? "end_chapter" : undefined}
+          chapterDaysLeft={chapterDaysLeft}
+          onEndChapterConfirmed={() => router.refresh()}
+          onRetroComplete={() => router.refresh()}
+          onClose={() => { setCaptureOpen(false); setEndChapterRequested(false); router.refresh(); }}
+          onTasksAdded={() => router.refresh()}
+          onTaskDeleted={() => router.refresh()}
+        />
+      )}
+
+      <TaskDetailModal
+        key={selectedTaskId ?? "task-detail"}
+        task={tasks.find((t) => t.id === selectedTaskId) ?? null}
+        projectId={project.id}
+        boardId={tasks.find((t) => t.id === selectedTaskId)?.boardId ?? activeChapterId ?? ""}
+        columns={activeChapterColumns}
+        assignableMembers={projectMembers}
+        open={Boolean(selectedTaskId)}
+        hideDelete
+        hideColumnPicker
+        onClose={() => setSelectedTaskId(null)}
+        onSaved={() => router.refresh()}
+        onDeleted={() => router.refresh()}
+      />
 
       <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
 

@@ -112,6 +112,7 @@ export function TaskFormFields({
   onChange,
   onToggleUrgent,
   onSizeChange,
+  hideColumnPicker = false,
 }: {
   title: string;
   description: string;
@@ -125,6 +126,7 @@ export function TaskFormFields({
   onChange: (field: string, value: string) => void;
   onToggleUrgent: () => void;
   onSizeChange: (size: TaskSize) => void;
+  hideColumnPicker?: boolean;
 }) {
   const memberOptions = Array.from(
     new Map(
@@ -197,7 +199,7 @@ export function TaskFormFields({
       </div>
 
       {/* Due date / Column */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={cn("grid gap-4", hideColumnPicker ? "grid-cols-1" : "sm:grid-cols-2")}>
         <div>
           <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Due date</label>
           <Input
@@ -206,20 +208,22 @@ export function TaskFormFields({
             onChange={(event) => onChange("dueDate", event.target.value)}
           />
         </div>
-        <div>
-          <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Column</label>
-          <select
-            value={columnId}
-            onChange={(event) => onChange("columnId", event.target.value)}
-            className="h-[46px] w-full rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-          >
-            {columns.map((column) => (
-              <option key={column.id} value={column.id}>
-                {column.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!hideColumnPicker && (
+          <div>
+            <label className="mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)" }}>Column</label>
+            <select
+              value={columnId}
+              onChange={(event) => onChange("columnId", event.target.value)}
+              className="h-[46px] w-full rounded-2xl border bg-[var(--field-bg)] px-4 py-3 text-sm shadow-sm outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+            >
+              {columns.map((column) => (
+                <option key={column.id} value={column.id}>
+                  {column.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Urgent + Size */}

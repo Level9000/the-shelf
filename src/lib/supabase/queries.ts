@@ -5,6 +5,8 @@ import type {
   Board,
   BoardColumn,
   BoardSnapshot,
+  DeferredTask,
+  DroppedTaskFragment,
   ProjectMember,
   ProjectWithChapters,
   Project,
@@ -109,6 +111,7 @@ function mapBoard(row: Record<string, unknown>): Board {
     storyHealthFlag: (row.story_health_flag as "none" | "recentering_needed" | null) ?? null,
     recenteringType: (row.recentering_type as string | null) ?? null,
     needsReviewReason: (row.needs_review_reason as string | null) ?? null,
+    deferredTasks: (row.deferred_tasks as DeferredTask[] | null) ?? null,
   };
 }
 
@@ -566,4 +569,56 @@ export async function getTasksForProject(projectId: string): Promise<Task[]> {
   }
 
   return (data ?? []).map(mapTask);
+}
+
+export async function getBoardColumnsForBoards(
+  boardIds: string[],
+): Promise<Record<string, BoardColumn[]>> {
+  if (boardIds.length === 0) return {};
+
+  const { supabase } = await getAuthenticatedUser();
+  const { data, error } = await supabase
+    .from("board_columns")
+    .select("*")
+    .in("board_id", boardIds)
+    .order("position", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const byBoard: Record<string, BoardColumn[]> = {};
+  (data ?? []).forEach((row) => {
+    const column = mapColumn(row);
+    (byBoard[column.boardId] ??= []).push(column);
+  });
+  return byBoard;
+}
+
+function mapDroppedTaskFragment(row: Record<string, unknown>): DroppedTaskFragment {
+  return {
+    id: String(row.id),
+    chapterId: (row.chapter_id as string | null) ?? null,
+    taskTitle: (row.task_title as string | null) ?? null,
+    reason: (row.reason as string | null) ?? null,
+    createdAt: String(row.created_at),
+  };
+}
+
+export async function getDroppedTaskFragments(
+  projectId: string,
+): Promise<DroppedTaskFragment[]> {
+  const { supabase } = await getAuthenticatedUser();
+  const { data, error } = await supabase
+    .from("story_fragments")
+    .select("id, chapter_id, task_title, reason, created_at")
+    .eq("project_id", projectId)
+    .eq("source", "task_dropped")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(mapDroppedTaskFragment);
 }

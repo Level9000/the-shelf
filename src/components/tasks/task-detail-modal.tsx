@@ -40,6 +40,8 @@ export function TaskDetailModal({
   onClose,
   onSaved,
   onDeleted,
+  hideDelete = false,
+  hideColumnPicker = false,
 }: {
   task: Task | null;
   projectId: string;
@@ -50,6 +52,8 @@ export function TaskDetailModal({
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
+  hideDelete?: boolean;
+  hideColumnPicker?: boolean;
 }) {
   const [form, setForm] = useState<FormState | null>(task ? toFormState(task) : null);
   const [error, setError] = useState<string | null>(null);
@@ -123,15 +127,17 @@ export function TaskDetailModal({
     >
       {/* Header */}
       <div className="relative rounded-t-[2rem] bg-[var(--surface-muted)] px-7 pt-8 pb-6 text-center border-b border-black/6">
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={isPending}
-          className="absolute left-4 top-4 inline-flex size-[34px] items-center justify-center rounded-[6px] border border-black/9 bg-black/4 text-[var(--muted)] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-          aria-label="Delete task"
-        >
-          <Trash2 className="size-4" />
-        </button>
+        {!hideDelete && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isPending}
+            className="absolute left-4 top-4 inline-flex size-[34px] items-center justify-center rounded-[6px] border border-black/9 bg-black/4 text-[var(--muted)] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+            aria-label="Delete task"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
@@ -168,6 +174,7 @@ export function TaskDetailModal({
           onChange={handleChange}
           onToggleUrgent={() => setForm((f) => f ? { ...f, isUrgent: !f.isUrgent } : f)}
           onSizeChange={(s) => setForm((f) => f ? { ...f, size: s } : f)}
+          hideColumnPicker={hideColumnPicker}
         />
         {error ? (
           <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">

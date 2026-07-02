@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
 import { ProjectOverviewShell } from "@/components/projects/project-overview-shell";
 import {
+  getBoardColumnsForBoards,
   getCurrentUserProfile,
+  getDroppedTaskFragments,
   getProjectAccessSnapshot,
+  getProjectBoardSnapshot,
   getProjectsWithChapters,
   getTasksForProject,
   getAuthenticatedUser,
@@ -44,12 +47,26 @@ export default async function ProjectPage({
     redirect("/projects");
   }
 
-  // Validate that the chapter param actually belongs to this project,
-  // or fall back to the first chapter so the Board toggle is never disabled.
+  // The active chapter (no retro yet) gets a work-in-progress list + capture
+  // FAB on the Story tab, so we need its board templates alongside the flat
+  // projectTasks list already fetched above. Every chapter (active and
+  // completed) needs its own board columns + dropped-task history for the
+  // "Chapter tasks" disclosure.
+  const activeChapter = project.chapters.find((c) => !c.retroCompletedAt) ?? null;
+
+  // Validate that the chapter param actually belongs to this project, or land
+  // on the active (in-progress) chapter by default — that's where the user
+  // needs to act, not the oldest history. Falls back to the first chapter
+  // only if every chapter's retro is already complete.
   const lastChapterId =
     chapter && project.chapters.some((ch) => ch.id === chapter)
       ? chapter
-      : (project.chapters[0]?.id ?? null);
+      : (activeChapter?.id ?? project.chapters[0]?.id ?? null);
+  const [activeBoardSnapshot, allChapterColumns, droppedTaskFragments] = await Promise.all([
+    activeChapter ? getProjectBoardSnapshot(projectId, activeChapter.id) : Promise.resolve(null),
+    getBoardColumnsForBoards(project.chapters.map((c) => c.id)),
+    getDroppedTaskFragments(projectId),
+  ]);
 
   return (
     <main className="min-h-screen w-full lg:p-0">
@@ -63,6 +80,10 @@ export default async function ProjectPage({
         initialPlanning={plan === "true"}
         subscriptionStatus={subscription.status}
         projectTasks={projectTasks}
+        activeChapterId={activeChapter?.id ?? null}
+        activeChapterTemplates={activeBoardSnapshot?.workflowTemplates ?? []}
+        allChapterColumns={allChapterColumns}
+        droppedTaskFragments={droppedTaskFragments}
       />
     </main>
   );

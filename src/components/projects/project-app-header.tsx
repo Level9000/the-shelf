@@ -211,6 +211,7 @@ export function ProjectAppHeader({
   onOpenSettings,
   activeNav,
   onPlanChapters,
+  focusedChapterId,
 }: {
   projects: ProjectWithChapters[];
   currentProjectId: string;
@@ -219,6 +220,7 @@ export function ProjectAppHeader({
   onOpenSettings: () => void;
   activeNav?: "overview" | "story" | "board";
   onPlanChapters?: () => void;
+  focusedChapterId?: string | null;
 }) {
   const router = useRouter();
   const { theme } = useTheme();
@@ -234,6 +236,12 @@ export function ProjectAppHeader({
   const isBoard = activeNav === "board";
   const isStory = activeNav === "story" || activeNav === "overview";
   const isDark = theme === "dark";
+
+  const focusedChapterIndex = currentProject?.chapters.findIndex((ch) => ch.id === focusedChapterId) ?? -1;
+  const focusedChapter = focusedChapterIndex >= 0 ? currentProject?.chapters[focusedChapterIndex] : null;
+  const focusedChapterLabel = focusedChapter
+    ? (focusedChapter.chapterHeadline || `Chapter ${focusedChapterIndex + 1}`)
+    : null;
 
   const displayedProject = pendingProject ?? currentProject;
 
@@ -342,17 +350,66 @@ export function ProjectAppHeader({
           </div>
         )}
 
-        {/* STORY / BOARD toggle — absolutely centred */}
-        <div
-          style={{
-            position: "absolute", left: "50%", transform: "translateX(-50%)",
-            display: "flex", alignItems: "center", gap: "8px", zIndex: 2,
-          }}
-        >
-          <TapeLabel active={isStory} side="left" onClick={goStory}>STORY</TapeLabel>
-          <PillToggle on={isBoard} disabled={!hasChapter} onClick={handlePillToggle} />
-          <TapeLabel active={isBoard} disabled={!hasChapter} side="right" onClick={goBoard}>BOARD</TapeLabel>
-        </div>
+        {isBoard ? (
+          /* STORY / BOARD toggle — absolutely centred (Board tab only) */
+          <div
+            style={{
+              position: "absolute", left: "50%", transform: "translateX(-50%)",
+              display: "flex", alignItems: "center", gap: "8px", zIndex: 2,
+            }}
+          >
+            <TapeLabel active={isStory} side="left" onClick={goStory}>STORY</TapeLabel>
+            <PillToggle on={isBoard} disabled={!hasChapter} onClick={handlePillToggle} />
+            <TapeLabel active={isBoard} disabled={!hasChapter} side="right" onClick={goBoard}>BOARD</TapeLabel>
+          </div>
+        ) : (
+          /* Chapter-focus indicator — absolutely centred (Story tab).
+             Shows the Authored By icon at rest; snaps to the in-view
+             chapter's label as the user scrolls (driven by ProjectShellFrame's
+             scroll observer). Tapping either opens the chapter picker. */
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              position: "absolute", left: "50%", transform: "translateX(-50%)",
+              zIndex: 2, background: "none", border: "none", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              maxWidth: "min(60vw, 320px)",
+            }}
+          >
+            <span
+              key={focusedChapterLabel ?? "icon"}
+              style={{
+                display: "inline-flex", alignItems: "center",
+                animation: "headerChapterSnapIn 0.3s ease forwards",
+              }}
+            >
+              {focusedChapterLabel ? (
+                <span style={{
+                  fontFamily: "'Literata', Georgia, serif",
+                  fontSize: "15px", fontWeight: 700,
+                  letterSpacing: "-0.01em",
+                  color: isDark ? "rgba(232,224,208,0.9)" : "rgba(22,19,15,0.85)",
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                }}>
+                  {focusedChapterLabel}
+                </span>
+              ) : (
+                <img
+                  src="/icons/authored-by-tape-icon.png"
+                  alt="Authored By"
+                  style={{ height: "32px", width: "auto", objectFit: "contain" }}
+                />
+              )}
+            </span>
+          </button>
+        )}
+        <style>{`
+          @keyframes headerChapterSnapIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
 
         {/* Settings */}
         <div style={{ display: "flex", alignItems: "center", zIndex: 1, flexShrink: 0, marginLeft: "auto" }}>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
 
-export type StoryFragmentSource = "chapter_capture" | "foundation" | "freeform";
+export type StoryFragmentSource = "chapter_capture" | "foundation" | "freeform" | "task_dropped";
 
 export async function addStoryFragmentAction(input: {
   projectId: string;
@@ -11,6 +11,8 @@ export async function addStoryFragmentAction(input: {
   source: StoryFragmentSource;
   content: string;
   conversation?: Array<{ role: string; content: string }> | null;
+  taskTitle?: string | null;
+  reason?: string | null;
 }): Promise<void> {
   const { supabase, user } = await getAuthenticatedUser();
 
@@ -24,6 +26,8 @@ export async function addStoryFragmentAction(input: {
     source: input.source,
     content,
     conversation: input.conversation ?? null,
+    task_title: input.taskTitle ?? null,
+    reason: input.reason ?? null,
   });
 
   if (error) throw new Error(error.message);

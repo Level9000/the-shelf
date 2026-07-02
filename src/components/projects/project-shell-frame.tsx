@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/lib/theme-context";
 import type { ProjectWithChapters, UserProfile } from "@/types";
@@ -49,6 +49,8 @@ export function ProjectShellFrame({
   const { theme } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [focusedChapterId, setFocusedChapterId] = useState<string | null>(null);
 
   // The chapter used for Story/Board pill links — current chapter, or the last
   // visited chapter when navigating to the Story overview.
@@ -84,6 +86,58 @@ export function ProjectShellFrame({
     currentProject?.chapters.find((ch) => ch.id === currentChapterId)?.name ?? null;
   const currentProjectName = currentProject?.name ?? null;
 
+  // Single scroll-tracking source of truth for the Story tab: drives both the
+  // header's chapter-focus label and each chapter's focus/dim treatment.
+  // Owned here (not in ProjectOverviewShell) because the header and the
+  // scrollable chapter list are siblings under this component — this is the
+  // one place with access to both.
+  useEffect(() => {
+    if (!(activeNav === "story" || activeNav === "overview") || !currentProject) return;
+    const scrollRoot = scrollContainerRef.current;
+    if (!scrollRoot) return;
+
+    const chapterEls = currentProject.chapters
+      .map((ch) => document.getElementById(`chapter-${ch.id}`))
+      .filter((el): el is HTMLElement => Boolean(el));
+    if (chapterEls.length === 0) return;
+
+    // IntersectionObserver callbacks only report entries whose state *changed*
+    // in that batch, not the full current state of every observed element —
+    // so we track intersection state per element ourselves across batches.
+    const intersecting = new Map<string, DOMRectReadOnly>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            intersecting.set(entry.target.id, entry.boundingClientRect);
+          } else {
+            intersecting.delete(entry.target.id);
+          }
+        });
+
+        let focusedId: string | null = null;
+        let lowestTop = -Infinity;
+        for (const [id, rect] of intersecting) {
+          if (rect.top > lowestTop) {
+            lowestTop = rect.top;
+            focusedId = id;
+          }
+        }
+
+        setFocusedChapterId(focusedId ? focusedId.replace("chapter-", "") : null);
+
+        chapterEls.forEach((el) => {
+          el.style.transition = "opacity 0.4s ease";
+          el.style.opacity = el.id === focusedId ? "1" : "0.55";
+        });
+      },
+      { root: scrollRoot, rootMargin: "-15% 0px -70% 0px", threshold: 0 },
+    );
+    chapterEls.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [activeNav, currentProject]);
+
   return (
     <>
       <div className="flex h-dvh flex-col overflow-hidden">
@@ -96,6 +150,7 @@ export function ProjectShellFrame({
           onOpenSettings={() => setSettingsOpen(true)}
           activeNav={activeNav}
           onPlanChapters={onPlanChapters}
+          focusedChapterId={focusedChapterId}
         />
 
         {mobileBanner}
@@ -144,6 +199,7 @@ export function ProjectShellFrame({
 
         {/* Scrollable content */}
         <div
+          ref={scrollContainerRef}
           className="min-h-0 flex-1 overflow-y-auto"
           style={{ background: theme === "dark" ? "#1a1814" : "#f0ebe0" }}
           onTouchStart={handleTouchStart}
