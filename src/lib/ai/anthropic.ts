@@ -146,7 +146,7 @@ const KICKOFF_TOOL = {
       successLooksLike: { type: "string", description: "Success definition from the work beat. Empty string while gathering." },
       doneDefinition:   { type: "string", description: "Target completion / timeline from the work beat. Empty string while gathering." },
       openingLine:      { type: "string", description: "Narrative seed sentence. Empty string until done." },
-      confirmedThesis:  { type: "string", description: "The thesis sentence after founder confirms it. Empty string until confirmed." },
+      confirmedThesis:  { type: "string", description: "The thesis sentence after author confirms it. Empty string until confirmed." },
       proposedTasks: {
         type: "array",
         description: "4–8 concrete task titles derived from the work and stakes beats. Empty array until done.",
@@ -1045,10 +1045,10 @@ export async function generateProjectPlanFromBrief(input: {
   const apiKey = requireAnthropicKey();
 
   const prompt = [
-    "You are a founder story assistant helping set up a project brief.",
-    "Based on this free-form description from a founder, infer and generate a complete project brief.",
+    "You are an author story assistant helping set up a project brief.",
+    "Based on this free-form description from an author, infer and generate a complete project brief.",
     "",
-    "FOUNDER'S DESCRIPTION:",
+    "AUTHOR'S DESCRIPTION:",
     input.raw_description,
     "",
     "GENERATE:",

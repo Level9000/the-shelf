@@ -12,7 +12,6 @@ import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
-import { ShareFab } from "@/components/ui/ShareFab";
 import { MobileFab } from "@/components/ui/MobileFab";
 import { CassBoardDrawer } from "@/components/board/cass-board-drawer";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
@@ -322,7 +321,7 @@ function ChatHistoryDrawer({
 
 const AUDIENCE_OPTIONS = [
   { id: "blog", label: "Blog post", description: "Tell your story in long form", templateId: "case-study" },
-  { id: "social", label: "Social media", description: "A punchy update for LinkedIn or X", templateId: "founder-memo" },
+  { id: "social", label: "Social media", description: "A punchy update for LinkedIn or X", templateId: "author-memo" },
   { id: "network", label: "Professional network", description: "Reach your professional contacts", templateId: "quarterly-update" },
   { id: "leadership", label: "Leadership", description: "A memo for your team or board", templateId: "quarterly-update" },
   { id: "investors", label: "Investors", description: "Make the case to funders", templateId: "investor-pitch" },
@@ -950,7 +949,7 @@ function ChapterEntry({
   onOpenThread: (t: ChatThread) => void;
   chapterTasks?: Task[];
   columns?: BoardColumn[];
-  onTaskCompleted?: (taskId: string) => void;
+  onTaskCompleted?: (taskId: string, feeling: string) => void;
   onTaskDropped?: (taskId: string, reason: string) => void;
   onOpenTask?: (taskId: string) => void;
   chapterColumns?: BoardColumn[];
@@ -1585,16 +1584,27 @@ export function ProjectOverviewShell({
     ? Math.floor((Date.now() - new Date(activeChapter.createdAt).getTime()) / 86_400_000)
     : null;
   const chapterDaysLeft = daysOpen !== null ? CHAPTER_DAYS - daysOpen : null;
+  const activeChapterTasks = tasks.filter((t) => t.boardId === activeChapterId);
+  const activeChapterDoneColumnId = activeChapterColumns.find((col) => col.name.toLowerCase() === "done")?.id;
+  const activeChapterProgress = activeChapterId && activeChapterTasks.length > 0
+    ? {
+        completed: activeChapterDoneColumnId
+          ? activeChapterTasks.filter((t) => t.columnId === activeChapterDoneColumnId).length
+          : 0,
+        total: activeChapterTasks.length,
+      }
+    : null;
 
   useEffect(() => {
     setTasks(projectTasks);
   }, [projectTasks]);
 
-  function handleTaskCompleted(taskId: string) {
+  function handleTaskCompleted(taskId: string, feeling: string) {
     const doneColumnId = activeChapterColumns.find(
       (col) => col.name.toLowerCase() === "done",
     )?.id;
     if (!doneColumnId || !activeChapterId) return;
+    const task = tasks.find((t) => t.id === taskId);
 
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     startTaskTransition(async () => {
@@ -1605,10 +1615,27 @@ export function ProjectOverviewShell({
           boardId: activeChapterId,
           targetColumnId: doneColumnId,
         });
-        router.refresh();
       } catch {
         setTasks(projectTasks);
+        return;
       }
+      if (task) {
+        // Best-effort: the completion itself already succeeded above, so a
+        // failure logging the feeling shouldn't roll back the whole task.
+        try {
+          await addStoryFragmentAction({
+            projectId: project.id,
+            chapterId: activeChapterId,
+            source: "task_completed",
+            content: `Completed "${task.title}" — ${feeling}`,
+            taskTitle: task.title,
+            feeling,
+          });
+        } catch {
+          // ignore
+        }
+      }
+      router.refresh();
     });
   }
 
@@ -1714,10 +1741,12 @@ export function ProjectOverviewShell({
         projects={projects}
         profile={profile}
         currentProjectId={project.id}
-        lastChapterId={lastChapterId}
-        activeNav="story"
         mobileEyebrow="Overview"
         mobileTitle={project.name}
+        activeChapterId={activeChapterId}
+        activeChapterDaysLeft={chapterDaysLeft}
+        activeChapterProgress={activeChapterProgress}
+        onOpenShare={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)}
       >
         {refining ? (
           <div style={{ background: "var(--background, #faf9f7)", flex: 1 }}>
@@ -1976,11 +2005,6 @@ export function ProjectOverviewShell({
 
             </div>
           </div>
-        )}
-
-        {/* ── FAB — share circle, styled like the board tab's plus circle ── */}
-        {!refining && (
-          <ShareFab onClick={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)} />
         )}
 
         {/* ── FAB — capture circle, scoped to the active chapter ── */}

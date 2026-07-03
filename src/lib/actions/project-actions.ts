@@ -979,7 +979,7 @@ export async function deleteChapterAction(input: {
 /**
  * Moves a specific set of tasks out of the current chapter into a new stub
  * chapter (no kickoff required). The current chapter's backlog shrinks to only
- * the tasks the founder committed to finishing.
+ * the tasks the author committed to finishing.
  */
 export async function deferTasksToNextChapterAction(input: {
   projectId: string;

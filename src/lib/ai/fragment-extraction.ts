@@ -8,7 +8,7 @@ export interface ConversationMessage {
 
 function formatTranscript(messages: ConversationMessage[]): string {
   return messages
-    .map((m) => `${m.role === "user" ? "Founder" : "Cass"}: ${m.content}`)
+    .map((m) => `${m.role === "user" ? "Author" : "Cass"}: ${m.content}`)
     .join("\n");
 }
 

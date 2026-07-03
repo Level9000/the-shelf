@@ -113,7 +113,7 @@ export default async function PublicStoryPage({
             Build your own story.
           </p>
           <p className="mt-2 text-sm text-white/60">
-            Shelf helps founders track work, run recaps, and never lose the
+            Shelf helps authors track work, run recaps, and never lose the
             story of what they built.
           </p>
           <a

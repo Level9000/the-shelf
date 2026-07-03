@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { UserProfile } from "@/types";
+import type { ProjectWithChapters, UserProfile } from "@/types";
 import { deleteChapterAction, deleteProjectAction, updateBoardOverviewFieldAction } from "@/lib/actions/project-actions";
 import { deleteAccountAction } from "@/lib/actions/profile-actions";
 import { logoutAction } from "@/lib/actions/auth-actions";
@@ -37,6 +37,55 @@ function DrawerSection({ label, children, danger = false }: { label: string; chi
         {children}
       </div>
     </div>
+  );
+}
+
+// ── Select project section ──────────────────────────────────────────────────
+
+function ProjectSelectSection({
+  projects,
+  currentProjectId,
+  onSelect,
+  onNewProject,
+}: {
+  projects: ProjectWithChapters[];
+  currentProjectId: string;
+  onSelect: (project: ProjectWithChapters) => void;
+  onNewProject: () => void;
+}) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const inputBg    = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
+  const inputColor = isDark ? "rgba(248,248,246,0.85)" : "rgba(26,14,0,0.85)";
+
+  return (
+    <DrawerSection label="Select Project">
+      <select
+        value={currentProjectId}
+        onChange={(e) => {
+          const project = projects.find((p) => p.id === e.target.value);
+          if (project) onSelect(project);
+        }}
+        style={{
+          width: "100%", background: inputBg, border: "1px solid rgba(200,168,107,0.25)",
+          borderRadius: "10px", padding: "10px 12px", boxSizing: "border-box",
+          fontFamily: "'Lora', Georgia, serif", fontSize: "14px",
+          color: inputColor, outline: "none", cursor: "pointer",
+        }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.55)"; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
+      >
+        {projects.map((p) => (
+          <option key={p.id} value={p.id}>{p.name}</option>
+        ))}
+      </select>
+      <div style={{ marginTop: "8px" }}>
+        <TapeButton variant="secondary" size="sm" onClick={onNewProject} className="w-full justify-center">
+          + New Project
+        </TapeButton>
+      </div>
+    </DrawerSection>
   );
 }
 
@@ -294,6 +343,7 @@ function GoalEditor({ projectId, boardId, initialValue, isDark }: { projectId: s
 export function SettingsContent({
   profile,
   hasActiveSubscription,
+  projects,
   currentProjectId,
   currentProjectName,
   currentChapterId,
@@ -305,6 +355,7 @@ export function SettingsContent({
 }: {
   profile: UserProfile;
   hasActiveSubscription?: boolean;
+  projects?: ProjectWithChapters[];
   currentProjectId?: string | null;
   currentProjectName?: string | null;
   currentChapterId?: string | null;
@@ -369,6 +420,18 @@ export function SettingsContent({
   const inputBg     = isDark ? "rgba(255,255,255,0.05)"  : "rgba(0,0,0,0.04)";
   const inputColor  = isDark ? "rgba(248,248,246,0.85)"  : "rgba(26,14,0,0.85)";
   const themeLabelColor = isDark ? "rgba(248,248,246,0.3)" : "rgba(26,14,0,0.3)";
+
+  function handleSelectProject(project: ProjectWithChapters) {
+    if (project.id !== currentProjectId) {
+      router.push(`/projects/${project.id}`);
+    }
+    onClose?.();
+  }
+
+  function handleNewProject() {
+    router.push("/projects/new");
+    onClose?.();
+  }
 
   function handleDeleteProject() {
     if (!currentProjectId) return;
@@ -437,15 +500,25 @@ export function SettingsContent({
       {/* ── Project Settings page ── */}
       {page === "project" && (
         <div style={{ padding: "24px 16px", display: "flex", flexDirection: "column", gap: "24px" }}>
+          {projects && projects.length > 0 && currentProjectId && (
+            <div style={{ marginLeft: "-16px", marginRight: "-16px" }}>
+              <ProjectSelectSection
+                projects={projects}
+                currentProjectId={currentProjectId}
+                onSelect={handleSelectProject}
+                onNewProject={handleNewProject}
+              />
+            </div>
+          )}
           {currentProjectId && (
             <div style={{ marginLeft: "-16px", marginRight: "-16px" }}>
               <ToneOfVoiceSection projectId={currentProjectId} />
             </div>
           )}
-          {currentProjectId && currentChapterId ? (
+          {currentProjectId ? (
             <>
               {/* ── Chapter countdown card ── */}
-              {(() => {
+              {currentChapterId && (() => {
                 const SPRINT_DAYS = 14;
                 const daysOpen = currentBoardCreatedAt
                   ? Math.floor((Date.now() - new Date(currentBoardCreatedAt).getTime()) / 86_400_000)
@@ -515,26 +588,30 @@ export function SettingsContent({
                 );
               })()}
 
-              {/* Chapter focus / goal */}
-              <div>
-                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(245,200,74,0.45)" : "rgba(160,100,10,0.55)", marginBottom: "6px" }}>
-                  Chapter Focus
-                </p>
-                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "var(--muted)", margin: "0 0 8px", lineHeight: 1.5 }}>
-                  This appears as a reminder at the top of your board.
-                </p>
-                <GoalEditor
-                  projectId={currentProjectId}
-                  boardId={currentBoardId ?? ""}
-                  initialValue={currentBoardGoal ?? ""}
-                  isDark={isDark}
-                />
-              </div>
-              {/* Chapter name — read only */}
-              <div>
-                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.28)", marginBottom: "6px" }}>Chapter</p>
-                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>{currentChapterName ?? "—"}</p>
-              </div>
+              {currentChapterId && (
+                <>
+                  {/* Chapter focus / goal */}
+                  <div>
+                    <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(245,200,74,0.45)" : "rgba(160,100,10,0.55)", marginBottom: "6px" }}>
+                      Chapter Focus
+                    </p>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "var(--muted)", margin: "0 0 8px", lineHeight: 1.5 }}>
+                      This appears as a reminder at the top of your board.
+                    </p>
+                    <GoalEditor
+                      projectId={currentProjectId}
+                      boardId={currentBoardId ?? ""}
+                      initialValue={currentBoardGoal ?? ""}
+                      isDark={isDark}
+                    />
+                  </div>
+                  {/* Chapter name — read only */}
+                  <div>
+                    <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.28)", marginBottom: "6px" }}>Chapter</p>
+                    <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>{currentChapterName ?? "—"}</p>
+                  </div>
+                </>
+              )}
               {/* Project name — read only */}
               <div>
                 <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.28)", marginBottom: "6px" }}>Project</p>
@@ -590,13 +667,6 @@ export function SettingsContent({
                     {/* Delete project */}
                     {currentProjectName && (
                       <div>
-                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "11px", color: labelColor, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                          Project
-                        </p>
-                        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: bodyColor, margin: "0 0 12px", lineHeight: 1.55 }}>
-                          <span style={{ color: strongColor, fontWeight: 600 }}>{currentProjectName}</span>
-                          {" "}— permanently deletes all chapters, boards, and tasks.
-                        </p>
                         {confirmingDeleteProject ? (
                           <div style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.18)", borderRadius: "12px", padding: "14px 16px" }}>
                             <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", fontWeight: 600, color: "#f87171", margin: "0 0 2px" }}>Type the project name to confirm:</p>
@@ -637,11 +707,7 @@ export function SettingsContent({
                 </div>
               )}
             </>
-          ) : (
-            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "var(--muted)", margin: 0 }}>
-              Open a project chapter to see its settings here.
-            </p>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -902,6 +968,7 @@ export function SettingsDrawer({
   profile,
   hasActiveSubscription,
   onClose,
+  projects,
   currentProjectId,
   currentProjectName,
   currentChapterId,
@@ -914,6 +981,7 @@ export function SettingsDrawer({
   profile: UserProfile;
   hasActiveSubscription?: boolean;
   onClose: () => void;
+  projects?: ProjectWithChapters[];
   currentProjectId?: string | null;
   currentProjectName?: string | null;
   currentChapterId?: string | null;
@@ -923,10 +991,11 @@ export function SettingsDrawer({
   currentBoardCreatedAt?: string | null;
 }) {
   return (
-    <SideDrawer open={open} title="" onClose={onClose} side="right" footer={<SignOutButton />}>
+    <SideDrawer open={open} title="" onClose={onClose} side="left" footer={<SignOutButton />}>
       <SettingsContent
         profile={profile}
         hasActiveSubscription={hasActiveSubscription}
+        projects={projects}
         currentProjectId={currentProjectId}
         currentProjectName={currentProjectName}
         currentChapterId={currentChapterId}

@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Chapter not found." }, { status: 404 });
   }
 
-  // ── Apply any action the founder already confirmed in the UI, before this turn's dialogue ──
+  // ── Apply any action the author already confirmed in the UI, before this turn's dialogue ──
   if (payload.acceptedParagraph?.originalText && payload.acceptedParagraph.newText) {
     const currentStory = (board.chapter_story as string | null) ?? "";
     if (currentStory.includes(payload.acceptedParagraph.originalText)) {

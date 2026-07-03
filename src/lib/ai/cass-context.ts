@@ -49,7 +49,7 @@ const STORY_EXCERPT_LIMIT = 400;
 
 /**
  * Shared context every Cass surface (board chat, retro, refocus) should pull from,
- * so each one isn't re-deriving the founder's story from scratch with its own query.
+ * so each one isn't re-deriving the author's story from scratch with its own query.
  */
 export async function loadCassStoryContext(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

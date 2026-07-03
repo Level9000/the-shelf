@@ -6,11 +6,12 @@ import type { BoardColumn, Task } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
 
-// Time to let the filled-in checkmark register before the row disappears
-// (the parent removes the task from its list as soon as onComplete fires).
+// Time to let the filled-in checkmark register before asking how it felt
+// (the parent removes the task from its list once a feeling is picked).
 const CHECK_ANIMATION_MS = 300;
 
-const DROP_REASONS = ["Blocked", "No longer relevant", "Deprioritized"] as const;
+const DROP_REASONS = ["Blocked", "Changed my mind", "Irrelevant"] as const;
+const COMPLETION_FEELINGS = ["Excited", "Pretty good", "Meh"] as const;
 
 export function ChapterTaskList({
   tasks,
@@ -21,19 +22,25 @@ export function ChapterTaskList({
 }: {
   tasks: Task[];
   columns: BoardColumn[];
-  onComplete?: (taskId: string) => void;
+  onComplete?: (taskId: string, feeling: string) => void;
   onDelete?: (taskId: string, reason: string) => void;
   onOpenTask?: (taskId: string) => void;
 }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [feelingTaskId, setFeelingTaskId] = useState<string | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
   function handleTap(taskId: string) {
     if (checkedIds.has(taskId)) return;
     setCheckedIds((prev) => new Set(prev).add(taskId));
-    setTimeout(() => onComplete?.(taskId), CHECK_ANIMATION_MS);
+    setTimeout(() => setFeelingTaskId(taskId), CHECK_ANIMATION_MS);
+  }
+
+  function pickFeeling(taskId: string, feeling: string) {
+    setFeelingTaskId(null);
+    onComplete?.(taskId, feeling);
   }
 
   function startDelete(taskId: string) {
@@ -108,12 +115,13 @@ export function ChapterTaskList({
         color: labelColor,
         margin: "0 0 8px",
       }}>
-        Things I want to do
+        Things I want to do this chapter
       </p>
       <div style={{ display: "flex", flexDirection: "column" }}>
         {remainingTasks.map((task, i) => {
           const checked = checkedIds.has(task.id);
           const isDeleting = deletingTaskId === task.id;
+          const isPickingFeeling = feelingTaskId === task.id;
           return (
           <div
             key={task.id}
@@ -220,25 +228,64 @@ export function ChapterTaskList({
                   </div>
                 </div>
               )}
+
+              {isPickingFeeling && (
+                <div style={{ marginTop: "10px" }}>
+                  <p style={{
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "13px",
+                    color: promptColor,
+                    margin: "0 0 8px",
+                  }}>
+                    How did that feel?
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {COMPLETION_FEELINGS.map((feeling) => (
+                      <button
+                        key={feeling}
+                        type="button"
+                        onClick={() => pickFeeling(task.id, feeling)}
+                        style={{
+                          fontFamily: "'Lora', Georgia, serif",
+                          fontSize: "12.5px",
+                          color: titleColor,
+                          background: chipBg,
+                          border: `1px solid ${chipBorder}`,
+                          borderRadius: "999px",
+                          padding: "6px 12px",
+                          cursor: "pointer",
+                          transition: "border-color 0.15s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = chipHoverBorder; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = chipBorder; }}
+                      >
+                        {feeling}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
               type="button"
               onClick={() => (isDeleting ? cancelDelete() : startDelete(task.id))}
+              disabled={checked}
               aria-label={isDeleting ? "Cancel" : `Delete "${task.title}"`}
               style={{
                 background: "none",
                 border: "none",
                 padding: 0,
                 marginTop: "1px",
-                cursor: "pointer",
+                cursor: checked ? "default" : "pointer",
                 color: checkIdle,
+                opacity: checked ? 0 : 1,
                 flexShrink: 0,
                 lineHeight: 0,
-                transition: "color 0.15s",
+                transition: "color 0.15s, opacity 0.15s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = checkHover; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = checkIdle; }}
+              onMouseEnter={(e) => { if (!checked) e.currentTarget.style.color = checkHover; }}
+              onMouseLeave={(e) => { if (!checked) e.currentTarget.style.color = checkIdle; }}
             >
               {isDeleting ? <X size={18} strokeWidth={1.5} /> : <Trash2 size={16} strokeWidth={1.5} />}
             </button>

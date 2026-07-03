@@ -16,7 +16,7 @@ const FAB_MARGIN = 24;
 const REST_TX = Math.round((FAB_W + FAB_MARGIN - 36) * 0.5);
 const REST_TY = Math.round((FAB_H + FAB_MARGIN - 28) * 0.5);
 
-// Sits above ShareFab/MobileFab (z-index 40) so Cass renders in front of them.
+// Sits above MobileFab (z-index 40) so Cass renders in front of it.
 const NUDGE_Z = 45;
 
 /**

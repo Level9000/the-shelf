@@ -34,7 +34,7 @@ export type PressTemplate = {
   label: string;
   format: TemplateFormat;
   description: string;
-  /** What Press asks the founder to fill in */
+  /** What Press asks the author to fill in */
   requiredFields: string[];
   slides?: SlideSpec[];   // pptx only
   sections?: SectionSpec[]; // docx only
@@ -62,7 +62,7 @@ export const PRESS_TEMPLATES: PressTemplate[] = [
       "use_of_funds",
     ],
     slides: [
-      { id: "cover",    title: "Cover",              placeholder: "Project name, tagline, founder name, date",                             fields: ["project_name", "north_star"] },
+      { id: "cover",    title: "Cover",              placeholder: "Project name, tagline, author name, date",                             fields: ["project_name", "north_star"] },
       { id: "problem",  title: "The Problem",        placeholder: "One clear problem statement. Who feels it. How painful.",               fields: ["problem_statement"] },
       { id: "solution", title: "Our Solution",       placeholder: "What you've built. Why it works. The insight behind it.",              fields: ["solution_summary", "north_star"] },
       { id: "traction", title: "Traction",           placeholder: "Key milestones, metrics, or proof points from completed chapters.",    fields: ["traction_highlights"] },
@@ -99,10 +99,10 @@ export const PRESS_TEMPLATES: PressTemplate[] = [
     ],
   },
 
-  // ── 3. Founder Memo ─────────────────────────────────────────────────────────
+  // ── 3. Author Memo ─────────────────────────────────────────────────────────
   {
-    id: "founder-memo",
-    label: "Founder Memo",
+    id: "author-memo",
+    label: "Author Memo",
     format: "docx",
     description: "A narrative memo for your team or board. Story-led, 2–4 pages.",
     requiredFields: [
@@ -143,7 +143,7 @@ export const PRESS_TEMPLATES: PressTemplate[] = [
       { id: "challenge", heading: "The Challenge",      placeholder: "What problem were you solving? Who was affected? Why did it matter?",  fields: ["challenge"] },
       { id: "approach",  heading: "The Approach",       placeholder: "How did you approach it? Key decisions, pivots, and chapter arc.",      fields: ["approach", "chapter_stories"] },
       { id: "outcome",   heading: "The Outcome",        placeholder: "What changed? Metrics, qualitative impact, what you learned.",         fields: ["outcome"] },
-      { id: "quote",     heading: "In Their Words",     placeholder: "A pull-quote from the founder or key stakeholder.",                   fields: ["key_quote"] },
+      { id: "quote",     heading: "In Their Words",     placeholder: "A pull-quote from the author or key stakeholder.",                   fields: ["key_quote"] },
     ],
   },
 
@@ -164,7 +164,7 @@ export const PRESS_TEMPLATES: PressTemplate[] = [
       "asks",
     ],
     sections: [
-      { id: "header",     heading: "Q[N] Update — [Project Name]",  placeholder: "Formal header: quarter, date, from the founder.",                    fields: ["project_name", "quarter"] },
+      { id: "header",     heading: "Q[N] Update — [Project Name]",  placeholder: "Formal header: quarter, date, from the author.",                    fields: ["project_name", "quarter"] },
       { id: "state",      heading: "State of the Project",          placeholder: "Where are we relative to the north star? Honest one-paragraph view.", fields: ["north_star"] },
       { id: "chapters",   heading: "What We Did",                   placeholder: "Narrative recap of the quarter's chapters. What shipped, what shifted.", fields: ["chapter_stories"] },
       { id: "wins",       heading: "Wins",                          placeholder: "The 3–5 things worth celebrating. Be specific.",                      fields: ["wins"] },
@@ -203,7 +203,7 @@ export function getTemplatesByFormat(format: TemplateFormat): PressTemplate[] {
  *
  * DOCUMENTS (.docx) — save to public/templates/press/
  * ─────────────────────────────────────────────────────
- * 3. press-founder-memo.docx
+ * 3. press-author-memo.docx
  *    4 sections: Where We Are, The Story So Far, Key Decisions, What's Next.
  *    Style: Clean serif (Literata or Georgia), memo-style header block,
  *    subtle gold rule under the header, no decorative elements.

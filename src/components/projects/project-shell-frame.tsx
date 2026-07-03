@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/lib/theme-context";
 import type { ProjectWithChapters, UserProfile } from "@/types";
 import { ProjectAppHeader } from "@/components/projects/project-app-header";
 import { SettingsDrawer } from "@/components/settings/settings-drawer";
-import { cn } from "@/lib/utils";
 
 // ── Shell frame ──────────────────────────────────────────────────────────────
 
@@ -16,15 +14,17 @@ export function ProjectShellFrame({
   hasActiveSubscription,
   currentProjectId,
   currentChapterId = null,
-  lastChapterId = null,
   mobileEyebrow,
   mobileTitle: _mobileTitle,
-  activeNav,
   mobileBanner,
   onPlanChapters,
+  onOpenShare,
   currentBoardId,
   currentBoardGoal,
   currentBoardCreatedAt,
+  activeChapterId,
+  activeChapterDaysLeft,
+  activeChapterProgress,
   children,
 }: {
   projects: ProjectWithChapters[];
@@ -32,51 +32,26 @@ export function ProjectShellFrame({
   hasActiveSubscription?: boolean;
   currentProjectId: string;
   currentChapterId?: string | null;
-  /** The chapter to return to when navigating to the Story overview */
-  lastChapterId?: string | null;
   mobileEyebrow: string;
   mobileTitle: string;
-  activeNav?: "overview" | "story" | "board";
   /** Full-width banner rendered between the header and scrollable content */
   mobileBanner?: React.ReactNode;
   onPlanChapters?: () => void;
+  /** Opens the share flow — drives the header's top-right share icon */
+  onOpenShare?: () => void;
   currentBoardId?: string | null;
   currentBoardGoal?: string | null;
   currentBoardCreatedAt?: string | null;
+  /** The chapter currently being worked on — drives the header's Active/days-left pills and progress bar */
+  activeChapterId?: string | null;
+  activeChapterDaysLeft?: number | null;
+  activeChapterProgress?: { completed: number; total: number } | null;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const { theme } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [focusedChapterId, setFocusedChapterId] = useState<string | null>(null);
-
-  // The chapter used for Story/Board pill links — current chapter, or the last
-  // visited chapter when navigating to the Story overview.
-  const navChapterId = currentChapterId ?? lastChapterId;
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }, []);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStart.current) return;
-    const dx = e.changedTouches[0].clientX - touchStart.current.x;
-    const dy = e.changedTouches[0].clientY - touchStart.current.y;
-    touchStart.current = null;
-    // Only trigger if horizontal swipe dominates and exceeds threshold
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    // Board handles its own swipe-off via the inner swiper
-    if (activeNav === "board") return;
-    if (dx < 0 && activeNav === "story" && navChapterId) {
-      router.push(`/projects/${currentProjectId}`);
-    } else if (dx > 0 && activeNav === "story" && navChapterId) {
-      router.push(`/projects/${currentProjectId}/chapters/${navChapterId}/board`);
-    } else if (dx > 0 && activeNav === "overview" && navChapterId) {
-      router.push(`/projects/${currentProjectId}/chapters/${navChapterId}`);
-    }
-  }, [activeNav, navChapterId, currentProjectId, router]);
 
   const currentProject = projects.find((p) => p.id === currentProjectId);
   const chapterIndex =
@@ -92,7 +67,7 @@ export function ProjectShellFrame({
   // scrollable chapter list are siblings under this component — this is the
   // one place with access to both.
   useEffect(() => {
-    if (!(activeNav === "story" || activeNav === "overview") || !currentProject) return;
+    if (!currentProject) return;
     const scrollRoot = scrollContainerRef.current;
     if (!scrollRoot) return;
 
@@ -136,7 +111,7 @@ export function ProjectShellFrame({
     );
     chapterEls.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [activeNav, currentProject]);
+  }, [currentProject]);
 
   return (
     <>
@@ -145,18 +120,18 @@ export function ProjectShellFrame({
         <ProjectAppHeader
           projects={projects}
           currentProjectId={currentProjectId}
-          currentChapterId={currentChapterId}
-          navChapterId={navChapterId}
           onOpenSettings={() => setSettingsOpen(true)}
-          activeNav={activeNav}
-          onPlanChapters={onPlanChapters}
+          onOpenShare={onOpenShare}
           focusedChapterId={focusedChapterId}
+          activeChapterId={activeChapterId}
+          activeChapterDaysLeft={activeChapterDaysLeft}
+          activeChapterProgress={activeChapterProgress}
         />
 
         {mobileBanner}
 
-        {/* Chapter title strip — mobile only, shown on story + board tabs */}
-        {(activeNav === "story" || activeNav === "board") && chapterIndex >= 0 && mobileEyebrow && (
+        {/* Chapter title strip — mobile only */}
+        {chapterIndex >= 0 && mobileEyebrow && (
           <div
             className="shrink-0 border-b px-4 py-3 lg:hidden"
             style={
@@ -165,35 +140,18 @@ export function ProjectShellFrame({
                 : { borderColor: "rgba(0,0,0,0.06)" }
             }
           >
-            {activeNav === "board" && currentProject ? (
-              /* Board tab — show "Project name: Chapter N" to match desktop header */
-              <p
-                className="mt-0.5 leading-tight"
-                style={{
-                  fontFamily: "'Literata', Georgia, serif",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  letterSpacing: "-0.01em",
-                  color: theme === "dark" ? "rgba(232,223,192,0.55)" : "rgba(26,14,0,0.45)",
-                }}
-              >
-                {currentProject.name}: Track {chapterIndex + 1}
-              </p>
-            ) : (
-              /* Story tab — Literata heading */
-              <p
-                className="mt-0.5 leading-tight"
-                style={{
-                  fontFamily: "'Literata', Georgia, serif",
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                  color: theme === "dark" ? "rgba(232,224,208,0.92)" : "rgba(22,19,15,0.88)",
-                }}
-              >
-                {mobileEyebrow}
-              </p>
-            )}
+            <p
+              className="mt-0.5 leading-tight"
+              style={{
+                fontFamily: "'Literata', Georgia, serif",
+                fontSize: "18px",
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+                color: theme === "dark" ? "rgba(232,224,208,0.92)" : "rgba(22,19,15,0.88)",
+              }}
+            >
+              {mobileEyebrow}
+            </p>
           </div>
         )}
 
@@ -202,8 +160,6 @@ export function ProjectShellFrame({
           ref={scrollContainerRef}
           className="min-h-0 flex-1 overflow-y-auto"
           style={{ background: theme === "dark" ? "#1a1814" : "#f0ebe0" }}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
         >
           <div className="mx-auto h-full w-full max-w-[1600px]">{children}</div>
         </div>
@@ -215,6 +171,7 @@ export function ProjectShellFrame({
         profile={profile}
         hasActiveSubscription={hasActiveSubscription}
         onClose={() => setSettingsOpen(false)}
+        projects={projects}
         currentProjectId={currentProjectId}
         currentProjectName={currentProjectName}
         currentChapterId={currentChapterId}

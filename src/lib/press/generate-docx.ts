@@ -159,8 +159,8 @@ export async function generateDocx(
     children.push(docSubtitle(String(content.north_star)));
   }
 
-  // Memo-style header for founder-memo and quarterly-update
-  if (template.id === "founder-memo" || template.id === "quarterly-update") {
+  // Memo-style header for author-memo and quarterly-update
+  if (template.id === "author-memo" || template.id === "quarterly-update") {
     const period = String(content.period_covered ?? content.quarter ?? "");
     children.push(...memoHeader(projectName, period));
     children.push(new Paragraph({ children: [new PageBreak()] }));

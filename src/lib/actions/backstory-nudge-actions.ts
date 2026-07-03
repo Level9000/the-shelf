@@ -37,7 +37,7 @@ export async function checkBackstoryNudgeAction(
 }
 
 /**
- * Called when the founder closes the auto-opened backstory drawer without finishing.
+ * Called when the author closes the auto-opened backstory drawer without finishing.
  * Permanently stops the nudge from auto-opening again. If they engaged at all, the
  * partial conversation is saved as a story_fragments row so the material isn't lost.
  */

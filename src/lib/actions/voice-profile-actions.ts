@@ -5,7 +5,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/queries";
 
 /**
  * Called once per Story-tab mount. Shows the nudge once the project has at
- * least one chapter and no voice profile yet, unless the founder already
+ * least one chapter and no voice profile yet, unless the author already
  * dismissed it once (dismissal is permanent — settings is always there).
  */
 export async function checkVoiceProfileNudgeAction(
@@ -35,7 +35,7 @@ export async function checkVoiceProfileNudgeAction(
 }
 
 /**
- * Called when the founder closes the auto-opened tone-of-voice drawer without
+ * Called when the author closes the auto-opened tone-of-voice drawer without
  * finishing. Permanently stops the nudge from auto-opening again. If they engaged
  * at all, the partial conversation is saved so it isn't lost (and so a future
  * "Edit voice profile" session in settings has it to build on).

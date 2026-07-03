@@ -189,7 +189,7 @@ export const aiChapterContextDialogueSchema = z.object({
     originalText: z.string().trim().min(1),
     newText: z.string().trim().min(1),
   }).nullable().default(null),
-  /** Only populated when the founder explicitly reframes the chapter's meaning. */
+  /** Only populated when the author explicitly reframes the chapter's meaning. */
   reframe: z.object({
     newChapterType: z.enum(["climb", "win", "turn", "fog", "reframe"]),
     rationale: z.string().trim().min(1).max(500),
@@ -206,7 +206,7 @@ export type AIChapterContextDialogue = z.infer<typeof aiChapterContextDialogueSc
 
 export const aiFragmentExtractionSchema = z.object({
   hasFragment: z.boolean(),
-  /** The raw material in the founder's own words, not a summary. Empty when hasFragment is false. */
+  /** The raw material in the author's own words, not a summary. Empty when hasFragment is false. */
   fragment: z.string().trim().max(2000).default(""),
 });
 

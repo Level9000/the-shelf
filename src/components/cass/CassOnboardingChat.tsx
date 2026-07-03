@@ -62,13 +62,13 @@ const EMPTY_ANSWERS: OnboardingDraft["answers"] = {
 const INTRO_SLIDES = [
   {
     id: "welcome",
-    cassText: "Hey, I'm Cass. Welcome to Authored By, the founder's story engine. As you build, I'll be here capturing the moments that matter, so when your audience is ready for the story, you'll have something worth telling.",
+    cassText: "Hey, I'm Cass. Welcome to Authored By, the author's story engine. As you build, I'll be here capturing the moments that matter, so when your audience is ready for the story, you'll have something worth telling.",
     showTy: false,
     isLast: false,
   },
   {
     id: "how-it-works",
-    cassText: "Here's how it works. Your Board is where you track what you're building, just like a project board but built for founders. Your Story tab is where all of it gets turned into narrative, the real account of what happened and why it mattered.",
+    cassText: "Here's how it works. Your Board is where you track what you're building, just like a project board but built for authors. Your Story tab is where all of it gets turned into narrative, the real account of what happened and why it mattered.",
     showTy: false,
     isLast: false,
   },
@@ -633,7 +633,7 @@ export function CassOnboardingChat({
 
   // ── Chat state for the multi-turn interview ──────────────────────────────
   type ChatMsg = { role: "user" | "assistant"; content: string };
-  const WELCOME_MESSAGE = "Hi, I'm Cass. Authored By is a founder's story engine where we capture your journey chapter by chapter, so the story of what you built is never lost.";
+  const WELCOME_MESSAGE = "Hi, I'm Cass. Authored By is an author's story engine where we capture your journey chapter by chapter, so the story of what you built is never lost.";
   const OPENING_QUESTION = "Let's start by talking about the project or business you are building. How has that been going?";
   const CONVO_MODE_NOTE = "I've got conversation mode enabled so we can talk out loud like a normal conversation. If you'd rather type, exit conversation mode.";
   const initialMessages: ChatMsg[] = [{ role: "assistant", content: OPENING_QUESTION }];
