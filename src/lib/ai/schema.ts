@@ -170,6 +170,23 @@ export const aiFoundationDialogueSchema = z.object({
 
 export type AIFoundationDialogue = z.infer<typeof aiFoundationDialogueSchema>;
 
+export const dailyTestimonialProposedTaskSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+});
+
+export const aiDailyTestimonialDialogueSchema = z.object({
+  // On the final turn (done: true), reply itself carries Cass's strategic
+  // close — what today means for the goal, not a recap. Same field the whole
+  // conversation through, no separate "closing" field to keep in sync.
+  reply: z.string().trim().min(1).max(2000),
+  done: z.boolean(),
+  /** New tasks surfaced in the conversation — reviewed and saved when done. */
+  proposedTasks: z.array(dailyTestimonialProposedTaskSchema).max(10).default([]),
+});
+
+export type AIDailyTestimonialDialogue = z.infer<typeof aiDailyTestimonialDialogueSchema>;
+export type DailyTestimonialProposedTask = z.infer<typeof dailyTestimonialProposedTaskSchema>;
+
 export const aiVoiceProfileDialogueSchema = z.object({
   reply: z.string().trim().min(1).max(4000),
   done: z.boolean(),

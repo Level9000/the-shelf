@@ -50,6 +50,7 @@ function mapProject(row: Record<string, unknown>): Project {
     backstoryGapNote: (row.backstory_gap_note as string | null) ?? null,
     backstoryGapDetectedAt: (row.backstory_gap_detected_at as string | null) ?? null,
     backstoryNudgeSessionCount: (row.backstory_nudge_session_count as number | null) ?? 0,
+    coverImageUrl: (row.cover_image_url as string | null) ?? null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -112,6 +113,7 @@ function mapBoard(row: Record<string, unknown>): Board {
     recenteringType: (row.recentering_type as string | null) ?? null,
     needsReviewReason: (row.needs_review_reason as string | null) ?? null,
     deferredTasks: (row.deferred_tasks as DeferredTask[] | null) ?? null,
+    coverImageUrl: (row.cover_image_url as string | null) ?? null,
   };
 }
 

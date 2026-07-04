@@ -64,7 +64,6 @@ export function ProjectAppHeader({
   focusedChapterId,
   activeChapterId,
   activeChapterDaysLeft,
-  activeChapterProgress,
 }: {
   projects: ProjectWithChapters[];
   currentProjectId: string;
@@ -73,7 +72,6 @@ export function ProjectAppHeader({
   focusedChapterId?: string | null;
   activeChapterId?: string | null;
   activeChapterDaysLeft?: number | null;
-  activeChapterProgress?: { completed: number; total: number } | null;
 }) {
   const { theme } = useTheme();
 
@@ -86,14 +84,11 @@ export function ProjectAppHeader({
     ? (focusedChapter.chapterHeadline || `Chapter ${focusedChapterIndex + 1}`)
     : null;
 
-  // The Active/days-left pills and progress bar only make sense while the
-  // in-view chapter is the one actually being worked on.
+  // The Active/days-left pill only makes sense while the in-view chapter is
+  // the one actually being worked on.
   const isFocusedChapterActive = Boolean(focusedChapterId) && focusedChapterId === activeChapterId;
   const daysLeftLabel = isFocusedChapterActive && activeChapterDaysLeft != null
     ? formatDaysLeft(activeChapterDaysLeft)
-    : null;
-  const headerProgressPercent = isFocusedChapterActive && activeChapterProgress && activeChapterProgress.total > 0
-    ? Math.round((activeChapterProgress.completed / activeChapterProgress.total) * 100)
     : null;
 
   return (
@@ -176,35 +171,8 @@ export function ProjectAppHeader({
                         borderRadius: "999px", padding: "1px 7px",
                         whiteSpace: "nowrap",
                       }}>
-                        Active
+                        Active{daysLeftLabel ? ` — ${daysLeftLabel}` : ""}
                       </span>
-                      {daysLeftLabel && (
-                        <span style={{
-                          fontFamily: "'Barlow Condensed', sans-serif",
-                          fontSize: "9px", fontWeight: 700,
-                          letterSpacing: "0.1em", textTransform: "uppercase",
-                          color: isDark ? "rgba(200,168,107,0.6)" : "rgba(22,19,15,0.5)",
-                          border: `1px solid ${isDark ? "rgba(200,168,107,0.25)" : "rgba(0,0,0,0.13)"}`,
-                          borderRadius: "999px", padding: "1px 7px",
-                          whiteSpace: "nowrap",
-                        }}>
-                          {daysLeftLabel}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {isFocusedChapterActive && headerProgressPercent !== null && (
-                    <div style={{
-                      width: "100%", height: "3px", borderRadius: "2px",
-                      background: isDark ? "rgba(245,200,74,0.12)" : "rgba(245,200,74,0.15)",
-                      overflow: "hidden", marginTop: "5px",
-                    }}>
-                      <div style={{
-                        width: `${headerProgressPercent}%`, height: "100%",
-                        background: "linear-gradient(90deg, rgba(200,168,107,0.65) 0%, #c8a86b 100%)",
-                        borderRadius: "2px",
-                        transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                      }} />
                     </div>
                   )}
                 </>

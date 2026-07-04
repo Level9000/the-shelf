@@ -4,6 +4,7 @@ import {
   aiBackstoryGapDetectionSchema,
   aiChapterContextDialogueSchema,
   aiChapterPlannerDialogueSchema,
+  aiDailyTestimonialDialogueSchema,
   aiFoundationDialogueSchema,
   aiVoiceProfileDialogueSchema,
   aiFragmentExtractionSchema,
@@ -29,6 +30,7 @@ import {
   buildCassBoardPrompt,
   buildCassChapterContextPrompt,
   buildCassChapterKickoffPrompt,
+  buildCassDailyTestimonialPrompt,
   buildCassFoundationPrompt,
   buildToneVoiceRefinerPrompt,
   buildCassOnboardingPrompt,
@@ -1309,6 +1311,23 @@ export async function runCassFoundationDialogue(input: {
     buildCassFoundationPrompt(input),
     input.messages,
     (text) => aiFoundationDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
+  );
+}
+
+export async function runCassDailyTestimonialDialogue(input: {
+  messages: StrategicDialogueMessage[];
+  projectName: string;
+  northStar?: string | null;
+  chapterName: string;
+  chapterGoal?: string | null;
+  incompleteTasks?: string[];
+  accumulativeStory?: string | null;
+  alreadyProposedTasks?: string[];
+}) {
+  return runJsonDialogue(
+    buildCassDailyTestimonialPrompt(input),
+    input.messages,
+    (text) => aiDailyTestimonialDialogueSchema.parse(safeJsonParse(extractJsonObject(text))),
   );
 }
 

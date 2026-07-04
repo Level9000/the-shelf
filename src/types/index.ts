@@ -75,6 +75,7 @@ export type Project = {
   backstoryGapNote: string | null;
   backstoryGapDetectedAt: string | null;
   backstoryNudgeSessionCount: number;
+  coverImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -143,6 +144,7 @@ export type Board = {
   recenteringType: string | null;
   needsReviewReason: string | null;
   deferredTasks: DeferredTask[] | null;
+  coverImageUrl: string | null;
 };
 
 export type Chapter = Board;

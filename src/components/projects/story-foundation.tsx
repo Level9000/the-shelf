@@ -21,6 +21,13 @@ export function StoryFoundationSection({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [foundation, setFoundation] = useState(project.storyFoundation ?? null);
 
+  // Don't mount the drawer's chat state/VoiceInputFooter until the author
+  // actually opens it.
+  const [everOpened, setEverOpened] = useState(false);
+  useEffect(() => {
+    if (drawerOpen) setEverOpened(true);
+  }, [drawerOpen]);
+
   const textColor = isDark ? "rgba(232,224,208,0.78)" : "rgba(22,19,15,0.78)";
   const placeholderColor = isDark ? "rgba(200,168,107,0.4)" : "rgba(0,0,0,0.32)";
   const pillBg = isDark ? "rgba(200,168,107,0.12)" : "rgba(200,168,107,0.12)";
@@ -76,12 +83,14 @@ export function StoryFoundationSection({
         </button>
       </div>
 
-      <CassFoundationDrawer
-        open={drawerOpen}
-        project={project}
-        onClose={() => setDrawerOpen(false)}
-        onSaved={(summary) => setFoundation(summary)}
-      />
+      {everOpened && (
+        <CassFoundationDrawer
+          open={drawerOpen}
+          project={project}
+          onClose={() => setDrawerOpen(false)}
+          onSaved={(summary) => setFoundation(summary)}
+        />
+      )}
     </div>
   );
 }

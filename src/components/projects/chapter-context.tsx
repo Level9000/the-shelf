@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Check, MessageCirclePlus, X } from "lucide-react";
 import type { Chapter } from "@/types";
@@ -50,6 +51,15 @@ export function ChapterContextPill({
   const drawerOpen = open ?? internalOpen;
   const setDrawerOpen = onOpenChange ?? setInternalOpen;
 
+  // Every chapter renders one of these pills, so the drawer itself (message
+  // state, VoiceInputFooter, audio refs) should not mount until the author
+  // actually opens it — otherwise every chapter on the page pays for a full
+  // chat drawer whether it's ever used or not.
+  const [everOpened, setEverOpened] = useState(false);
+  useEffect(() => {
+    if (drawerOpen) setEverOpened(true);
+  }, [drawerOpen]);
+
   const pillBg = "rgba(200,168,107,0.12)";
   const pillBorder = isDark ? "rgba(200,168,107,0.45)" : "rgba(180,140,60,0.4)";
   const pillColor = isDark ? "#e8c789" : "#8a6d2f";
@@ -89,12 +99,14 @@ export function ChapterContextPill({
         Refine this chapter
       </button>
 
-      <CassChapterContextDrawer
-        open={drawerOpen}
-        projectId={projectId}
-        chapter={chapter}
-        onClose={() => setDrawerOpen(false)}
-      />
+      {everOpened && (
+        <CassChapterContextDrawer
+          open={drawerOpen}
+          projectId={projectId}
+          chapter={chapter}
+          onClose={() => setDrawerOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -355,7 +367,13 @@ function CassChapterContextDrawer({
 
   const paragraphs = (chapter.chapterStory ?? "").split("\n\n").filter((p) => p.trim());
 
-  return (
+  // Rendered via portal straight to document.body — this drawer sits inside a
+  // single chapter's DOM subtree, and that subtree gets faded to 0.55 opacity
+  // by the scroll-focus dimming effect (project-shell-frame.tsx) whenever that
+  // chapter isn't the one in view. CSS opacity on an ancestor still applies to
+  // position:fixed descendants, so without the portal the drawer itself washes
+  // out and becomes hard to read the moment its chapter scrolls out of focus.
+  const drawer = (
     <div
       style={{ position: "fixed", inset: 0, zIndex: 50, pointerEvents: open ? "auto" : "none" }}
       aria-hidden={!open}
@@ -629,6 +647,9 @@ function CassChapterContextDrawer({
       `}</style>
     </div>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(drawer, document.body);
 }
 
 function pillBtnStyle(bg: string, color: string, border?: string): React.CSSProperties {

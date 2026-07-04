@@ -98,6 +98,13 @@ function ToneOfVoiceSection({ projectId }: { projectId: string }) {
   const [voiceProfileUpdatedAt, setVoiceProfileUpdatedAt] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Don't mount the drawer's chat state/VoiceInputFooter until the author
+  // actually opens it.
+  const [everOpened, setEverOpened] = useState(false);
+  useEffect(() => {
+    if (drawerOpen) setEverOpened(true);
+  }, [drawerOpen]);
+
   useEffect(() => {
     getVoiceProfileSummaryAction(projectId)
       .then((res) => {
@@ -139,15 +146,17 @@ function ToneOfVoiceSection({ projectId }: { projectId: string }) {
         </TapeButton>
       </div>
 
-      <ToneVoiceRefinerDrawer
-        open={drawerOpen}
-        projectId={projectId}
-        onClose={() => setDrawerOpen(false)}
-        onSaved={(profile) => {
-          setVoiceProfile(profile);
-          setVoiceProfileUpdatedAt(new Date().toISOString());
-        }}
-      />
+      {everOpened && (
+        <ToneVoiceRefinerDrawer
+          open={drawerOpen}
+          projectId={projectId}
+          onClose={() => setDrawerOpen(false)}
+          onSaved={(profile) => {
+            setVoiceProfile(profile);
+            setVoiceProfileUpdatedAt(new Date().toISOString());
+          }}
+        />
+      )}
     </DrawerSection>
   );
 }

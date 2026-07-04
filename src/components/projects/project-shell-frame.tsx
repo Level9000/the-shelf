@@ -24,7 +24,6 @@ export function ProjectShellFrame({
   currentBoardCreatedAt,
   activeChapterId,
   activeChapterDaysLeft,
-  activeChapterProgress,
   children,
 }: {
   projects: ProjectWithChapters[];
@@ -42,10 +41,9 @@ export function ProjectShellFrame({
   currentBoardId?: string | null;
   currentBoardGoal?: string | null;
   currentBoardCreatedAt?: string | null;
-  /** The chapter currently being worked on — drives the header's Active/days-left pills and progress bar */
+  /** The chapter currently being worked on — drives the header's Active/days-left pill */
   activeChapterId?: string | null;
   activeChapterDaysLeft?: number | null;
-  activeChapterProgress?: { completed: number; total: number } | null;
   children: React.ReactNode;
 }) {
   const { theme } = useTheme();
@@ -125,7 +123,6 @@ export function ProjectShellFrame({
           focusedChapterId={focusedChapterId}
           activeChapterId={activeChapterId}
           activeChapterDaysLeft={activeChapterDaysLeft}
-          activeChapterProgress={activeChapterProgress}
         />
 
         {mobileBanner}

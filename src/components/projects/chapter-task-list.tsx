@@ -5,6 +5,7 @@ import { Circle, CheckCircle2, Trash2, X } from "lucide-react";
 import type { BoardColumn, Task } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
+import { TornTape } from "@/components/ui/torn-tape";
 
 // Time to let the filled-in checkmark register before asking how it felt
 // (the parent removes the task from its list once a feeling is picked).
@@ -64,12 +65,9 @@ export function ChapterTaskList({
     ? tasks.filter((task) => task.columnId === doneColumnId)
     : [];
   const totalCount = tasks.length;
-  const percentComplete = totalCount > 0 ? Math.round((completedTasks.length / totalCount) * 100) : 0;
 
   if (totalCount === 0) return null;
 
-  const labelColor = isDark ? "rgba(200,168,107,0.45)" : "rgba(0,0,0,0.38)";
-  const progressTrack = isDark ? "rgba(245,200,74,0.12)" : "rgba(245,200,74,0.15)";
   const rowBorder = isDark ? "rgba(200,168,107,0.1)" : "rgba(0,0,0,0.07)";
   const titleColor = isDark ? "rgba(232,224,208,0.85)" : "rgba(22,19,15,0.85)";
   const checkIdle = isDark ? "rgba(200,168,107,0.35)" : "rgba(0,0,0,0.25)";
@@ -82,41 +80,11 @@ export function ChapterTaskList({
 
   return (
     <div>
-      {/* Progress bar */}
-      <div style={{ marginBottom: "18px" }}>
-        <div style={{
-          width: "100%", height: "5px", borderRadius: "3px",
-          background: progressTrack, overflow: "hidden",
-        }}>
-          <div style={{
-            width: `${percentComplete}%`, height: "100%",
-            background: "linear-gradient(90deg, rgba(200,168,107,0.65) 0%, #c8a86b 100%)",
-            borderRadius: "3px",
-            transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-          }} />
-        </div>
-        <p style={{
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontSize: "10.5px", fontWeight: 600, letterSpacing: "0.08em",
-          color: labelColor, margin: "6px 0 0",
-        }}>
-          {completedTasks.length} of {totalCount} done · {percentComplete}%
-        </p>
-      </div>
-
       {remainingTasks.length > 0 && (
       <div style={{ marginTop: "20px" }}>
-      <p style={{
-        fontFamily: "'Barlow Condensed', sans-serif",
-        fontSize: "11px",
-        fontWeight: 600,
-        letterSpacing: "0.18em",
-        textTransform: "uppercase",
-        color: labelColor,
-        margin: "0 0 8px",
-      }}>
-        Things I want to do this chapter
-      </p>
+      <div style={{ marginBottom: "12px" }}>
+        <TornTape size="sm">To Do</TornTape>
+      </div>
       <div style={{ display: "flex", flexDirection: "column" }}>
         {remainingTasks.map((task, i) => {
           const checked = checkedIds.has(task.id);
@@ -298,17 +266,9 @@ export function ChapterTaskList({
 
       {completedTasks.length > 0 && (
         <div style={{ marginTop: remainingTasks.length > 0 ? "22px" : "0" }}>
-          <p style={{
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontSize: "11px",
-            fontWeight: 600,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            color: labelColor,
-            margin: "0 0 8px",
-          }}>
-            Things I&apos;ve completed
-          </p>
+          <div style={{ marginBottom: "12px" }}>
+            <TornTape size="sm" background="#d9c48a">Completed</TornTape>
+          </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
             {completedTasks.map((task, i) => (
               <div

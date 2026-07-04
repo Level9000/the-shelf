@@ -2,34 +2,45 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronRight, X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import type { AppUser, BoardColumn, Chapter, DroppedTaskFragment, ProjectMember, ProjectWithChapters, Task, UserProfile, WorkflowTemplate } from "@/types";
 import { PRESS_TEMPLATES } from "@/lib/press/templates";
 import type { PressTemplate } from "@/lib/press/templates";
 import { ProjectArcRefiner } from "@/components/projects/project-arc-refiner";
 import { ProjectOverviewSettingsDrawer } from "@/components/projects/project-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
+import { CoverPhotoUpload } from "@/components/projects/cover-photo-upload";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
-import { MobileFab } from "@/components/ui/MobileFab";
+import { CassStoryFab } from "@/components/cass/CassStoryFab";
+import { CassNudgeFab } from "@/components/cass/CassNudgeFab";
 import { CassBoardDrawer } from "@/components/board/cass-board-drawer";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import { ChapterTaskList } from "@/components/projects/chapter-task-list";
 import { renderParagraphs } from "@/lib/render-paragraphs";
 import { useTheme } from "@/lib/theme-context";
 import { TapeButton } from "@/components/ui/tape-button";
+import { TornTape } from "@/components/ui/torn-tape";
 import { PaywallModal } from "@/components/paywall/paywall-modal";
 import { StoryWelcomeDrawer } from "@/components/ui/StoryWelcomeDrawer";
-import { StoryFoundationSection } from "@/components/projects/story-foundation";
-import { StoryTabNudges } from "@/components/projects/story-tab-nudges";
+import { StoryFoundationSection, CassFoundationDrawer } from "@/components/projects/story-foundation";
+import { ToneVoiceRefinerDrawer } from "@/components/projects/tone-voice-refiner-chat";
 import { ChapterContextPill } from "@/components/projects/chapter-context";
 import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
 import { deleteTaskAction, moveTaskAction } from "@/lib/actions/task-actions";
-import { addStoryFragmentAction } from "@/lib/actions/story-fragment-actions";
+import { addStoryFragmentAction, checkDailyTestimonialDoneTodayAction } from "@/lib/actions/story-fragment-actions";
+import { checkBackstoryNudgeAction, dismissBackstoryNudgeAction } from "@/lib/actions/backstory-nudge-actions";
+import { checkVoiceProfileNudgeAction, dismissVoiceProfileNudgeAction } from "@/lib/actions/voice-profile-actions";
 import type { SubscriptionStatus } from "@/lib/subscription";
 
 const TY_INTRO_KEY = "ty_story_intro_seen";
+
+type StoryNudge = "backstory" | "voice" | null;
+const NUDGE_MESSAGES: Record<Exclude<StoryNudge, null>, string> = {
+  backstory: "Hey, I noticed some gaps in your backstory. Can we review that together?",
+  voice: "Do you like the tone of voice your story has? I can help you refine that.",
+};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -906,22 +917,26 @@ function CassChronicleDrawer({
 
 // ── Chapter entry ─────────────────────────────────────────────────────────────
 
-const CHAPTER_TYPE_LABEL: Record<string, string> = {
-  climb: "Climb",
-  win: "Win",
-  turn: "Turn",
-  fog: "Fog",
-  reframe: "Reframe",
+// A one-word chapter type ("Fog") doesn't mean anything to a reader on its
+// own — the tape needs enough of a caption to hint at what kind of chapter
+// this was. Wording mirrors the canonical descriptions in
+// src/prompts/chapter-templates.ts.
+const CHAPTER_TYPE_CAPTION: Record<string, string> = {
+  climb: "Climb — the daily grind",
+  win: "Win — it paid off",
+  turn: "Turn — a new direction",
+  fog: "Fog — the uncertain stretch",
+  reframe: "Reframe — the story shifted",
 };
 
-function chapterTypeColor(type: string | null, isDark: boolean): string {
+function chapterTypeTapeColor(type: string | null): string {
   switch (type) {
-    case "win": return isDark ? "#c8a86b" : "#9c7a2e";
-    case "fog": return isDark ? "rgba(232,224,208,0.4)" : "rgba(22,19,15,0.4)";
-    case "turn": return isDark ? "#d98c5f" : "#a8552a";
-    case "reframe": return isDark ? "#8fb3c8" : "#3d6e85";
+    case "win": return "#e0c26a";
+    case "fog": return "#cbc5b6";
+    case "turn": return "#dba36f";
+    case "reframe": return "#9ec2d6";
     case "climb":
-    default: return isDark ? "rgba(200,168,107,0.6)" : "rgba(0,0,0,0.45)";
+    default: return "#d9c48a";
   }
 }
 
@@ -1053,56 +1068,21 @@ function ChapterEntry({
             Chapter {index + 1}
           </p>
           {chapter.chapterType && (
-            <span style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: "10px", fontWeight: 700,
-              letterSpacing: "0.12em", textTransform: "uppercase",
-              color: chapterTypeColor(chapter.chapterType, isDark),
-            }}>
-              {CHAPTER_TYPE_LABEL[chapter.chapterType] ?? chapter.chapterType}
-            </span>
+            <TornTape background={chapterTypeTapeColor(chapter.chapterType)} size="sm">
+              {CHAPTER_TYPE_CAPTION[chapter.chapterType] ?? chapter.chapterType}
+            </TornTape>
           )}
           {status === "working_on_it" && (
-            <span style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: "10px", fontWeight: 700,
-              letterSpacing: "0.12em", textTransform: "uppercase",
-              color: isDark ? "#c8a86b" : "rgba(22,19,15,0.7)",
-              border: `1px solid ${isDark ? "rgba(200,168,107,0.35)" : "rgba(0,0,0,0.18)"}`,
-              borderRadius: "999px",
-              padding: "2px 8px",
-            }}>
+            <TornTape background="#c8a86b" size="sm" rotate={1.2}>
               Active
-            </span>
-          )}
-          {status === "working_on_it" && chapterDaysLeft != null && (
-            <span style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: "10px", fontWeight: 700,
-              letterSpacing: "0.12em", textTransform: "uppercase",
-              color: isDark ? "rgba(200,168,107,0.6)" : "rgba(22,19,15,0.5)",
-              border: `1px solid ${isDark ? "rgba(200,168,107,0.25)" : "rgba(0,0,0,0.13)"}`,
-              borderRadius: "999px",
-              padding: "2px 8px",
-            }}>
-              {chapterDaysLeft > 0
-                ? `${chapterDaysLeft} day${chapterDaysLeft === 1 ? "" : "s"} left`
-                : chapterDaysLeft === 0
-                  ? "Due today"
-                  : `${Math.abs(chapterDaysLeft)} day${Math.abs(chapterDaysLeft) === 1 ? "" : "s"} over`}
-            </span>
-          )}
-          {status === "completed" && (
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: "4px",
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontSize: "10px", fontWeight: 700,
-              letterSpacing: "0.12em", textTransform: "uppercase",
-              color: isDark ? "rgba(200,168,107,0.4)" : "rgba(22,19,15,0.4)",
-            }}>
-              <Check size={11} strokeWidth={2.5} />
-              Chapter complete
-            </span>
+              {chapterDaysLeft != null && (
+                chapterDaysLeft > 0
+                  ? ` — ${chapterDaysLeft} day${chapterDaysLeft === 1 ? "" : "s"} left`
+                  : chapterDaysLeft === 0
+                    ? " — due today"
+                    : ` — ${Math.abs(chapterDaysLeft)} day${Math.abs(chapterDaysLeft) === 1 ? "" : "s"} over`
+              )}
+            </TornTape>
           )}
           {chapter.needsReviewReason && (
             <button
@@ -1149,6 +1129,16 @@ function ChapterEntry({
             {chapter.chapterSubheadline}
           </p>
         )}
+
+        <div style={{ marginTop: "16px" }}>
+          <CoverPhotoUpload
+            projectId={projectId}
+            chapterId={chapter.id}
+            initialUrl={chapter.coverImageUrl}
+            aspectRatio="16 / 9"
+            label="Add a photo for this chapter"
+          />
+        </div>
 
         {/* Completed: pull quote */}
         {status === "completed" && chapter.openingLine && (
@@ -1233,6 +1223,7 @@ function ChapterEntry({
           </div>
         )}
 
+
         {/* Bridge into the next chapter — sits just above the action buttons */}
         {chapter.bridgeSentence && (
           <p style={{
@@ -1258,27 +1249,44 @@ function ChapterEntry({
 
         {status === "working_on_it" && isActiveChapter && (
           <div style={{ marginTop: "14px", textAlign: "center" }}>
-            <button
-              type="button"
-              onClick={() => onEndChapterRequested?.()}
-              style={{
+            {chapterDaysLeft != null && chapterDaysLeft > 0 ? (
+              // Chapters are a hard 14 days — no ending early, no skipping
+              // ahead. Quiet, non-actionable text instead of a button so it
+              // reads as "not yet" rather than a dead click.
+              <p style={{
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontSize: "10px",
                 fontWeight: 700,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
                 color: mutedColor,
-                background: "transparent",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-                transition: "color 0.15s",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = threadLabelColor; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = mutedColor; }}
-            >
-              End chapter
-            </button>
+                margin: 0,
+              }}>
+                Chapter ends in {chapterDaysLeft} day{chapterDaysLeft === 1 ? "" : "s"}
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onEndChapterRequested?.()}
+                style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: mutedColor,
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  transition: "color 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = threadLabelColor; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = mutedColor; }}
+              >
+                End chapter
+              </button>
+            )}
           </div>
         )}
 
@@ -1574,6 +1582,56 @@ export function ProjectOverviewShell({
   const [cassDrawerOpen, setCassDrawerOpen] = useState(initialPlanning && !needsPaywall);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [endChapterRequested, setEndChapterRequested] = useState(false);
+  const [dailyTestimonialRequested, setDailyTestimonialRequested] = useState(false);
+  const [dailyTestimonialDone, setDailyTestimonialDone] = useState(false);
+
+  // ── Cass nudges (backstory / tone-of-voice) — feed the unified Cass FAB's
+  // dot + menu, in addition to their own proactive corner bubble.
+  const [activeNudge, setActiveNudge] = useState<StoryNudge>(null);
+  const [nudgeDrawerOpen, setNudgeDrawerOpen] = useState(false);
+  const [backstoryGap, setBackstoryGap] = useState<string | null>(null);
+  const nudgeCheckedRef = useRef(false);
+  const [everOpenedNudgeDrawer, setEverOpenedNudgeDrawer] = useState(false);
+  useEffect(() => {
+    if (nudgeDrawerOpen) setEverOpenedNudgeDrawer(true);
+  }, [nudgeDrawerOpen]);
+
+  useEffect(() => {
+    if (nudgeCheckedRef.current) return;
+    nudgeCheckedRef.current = true;
+    (async () => {
+      const backstory = await checkBackstoryNudgeAction(project.id).catch(() => ({ gap: null }));
+      if (backstory.gap) {
+        setBackstoryGap(backstory.gap);
+        setActiveNudge("backstory");
+        return;
+      }
+      const voice = await checkVoiceProfileNudgeAction(project.id).catch(() => ({ show: false }));
+      if (voice.show) setActiveNudge("voice");
+    })();
+  }, [project.id]);
+
+  useEffect(() => {
+    if (!activeChapterId) return;
+    checkDailyTestimonialDoneTodayAction(activeChapterId)
+      .then((r) => setDailyTestimonialDone(r.done))
+      .catch(() => undefined);
+  }, [activeChapterId]);
+
+  function dismissNudgeDrawer() {
+    setNudgeDrawerOpen(false);
+    setActiveNudge(null);
+  }
+
+  function declineNudge() {
+    if (activeNudge === "backstory") {
+      dismissBackstoryNudgeAction(project.id).catch(() => undefined);
+    } else if (activeNudge === "voice") {
+      dismissVoiceProfileNudgeAction(project.id).catch(() => undefined);
+    }
+    setActiveNudge(null);
+  }
+
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>(projectTasks);
   const [, startTaskTransition] = useTransition();
@@ -1584,16 +1642,6 @@ export function ProjectOverviewShell({
     ? Math.floor((Date.now() - new Date(activeChapter.createdAt).getTime()) / 86_400_000)
     : null;
   const chapterDaysLeft = daysOpen !== null ? CHAPTER_DAYS - daysOpen : null;
-  const activeChapterTasks = tasks.filter((t) => t.boardId === activeChapterId);
-  const activeChapterDoneColumnId = activeChapterColumns.find((col) => col.name.toLowerCase() === "done")?.id;
-  const activeChapterProgress = activeChapterId && activeChapterTasks.length > 0
-    ? {
-        completed: activeChapterDoneColumnId
-          ? activeChapterTasks.filter((t) => t.columnId === activeChapterDoneColumnId).length
-          : 0,
-        total: activeChapterTasks.length,
-      }
-    : null;
 
   useEffect(() => {
     setTasks(projectTasks);
@@ -1745,7 +1793,6 @@ export function ProjectOverviewShell({
         mobileTitle={project.name}
         activeChapterId={activeChapterId}
         activeChapterDaysLeft={chapterDaysLeft}
-        activeChapterProgress={activeChapterProgress}
         onOpenShare={() => needsPaywall ? setPaywallOpen(true) : setCassDrawerOpen(true)}
       >
         {refining ? (
@@ -1826,17 +1873,18 @@ export function ProjectOverviewShell({
 
               {/* ── Masthead ── */}
               <header style={{ marginBottom: "52px" }}>
-                <h1 style={{ fontFamily: "var(--font-cass)", fontSize: "clamp(32px, 5vw, 46px)", margin: 0, lineHeight: 1.2 }}>
-                  <span style={{
-                    display: "inline-block",
-                    background: "#f5c84a",
-                    color: "#1a0e00",
-                    padding: "4px 16px 6px",
-                    clipPath: "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)",
-                    boxShadow: "2px 3px 8px rgba(0,0,0,0.4)",
-                  }}>
-                    {project.name}
-                  </span>
+                <h1
+                  style={{
+                    fontFamily: "'Literata', Georgia, serif",
+                    fontSize: "clamp(28px, 5vw, 38px)",
+                    fontWeight: 700,
+                    letterSpacing: "-0.02em",
+                    margin: 0,
+                    lineHeight: 1.2,
+                    color: isDark ? "rgba(232,224,208,0.92)" : "rgba(22,19,15,0.9)",
+                  }}
+                >
+                  {project.name}
                 </h1>
 
                 {project.northStar && (
@@ -1855,6 +1903,14 @@ export function ProjectOverviewShell({
                   </p>
                 )}
 
+                <div style={{ marginTop: "24px" }}>
+                  <CoverPhotoUpload
+                    projectId={project.id}
+                    initialUrl={project.coverImageUrl}
+                    label="Add a cover photo for this story"
+                  />
+                </div>
+
                 {/* Thin rule under masthead */}
                 <div
                   style={{
@@ -1865,7 +1921,6 @@ export function ProjectOverviewShell({
                 />
               </header>
 
-              <StoryTabNudges project={project} />
               <StoryFoundationSection project={project} isDark={isDark} />
 
               {/* ── Project-level conversations ── */}
@@ -2007,9 +2062,33 @@ export function ProjectOverviewShell({
           </div>
         )}
 
-        {/* ── FAB — capture circle, scoped to the active chapter ── */}
+        {/* ── FAB — the single Cass entry point, scoped to the active chapter ── */}
         {!refining && activeChapterId && (
-          <MobileFab onClick={() => needsPaywall ? setPaywallOpen(true) : setCaptureOpen(true)} />
+          <CassStoryFab
+            hasPendingNudge={activeNudge !== null}
+            nudgeLabel={
+              activeNudge === "backstory"
+                ? "Catch up on your backstory"
+                : activeNudge === "voice"
+                ? "Refine your tone of voice"
+                : undefined
+            }
+            dailyTestimonialDone={dailyTestimonialDone}
+            onSelectNudge={() => setNudgeDrawerOpen(true)}
+            onSelectTestimonial={() => { setDailyTestimonialRequested(true); setCaptureOpen(true); }}
+            onSelectAddSomething={() => setCaptureOpen(true)}
+            disabled={needsPaywall}
+            onDisabledClick={() => setPaywallOpen(true)}
+          />
+        )}
+
+        {/* Proactive nudge bubble — pops out unprompted, layered above the FAB */}
+        {activeNudge && !nudgeDrawerOpen && (
+          <CassNudgeFab
+            message={NUDGE_MESSAGES[activeNudge]}
+            onAccept={() => setNudgeDrawerOpen(true)}
+            onDecline={declineNudge}
+          />
         )}
 
       </ProjectShellFrame>
@@ -2023,14 +2102,58 @@ export function ProjectOverviewShell({
           templates={activeChapterTemplates}
           tasks={tasks.filter((t) => t.boardId === activeChapterId)}
           chapterNumber={project.chapters.findIndex((c) => c.id === activeChapterId) + 1}
-          initialMode={endChapterRequested ? "end_chapter" : undefined}
+          initialMode={
+            endChapterRequested
+              ? "end_chapter"
+              : dailyTestimonialRequested
+              ? "daily_testimonial"
+              : undefined
+          }
           chapterDaysLeft={chapterDaysLeft}
           onEndChapterConfirmed={() => router.refresh()}
           onRetroComplete={() => router.refresh()}
-          onClose={() => { setCaptureOpen(false); setEndChapterRequested(false); router.refresh(); }}
-          onTasksAdded={() => router.refresh()}
+          onClose={() => {
+            setCaptureOpen(false);
+            setEndChapterRequested(false);
+            setDailyTestimonialRequested(false);
+            router.refresh();
+          }}
+          onTasksAdded={() => {
+            if (dailyTestimonialRequested) setDailyTestimonialDone(true);
+            router.refresh();
+          }}
           onTaskDeleted={() => router.refresh()}
         />
+      )}
+
+      {everOpenedNudgeDrawer && (
+        <>
+          <CassFoundationDrawer
+            open={activeNudge === "backstory" && nudgeDrawerOpen}
+            project={project}
+            gapHint={backstoryGap}
+            onClose={dismissNudgeDrawer}
+            onPartialClose={(conversation) => {
+              dismissBackstoryNudgeAction(project.id, conversation).catch(() => undefined);
+            }}
+            onSaved={() => {
+              dismissNudgeDrawer();
+              router.refresh();
+            }}
+          />
+          <ToneVoiceRefinerDrawer
+            open={activeNudge === "voice" && nudgeDrawerOpen}
+            projectId={project.id}
+            onClose={dismissNudgeDrawer}
+            onPartialClose={(conversation) => {
+              dismissVoiceProfileNudgeAction(project.id, conversation).catch(() => undefined);
+            }}
+            onSaved={() => {
+              dismissNudgeDrawer();
+              router.refresh();
+            }}
+          />
+        </>
       )}
 
       <TaskDetailModal

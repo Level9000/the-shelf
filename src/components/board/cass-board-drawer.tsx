@@ -12,6 +12,7 @@ import { CassProgressBar } from "@/components/cass/CassProgressBar";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 import { AvatarRecorder, useAvatarName } from "@/components/ui/AvatarRecorder";
 import { CassRetroChat } from "@/components/cass/CassRetroChat";
+import { CassDailyTestimonialChat } from "@/components/cass/CassDailyTestimonialChat";
 import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
 import type { CassAnimState } from "@/components/cass/cassVoice";
 import { useTheme } from "@/lib/theme-context";
@@ -51,7 +52,7 @@ declare global {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "retro" | "onboarding_welcome" | "new_chapter_prompt";
+type BoardMode = "menu" | "chat" | "completed" | "retro_nudge" | "refocus" | "retro" | "onboarding_welcome" | "new_chapter_prompt" | "daily_testimonial";
 type ChatSubMode = "tasks" | "breakup" | "end_chapter" | "chronicle";
 type RefocusPhase = "chat" | "triage" | "retro";
 type TriageDecision = "keep" | "move" | "delete";
@@ -903,7 +904,7 @@ export function CassBoardDrawer({
   completedChapterMode?: boolean;
   retroNudge?: boolean;
   onStartRetro?: () => void;
-  initialMode?: "retro" | "new_chapter" | "end_chapter";
+  initialMode?: "retro" | "new_chapter" | "end_chapter" | "daily_testimonial";
   fromOnboarding?: boolean;
   chapterNumber?: number;
   chapterDaysLeft?: number | null;
@@ -1098,6 +1099,15 @@ export function CassBoardDrawer({
     // If forced into retro mode, skip straight to that experience
     if (initialMode === "retro") {
       setMode("retro");
+      setMenuDisplayed("");
+      setOptionsReady(false);
+      setMenuSelected(null);
+      return;
+    }
+
+    // Triggered from the "Share today's update" button — skip straight there.
+    if (initialMode === "daily_testimonial") {
+      setMode("daily_testimonial");
       setMenuDisplayed("");
       setOptionsReady(false);
       setMenuSelected(null);
@@ -1719,6 +1729,7 @@ export function CassBoardDrawer({
           <div style={{ background: isDark ? "#2a2208" : "#c8a86b", padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: isDark ? "rgba(200,168,107,0.85)" : "rgba(255,255,255,0.9)" }}>
               {mode === "menu" ? "Add something new" :
+               mode === "daily_testimonial" ? "Daily Check-in" :
                chatSubMode === "end_chapter" ? "End Chapter" :
                chatSubMode === "chronicle" ? "Already Done" :
                mode === "completed" ? "What's Next" :
@@ -2270,6 +2281,15 @@ export function CassBoardDrawer({
             />
           );
         })()}
+
+        {mode === "daily_testimonial" && (
+          <CassDailyTestimonialChat
+            project={project}
+            board={board}
+            columns={columns}
+            onComplete={() => { onTasksAdded(); setTimeout(onClose, 800); }}
+          />
+        )}
 
         {/* ── Refocus mode ── */}
         {mode === "refocus" && rfPhase === "retro" && (() => {
