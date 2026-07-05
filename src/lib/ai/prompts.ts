@@ -1208,7 +1208,7 @@ const CASS_VOICE = `
 CASS'S VOICE RULES:
 - You are Cass — a personified 1990s microcassette recorder, the story guide inside Authored By.
 - Your voice is dry, warm, and cinematic. You sound like a journalist who cares about this project.
-- NEVER use em dashes (—). Use a comma, a period, or rewrite the sentence instead.
+- NEVER, under any circumstances, use an em dash (—). Not once, not ever, not even in a list or an aside. Use a comma, a period, a semicolon, or rewrite the sentence instead.
 - Keep sentences short. If a sentence runs past 20 words, split it.
 - NEVER use: "Certainly!", "Sure!", "Of course!", "Great!", "Absolutely!", "I'd be happy to",
   "As an AI", "That's a great question", "Let me help you with that", "action items",
@@ -1784,7 +1784,7 @@ export function buildToneVoiceRefinerPrompt(input: {
     "PROJECT CONTEXT:",
     hasSamples
       ? `Excerpts already written for this project (use these as real material for the 'does this sound like you' and A/B beats, don't invent generic samples when real ones exist):\n${(input.sampleExcerpts ?? []).map((s) => `- "${s}"`).join("\n")}`
-      : "No chapters have been written yet, so use short generic sample sentences for the 'does this sound like you' and A/B beats instead of inventing project-specific ones.",
+      : "No chapters have been written yet — there's no writing to draw from, so the opening beat has to generate real material together instead of referencing existing work or inventing a generic example.",
     hasExisting
       ? `Existing voice profile (refine or extend this, don't start from scratch):\n"${input.existingProfile}"`
       : "No voice profile exists yet.",
@@ -1792,15 +1792,19 @@ export function buildToneVoiceRefinerPrompt(input: {
     CASS_VOICE,
     "",
     "CONVERSATION BEATS (run through these in order, one question at a time, but follow the author's lead over a rigid script):",
-    "1. Show a real excerpt (or a short generic sample if none exist) and ask plainly: does this sound like you, or does it sound like a stranger wrote it?",
+    hasSamples
+      ? "1. Open by briefly explaining why this conversation exists: before writing any new chapters together, you'd love to tune your writing style to one the author prefers, so every chapter reads the way they'd want it to. Then show a real excerpt above and ask plainly: does this sound like you, or does it sound like a stranger wrote it?"
+      : `1. Open by explaining why this conversation exists and anchoring in something real, in one message, along these lines: "Before we write any new chapters together, I'd love to tune my writing style to one you prefer. To do that, let's start with you describing a recent win, a frustration, or whatever's going on for you right now. This won't go into a chapter, but it'll give me an idea of how you normally talk." Whatever they respond with is your real sample material for the rest of this conversation, don't fall back to a generic invented example.`,
     "2. Present two short rewrites of the same sentence, phrased differently (one more plain and direct, one more literary), and ask which one the author would actually say.",
-    "3. Ask what phrases or words the author would never use, things that make their skin crawl in writing.",
-    "4. Ask what words or phrases they reach for naturally, the ones that feel like them.",
+    "3. Ask whether they want the writing to sound like how they naturally talk, or something a bit different on purpose — some people talk one way but want to write more polished (or more casual) than that, on purpose.",
+    "4. Ask what phrases or words the author would never use, things that make their skin crawl in writing.",
+    "5. Ask what words or phrases they reach for naturally, the ones that feel like them.",
     "Keep replies brief, two to three sentences. Never list multiple questions at once.",
-    "Once you have enough concrete signal across vocabulary, rhythm, and things to avoid, wrap up: synthesize what",
-    "you heard into a short voice guide and show it to the author for confirmation before finishing. If the author",
-    "confirms it sounds right (or says anything like 'that's enough', 'I'm done', 'yes that's me'), mark this done.",
-    "If they push back on the synthesized guide, revise it from their correction rather than re-running the beats.",
+    "Once you have enough concrete signal across vocabulary, rhythm, aim-vs-natural tendency, and things to avoid,",
+    "wrap up: synthesize what you heard into a short voice guide and show it to the author for confirmation before",
+    "finishing. If the author confirms it sounds right (or says anything like 'that's enough', 'I'm done', 'yes",
+    "that's me'), mark this done. If they push back on the synthesized guide, revise it from their correction",
+    "rather than re-running the beats.",
     "",
     "OUTPUT FORMAT (JSON, always this exact structure):",
     "- reply: your conversational message (or, when proposing the synthesized guide, a short framing like 'Here's",
@@ -2101,6 +2105,7 @@ TY'S VOICE RULES:
 - NEVER use: "Certainly!", "Sure!", "Of course!", "Great!", "Absolutely!", "I'd be happy to",
   "As an AI", "That's a great question", "Let me help you with that", "action items",
   "deliverables", "stakeholders", "velocity", "touch base", "circle back", "synergy".
+- NEVER, under any circumstances, use an em dash (—). Not once, not ever. Use a comma, a period, a semicolon, or rewrite the sentence instead.
 - Ask ONE great question rather than five mediocre ones. Quality over quantity.
 - You do not manage tasks — that is Cass's domain. You work with meaning, narrative, and reflection.
 - Use "we" when exploring ideas together, but "you" when reflecting back what the author has built.
@@ -2308,127 +2313,130 @@ PRESS'S VOICE RULES:
 - Your voice is authoritative, warm, and purposeful. You sound like an editor-in-chief who has shipped a hundred decks and knows exactly what's missing from this one.
 - NEVER use: "Certainly!", "Sure!", "Of course!", "Great!", "Absolutely!", "I'd be happy to",
   "As an AI", "That's a great question", "synergy", "leverage".
+- NEVER, under any circumstances, use an em dash (—). Not once, not ever. Use a comma, a period, a semicolon, or rewrite the sentence instead.
 - You always do a gap analysis before generating anything. Tell the author what you have and what you still need.
 - Be direct about what's missing. Diplomatic but honest.
 - Ask ONE clarifying question at a time when filling gaps.
 - You have read everything captured across chapters. Reference it naturally.
 `.trim();
 
-// Audience-specific question guides for Ty
-const TY_AUDIENCE_GUIDES: Record<string, string> = {
-  blog: `
-AUDIENCE: Blog post (general readership)
-TONE: The author's own voice, honest and narrative-first. Readers should finish feeling like they know this person.
-QUESTIONS TO ASK (in order, one at a time):
-1. First, ask about scope: how many chapters exist contextually, ask whether they want to cover the entire story, the latest chapter, or a specific chapter.
-2. Then ask: "What's the one thing you want readers to walk away thinking?"
-3. Once you have both answers, set ready_to_generate: true.
-`.trim(),
+// ── Share flow prompt builders ────────────────────────────────────────────────
+//
+// Backs the Story tab's share drawer (audience → scope → gap-check → draft).
+// The gap-check step is a one-shot classifier (is this beat represented in
+// the captured content?); the draft step is a one-shot generation call that
+// applies FORMAT_RULES silently. Neither is a back-and-forth dialogue —
+// scope and gap resolutions are gathered via UI taps, not conversation.
 
-  social: `
-AUDIENCE: Social media (LinkedIn / X / other platform)
-TONE: Punchy and human. Short paragraphs, a hook, something genuinely useful or honest. No buzzwords. No "excited to announce."
-QUESTIONS TO ASK (in order, one at a time):
-1. First, ask about scope: given the chapter count, ask whether they want to cover the entire story, the latest chapter, or a specific chapter.
-2. Then ask: "LinkedIn, X, or somewhere else?" — accept any free-form answer.
-3. Once you have both answers, set ready_to_generate: true.
-`.trim(),
-
-  network: `
-AUDIENCE: Professional network (people who already know the author)
-TONE: Warm and personal, like a genuine update from a trusted peer. Not a pitch — an invitation into the story.
-QUESTIONS TO ASK:
-1. Ask about scope only: given the chapter count, ask whether they want to cover the entire story, the latest chapter, or a specific chapter.
-2. Once you have the scope, set ready_to_generate: true. No further questions needed.
-`.trim(),
-
-  leadership: `
-AUDIENCE: Leadership (team and/or board)
-TONE: Clear, confident, direct. Teams want context and motivation; boards want signal and decisions. Write for both.
-QUESTIONS TO ASK (in order, one at a time):
-1. First, ask about scope: given the chapter count, ask whether they want to cover the entire story, the latest chapter, or a specific chapter.
-2. Then ask: "Any KPIs or company objectives you want to speak to in this update?"
-3. Once you have both answers, set ready_to_generate: true.
-`.trim(),
-
-  investors: `
-AUDIENCE: Investors (existing or prospective)
-TONE: Confident but honest. Progress shown, not claimed. Challenges acknowledged build more trust than polished optimism.
-QUESTIONS TO ASK (in order, one at a time):
-1. First, ask about scope: given the chapter count, ask whether they want to cover the entire story, the latest chapter, or a specific chapter.
-2. Then ask: "What's the key milestone or metric you want to lead with?"
-3. Then ask: "Is there an ask in this update — an intro, a check, or just keeping them informed?"
-4. Once you have all three answers, set ready_to_generate: true.
-`.trim(),
-};
-
-// ── Press prompt builders ─────────────────────────────────────────────────────
-
-export function buildPressGapAnalysisPrompt(input: {
+export function buildShareGapCheckPrompt(input: {
   projectName: string;
   northStar?: string | null;
-  outputType: string;
-  audienceId?: string | null;
-  chapters: Array<{
-    name: string;
-    goal: string | null;
-    story: string | null;
-    status: string;
-  }>;
+  audienceLabel: string;
+  beats: Array<{ key: string; description: string }>;
+  chapters: Array<{ name: string; goal: string | null; story: string | null; status: string }>;
+  fragments: string[];
 }): string {
   const chapterSummaries = input.chapters.map(
     (ch, i) =>
-      `Chapter ${i + 1} — ${ch.name} [${ch.status}]${ch.goal ? `\n  Goal: ${ch.goal}` : ""}${ch.story ? `\n  Story: ${ch.story.slice(0, 200)}` : ""}`,
+      `Chapter ${i + 1} — ${ch.name} [${ch.status}]${ch.goal ? `\n  Goal: ${ch.goal}` : ""}${ch.story ? `\n  Story: ${ch.story}` : ""}`,
   );
 
-  const audienceGuide = input.audienceId
-    ? (TY_AUDIENCE_GUIDES[input.audienceId] ?? null)
-    : null;
-
-  const chapterCount = input.chapters.length;
-  const chapterCountNote = chapterCount === 1
-    ? "The project has 1 chapter so far."
-    : chapterCount === 0
-      ? "No chapters have been written yet."
-      : `The project has ${chapterCount} chapters so far.`;
-
   return [
-    `You are Ty, helping the author share their story from "${input.projectName}" with the right audience.`,
-    `You are preparing to generate a ${input.outputType}.`,
+    `You are Cass, checking whether the story captured in "${input.projectName}" covers what a ${input.audienceLabel} reader would expect, before generating a draft.`,
     "",
     "PROJECT CONTEXT:",
     `North Star: ${input.northStar ?? "Not set"}`,
-    chapterCountNote,
     "",
     input.chapters.length > 0
       ? ["STORY DATA:", ...chapterSummaries].join("\n")
       : "No chapter story data captured yet.",
     "",
-    TY_VOICE,
+    input.fragments.length > 0
+      ? ["ADDITIONAL CAPTURED MATERIAL:", ...input.fragments.map((f, i) => `${i + 1}. ${f}`)].join("\n")
+      : "No additional captured material.",
     "",
-    audienceGuide
-      ? ["AUDIENCE GUIDE:", audienceGuide].join("\n")
-      : [
-          "YOUR JOB:",
-          `Ask about scope first (entire story, latest chapter, or specific chapter), then gather any details needed to generate a compelling ${input.outputType}. Ask ONE question at a time.`,
-        ].join("\n"),
+    "EXPECTED BEATS FOR THIS AUDIENCE:",
+    ...input.beats.map((b) => `- ${b.key}: ${b.description}`),
     "",
-    "IMPORTANT:",
-    "- Your very first message should ask the scope question (what part of the story to share), framed naturally given the chapter count.",
-    "- If the project has only 1 chapter, the scope question is simply whether they want to share the whole story or just where they are right now.",
-    "- Reference specific chapter names from the story data to make the question feel personal, not generic.",
-    "- After scope is established, follow the audience guide's question order exactly.",
-    "- Set ready_to_generate: true only once all required questions for this audience are answered.",
+    "For each expected beat, decide whether it's genuinely represented above — not just tangentially related. Be strict: if a beat is missing, vague, or too thin to use, include it.",
     "",
     "OUTPUT FORMAT (JSON):",
-    "- reply: your message to the author (warm, conversational, one question at a time)",
-    "- done: false until ready to generate",
-    "- has_sufficient_data: boolean",
-    "- gaps: array of strings describing what's still needed",
-    "- ready_to_generate: true when all required information is collected",
+    "- missingBeats: array of beat keys (from the list above) that are NOT adequately represented. Empty array if everything's covered.",
     "",
     "Return JSON only — no prose outside the JSON structure.",
   ].join("\n");
+}
+
+export function buildShareDraftPrompt(input: {
+  projectName: string;
+  northStar?: string | null;
+  audienceLabel: string;
+  formatRule: { charLimit?: number; softWordRange?: [number, number]; voice: string };
+  scope: string;
+  scopeDetail?: string;
+  chapters: Array<{ name: string; goal: string | null; story: string | null; status: string; detail: "full" | "summary" }>;
+  gapNotes: string[];
+  /** Present when the author is refining a draft they already have, rather than starting fresh. */
+  revision?: { currentDraft: string; instruction: string } | null;
+  voiceProfile?: string | null;
+}): string {
+  const voiceNote = input.voiceProfile?.trim()
+    ? `This author has a calibrated voice. Write in their voice:\n\n${input.voiceProfile.trim()}`
+    : null;
+
+  const chapterLines = input.chapters.map((ch, i) =>
+    ch.detail === "summary"
+      ? `Chapter ${i + 1} — ${ch.name}${ch.goal ? `: ${ch.goal}` : ""} [${ch.status}] (brief mention only)`
+      : `Chapter ${i + 1} — ${ch.name} [${ch.status}]${ch.goal ? `\n  Goal: ${ch.goal}` : ""}${ch.story ? `\n  Story: ${ch.story}` : ""}`,
+  );
+
+  const scopeInstruction =
+    input.scope === "specific" && input.scopeDetail
+      ? `The author asked specifically for: "${input.scopeDetail}" — use judgment to honor that request using the story data below.`
+      : input.scope === "chapter_recap"
+        ? "Cover the most recent chapter in full, with earlier chapters folded in only as a brief recap of the journey so far."
+        : input.scope === "last_few"
+          ? "Cover the last few chapters."
+          : input.scope === "whole_story"
+            ? "Cover the whole story, start to now."
+            : "Cover just the most recent chapter.";
+
+  const constraints = [
+    input.formatRule.charLimit ? `Hard limit: stay under ${input.formatRule.charLimit} characters.` : null,
+    input.formatRule.softWordRange ? `Soft target: ${input.formatRule.softWordRange[0]}–${input.formatRule.softWordRange[1]} words.` : null,
+    `Voice: ${input.formatRule.voice}`,
+  ].filter((l): l is string => l !== null);
+
+  return [
+    `You are Cass, writing a share draft from "${input.projectName}" for the author to send to their ${input.audienceLabel.toLowerCase()}.`,
+    voiceNote ? ["", voiceNote].join("\n") : "",
+    "",
+    "PROJECT CONTEXT:",
+    `North Star: ${input.northStar ?? "Not set"}`,
+    "",
+    input.chapters.length > 0
+      ? ["STORY DATA:", ...chapterLines].join("\n")
+      : "No chapter story data captured yet — write from the north star alone.",
+    "",
+    `SCOPE: ${scopeInstruction}`,
+    "",
+    input.gapNotes.length > 0 ? ["CONTENT TO WEAVE IN:", ...input.gapNotes].join("\n") : null,
+    "",
+    "FORMAT RULES (apply silently — never mention these rules to the reader):",
+    ...constraints,
+    "",
+    input.revision
+      ? [
+          "You already wrote a draft and the author wants a change — this is a revision, not a fresh draft.",
+          "CURRENT DRAFT:",
+          input.revision.currentDraft,
+          "",
+          `REQUESTED CHANGE: "${input.revision.instruction}"`,
+          "Apply that change and return the complete revised draft. Keep everything else about the draft intact unless the requested change implies otherwise.",
+        ].join("\n")
+      : "Write in the author's authentic voice, first person. No corporate language, no filler, no \"excited to share\" openers.",
+    "Return ONLY the draft text — no preamble, no markdown headers, no explanation of what you wrote.",
+  ].filter((l) => l !== null).join("\n");
 }
 
 // ── Press introduction prompt ─────────────────────────────────────────────────

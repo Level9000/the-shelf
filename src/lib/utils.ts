@@ -28,6 +28,31 @@ export function safeJsonParse<T>(value: string) {
   return JSON.parse(value) as T;
 }
 
+/**
+ * Every persona voice is instructed never to use em dashes, but LLM output
+ * doesn't always comply. This is the deterministic backstop — run on every
+ * raw AI response before it's parsed or returned, so an em dash can never
+ * reach the page regardless of what the model does.
+ */
+export function stripEmDashes(text: string): string;
+export function stripEmDashes(text: string | undefined): string | undefined;
+export function stripEmDashes(text: string | undefined): string | undefined {
+  if (text === undefined) return undefined;
+  return text.replace(/\s*—\s*/g, ", ").replace(/,\s*,/g, ",");
+}
+
+/** Recursively applies stripEmDashes to every string value in an object, array, or string. */
+export function stripEmDashesDeep<T>(value: T): T {
+  if (typeof value === "string") return stripEmDashes(value) as T;
+  if (Array.isArray(value)) return value.map((v) => stripEmDashesDeep(v)) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, stripEmDashesDeep(v)]),
+    ) as T;
+  }
+  return value;
+}
+
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }

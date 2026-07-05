@@ -237,6 +237,13 @@ export const aiBackstoryGapDetectionSchema = z.object({
 
 export type AIBackstoryGapDetection = z.infer<typeof aiBackstoryGapDetectionSchema>;
 
+export const aiShareGapCheckSchema = z.object({
+  /** Beat keys (from the audience's gap checklist) not represented in the captured content. */
+  missingBeats: z.array(z.string()).default([]),
+});
+
+export type AIShareGapCheck = z.infer<typeof aiShareGapCheckSchema>;
+
 export const aiChapterPlannerDialogueSchema = z.object({
   reply: z.string().trim().min(1).max(4000),
   done: z.boolean(),

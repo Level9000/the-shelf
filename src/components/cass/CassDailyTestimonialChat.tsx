@@ -17,8 +17,11 @@ type Phase = "conversation" | "saving" | "done";
 
 const TTS_VOLUME = 1.0;
 
-function openingMessage(projectName: string): DialogueMessage {
-  return { role: "assistant", content: `How'd things go today on ${projectName}?` };
+function openingMessage(projectName: string, alreadyDoneToday: boolean): DialogueMessage {
+  const content = alreadyDoneToday
+    ? `Another update for ${projectName}? I'm listening.`
+    : `Haven't heard from you today, how'd things go on ${projectName}?`;
+  return { role: "assistant", content };
 }
 
 // Matches the standard "chat" mode transcript convention used elsewhere in the
@@ -39,17 +42,19 @@ export function CassDailyTestimonialChat({
   project,
   board,
   columns,
+  alreadyDoneToday = false,
   onComplete,
 }: {
   project: { id: string; name: string };
   board: { id: string; name: string };
   columns: BoardColumn[];
+  alreadyDoneToday?: boolean;
   onComplete: () => void;
 }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const opening = openingMessage(project.name);
+  const opening = openingMessage(project.name, alreadyDoneToday);
 
   const [messages, setMessages] = useState<DialogueMessage[]>([opening]);
   const [animState, setAnimState] = useState<CassAnimState>("talking");

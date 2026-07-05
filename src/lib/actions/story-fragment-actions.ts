@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
 
-export type StoryFragmentSource = "chapter_capture" | "foundation" | "freeform" | "task_dropped" | "task_completed" | "daily_testimonial";
+export type StoryFragmentSource = "chapter_capture" | "foundation" | "freeform" | "task_dropped" | "task_completed" | "daily_testimonial" | "share_gap_fill";
 
 export async function addStoryFragmentAction(input: {
   projectId: string;

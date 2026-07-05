@@ -39,6 +39,8 @@ export function ChapterContextPill({
   isDark,
   open,
   onOpenChange,
+  isActiveChapter = false,
+  onAddRequested,
 }: {
   projectId: string;
   chapter: Chapter;
@@ -46,6 +48,9 @@ export function ChapterContextPill({
   /** When provided (e.g. by the "Needs review" badge), controls the drawer externally. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** The active chapter can't be "refined" yet — it isn't written. Shows "Add to this chapter" instead. */
+  isActiveChapter?: boolean;
+  onAddRequested?: () => void;
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const drawerOpen = open ?? internalOpen;
@@ -64,28 +69,30 @@ export function ChapterContextPill({
   const pillBorder = isDark ? "rgba(200,168,107,0.45)" : "rgba(180,140,60,0.4)";
   const pillColor = isDark ? "#e8c789" : "#8a6d2f";
 
+  const pillStyle: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "7px",
+    background: pillBg,
+    border: `1px solid ${pillBorder}`,
+    borderRadius: "999px",
+    padding: "9px 22px",
+    fontFamily: "'Barlow Condensed', sans-serif",
+    fontSize: "13px",
+    fontWeight: 700,
+    letterSpacing: "0.05em",
+    color: pillColor,
+    cursor: "pointer",
+    boxShadow: isDark ? "0 2px 10px rgba(200,168,107,0.12)" : "0 2px 10px rgba(180,140,60,0.12)",
+    transition: "background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+  };
+
   return (
     <div style={{ display: "flex", justifyContent: "center", marginTop: "24px" }}>
       <button
         type="button"
-        onClick={() => setDrawerOpen(true)}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "7px",
-          background: pillBg,
-          border: `1px solid ${pillBorder}`,
-          borderRadius: "999px",
-          padding: "9px 22px",
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontSize: "13px",
-          fontWeight: 700,
-          letterSpacing: "0.05em",
-          color: pillColor,
-          cursor: "pointer",
-          boxShadow: isDark ? "0 2px 10px rgba(200,168,107,0.12)" : "0 2px 10px rgba(180,140,60,0.12)",
-          transition: "background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-        }}
+        onClick={() => (isActiveChapter ? onAddRequested?.() : setDrawerOpen(true))}
+        style={pillStyle}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = "rgba(200,168,107,0.2)";
           e.currentTarget.style.transform = "translateY(-1px)";
@@ -96,10 +103,10 @@ export function ChapterContextPill({
         }}
       >
         <MessageCirclePlus size={13} />
-        Refine this chapter
+        {isActiveChapter ? "Add to this chapter" : "Refine this chapter"}
       </button>
 
-      {everOpened && (
+      {!isActiveChapter && everOpened && (
         <CassChapterContextDrawer
           open={drawerOpen}
           projectId={projectId}

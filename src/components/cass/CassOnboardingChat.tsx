@@ -7,7 +7,6 @@ import type { OnboardingDraft } from "@/types";
 import { CassProgressBar } from "./CassProgressBar";
 import { CassRecorder } from "./CassRecorder";
 import { VoiceInputFooter } from "./VoiceInputFooter";
-import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { TapeButton } from "@/components/ui/tape-button";
 import { completeProjectKickoffAction } from "@/lib/actions/project-actions";
 import { saveOnboardingDraftAction, clearOnboardingDraftAction } from "@/lib/actions/profile-actions";
@@ -61,27 +60,43 @@ const EMPTY_ANSWERS: OnboardingDraft["answers"] = {
 
 const INTRO_SLIDES = [
   {
-    id: "welcome",
-    cassText: "Hey, I'm Cass. Welcome to Authored By, the author's story engine. As you build, I'll be here capturing the moments that matter, so when your audience is ready for the story, you'll have something worth telling.",
-    showTy: false,
+    id: "beat-1",
+    cassText: "Hey. I'm Cass.\n\nBefore we do anything else, I want to tell you something I believe.",
     isLast: false,
   },
   {
-    id: "how-it-works",
-    cassText: "Here's how it works. Your Board is where you track what you're building, just like a project board but built for authors. Your Story tab is where all of it gets turned into narrative, the real account of what happened and why it mattered.",
-    showTy: false,
+    id: "beat-2",
+    cassText: "Right now, today, you are living a story worth telling.\n\nNot someday. Not once you've made it. Right now.",
     isLast: false,
   },
   {
-    id: "meet-ty",
-    cassText: "When you're ready to share with your audience, I'll hand things over to Ty. He takes everything we've captured and crafts a narrative your audience can't wait to read.",
-    showTy: true,
+    id: "beat-3",
+    cassText: "Maybe you're building a company.\n\nMaybe you're training for something that scares you a little.\n\nMaybe you're trying to finish the book, finish the degree, finish the thing you keep almost finishing.",
     isLast: false,
   },
   {
-    id: "lets-go",
-    cassText: "Together we'll capture your entire journey, one chapter at a time. Ready to start your first project?",
-    showTy: false,
+    id: "beat-4",
+    cassText: "Doesn't matter which one. They're all the same story underneath.\n\nSomeone decided something mattered enough to show up for, even on the days it was hard. Especially on the days it was hard.",
+    isLast: false,
+  },
+  {
+    id: "beat-5",
+    cassText: "Most of that never gets written down.\n\nThe 6am you didn't want to get up but did. The version of the plan that fell apart. The small win nobody else would even notice. It just disappears into the next day.",
+    isLast: false,
+  },
+  {
+    id: "beat-6",
+    cassText: "That's what I'm here for.\n\nNot to help you do more. Just to help you keep what you're already living.",
+    isLast: false,
+  },
+  {
+    id: "beat-7",
+    cassText: "You talk. I listen. Over time, it becomes something. A record. A story. Proof you were here, doing the thing, before you even knew how it ended.",
+    isLast: false,
+  },
+  {
+    id: "beat-8",
+    cassText: "So let's start simple.\n\nWhat are you in the middle of right now?",
     isLast: true,
   },
 ] as const;
@@ -242,89 +257,132 @@ function QuickTapInput({
 }
 
 
-// ── Board / Story toggle demo ─────────────────────────────────────────────────
+// ── Chapter demo: tasks becoming story ──────────────────────────────────────────
 
-function BoardStoryDemo() {
-  const [isBoard, setIsBoard] = useState(true);
+const DEMO_TASKS = [
+  { id: "t1", title: "Ship the onboarding rewrite" },
+  { id: "t2", title: "Fix the login bug" },
+];
 
-  // Auto-toggle: Board → Story → Board → Story …
+const DEMO_TAPE_CLIP = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
+
+function DemoTape({ children, background, rotate = -1.5 }: { children: React.ReactNode; background: string; rotate?: number }) {
+  return (
+    <span style={{
+      display: "inline-block", background, color: "#1a0e00",
+      fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700,
+      letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 14px 5px",
+      clipPath: DEMO_TAPE_CLIP, transform: `rotate(${rotate}deg)`,
+    }}>
+      {children}
+    </span>
+  );
+}
+
+// Stage sequence: 0 = nothing checked, 1 = first task checked, 2 = both checked.
+// Holds, then resets and loops forever.
+function ChecklistDemo() {
+  const [stage, setStage] = useState(0);
+
   useEffect(() => {
-    const sequence = [1400, 1400, 1400, 1400, 1400];
-    let idx = 0;
-    function tick() {
-      setIsBoard((v) => !v);
-      idx++;
-      if (idx < sequence.length) {
-        setTimeout(tick, sequence[idx]);
-      } else {
-        // loop forever after the initial sequence
-        const interval = setInterval(() => setIsBoard((v) => !v), 1600);
-        return () => clearInterval(interval);
-      }
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    function runCycle(base: number) {
+      timers.push(setTimeout(() => setStage(1), base + 900));
+      timers.push(setTimeout(() => setStage(2), base + 1800));
+      timers.push(setTimeout(() => setStage(0), base + 4200));
+      timers.push(setTimeout(() => runCycle(base + 4200), base + 4200));
     }
-    const t = setTimeout(tick, sequence[0]);
-    return () => clearTimeout(t);
+    runCycle(500);
+    return () => timers.forEach(clearTimeout);
   }, []);
 
-  const clip = "polygon(3px 0%, calc(100% - 2px) 0%, 100% 22%, calc(100% - 3px) 55%, 100% 78%, calc(100% - 2px) 100%, 3px 100%, 0% 72%, 2px 48%, 0% 22%)";
-
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-      padding: "20px 0 8px", userSelect: "none",
-    }}>
-      {/* STORY label */}
-      <span style={{
-        fontFamily: "var(--font-cass)", fontSize: "18px", fontWeight: 700,
-        padding: "5px 14px",
-        background: !isBoard ? "#f5c84a" : "#e8dfc0",
-        clipPath: clip,
-        boxShadow: "2px 1px 5px rgba(0,0,0,0.35)",
-        color: !isBoard ? "#1a0e00" : "#9a8450",
-        transition: "color 0.28s, background 0.28s",
-      }}>
-        STORY
-      </span>
-
-      {/* Pill toggle */}
+    <div style={{ padding: "20px 0 8px" }}>
       <div style={{
-        position: "relative", width: "48px", height: "26px",
-        background: isBoard ? "#1e1608" : "#151209",
-        borderRadius: "13px",
-        border: `1.5px solid ${isBoard ? "#c8880a" : "#3a2e10"}`,
-        boxShadow: isBoard
-          ? "inset 0 2px 6px rgba(0,0,0,0.6), 0 0 10px rgba(200,136,10,0.25)"
-          : "inset 0 2px 6px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05)",
-        flexShrink: 0,
-        transition: "background 0.3s, border-color 0.3s",
+        width: "65%", margin: "0 auto", borderRadius: "16px", overflow: "hidden",
+        border: "1px solid rgba(200,168,107,0.28)", background: "#141210",
       }}>
-        <div style={{
-          position: "absolute", top: "3px", left: "3px",
-          width: "18px", height: "18px", borderRadius: "50%",
-          background: isBoard
-            ? "radial-gradient(circle at 35% 30%, #ffd060, #c87010)"
-            : "radial-gradient(circle at 35% 30%, #c8b880, #7a6030)",
-          border: "1px solid #5a4820",
-          boxShadow: isBoard
-            ? "0 2px 5px rgba(0,0,0,0.6), 0 0 8px rgba(255,180,30,0.7), inset 0 1px 0 rgba(255,255,255,0.3)"
-            : "0 2px 5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.15)",
-          transform: isBoard ? "translateX(22px)" : "translateX(0)",
-          transition: "transform 0.28s cubic-bezier(0.34, 1.45, 0.64, 1), background 0.28s, box-shadow 0.28s",
-        }} />
+        <div style={{ padding: "20px 20px 16px", background: "rgba(245,200,74,0.08)" }}>
+          <div style={{ marginBottom: "14px" }}><DemoTape background="#f5c84a">This chapter</DemoTape></div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {DEMO_TASKS.map((task, i) => {
+              const checked = stage > i;
+              return (
+                <div key={task.id} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{
+                    width: "16px", height: "16px", borderRadius: "4px", flexShrink: 0,
+                    border: `1.5px solid ${checked ? "#c8a86b" : "rgba(200,168,107,0.4)"}`,
+                    background: checked ? "rgba(200,168,107,0.22)" : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#c8a86b", fontSize: "10px",
+                    transition: "background 0.3s ease, border-color 0.3s ease",
+                  }}>
+                    <span style={{
+                      opacity: checked ? 1 : 0,
+                      transform: checked ? "scale(1)" : "scale(0.4)",
+                      transition: "opacity 0.25s ease, transform 0.25s ease",
+                    }}>
+                      ✓
+                    </span>
+                  </span>
+                  <span style={{
+                    position: "relative", fontFamily: "'Literata', Georgia, serif", fontSize: "14px",
+                    color: checked ? "rgba(212,206,196,0.45)" : "#d4cec4",
+                    transition: "color 0.5s ease",
+                  }}>
+                    {task.title}
+                    <span style={{
+                      position: "absolute", left: 0, top: "50%", height: "1px",
+                      background: "rgba(212,206,196,0.6)",
+                      width: checked ? "100%" : "0%",
+                      transition: "width 0.35s ease",
+                    }} />
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
+    </div>
+  );
+}
 
-      {/* BOARD label */}
-      <span style={{
-        fontFamily: "var(--font-cass)", fontSize: "18px", fontWeight: 700,
-        padding: "5px 14px",
-        background: isBoard ? "#f5c84a" : "#e8dfc0",
-        clipPath: clip,
-        boxShadow: "-2px 1px 5px rgba(0,0,0,0.35)",
-        color: isBoard ? "#1a0e00" : "#9a8450",
-        transition: "color 0.28s, background 0.28s",
+// Static mockup of a finished chapter — the "becomes a story" payoff, shown
+// on its own beat, separate from the checklist demo earlier in the intro.
+function ChapterRevealDemo() {
+  return (
+    <div style={{ padding: "20px 0 8px" }}>
+      <div style={{
+        width: "65%", margin: "0 auto", borderRadius: "16px", overflow: "hidden",
+        border: "1px solid rgba(200,168,107,0.28)", background: "#141210",
       }}>
-        BOARD
-      </span>
+        <div style={{ padding: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(200,168,107,0.45)" }}>
+              Chapter 1
+            </span>
+            <DemoTape background="#cbc5b6" rotate={1}>Fog — the uncertain stretch</DemoTape>
+          </div>
+          <h3 style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "19px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, margin: 0, color: "#e8e0d0" }}>
+            The map nobody could agree on
+          </h3>
+          <p style={{ fontFamily: "'Literata', Georgia, serif", fontStyle: "italic", fontSize: "12px", lineHeight: 1.4, margin: "4px 0 0", color: "rgba(232,224,208,0.55)" }}>
+            Three teams, three versions of the truth
+          </p>
+          <p style={{ fontFamily: "var(--font-cass)", fontSize: "17px", lineHeight: 1.3, margin: "16px 0 0" }}>
+            <span style={{
+              display: "inline-block", background: "#f5c84a", color: "#1a0e00",
+              padding: "3px 12px 4px", clipPath: DEMO_TAPE_CLIP,
+            }}>
+              &ldquo;Every team swore their spreadsheet was the real one.&rdquo;
+            </span>
+          </p>
+          <p style={{ fontFamily: "'Literata', Georgia, serif", fontSize: "12.5px", lineHeight: 1.6, margin: "10px 0 0", color: "rgba(212,206,196,0.72)" }}>
+            It started as a two-day task: list the datasets, tag the owners, move on. Four weeks later, nobody fully trusted the list.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1056,53 +1114,8 @@ export function CassOnboardingChat({
             {INTRO_SLIDES.slice(0, revealed).map((slide, i) => {
               const isLatest = i === revealed - 1 && phase === "intro";
 
-              // Which new character(s) appear for the first time on this slide?
-              const prevSlide = i > 0 ? INTRO_SLIDES[i - 1] : null;
-              const tyJustIntroduced = slide.showTy && !prevSlide?.showTy;
-
               return (
                 <div key={slide.id} ref={(el) => { introSlideRefs.current[i] = el; }} style={{ display: "flex", flexDirection: "column", gap: "16px", animation: isLatest ? "cass-fade-up 0.35s ease forwards" : "none" }}>
-
-                  {/* Ty introduction */}
-                  {tyJustIntroduced && (
-                    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "24px", marginBottom: "4px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", animation: isLatest ? "cass-fade-up 0.4s ease 0.12s forwards" : "none", opacity: isLatest ? 0 : 1 }}>
-                        <TypewriterRecorder animState="typing" size="sm" />
-                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(248,248,246,0.35)" }}>Ty · Narrative Writer</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Board/Story demo */}
-                  {slide.id === "how-it-works" && <BoardStoryDemo />}
-
-                  {/* Cass + Ty duo — above the final lets-go message */}
-                  {slide.id === "lets-go" && (
-                    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "32px", padding: "16px 0 16px" }}>
-                      {/* Cass — front and center */}
-                      <div style={{
-                        display: "flex", flexDirection: "column", alignItems: "center", gap: "6px",
-                        filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.7))",
-                        opacity: isLatest ? 0 : 1,
-                        animation: isLatest ? "cass-fade-up 0.35s ease forwards" : "none",
-                      }}>
-                        <CassRecorder animState="talking" size="sm" />
-                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(248,248,246,0.65)" }}>Cass</span>
-                      </div>
-                      {/* Ty */}
-                      <div style={{
-                        display: "flex", flexDirection: "column", alignItems: "center", gap: "5px",
-                        transform: "scale(0.82) translateY(4px)",
-                        transformOrigin: "bottom center",
-                        opacity: isLatest ? 0 : 0.75,
-                        filter: "brightness(0.8)",
-                        animation: isLatest ? "cass-fade-up 0.4s ease 0.15s forwards" : "none",
-                      }}>
-                        <TypewriterRecorder animState="typing" size="sm" />
-                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(248,248,246,0.4)" }}>Ty</span>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Message text + audio play button */}
                   <div style={{ maxWidth: "85%", margin: "0 auto", width: "100%" }}>
@@ -1160,6 +1173,12 @@ export function CassOnboardingChat({
                       {introPlayingIndex === i ? "Playing" : introLoadingIndex === i ? "Loading" : "Listen"}
                     </button>
                   </div>
+
+                  {/* Checklist demo — right under "finish the thing you keep almost finishing" */}
+                  {slide.id === "beat-3" && <ChecklistDemo />}
+
+                  {/* Chapter reveal demo — right under "You talk. I listen." */}
+                  {slide.id === "beat-7" && <ChapterRevealDemo />}
                 </div>
               );
             })}

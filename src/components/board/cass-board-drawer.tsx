@@ -885,6 +885,7 @@ export function CassBoardDrawer({
   fromOnboarding = false,
   chapterNumber = 1,
   chapterDaysLeft = null,
+  dailyTestimonialAlreadyDone = false,
   onNavigateToLatest,
   onPlanChapters,
   onRefocus,
@@ -908,6 +909,7 @@ export function CassBoardDrawer({
   fromOnboarding?: boolean;
   chapterNumber?: number;
   chapterDaysLeft?: number | null;
+  dailyTestimonialAlreadyDone?: boolean;
   onNavigateToLatest?: () => void;
   onPlanChapters?: () => void;
   onRefocus?: () => void;
@@ -2287,6 +2289,7 @@ export function CassBoardDrawer({
             project={project}
             board={board}
             columns={columns}
+            alreadyDoneToday={dailyTestimonialAlreadyDone}
             onComplete={() => { onTasksAdded(); setTimeout(onClose, 800); }}
           />
         )}

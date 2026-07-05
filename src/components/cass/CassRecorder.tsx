@@ -64,9 +64,12 @@ function Reel({ cx, cy, spinDuration, colors }: ReelProps) {
 export function CassRecorder({
   animState,
   size = "md",
+  label,
 }: {
   animState: CassAnimState;
   size?: CassSize;
+  /** Overrides the label plate text (e.g. "2 messages") instead of the state-derived READY/LISTENING/TALKING. */
+  label?: string;
 }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -89,14 +92,19 @@ export function CassRecorder({
     isPlaying   ? "▶ PLAYING"   : "■ STANDBY";
 
   // Brand label swaps to the current state — sized to keep each word fitting
-  // the same fixed-width label plate.
+  // the same fixed-width label plate. An explicit `label` (e.g. notification
+  // count) overrides this entirely, using the tightest fit since it's often
+  // longer than the state words.
   const brandLabel =
-    isRecording || isListening ? "LISTENING" :
-    isTalking || isPlaying     ? "TALKING"   : "READY";
+    label ??
+    (isRecording || isListening ? "LISTENING" :
+    isTalking || isPlaying     ? "TALKING"   : "READY");
   const brandFontSize =
+    label ? 8.5 :
     brandLabel === "LISTENING" ? 8.5 :
     brandLabel === "TALKING"   ? 10  : 12;
   const brandLetterSpacing =
+    label ? 0.5 :
     brandLabel === "LISTENING" ? 1 :
     brandLabel === "TALKING"   ? 2 : 4;
 

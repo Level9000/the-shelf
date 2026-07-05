@@ -15,6 +15,7 @@ import {
   aiTaskChunkingSchema,
   aiTaskExtractionSchema,
   aiProjectOverviewDialogueSchema,
+  aiShareGapCheckSchema,
   aiWeeklyPlanningDialogueSchema,
   cassOnboardingDialogueSchema,
   cassRetroDialogueSchema,
@@ -40,7 +41,6 @@ import {
   buildTyChapterKickoffPrompt,
   buildTyRetroPrompt,
   buildTyChroniclePrompt,
-  buildPressGapAnalysisPrompt,
   buildPressIntroPrompt,
   buildChapterKickoffPrompt,
   buildChapterOverviewDialoguePrompt,
@@ -53,7 +53,9 @@ import {
   buildProjectKickoffPrompt,
   buildProjectOverviewDialoguePrompt,
   buildShareBlogPrompt,
+  buildShareDraftPrompt,
   buildShareEmailPrompt,
+  buildShareGapCheckPrompt,
   buildShareLinkedInPrompt,
   buildSharePodcastPrompt,
   buildStrategicDialoguePrompt,
@@ -61,7 +63,7 @@ import {
   buildTaskExtractionPrompt,
   buildWeeklyPlanningPrompt,
 } from "@/lib/ai/prompts";
-import { safeJsonParse } from "@/lib/utils";
+import { safeJsonParse, stripEmDashes, stripEmDashesDeep } from "@/lib/utils";
 import type { ChapterType } from "@/prompts/chapter-templates";
 import type { StitchingPattern } from "@/prompts/chapter-templates";
 
@@ -122,7 +124,7 @@ export async function runProjectKickoffDialogue(input: {
     content?: Array<{ type: string; text?: string }>;
   };
 
-  const rawText = payload.content?.find((block) => block.type === "text")?.text;
+  const rawText = stripEmDashes(payload.content?.find((block) => block.type === "text")?.text);
 
   if (!rawText) {
     throw new Error("Project kickoff dialogue returned no content.");
@@ -271,7 +273,7 @@ export async function runChapterKickoffDialogue(input: {
     throw new Error("Kickoff dialogue did not return a tool call.");
   }
 
-  return aiKickoffDialogueSchema.parse(toolUse.input);
+  return aiKickoffDialogueSchema.parse(stripEmDashesDeep(toolUse.input));
 }
 
 export async function runChapterRetroDialogue(input: {
@@ -318,7 +320,7 @@ export async function runChapterRetroDialogue(input: {
     content?: Array<{ type: string; text?: string }>;
   };
 
-  const content = payload.content?.find((block) => block.type === "text")?.text;
+  const content = stripEmDashes(payload.content?.find((block) => block.type === "text")?.text);
 
   if (!content) {
     throw new Error("Retro dialogue returned no content.");
@@ -364,7 +366,7 @@ async function runShareGeneration(input: {
     content?: Array<{ type: string; text?: string }>;
   };
 
-  const text = payload.content?.find((block) => block.type === "text")?.text;
+  const text = stripEmDashes(payload.content?.find((block) => block.type === "text")?.text);
   if (!text) throw new Error("Share generation returned no content.");
 
   return { content: text.trim() };
@@ -471,7 +473,7 @@ async function runJsonDialogue<T>(
     content?: Array<{ type: string; text?: string }>;
   };
 
-  const text = payload.content?.find((b) => b.type === "text")?.text;
+  const text = stripEmDashes(payload.content?.find((b) => b.type === "text")?.text);
   if (!text) throw new Error("AI returned no content.");
 
   return parse(text);
@@ -643,7 +645,7 @@ export async function runCassBoardDialogue(input: {
   }
 
   // Normalise nullable fields that the tool schema can't enforce
-  const raw = toolUse.input as Record<string, unknown>;
+  const raw = stripEmDashesDeep(toolUse.input as Record<string, unknown>);
   const tasks = Array.isArray(raw.tasks)
     ? (raw.tasks as Array<Record<string, unknown>>).map((t) => ({
         ...t,
@@ -805,7 +807,7 @@ export async function runChapterRefocusDialogue(input: {
     throw new Error("Refocus dialogue did not return a tool call.");
   }
 
-  return aiRefocusDialogueSchema.parse(toolUse.input);
+  return aiRefocusDialogueSchema.parse(stripEmDashesDeep(toolUse.input));
 }
 
 export async function runProjectArcDialogue(input: {
@@ -941,11 +943,11 @@ export async function runTaskChunkingDialogue(input: {
     throw new Error("Task chunking dialogue returned no structured response.");
   }
 
-  const raw = toolUse.input as {
+  const raw = stripEmDashesDeep(toolUse.input as {
     reply: string;
     isComplete: boolean;
     tasks: Array<{ title: string; description: string; priority: string }>;
-  };
+  });
 
   return aiTaskChunkingSchema.parse({
     ...raw,
@@ -985,7 +987,7 @@ export async function runCassOnboardingDialogue(input: {
     content?: Array<{ type: string; text?: string }>;
   };
 
-  const rawText = payload.content?.find((block) => block.type === "text")?.text;
+  const rawText = stripEmDashes(payload.content?.find((block) => block.type === "text")?.text);
   if (!rawText) throw new Error("Cass onboarding returned no content.");
 
   const parsed = cassOnboardingDialogueSchema.safeParse(safeJsonParse(extractJsonObject(rawText)));
@@ -1113,7 +1115,7 @@ export async function generateProjectPlanFromBrief(input: {
   const payload = (await response.json()) as {
     content?: Array<{ type: string; text?: string }>;
   };
-  const rawText = payload.content?.find((b) => b.type === "text")?.text ?? "";
+  const rawText = stripEmDashes(payload.content?.find((b) => b.type === "text")?.text) ?? "";
   const parsed = safeJsonParse(extractJsonObject(rawText)) as {
     project_name?: string;
     project_goal?: string;
@@ -1205,7 +1207,7 @@ export async function runCassChapterKickoffDialogue(input: {
   // Fallback: if no tool call, try to extract plain text reply so the
   // conversation can continue rather than hard-failing.
   if (!toolUse?.input) {
-    const fallbackText = payload.content?.find((b) => b.type === "text")?.text?.trim();
+    const fallbackText = stripEmDashes(payload.content?.find((b) => b.type === "text")?.text?.trim());
     if (fallbackText) {
       console.warn("[kickoff] tool call missing — returning raw text fallback");
       return { reply: fallbackText, done: false, goal: "", whyItMatters: "", successLooksLike: "", doneDefinition: "", openingLine: "", proposedTasks: [], currentBeat: "context" as const };
@@ -1213,15 +1215,17 @@ export async function runCassChapterKickoffDialogue(input: {
     throw new Error("Cass chapter kickoff did not return a tool call.");
   }
 
+  const sanitizedInput = stripEmDashesDeep(toolUse.input);
+
   // Try enhanced schema first (includes beats + thesis), fall back to standard
-  const enhanced = cassEnhancedKickoffDialogueSchema.safeParse(toolUse.input);
+  const enhanced = cassEnhancedKickoffDialogueSchema.safeParse(sanitizedInput);
   if (enhanced.success) return enhanced.data;
-  const standard = aiKickoffDialogueSchema.safeParse(toolUse.input);
+  const standard = aiKickoffDialogueSchema.safeParse(sanitizedInput);
   if (standard.success) return standard.data;
 
   // Both schemas failed — return minimal safe response rather than crashing
   console.warn("[kickoff] schema parse failed — returning partial fallback");
-  const raw = toolUse.input as Record<string, unknown>;
+  const raw = sanitizedInput as Record<string, unknown>;
   return { reply: String(raw.reply ?? "Let's keep going — what were you saying?"), done: false, goal: "", whyItMatters: "", successLooksLike: "", doneDefinition: "", openingLine: "", proposedTasks: [], currentBeat: "context" as const };
 }
 
@@ -1276,7 +1280,7 @@ export async function runCassRetroDialogue(input: {
     content?: Array<{ type: string; text?: string }>;
   };
 
-  const rawText = payload.content?.find((block) => block.type === "text")?.text;
+  const rawText = stripEmDashes(payload.content?.find((block) => block.type === "text")?.text);
   if (!rawText) throw new Error("Cass retro returned no content.");
 
   // Try enhanced schema first (includes beats + bridge), fall back to legacy
@@ -1401,7 +1405,7 @@ export async function runNarrativeEnginePass1(input: {
     content?: Array<{ type: string; text?: string }>;
   };
 
-  const text = payload.content?.find((b) => b.type === "text")?.text?.trim();
+  const text = stripEmDashes(payload.content?.find((b) => b.type === "text")?.text?.trim());
   if (!text) throw new Error("Narrative engine Pass 1 returned no content.");
 
   return text;
@@ -1443,7 +1447,7 @@ export async function runNarrativeEnginePass2(input: {
     content?: Array<{ type: string; text?: string }>;
   };
 
-  const text = payload.content?.find((b) => b.type === "text")?.text?.trim();
+  const text = stripEmDashes(payload.content?.find((b) => b.type === "text")?.text?.trim());
   if (!text) throw new Error("Narrative engine Pass 2 returned no content.");
 
   return text;
@@ -1537,48 +1541,50 @@ export async function runCassStoryShareRefinement(input: {
     content?: Array<{ type: string; text?: string }>;
   };
 
-  const refined = payload.content?.find((b) => b.type === "text")?.text?.trim();
+  const refined = stripEmDashes(payload.content?.find((b) => b.type === "text")?.text?.trim());
   if (!refined) throw new Error("Story refinement returned no content.");
 
   return refined;
 }
 
-// ── Press gap analysis ────────────────────────────────────────────────────────
+// ── Share flow: gap check + draft generation ──────────────────────────────────
 
-export async function runPressGapAnalysis(input: {
-  messages: StrategicDialogueMessage[];
+export async function runShareGapCheck(input: {
   projectName: string;
   northStar?: string | null;
-  outputType: string;
-  audienceId?: string | null;
+  audienceLabel: string;
+  beats: Array<{ key: string; description: string }>;
   chapters: Array<{
     name: string;
     goal: string | null;
     story: string | null;
     status: string;
   }>;
+  fragments: string[];
 }) {
   return runJsonDialogue(
-    buildPressGapAnalysisPrompt({ ...input, audienceId: input.audienceId ?? null }),
-    input.messages,
-    (text) => {
-      const parsed = safeJsonParse(extractJsonObject(text)) as {
-        reply?: string;
-        done?: boolean;
-        has_sufficient_data?: boolean;
-        gaps?: string[];
-        ready_to_generate?: boolean;
-      };
-      return {
-        reply:               parsed.reply ?? "",
-        done:                parsed.done ?? false,
-        has_sufficient_data: parsed.has_sufficient_data ?? false,
-        gaps:                parsed.gaps ?? [],
-        ready_to_generate:   parsed.ready_to_generate ?? false,
-      };
-    },
-    1024,
+    buildShareGapCheckPrompt(input),
+    [{ role: "user", content: "Check the story data above against the expected beats." }],
+    (text) => aiShareGapCheckSchema.parse(safeJsonParse(extractJsonObject(text))),
   );
+}
+
+export async function runShareDraftGeneration(input: {
+  projectName: string;
+  northStar?: string | null;
+  audienceLabel: string;
+  formatRule: { charLimit?: number; softWordRange?: [number, number]; voice: string };
+  scope: string;
+  scopeDetail?: string;
+  chapters: Array<{ name: string; goal: string | null; story: string | null; status: string; detail: "full" | "summary" }>;
+  gapNotes: string[];
+  revision?: { currentDraft: string; instruction: string } | null;
+  voiceProfile?: string | null;
+}) {
+  return runShareGeneration({
+    messages: [],
+    systemPrompt: buildShareDraftPrompt(input),
+  });
 }
 
 // ── Press introduction ────────────────────────────────────────────────────────

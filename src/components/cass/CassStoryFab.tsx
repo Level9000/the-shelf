@@ -4,42 +4,36 @@ import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/lib/theme-context";
 import { CassRecorder } from "@/components/cass/CassRecorder";
 
-// CassRecorder at size="sm" renders 120×156. Scaled to fit the FAB circle,
-// then nudged up slightly so the window+reels (its most recognizable part)
-// land centered in the visible circle instead of the recorder's true middle.
+// CassRecorder at size="sm" renders 120×156 — the smallest built-in size —
+// so the FAB scales it down further (25% smaller) via CSS transform rather
+// than a size prop.
 const RECORDER_W = 120;
 const RECORDER_H = 156;
+const FAB_SCALE = 0.75;
+const SCALED_W = RECORDER_W * FAB_SCALE;
+const SCALED_H = RECORDER_H * FAB_SCALE;
 
-/** The real Cass avatar, scaled down and clipped into the FAB's circle. */
-function CassAvatarFace({ size }: { size: number }) {
-  const scale = size / RECORDER_W;
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        overflow: "hidden",
-        background: "#3c3c3c",
-        border: "1.5px solid #5a5a5a",
-        position: "relative",
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          width: RECORDER_W,
-          height: RECORDER_H,
-          transform: `translate(-50%, -50%) scale(${scale}) translateY(-12px)`,
-        }}
-      >
-        <CassRecorder animState="idle" size="sm" />
-      </div>
-    </div>
-  );
+function testimonialSeenKey(chapterId: string) {
+  return `cass-fab-testimonial-seen:${chapterId}`;
+}
+
+/** Has the FAB already been opened today for this chapter? Resets automatically at midnight. */
+function wasTestimonialSeenToday(chapterId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(testimonialSeenKey(chapterId)) === new Date().toDateString();
+  } catch {
+    return false;
+  }
+}
+
+function markTestimonialSeenToday(chapterId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(testimonialSeenKey(chapterId), new Date().toDateString());
+  } catch {
+    // Private browsing / storage full — badge just won't persist its dismissal. Not worth surfacing.
+  }
 }
 
 /**
@@ -49,8 +43,14 @@ function CassAvatarFace({ size }: { size: number }) {
  * the daily testimonial (worded depending on whether it's already done),
  * and "Add something new" for ad-hoc task capture. A dot signals there's
  * something to do without forcing the menu open.
+ *
+ * The badge itself (not the underlying menu items) dismisses once the FAB
+ * has been opened: the backstory/voice nudge badge for the rest of this
+ * session only (it reappears next visit if still incomplete), the daily
+ * testimonial badge for the rest of the calendar day (it resets tomorrow).
  */
 export function CassStoryFab({
+  chapterId,
   hasPendingNudge,
   nudgeLabel,
   dailyTestimonialDone,
@@ -60,6 +60,7 @@ export function CassStoryFab({
   disabled = false,
   onDisabledClick,
 }: {
+  chapterId: string;
   hasPendingNudge: boolean;
   nudgeLabel?: string;
   dailyTestimonialDone: boolean;
@@ -74,8 +75,17 @@ export function CassStoryFab({
   const [menuOpen, setMenuOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  const [nudgeSeenThisSession, setNudgeSeenThisSession] = useState(false);
+  const [testimonialSeenToday, setTestimonialSeenToday] = useState(false);
+
+  useEffect(() => {
+    setTestimonialSeenToday(wasTestimonialSeenToday(chapterId));
+  }, [chapterId]);
+
   const nothingPending = !hasPendingNudge && !dailyTestimonialDone;
-  const showDot = hasPendingNudge || !dailyTestimonialDone;
+  const notificationCount =
+    (hasPendingNudge && !nudgeSeenThisSession ? 1 : 0) +
+    (!dailyTestimonialDone && !testimonialSeenToday ? 1 : 0);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -93,6 +103,12 @@ export function CassStoryFab({
       onDisabledClick?.();
       return;
     }
+    // Opening the FAB — whether it lands on the menu or jumps straight to the
+    // testimonial — is what dismisses the badge, independent of the menu items
+    // themselves (which stay driven by the real, un-dismissed state).
+    setNudgeSeenThisSession(true);
+    markTestimonialSeenToday(chapterId);
+    setTestimonialSeenToday(true);
     if (nothingPending) {
       onSelectTestimonial();
       return;
@@ -124,7 +140,7 @@ export function CassStoryFab({
         <div
           style={{
             position: "absolute",
-            bottom: "68px",
+            bottom: `${SCALED_H + 12}px`,
             right: 0,
             minWidth: "230px",
             background: menuBg,
@@ -168,24 +184,20 @@ export function CassStoryFab({
         aria-label="Open Cass"
         style={{
           position: "relative",
-          width: "56px",
-          height: "56px",
-          borderRadius: "50%",
+          width: `${SCALED_W}px`,
+          height: `${SCALED_H}px`,
           background: "none",
           border: "none",
           padding: 0,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.12)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          display: "block",
           cursor: "pointer",
           fontFamily: "'Literata', Georgia, serif",
           WebkitTapHighlightColor: "transparent",
           touchAction: "manipulation",
-          transition: "transform 0.12s ease, box-shadow 0.12s ease",
+          transition: "transform 0.12s ease",
         }}
         onPointerDown={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.93)";
+          (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.95)";
         }}
         onPointerUp={(e) => {
           (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
@@ -194,21 +206,51 @@ export function CassStoryFab({
           (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
         }}
       >
-        <CassAvatarFace size={56} />
-        {showDot && (
-          <span
-            style={{
-              position: "absolute",
-              top: "2px",
-              right: "2px",
-              width: "12px",
-              height: "12px",
-              borderRadius: "50%",
-              background: "#f5c84a",
-              border: "2px solid var(--ink)",
-            }}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            right: 0,
+            width: `${RECORDER_W}px`,
+            height: `${RECORDER_H}px`,
+            transform: `scale(${FAB_SCALE})`,
+            transformOrigin: "bottom right",
+            filter: isDark
+              ? "drop-shadow(10px 14px 20px rgba(0,0,0,0.55)) drop-shadow(4px 5px 8px rgba(0,0,0,0.4))"
+              : "drop-shadow(10px 14px 20px rgba(0,0,0,0.3)) drop-shadow(4px 5px 8px rgba(0,0,0,0.2))",
+          }}
+        >
+          <CassRecorder
+            animState="idle"
+            size="sm"
+            label={notificationCount > 0 ? `${notificationCount} message${notificationCount === 1 ? "" : "s"}` : undefined}
           />
-        )}
+          {notificationCount > 0 && (
+            <span
+              style={{
+                position: "absolute",
+                top: "11px",
+                right: "15px",
+                width: "30px",
+                height: "30px",
+                borderRadius: "50%",
+                background: "#f5c84a",
+                border: "2.5px solid var(--app-bg)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "15px",
+                fontWeight: 700,
+                color: "#1a0e00",
+                lineHeight: 1,
+              }}
+            >
+              {notificationCount}
+            </span>
+          )}
+        </div>
       </button>
     </div>
   );

@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, X } from "lucide-react";
 import type { AppUser, BoardColumn, Chapter, DroppedTaskFragment, ProjectMember, ProjectWithChapters, Task, UserProfile, WorkflowTemplate } from "@/types";
-import { PRESS_TEMPLATES } from "@/lib/press/templates";
-import type { PressTemplate } from "@/lib/press/templates";
+import type { AudienceId, FormatId, GapResolution, GapResolutionAction, ScopeId } from "@/lib/press/share-types";
+import { GAP_CHECKLISTS, GAP_BEAT_PROMPTS, GAP_BEAT_ACTION_LABELS } from "@/lib/press/gap-checklists";
 import { ProjectArcRefiner } from "@/components/projects/project-arc-refiner";
 import { ProjectOverviewSettingsDrawer } from "@/components/projects/project-overview-settings-drawer";
 import { ProjectShellFrame } from "@/components/projects/project-shell-frame";
@@ -14,7 +14,6 @@ import { CassRecorder } from "@/components/cass/CassRecorder";
 import { TypewriterRecorder } from "@/components/ui/TypewriterRecorder";
 import { PressMonitor } from "@/components/ui/PressMonitor";
 import { CassStoryFab } from "@/components/cass/CassStoryFab";
-import { CassNudgeFab } from "@/components/cass/CassNudgeFab";
 import { CassBoardDrawer } from "@/components/board/cass-board-drawer";
 import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 import { ChapterTaskList } from "@/components/projects/chapter-task-list";
@@ -27,7 +26,6 @@ import { StoryWelcomeDrawer } from "@/components/ui/StoryWelcomeDrawer";
 import { StoryFoundationSection, CassFoundationDrawer } from "@/components/projects/story-foundation";
 import { ToneVoiceRefinerDrawer } from "@/components/projects/tone-voice-refiner-chat";
 import { ChapterContextPill } from "@/components/projects/chapter-context";
-import { VoiceInputFooter } from "@/components/cass/VoiceInputFooter";
 import { deleteTaskAction, moveTaskAction } from "@/lib/actions/task-actions";
 import { addStoryFragmentAction, checkDailyTestimonialDoneTodayAction } from "@/lib/actions/story-fragment-actions";
 import { checkBackstoryNudgeAction, dismissBackstoryNudgeAction } from "@/lib/actions/backstory-nudge-actions";
@@ -37,10 +35,6 @@ import type { SubscriptionStatus } from "@/lib/subscription";
 const TY_INTRO_KEY = "ty_story_intro_seen";
 
 type StoryNudge = "backstory" | "voice" | null;
-const NUDGE_MESSAGES: Record<Exclude<StoryNudge, null>, string> = {
-  backstory: "Hey, I noticed some gaps in your backstory. Can we review that together?",
-  voice: "Do you like the tone of voice your story has? I can help you refine that.",
-};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -330,16 +324,22 @@ function ChatHistoryDrawer({
 
 // ── Audience options ──────────────────────────────────────────────────────────
 
-const AUDIENCE_OPTIONS = [
-  { id: "blog", label: "Blog post", description: "Tell your story in long form", templateId: "case-study" },
-  { id: "social", label: "Social media", description: "A punchy update for LinkedIn or X", templateId: "author-memo" },
-  { id: "network", label: "Professional network", description: "Reach your professional contacts", templateId: "quarterly-update" },
-  { id: "leadership", label: "Leadership", description: "A memo for your team or board", templateId: "quarterly-update" },
-  { id: "investors", label: "Investors", description: "Make the case to funders", templateId: "investor-pitch" },
-] as const;
+const AUDIENCE_OPTIONS: Array<{ id: AudienceId; label: string; description: string; defaultFormat: FormatId }> = [
+  { id: "blog", label: "Blog post", description: "Tell your story in long form", defaultFormat: "blog" },
+  { id: "social", label: "Social media", description: "A punchy update for LinkedIn or X", defaultFormat: "social" },
+  { id: "network", label: "Professional network", description: "Reach your professional contacts", defaultFormat: "network" },
+  { id: "leadership", label: "Leadership", description: "A memo for your team or board", defaultFormat: "leadership" },
+  { id: "investors", label: "Investors", description: "Make the case to funders", defaultFormat: "investors" },
+];
 
-type DrawerMode = "audience" | "chat";
-type PlanMessage = { role: "user" | "assistant"; content: string };
+const SCOPE_OPTIONS: Array<{ id: ScopeId; label: string }> = [
+  { id: "just_chapter", label: "Just this chapter" },
+  { id: "chapter_recap", label: "This chapter + a quick recap of the journey so far" },
+  { id: "last_few", label: "The last few chapters" },
+  { id: "whole_story", label: "The whole story, start to now" },
+];
+
+type DrawerMode = "audience" | "scope" | "gap-check" | "draft";
 
 // ── Cass Chronicle drawer ─────────────────────────────────────────────────────
 
@@ -372,6 +372,213 @@ function NeedsReviewShareWarning({ project }: { project: ProjectWithChapters }) 
   );
 }
 
+// ── Shared option-list (Step 1 audience picker + Step 2 scope picker) ────────
+
+function OptionList({
+  options,
+  onPick,
+  freeformLabel,
+  freeformPlaceholder,
+  onFreeformSubmit,
+}: {
+  options: Array<{ id: string; label: string; recommended?: boolean }>;
+  onPick: (id: string) => void;
+  freeformLabel: string;
+  freeformPlaceholder: string;
+  onFreeformSubmit: (text: string) => void;
+}) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const optionBg     = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)";
+  const optionBgHov  = isDark ? "rgba(200,168,107,0.07)" : "rgba(200,168,107,0.1)";
+  const optionBdr    = isDark ? "rgba(200,168,107,0.18)" : "rgba(200,168,107,0.3)";
+  const optionBdrHov = isDark ? "rgba(200,168,107,0.45)" : "rgba(200,168,107,0.6)";
+  const optionText   = isDark ? "#d4cec4" : "rgba(26,14,0,0.82)";
+  const mutedText    = isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.4)";
+
+  const [freeformOpen, setFreeformOpen] = useState(false);
+  const [freeformValue, setFreeformValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function submitFreeform() {
+    const v = freeformValue.trim();
+    if (!v) return;
+    onFreeformSubmit(v);
+  }
+
+  return (
+    <div style={{ width: "100%", maxWidth: "85%", display: "flex", flexDirection: "column", gap: "8px" }}>
+      {options.map(({ id, label, recommended }, i) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onPick(id)}
+          style={{
+            background: optionBg,
+            border: `1px solid ${recommended ? "rgba(245,200,74,0.5)" : optionBdr}`,
+            borderRadius: "12px",
+            padding: "14px 18px",
+            textAlign: "left", width: "100%",
+            cursor: "pointer",
+            animation: "chronicleOptionIn 0.28s ease forwards",
+            animationDelay: `${i * 80}ms`,
+            opacity: 0,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = optionBdrHov; e.currentTarget.style.background = optionBgHov; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = recommended ? "rgba(245,200,74,0.5)" : optionBdr; e.currentTarget.style.background = optionBg; }}
+        >
+          {recommended && (
+            <span style={{
+              fontFamily: "'Barlow Condensed', sans-serif", fontSize: "9px", fontWeight: 700,
+              letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(245,200,74,0.85)",
+              display: "block", marginBottom: "3px",
+            }}>
+              Recommended
+            </span>
+          )}
+          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: optionText, margin: 0 }}>{label}</p>
+        </button>
+      ))}
+
+      {!freeformOpen ? (
+        <button
+          type="button"
+          onClick={() => { setFreeformOpen(true); setTimeout(() => inputRef.current?.focus(), 40); }}
+          style={{
+            background: optionBg, border: `1px solid ${optionBdr}`, borderRadius: "12px",
+            padding: "14px 18px", textAlign: "left", width: "100%", cursor: "pointer",
+            animation: "chronicleOptionIn 0.28s ease forwards", animationDelay: `${options.length * 80}ms`, opacity: 0,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = optionBdrHov; e.currentTarget.style.background = optionBgHov; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = optionBdr; e.currentTarget.style.background = optionBg; }}
+        >
+          <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: mutedText, margin: 0 }}>{freeformLabel}</p>
+        </button>
+      ) : (
+        <div style={{
+          background: optionBg, border: `1px solid ${optionBdrHov}`, borderRadius: "12px",
+          padding: "10px 14px", display: "flex", alignItems: "center", gap: "10px", width: "100%",
+        }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={freeformValue}
+            onChange={(e) => setFreeformValue(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitFreeform()}
+            placeholder={freeformPlaceholder}
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: optionText }}
+          />
+          <button
+            type="button"
+            onClick={submitFreeform}
+            disabled={!freeformValue.trim()}
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+              color: freeformValue.trim() ? "#f5c84a" : mutedText,
+              background: "transparent", border: "none", cursor: freeformValue.trim() ? "pointer" : "default", flexShrink: 0,
+            }}
+          >
+            Go
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Shared action chip (Step 3 gap-check) ────────────────────────────────────
+
+function ActionChip({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: "rgba(200,168,107,0.08)", border: "1px solid rgba(200,168,107,0.25)",
+        borderRadius: "999px", padding: "7px 14px", cursor: "pointer",
+        fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase",
+        color: "#c8a86b", transition: "background 0.15s",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.15)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(200,168,107,0.08)"; }}
+    >
+      {label}
+    </button>
+  );
+}
+
+// ── Gap-check card (Step 3) ───────────────────────────────────────────────────
+
+function GapBeatCard({
+  prompt,
+  actionLabel,
+  resolution,
+  onResolve,
+}: {
+  prompt: string;
+  actionLabel: string;
+  resolution: GapResolution | undefined;
+  onResolve: (action: GapResolutionAction, content?: string) => void;
+}) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const textBody     = isDark ? "rgba(248,248,246,0.82)" : "rgba(26,14,0,0.8)";
+  const resolvedNote = isDark ? "rgba(245,200,74,0.75)" : "rgba(150,105,10,0.85)";
+  const inputBg      = isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)";
+  const inputBdr     = isDark ? "rgba(200,168,107,0.3)" : "rgba(200,168,107,0.4)";
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [value, setValue] = useState("");
+
+  if (resolution) {
+    const label = resolution.action === "added"
+      ? "Added"
+      : resolution.action === "tbd"
+        ? "Marked as coming soon"
+        : "Skipped";
+    return (
+      <div style={{
+        width: "100%", maxWidth: "85%", padding: "10px 14px",
+        border: "1px solid rgba(245,200,74,0.2)", borderRadius: "12px",
+        background: "rgba(245,200,74,0.05)",
+      }}>
+        <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: resolvedNote, margin: 0 }}>✓ {label}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: "100%", maxWidth: "85%", display: "flex", flexDirection: "column", gap: "10px" }}>
+      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", lineHeight: "1.6", color: textBody, margin: 0 }}>
+        {prompt}
+      </p>
+      {!addOpen ? (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <ActionChip label={actionLabel} onClick={() => setAddOpen(true)} />
+          <ActionChip label="Skip this section" onClick={() => onResolve("skipped")} />
+          <ActionChip label="Mark as TBD" onClick={() => onResolve("tbd")} />
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: "8px" }}>
+          <input
+            autoFocus
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && value.trim()) onResolve("added", value.trim()); }}
+            placeholder="Give me the quick version…"
+            style={{
+              flex: 1, background: inputBg, border: `1px solid ${inputBdr}`, borderRadius: "8px",
+              padding: "8px 12px", outline: "none",
+              fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: textBody,
+            }}
+          />
+          <ActionChip label="Save" onClick={() => value.trim() && onResolve("added", value.trim())} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CassChronicleDrawer({
   open,
   project,
@@ -400,215 +607,222 @@ function CassChronicleDrawer({
   const optionBdr    = isDark ? "rgba(200,168,107,0.18)" : "rgba(200,168,107,0.3)";
   const optionBdrHov = isDark ? "rgba(200,168,107,0.45)" : "rgba(200,168,107,0.6)";
   const optionText   = isDark ? "#d4cec4" : "rgba(26,14,0,0.82)";
-  const userBubbleBg = isDark ? "rgba(245,200,74,0.1)" : "rgba(200,168,107,0.12)";
-  const userBubbleBdr= isDark ? "rgba(245,200,74,0.2)" : "rgba(200,168,107,0.3)";
-  const userBubbleTxt= isDark ? "rgba(248,248,246,0.8)" : "rgba(26,14,0,0.8)";
   const backBtnColor = isDark ? "rgba(248,248,246,0.35)" : "rgba(26,14,0,0.35)";
   const backBtnHov   = isDark ? "rgba(248,248,246,0.75)" : "rgba(26,14,0,0.75)";
 
   const [mode, setMode] = useState<DrawerMode>("audience");
-  const [selectedAudience, setSelectedAudience] = useState<string | null>(null);
 
-  // ── Press state ──
-  const [pressTemplate, setPressTemplate] = useState<PressTemplate | null>(null);
-  const [pressMessages, setPressMessages] = useState<PlanMessage[]>([]);
-  const [pressDraft, setPressDraft] = useState("");
-  const [pressError, setPressError] = useState<string | null>(null);
-  const [pressReadyToGenerate, setPressReadyToGenerate] = useState(false);
+  // ── Share request state ──
+  const [audienceId, setAudienceId] = useState<AudienceId | null>(null);
+  const [audienceLabel, setAudienceLabel] = useState<string | null>(null);
+  const [format, setFormat] = useState<FormatId | null>(null);
+  const [scope, setScope] = useState<ScopeId | null>(null);
+  const [scopeDetail, setScopeDetail] = useState<string | undefined>(undefined);
+
+  // ── Gap-check state ──
+  const [missingBeats, setMissingBeats] = useState<string[]>([]);
+  const [gapResolutions, setGapResolutions] = useState<GapResolution[]>([]);
+  const [isCheckingGaps, setIsCheckingGaps] = useState(false);
+
+  // ── Draft state ──
+  const [shareDraft, setShareDraft] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isPressLoading, startPressTransition] = useTransition();
-  const pressEndRef = useRef<HTMLDivElement | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [refineValue, setRefineValue] = useState("");
+  const draftTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // ── Conversation (voice) mode ──
-  const [conversationMode, setConversationMode] = useState(false);
-  const conversationModeRef = useRef(false);
-  const [isCassSpeaking, setIsCassSpeaking] = useState(false);
-  const cassAudioRef = useRef<HTMLAudioElement | null>(null);
-  const openMicRef = useRef<(() => void) | null>(null);
-
-  function stopCassAudio() {
-    if (cassAudioRef.current) {
-      cassAudioRef.current.pause();
-      cassAudioRef.current = null;
-    }
-    setIsCassSpeaking(false);
-  }
-
-  async function speakCassReply(text: string) {
-    stopCassAudio();
-    try {
-      const res = await fetch("/api/tts/cass", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) return;
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      cassAudioRef.current = audio;
-      const cleanup = () => {
-        URL.revokeObjectURL(url);
-        if (cassAudioRef.current === audio) cassAudioRef.current = null;
-        setIsCassSpeaking(false);
-        if (conversationModeRef.current) openMicRef.current?.();
-      };
-      audio.onended = cleanup;
-      audio.onerror = cleanup;
-      setIsCassSpeaking(true);
-      await audio.play();
-    } catch {
-      setIsCassSpeaking(false);
-    }
-  }
-
-  function toggleConversationMode(next: boolean) {
-    conversationModeRef.current = next;
-    setConversationMode(next);
-    if (next) {
-      const greeting = "Go ahead and talk out loud. I'm listening.";
-      setPressMessages((prev) => [...prev, { role: "assistant", content: greeting }]);
-      speakCassReply(greeting);
-    } else {
-      stopCassAudio();
-    }
-  }
-
+  // Auto-grow the draft textarea to its content so it reads like plain text, not a boxed input.
   useEffect(() => {
-    queueMicrotask(() => pressEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
-  }, [pressMessages, isPressLoading]);
-
-  // Closing the drawer (or navigating away) must end any live conversation-mode
-  // thread — otherwise Cass keeps talking/listening after it's off-screen.
-  useEffect(() => {
-    if (open) return;
-    conversationModeRef.current = false;
-    setConversationMode(false);
-    stopCassAudio();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  useEffect(() => {
-    return () => {
-      conversationModeRef.current = false;
-      stopCassAudio();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const el = draftTextareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [shareDraft, mode]);
 
   // Reset on open
   useEffect(() => {
     if (!open) return;
     setMode("audience");
-    setSelectedAudience(null);
-    setPressTemplate(null);
-    setPressMessages([]);
-    setPressDraft("");
-    setPressError(null);
-    setPressReadyToGenerate(false);
+    setAudienceId(null);
+    setAudienceLabel(null);
+    setFormat(null);
+    setScope(null);
+    setScopeDetail(undefined);
+    setMissingBeats([]);
+    setGapResolutions([]);
+    setIsCheckingGaps(false);
+    setShareDraft("");
     setIsGenerating(false);
-    conversationModeRef.current = false;
-    setConversationMode(false);
-    stopCassAudio();
+    setShareError(null);
+    setCopied(false);
+    setRefineOpen(false);
+    setRefineValue("");
   }, [open]);
 
-  function enterChatMode(audienceId: string) {
-    const audience = AUDIENCE_OPTIONS.find((a) => a.id === audienceId);
-    if (!audience) return;
-    const template = PRESS_TEMPLATES.find((t) => t.id === audience.templateId);
-    if (!template) return;
-
-    setSelectedAudience(audienceId);
-    setPressTemplate(template);
-    setPressMessages([]);
-    setPressDraft("");
-    setPressError(null);
-    setPressReadyToGenerate(false);
-    setIsGenerating(false);
-    setMode("chat");
-
-    const opener: PlanMessage = { role: "user", content: `__press_open__:${template.label}` };
-    startPressTransition(async () => {
-      try {
-        const res = await fetch("/api/chat/press-gap-analysis", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, outputType: template.label, audienceId, messages: [opener] }),
-        });
-        const data = await res.json() as { reply?: string; ready_to_generate?: boolean; error?: string };
-        if (!res.ok) throw new Error(data.error ?? "Couldn't connect.");
-        const reply = data.reply?.trim() ?? "";
-        if (!reply) throw new Error("No response.");
-        setPressMessages([{ role: "assistant", content: reply }]);
-        if (data.ready_to_generate) setPressReadyToGenerate(true);
-        if (conversationModeRef.current) speakCassReply(reply);
-      } catch (err) {
-        setPressError(err instanceof Error ? err.message : "Signal lost. Stand by.");
-      }
-    });
+  function selectAudience(id: AudienceId, label: string, defaultFormat: FormatId) {
+    setAudienceId(id);
+    setAudienceLabel(label);
+    setFormat(defaultFormat);
+    setMode("scope");
   }
 
-  function handlePressSend(textOverride?: string) {
-    const content = (textOverride ?? pressDraft).trim();
-    if (!content || isPressLoading || !pressTemplate) return;
-    const next: PlanMessage[] = [...pressMessages, { role: "user", content }];
-    setPressMessages(next);
-    setPressDraft("");
-    setPressError(null);
-    startPressTransition(async () => {
-      try {
-        const res = await fetch("/api/chat/press-gap-analysis", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: project.id, outputType: pressTemplate.label, audienceId: selectedAudience, messages: next }),
-        });
-        const data = await res.json() as { reply?: string; ready_to_generate?: boolean; error?: string };
-        if (!res.ok) throw new Error(data.error ?? "Press failed.");
-        const reply = data.reply?.trim() ?? "";
-        setPressMessages((m) => [...m, { role: "assistant", content: reply }]);
-        if (data.ready_to_generate) setPressReadyToGenerate(true);
-        if (conversationModeRef.current) speakCassReply(reply);
-      } catch (err) {
-        setPressError(err instanceof Error ? err.message : "Signal lost. Stand by.");
-      }
-    });
-  }
-
-  async function handleGenerate() {
-    if (!pressTemplate || isGenerating) return;
+  async function generateDraft(
+    scopeId: ScopeId,
+    detail: string | undefined,
+    resolutions: GapResolution[],
+    revision?: { currentDraft: string; instruction: string },
+  ) {
+    if (!audienceId || !audienceLabel || !format) return;
     setIsGenerating(true);
-    setPressError(null);
+    setShareError(null);
     try {
-      const res = await fetch("/api/press/generate", {
+      const res = await fetch("/api/share/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId: project.id,
-          templateId: pressTemplate.id,
-          conversation: pressMessages,
+          audienceId, audienceLabel, format,
+          scope: scopeId, scopeDetail: detail,
+          gapResolutions: resolutions,
+          currentDraft: revision?.currentDraft,
+          refinementInstruction: revision?.instruction,
         }),
       });
-      if (!res.ok) {
-        const err = await res.json() as { error?: string };
-        throw new Error(err.error ?? "Generation failed.");
-      }
-      const blob = await res.blob();
-      const ext = pressTemplate.format;
-      const name = `${project.name.toLowerCase().replace(/\s+/g, "-")}-${pressTemplate.id}.${ext}`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      a.click();
-      URL.revokeObjectURL(url);
+      const data = await res.json() as { draft?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Couldn't generate a draft.");
+      setShareDraft(data.draft ?? "");
     } catch (err) {
-      setPressError(err instanceof Error ? err.message : "Generation failed.");
+      setShareError(err instanceof Error ? err.message : "Signal lost. Stand by.");
     } finally {
       setIsGenerating(false);
     }
   }
 
-  const audienceLabel = AUDIENCE_OPTIONS.find((a) => a.id === selectedAudience)?.label;
+  async function runGapCheck(scopeId: ScopeId, detail?: string) {
+    if (!audienceId) return;
+    const checklist = GAP_CHECKLISTS[audienceId];
+    if (!checklist || checklist.length === 0) {
+      setMissingBeats([]);
+      setGapResolutions([]);
+      setMode("draft");
+      void generateDraft(scopeId, detail, []);
+      return;
+    }
+    setIsCheckingGaps(true);
+    setShareError(null);
+    try {
+      const res = await fetch("/api/share/gap-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: project.id, audienceId, scope: scopeId, scopeDetail: detail }),
+      });
+      const data = await res.json() as { missingBeats?: string[]; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Couldn't check for gaps.");
+      const beats = data.missingBeats ?? [];
+      if (beats.length === 0) {
+        setMode("draft");
+        void generateDraft(scopeId, detail, []);
+      } else {
+        setMissingBeats(beats);
+        setGapResolutions([]);
+        setMode("gap-check");
+      }
+    } catch (err) {
+      // Gap-check is a non-blocking nicety — if it fails, don't stall the share flow.
+      console.error("Gap check failed", err);
+      setMode("draft");
+      void generateDraft(scopeId, detail, []);
+    } finally {
+      setIsCheckingGaps(false);
+    }
+  }
+
+  function selectScope(id: ScopeId, detail?: string) {
+    setScope(id);
+    setScopeDetail(detail);
+    void runGapCheck(id, detail);
+  }
+
+  function resolveGap(beatKey: string, action: GapResolutionAction, content?: string) {
+    setGapResolutions((prev) => [...prev.filter((g) => g.beatKey !== beatKey), { beatKey, action, content }]);
+    if (action === "added" && content) {
+      void addStoryFragmentAction({
+        projectId: project.id,
+        source: "share_gap_fill",
+        content,
+      });
+    }
+  }
+
+  const allGapsResolved = missingBeats.every((b) => gapResolutions.some((g) => g.beatKey === b));
+
+  function proceedFromGapCheck() {
+    if (!scope) return;
+    setMode("draft");
+    void generateDraft(scope, scopeDetail, gapResolutions);
+  }
+
+  function openRefine() {
+    setRefineOpen(true);
+  }
+
+  async function submitRefine() {
+    const instruction = refineValue.trim();
+    if (!instruction || !scope) return;
+    setRefineValue("");
+    setRefineOpen(false);
+    await generateDraft(scope, scopeDetail, gapResolutions, { currentDraft: shareDraft, instruction });
+  }
+
+  async function handleShare() {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ text: shareDraft });
+      } catch {
+        // User cancelled the native share sheet — nothing to do.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(shareDraft);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setShareError("Couldn't share — try selecting the text manually.");
+    }
+  }
+
+  function goBack() {
+    if (mode === "scope") {
+      setMode("audience");
+      setAudienceId(null);
+      setAudienceLabel(null);
+      setFormat(null);
+    } else if (mode === "gap-check" || mode === "draft") {
+      setMode("scope");
+      setScope(null);
+      setScopeDetail(undefined);
+      setMissingBeats([]);
+      setGapResolutions([]);
+      setShareDraft("");
+      setShareError(null);
+      setRefineOpen(false);
+      setRefineValue("");
+    }
+  }
+
+  // Steps: Audience, Scope, [Gap-check], Draft. Format rules (Step 4 in the
+  // spec) never appear in the UI, so the visible count is 3 or 4 depending on
+  // whether this audience has a gap checklist at all.
+  const hasChecklist = audienceId ? Boolean(GAP_CHECKLISTS[audienceId]?.length) : false;
+  const totalSteps = hasChecklist ? 4 : 3;
+  const stepNumber =
+    mode === "audience" ? 1
+    : mode === "scope" ? 2
+    : mode === "gap-check" ? 3
+    : hasChecklist ? 4 : 3;
 
   return (
     <>
@@ -648,17 +862,10 @@ function CassChronicleDrawer({
             justifyContent: "center",
             position: "relative",
           }}>
-            {mode === "chat" && (
+            {mode !== "audience" && (
               <button
                 type="button"
-                onClick={() => {
-                  setMode("audience");
-                  setSelectedAudience(null);
-                  setPressTemplate(null);
-                  setPressMessages([]);
-                  setPressDraft("");
-                  setPressReadyToGenerate(false);
-                }}
+                onClick={goBack}
                 style={{
                   position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)",
                   background: "transparent", border: "none", cursor: "pointer",
@@ -698,9 +905,16 @@ function CassChronicleDrawer({
             </button>
           </div>
           {/* Label bar */}
-          <div style={{ background: labelBarBg, padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ background: labelBarBg, padding: "6px 16px", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(200,168,107,0.5)" }}>
+              Step {stepNumber} of {totalSteps}
+            </span>
+            <span style={{ color: "rgba(200,168,107,0.3)" }}>·</span>
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(200,168,107,0.85)" }}>
-              {mode === "audience" ? "Share Your Story" : "Authored By"}
+              {mode === "audience" ? "Share Your Story"
+                : mode === "scope" ? "How Much To Share"
+                : mode === "gap-check" ? "One Sec — Filling A Gap"
+                : "Your Draft"}
             </span>
           </div>
         </div>
@@ -732,184 +946,232 @@ function CassChronicleDrawer({
                 Who would you like to share your story with?
               </p>
             </div>
-            <div style={{ width: "100%", maxWidth: "85%", display: "flex", flexDirection: "column", gap: "8px" }}>
-              {AUDIENCE_OPTIONS.map(({ id, label }, i) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => enterChatMode(id)}
-                  style={{
-                    background: optionBg,
-                    border: `1px solid ${optionBdr}`,
-                    borderRadius: "12px",
-                    padding: "14px 18px",
-                    textAlign: "left", width: "100%",
-                    cursor: "pointer",
-                    animation: "chronicleOptionIn 0.28s ease forwards",
-                    animationDelay: `${i * 80}ms`,
-                    opacity: 0,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = optionBdrHov; e.currentTarget.style.background = optionBgHov; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = optionBdr; e.currentTarget.style.background = optionBg; }}
-                >
-                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.45", color: optionText, margin: 0 }}>{label}</p>
-                </button>
-              ))}
-            </div>
+            <OptionList
+              options={AUDIENCE_OPTIONS.map((a) => ({ id: a.id, label: a.label }))}
+              onPick={(id) => {
+                const a = AUDIENCE_OPTIONS.find((opt) => opt.id === id);
+                if (a) selectAudience(a.id, a.label, a.defaultFormat);
+              }}
+              freeformLabel="Something else…"
+              freeformPlaceholder="Who's this for?"
+              onFreeformSubmit={(text) => selectAudience("other", text, "blog")}
+            />
           </div>
         )}
 
-        {/* ── Chat mode (gap analysis) ── */}
-        {mode === "chat" && (
-          <>
-            <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "12px", scrollbarWidth: "none" }}>
-              {/* Cass FAB — anchored at top of feed */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-                <CassRecorder animState={isPressLoading ? "playing" : "idle"} size="sm" />
+        {/* ── Scope picker (Step 2) ── */}
+        {mode === "scope" && (
+          <div style={{ flex: 1, overflowY: "auto", padding: "28px 20px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", scrollbarWidth: "none" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+              <CassRecorder animState={isCheckingGaps ? "playing" : "idle"} size="sm" />
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "11px", fontWeight: 600,
+                letterSpacing: "0.14em", textTransform: "uppercase",
+                color: textMuted,
+              }}>
+                Cass · Story Guide
+              </span>
+            </div>
+            {audienceLabel && (
+              <div style={{ display: "flex", justifyContent: "center" }}>
                 <span style={{
                   fontFamily: "'Barlow Condensed', sans-serif",
-                  fontSize: "10px", fontWeight: 600,
-                  letterSpacing: "0.14em", textTransform: "uppercase",
-                  color: textMuted,
+                  fontSize: "10px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase",
+                  color: "rgba(245,200,74,0.6)",
+                  border: "1px solid rgba(245,200,74,0.2)",
+                  borderRadius: "999px", padding: "3px 12px",
                 }}>
-                  Cass · Story Guide
+                  {audienceLabel}
                 </span>
               </div>
-              {/* Audience label pill */}
-              {audienceLabel && (
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <span style={{
-                    fontFamily: "'Barlow Condensed', sans-serif",
-                    fontSize: "10px", fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase",
-                    color: "rgba(245,200,74,0.6)",
-                    border: "1px solid rgba(245,200,74,0.2)",
-                    borderRadius: "999px", padding: "3px 12px",
-                  }}>
-                    {audienceLabel}
-                  </span>
-                </div>
-              )}
-
-              {/* Loading skeleton (first message) */}
-              {isPressLoading && pressMessages.length === 0 && (
-                <div style={{ display: "flex", gap: "5px", alignItems: "center", padding: "4px 2px" }}>
-                  {[0, 1, 2].map((d) => (
-                    <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#f5c84a", opacity: 0.4, animation: `chronicleDotPulse 1.1s ease-in-out ${d * 0.18}s infinite` }} />
-                  ))}
-                </div>
-              )}
-
-              {/* Messages */}
-              {pressMessages.map((msg, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
-                  {msg.role === "assistant" ? (
-                    <p style={{
-                      fontFamily: "'Lora', Georgia, serif",
-                      fontSize: "15px",
-                      lineHeight: "1.65",
-                      color: textBody,
-                      margin: 0,
-                      maxWidth: "92%",
-                    }}>
-                      {msg.content}
-                    </p>
-                  ) : (
-                    <div style={{
-                      background: userBubbleBg,
-                      border: `1px solid ${userBubbleBdr}`,
-                      borderRadius: "16px 16px 4px 16px",
-                      padding: "10px 14px",
-                      fontFamily: "'Lora', Georgia, serif",
-                      fontSize: "14px",
-                      lineHeight: "1.55",
-                      color: userBubbleTxt,
-                      maxWidth: "80%",
-                    }}>
-                      {msg.content}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Typing indicator */}
-              {isPressLoading && pressMessages.length > 0 && (
-                <div style={{ display: "flex", gap: "5px", alignItems: "center", padding: "4px 2px" }}>
-                  {[0, 1, 2].map((d) => (
-                    <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#f5c84a", opacity: 0.4, animation: `chronicleDotPulse 1.1s ease-in-out ${d * 0.18}s infinite` }} />
-                  ))}
-                </div>
-              )}
-
-              {pressError && (
-                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{pressError}</p>
-              )}
-
-              {/* Generate CTA */}
-              {pressReadyToGenerate && (
-                <div style={{
-                  background: "rgba(245,200,74,0.07)",
-                  border: "1px solid rgba(245,200,74,0.2)",
-                  borderRadius: "12px",
-                  padding: "20px",
-                  textAlign: "center",
-                  marginTop: "8px",
-                }}>
-                  <p style={{
-                    fontFamily: "'Barlow Condensed', sans-serif",
-                    fontSize: "13px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
-                    color: "rgba(245,200,74,0.8)", margin: "0 0 6px",
-                  }}>
-                    Ready to generate
-                  </p>
-                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: textBody, margin: "0 0 16px", lineHeight: "1.5" }}>
-                    Download your {pressTemplate?.label.toLowerCase()} as a .{pressTemplate?.format} file.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleGenerate}
-                    disabled={isGenerating}
-                    style={{
-                      background: isGenerating ? "rgba(245,200,74,0.5)" : "#f5c84a",
-                      border: "none", borderRadius: "8px",
-                      padding: "10px 20px",
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-                      color: "#0a0a0a",
-                      cursor: isGenerating ? "not-allowed" : "pointer",
-                      display: "inline-flex", alignItems: "center", gap: "8px",
-                      transition: "background 0.15s",
-                    }}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <span style={{ display: "inline-block", width: "12px", height: "12px", border: "2px solid rgba(0,0,0,0.25)", borderTopColor: "#0a0a0a", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-                        Generating…
-                      </>
-                    ) : (
-                      `Download .${pressTemplate?.format ?? "file"}`
-                    )}
-                  </button>
-                </div>
-              )}
-
-              <div ref={pressEndRef} />
-            </div>
-
-            {/* Input */}
-            {!pressReadyToGenerate && (
-              <VoiceInputFooter
-                value={pressDraft}
-                onChange={setPressDraft}
-                onSubmit={(text) => handlePressSend(text)}
-                voiceMode={conversationMode}
-                isCassSpeaking={isCassSpeaking}
-                onRegisterOpenMic={(fn) => { openMicRef.current = fn; }}
-                onEnterVoiceMode={() => toggleConversationMode(true)}
-                onExitVoiceMode={() => toggleConversationMode(false)}
-              />
             )}
-          </>
+            <div style={{ maxWidth: "85%", width: "100%" }}>
+              <p style={{
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: "15px",
+                lineHeight: "1.65",
+                color: textPrimary,
+                margin: 0,
+              }}>
+                How much of your story?
+              </p>
+            </div>
+            <OptionList
+              options={SCOPE_OPTIONS.map((s) => ({
+                id: s.id,
+                label: s.label,
+                recommended: s.id === "chapter_recap" && (audienceId === "investors" || audienceId === "network" || audienceId === "leadership"),
+              }))}
+              onPick={(id) => selectScope(id as ScopeId)}
+              freeformLabel="Something specific…"
+              freeformPlaceholder="Tell me what to cover…"
+              onFreeformSubmit={(text) => selectScope("specific", text)}
+            />
+            {isCheckingGaps && (
+              <div style={{ display: "flex", gap: "5px", alignItems: "center", padding: "4px 2px" }}>
+                {[0, 1, 2].map((d) => (
+                  <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#f5c84a", opacity: 0.4, animation: `chronicleDotPulse 1.1s ease-in-out ${d * 0.18}s infinite` }} />
+                ))}
+              </div>
+            )}
+          </div>
         )}
+
+        {/* ── Gap check (Step 3, conditional) ── */}
+        {mode === "gap-check" && (
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: "18px", scrollbarWidth: "none" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+              <CassRecorder animState="idle" size="sm" />
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "10px", fontWeight: 600,
+                letterSpacing: "0.14em", textTransform: "uppercase",
+                color: textMuted,
+              }}>
+                Cass · Story Guide
+              </span>
+            </div>
+            {missingBeats.map((beat) => (
+              <GapBeatCard
+                key={beat}
+                prompt={GAP_BEAT_PROMPTS[beat] ?? "There's a gap here — want to fill it in, skip it, or flag it as coming soon?"}
+                actionLabel={GAP_BEAT_ACTION_LABELS[beat] ?? "Add it now"}
+                resolution={gapResolutions.find((g) => g.beatKey === beat)}
+                onResolve={(action, content) => resolveGap(beat, action, content)}
+              />
+            ))}
+            {shareError && (
+              <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: 0 }}>{shareError}</p>
+            )}
+            {allGapsResolved && (
+              <button
+                type="button"
+                onClick={proceedFromGapCheck}
+                style={{
+                  background: "#f5c84a", border: "none", borderRadius: "8px",
+                  padding: "10px 24px",
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                  color: "#0a0a0a", cursor: "pointer",
+                }}
+              >
+                Continue
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Draft, preview, edit, send (Step 5) ── */}
+        {mode === "draft" && (
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <div style={{ flexShrink: 0, padding: "16px 20px 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+              <CassRecorder animState={isGenerating ? "playing" : "idle"} size="sm" />
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: "10px", fontWeight: 600,
+                letterSpacing: "0.14em", textTransform: "uppercase",
+                color: textMuted,
+              }}>
+                Cass · Story Guide
+              </span>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 20px", display: "flex", flexDirection: "column" }}>
+              {isGenerating && !shareDraft ? (
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ display: "flex", gap: "5px" }}>
+                    {[0, 1, 2].map((d) => (
+                      <span key={d} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#f5c84a", opacity: 0.4, animation: `chronicleDotPulse 1.1s ease-in-out ${d * 0.18}s infinite` }} />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <textarea
+                  ref={draftTextareaRef}
+                  value={shareDraft}
+                  onChange={(e) => setShareDraft(e.target.value)}
+                  style={{
+                    width: "100%", resize: "none", overflow: "hidden",
+                    background: "transparent", border: "none", padding: 0,
+                    fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: "1.65",
+                    color: textBody, outline: "none",
+                    opacity: isGenerating ? 0.5 : 1,
+                    transition: "opacity 0.15s",
+                  }}
+                />
+              )}
+              {shareError && (
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "12px", color: "#f87171", margin: "8px 0 0" }}>{shareError}</p>
+              )}
+            </div>
+            {!refineOpen ? (
+              <div style={{ flexShrink: 0, padding: "12px 20px 28px", display: "flex", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  disabled={!shareDraft}
+                  style={{
+                    flex: 1,
+                    background: shareDraft ? "#f5c84a" : "rgba(245,200,74,0.3)",
+                    border: "none", borderRadius: "8px", padding: "10px 16px",
+                    fontFamily: "'Barlow Condensed', sans-serif", fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+                    color: "#0a0a0a", cursor: shareDraft ? "pointer" : "not-allowed",
+                  }}
+                >
+                  {copied ? "Copied!" : "Share"}
+                </button>
+                <button
+                  type="button"
+                  onClick={openRefine}
+                  disabled={!shareDraft || isGenerating}
+                  style={{
+                    flex: 1,
+                    background: "transparent", border: `1px solid ${optionBdr}`, borderRadius: "8px", padding: "10px 16px",
+                    fontFamily: "'Barlow Condensed', sans-serif", fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+                    color: optionText, cursor: (!shareDraft || isGenerating) ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Refine
+                </button>
+              </div>
+            ) : (
+              <div style={{ flexShrink: 0, padding: "8px 20px 28px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "13px", lineHeight: "1.5", color: textBody, margin: 0 }}>
+                  What would you like to change?
+                </p>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    autoFocus
+                    value={refineValue}
+                    onChange={(e) => setRefineValue(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submitRefine()}
+                    placeholder="Make it shorter, lead with the win…"
+                    style={{
+                      flex: 1,
+                      background: isDark ? "rgba(255,255,255,0.03)" : "rgba(26,14,0,0.03)",
+                      border: `1px solid ${optionBdr}`, borderRadius: "8px",
+                      padding: "8px 12px", outline: "none",
+                      fontFamily: "'Lora', Georgia, serif", fontSize: "13px", color: textBody,
+                    }}
+                  />
+                  <ActionChip label="Send" onClick={submitRefine} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setRefineOpen(false); setRefineValue(""); }}
+                  style={{
+                    alignSelf: "flex-start", background: "none", border: "none", cursor: "pointer", padding: 0,
+                    fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
+                    color: textMuted,
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </>
   );
@@ -955,6 +1217,7 @@ function ChapterEntry({
   droppedFragments = [],
   isActiveChapter = false,
   onEndChapterRequested,
+  onAddToChapterRequested,
   chapterDaysLeft,
 }: {
   chapter: Chapter;
@@ -972,6 +1235,7 @@ function ChapterEntry({
   isActiveChapter?: boolean;
   chapterDaysLeft?: number | null;
   onEndChapterRequested?: () => void;
+  onAddToChapterRequested?: () => void;
 }) {
   const status = chapterStatus(chapter);
   const { theme } = useTheme();
@@ -1245,6 +1509,8 @@ function ChapterEntry({
           isDark={isDark}
           open={refineOpen}
           onOpenChange={setRefineOpen}
+          isActiveChapter={isActiveChapter}
+          onAddRequested={onAddToChapterRequested}
         />
 
         {status === "working_on_it" && isActiveChapter && (
@@ -1623,15 +1889,6 @@ export function ProjectOverviewShell({
     setActiveNudge(null);
   }
 
-  function declineNudge() {
-    if (activeNudge === "backstory") {
-      dismissBackstoryNudgeAction(project.id).catch(() => undefined);
-    } else if (activeNudge === "voice") {
-      dismissVoiceProfileNudgeAction(project.id).catch(() => undefined);
-    }
-    setActiveNudge(null);
-  }
-
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>(projectTasks);
   const [, startTaskTransition] = useTransition();
@@ -1803,7 +2060,7 @@ export function ProjectOverviewShell({
           /* ── The Story So Far ── */
           <div
             ref={wrapperRef}
-            className="-mx-4 flex-1 lg:mx-0"
+            className="flex-1"
             style={{
               backgroundImage: "radial-gradient(ellipse at 50% 0%, rgba(200,168,107,0.04) 0%, transparent 65%)",
               paddingBottom: "120px",
@@ -2035,6 +2292,11 @@ export function ProjectOverviewShell({
                           ? () => { setEndChapterRequested(true); setCaptureOpen(true); }
                           : undefined
                       }
+                      onAddToChapterRequested={
+                        chapter.id === activeChapterId
+                          ? () => { setDailyTestimonialRequested(true); setCaptureOpen(true); }
+                          : undefined
+                      }
                       chapterDaysLeft={chapter.id === activeChapterId ? chapterDaysLeft : undefined}
                     />
                   ))}
@@ -2065,6 +2327,7 @@ export function ProjectOverviewShell({
         {/* ── FAB — the single Cass entry point, scoped to the active chapter ── */}
         {!refining && activeChapterId && (
           <CassStoryFab
+            chapterId={activeChapterId}
             hasPendingNudge={activeNudge !== null}
             nudgeLabel={
               activeNudge === "backstory"
@@ -2079,15 +2342,6 @@ export function ProjectOverviewShell({
             onSelectAddSomething={() => setCaptureOpen(true)}
             disabled={needsPaywall}
             onDisabledClick={() => setPaywallOpen(true)}
-          />
-        )}
-
-        {/* Proactive nudge bubble — pops out unprompted, layered above the FAB */}
-        {activeNudge && !nudgeDrawerOpen && (
-          <CassNudgeFab
-            message={NUDGE_MESSAGES[activeNudge]}
-            onAccept={() => setNudgeDrawerOpen(true)}
-            onDecline={declineNudge}
           />
         )}
 
@@ -2110,6 +2364,7 @@ export function ProjectOverviewShell({
               : undefined
           }
           chapterDaysLeft={chapterDaysLeft}
+          dailyTestimonialAlreadyDone={dailyTestimonialDone}
           onEndChapterConfirmed={() => router.refresh()}
           onRetroComplete={() => router.refresh()}
           onClose={() => {

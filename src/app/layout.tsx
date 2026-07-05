@@ -1,7 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-context";
 import { AvatarProvider } from "@/lib/avatar-context";
+
+// Without this, mobile browsers fall back to a desktop-width layout viewport
+// (Safari defaults to 980px) and scale the whole page to fit, which is why
+// every screen needed a manual pinch-zoom to look right.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "Authored By",

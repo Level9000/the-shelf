@@ -55,32 +55,75 @@ function ProjectSelectSection({
 }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const [changingProject, setChangingProject] = useState(false);
+
+  const currentProject = projects.find((p) => p.id === currentProjectId);
 
   const inputBg    = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
   const inputColor = isDark ? "rgba(248,248,246,0.85)" : "rgba(26,14,0,0.85)";
+  const textColor  = isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)";
+  const linkColor  = isDark ? "rgba(200,168,107,0.8)" : "rgba(160,100,10,0.8)";
+  const cancelColor= isDark ? "rgba(248,248,246,0.4)" : "rgba(26,14,0,0.4)";
 
   return (
-    <DrawerSection label="Select Project">
-      <select
-        value={currentProjectId}
-        onChange={(e) => {
-          const project = projects.find((p) => p.id === e.target.value);
-          if (project) onSelect(project);
-        }}
-        style={{
-          width: "100%", background: inputBg, border: "1px solid rgba(200,168,107,0.25)",
-          borderRadius: "10px", padding: "10px 12px", boxSizing: "border-box",
-          fontFamily: "'Lora', Georgia, serif", fontSize: "14px",
-          color: inputColor, outline: "none", cursor: "pointer",
-        }}
-        onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.55)"; }}
-        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
-      >
-        {projects.map((p) => (
-          <option key={p.id} value={p.id}>{p.name}</option>
-        ))}
-      </select>
-      <div style={{ marginTop: "8px" }}>
+    <DrawerSection label="Current Project">
+      <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: textColor, margin: "0 0 8px" }}>
+        {currentProject?.name ?? "Untitled"}
+      </p>
+
+      {changingProject ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <select
+            autoFocus
+            value={currentProjectId}
+            onChange={(e) => {
+              const project = projects.find((p) => p.id === e.target.value);
+              if (project) {
+                onSelect(project);
+                setChangingProject(false);
+              }
+            }}
+            style={{
+              width: "100%", background: inputBg, border: "1px solid rgba(200,168,107,0.25)",
+              borderRadius: "10px", padding: "10px 12px", boxSizing: "border-box",
+              fontFamily: "'Lora', Georgia, serif", fontSize: "14px",
+              color: inputColor, outline: "none", cursor: "pointer",
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.55)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(200,168,107,0.25)"; }}
+          >
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setChangingProject(false)}
+            style={{
+              alignSelf: "flex-start", background: "none", border: "none", cursor: "pointer", padding: 0,
+              fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 600,
+              letterSpacing: "0.06em", textTransform: "uppercase", color: cancelColor,
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setChangingProject(true)}
+          style={{
+            background: "none", border: "none", cursor: "pointer", padding: 0,
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: "12px", fontWeight: 600,
+            letterSpacing: "0.06em", textTransform: "uppercase", color: linkColor,
+            textDecoration: "underline", textUnderlineOffset: "3px",
+          }}
+        >
+          Change Project
+        </button>
+      )}
+
+      <div style={{ marginTop: "12px" }}>
         <TapeButton variant="secondary" size="sm" onClick={onNewProject} className="w-full justify-center">
           + New Project
         </TapeButton>
@@ -621,12 +664,6 @@ export function SettingsContent({
                   </div>
                 </>
               )}
-              {/* Project name — read only */}
-              <div>
-                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: isDark ? "rgba(248,248,246,0.25)" : "rgba(26,14,0,0.28)", marginBottom: "6px" }}>Project</p>
-                <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: isDark ? "#f8f8f6" : "rgba(26,14,0,0.88)", margin: 0 }}>{currentProjectName ?? "—"}</p>
-              </div>
-
               {/* ── Danger zone — delete chapter / delete project ── */}
               {hasDangerZone && (
                 <div style={{ marginLeft: "-16px", marginRight: "-16px" }}>
