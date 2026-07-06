@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedUser } from "@/lib/supabase/queries";
+import { refreshLiveDraftStory } from "@/lib/ai/live-draft";
 
 export type StoryFragmentSource = "chapter_capture" | "foundation" | "freeform" | "task_dropped" | "task_completed" | "daily_testimonial" | "share_gap_fill";
 
@@ -52,4 +53,16 @@ export async function checkDailyTestimonialDoneTodayAction(chapterId: string): P
     .gte("created_at", startOfToday.toISOString());
 
   return { done: (count ?? 0) > 0 };
+}
+
+/** Regenerates the active chapter's live draft from its daily testimonials.
+ *  Never throws — a live-draft hiccup must never block the check-in flow. */
+export async function refreshLiveDraftStoryAction(projectId: string, chapterId: string): Promise<void> {
+  const { supabase } = await getAuthenticatedUser();
+  try {
+    await refreshLiveDraftStory(supabase, projectId, chapterId);
+  } catch (err) {
+    console.error("refreshLiveDraftStoryAction failed", err);
+  }
+  revalidatePath(`/projects/${projectId}`);
 }

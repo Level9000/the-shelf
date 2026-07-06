@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, X } from "lucide-react";
-import type { AppUser, BoardColumn, Chapter, DroppedTaskFragment, ProjectMember, ProjectWithChapters, Task, UserProfile, WorkflowTemplate } from "@/types";
+import type { AppUser, BoardColumn, Chapter, DroppedTaskFragment, ProjectMember, ProjectWithChapters, StoryFragmentThread, Task, UserProfile, WorkflowTemplate } from "@/types";
 import type { AudienceId, FormatId, GapResolution, GapResolutionAction, ScopeId } from "@/lib/press/share-types";
 import { GAP_CHECKLISTS, GAP_BEAT_PROMPTS, GAP_BEAT_ACTION_LABELS } from "@/lib/press/gap-checklists";
 import { ProjectArcRefiner } from "@/components/projects/project-arc-refiner";
@@ -1215,6 +1215,7 @@ function ChapterEntry({
   onOpenTask,
   chapterColumns = [],
   droppedFragments = [],
+  dailyTestimonialThreads = [],
   isActiveChapter = false,
   onEndChapterRequested,
   onAddToChapterRequested,
@@ -1232,6 +1233,7 @@ function ChapterEntry({
   onOpenTask?: (taskId: string) => void;
   chapterColumns?: BoardColumn[];
   droppedFragments?: DroppedTaskFragment[];
+  dailyTestimonialThreads?: StoryFragmentThread[];
   isActiveChapter?: boolean;
   chapterDaysLeft?: number | null;
   onEndChapterRequested?: () => void;
@@ -1290,6 +1292,14 @@ function ChapterEntry({
       messages: chapter.retroConversation,
     });
   }
+  dailyTestimonialThreads.forEach((t) => {
+    threads.push({
+      id: `daily-${t.id}`,
+      label: "Daily Check-in",
+      completedAt: t.completedAt,
+      messages: t.messages,
+    });
+  });
 
   // Historical "Chapter tasks" groups — completed / dropped / left behind.
   const doneColumnId = chapterColumns.find((col) => col.name.toLowerCase() === "done")?.id;
@@ -1445,8 +1455,33 @@ function ChapterEntry({
           </p>
         )}
 
-        {/* In progress: pulsing indicator + goal */}
-        {status === "working_on_it" && (
+        {/* In progress: live draft assembled from daily check-ins so far */}
+        {status === "working_on_it" && chapter.liveDraftStory && (
+          <div style={{ marginTop: "14px" }}>
+            <p style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              fontStyle: "italic",
+              color: mutedColor,
+              margin: "0 0 8px",
+            }}>
+              This chapter is still being written — but here&rsquo;s how things have been going so far, in the author&rsquo;s own words:
+            </p>
+            {renderParagraphs(chapter.liveDraftStory, {
+              fontFamily: "Verdana, Geneva, sans-serif",
+              fontSize: "15px",
+              color: bodyColor,
+              lineHeight: 1.85,
+              margin: "16px 0 0",
+            })}
+          </div>
+        )}
+
+        {/* In progress, no check-ins yet: pulsing indicator + goal */}
+        {status === "working_on_it" && !chapter.liveDraftStory && (
           <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginTop: "14px" }}>
             <span
               style={{
@@ -1826,6 +1861,7 @@ export function ProjectOverviewShell({
   activeChapterTemplates = [],
   allChapterColumns = {},
   droppedTaskFragments = [],
+  storyFragmentThreads = [],
 }: {
   project: ProjectWithChapters;
   projects: ProjectWithChapters[];
@@ -1840,6 +1876,7 @@ export function ProjectOverviewShell({
   activeChapterTemplates?: WorkflowTemplate[];
   allChapterColumns?: Record<string, BoardColumn[]>;
   droppedTaskFragments?: DroppedTaskFragment[];
+  storyFragmentThreads?: StoryFragmentThread[];
 }) {
   const router = useRouter();
   const needsPaywall = subscriptionStatus === "trial_ended" || subscriptionStatus === "expired";
@@ -2199,6 +2236,16 @@ export function ProjectOverviewShell({
                     messages: session.messages,
                   });
                 });
+                storyFragmentThreads
+                  .filter((f) => f.source === "foundation" && !f.chapterId)
+                  .forEach((f) => {
+                    projectThreads.push({
+                      id: `foundation-${f.id}`,
+                      label: "Backstory Conversation",
+                      completedAt: f.completedAt,
+                      messages: f.messages,
+                    });
+                  });
                 if (projectThreads.length === 0) return null;
                 return (
                   <div style={{ marginBottom: "52px" }}>
@@ -2286,6 +2333,9 @@ export function ProjectOverviewShell({
                       onOpenTask={chapter.id === activeChapterId ? setSelectedTaskId : undefined}
                       chapterColumns={allChapterColumns[chapter.id] ?? []}
                       droppedFragments={droppedTaskFragments.filter((f) => f.chapterId === chapter.id)}
+                      dailyTestimonialThreads={storyFragmentThreads.filter(
+                        (f) => f.source === "daily_testimonial" && f.chapterId === chapter.id,
+                      )}
                       isActiveChapter={chapter.id === activeChapterId}
                       onEndChapterRequested={
                         chapter.id === activeChapterId

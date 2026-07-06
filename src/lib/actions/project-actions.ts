@@ -671,6 +671,10 @@ export async function completeChapterRetroAction(input: {
     // Enhanced fields
     retro_beats:     input.retroBeats ?? null,
     bridge_sentence: (input.bridgeSentence ?? "").trim() || null,
+    // chapter_story (set later by /api/story/generate) is now the permanent
+    // narrative — clear the in-progress live draft so no stale data lingers.
+    live_draft_story: null,
+    live_draft_updated_at: null,
   };
 
   // If legacy story fields are provided (old flow), save them too

@@ -38,6 +38,7 @@ import {
   buildFragmentExtractionPrompt,
   buildCassRetroPrompt,
   buildCassStoryShareRefinementPrompt,
+  buildLiveDraftStoryPrompt,
   buildTyChapterKickoffPrompt,
   buildTyRetroPrompt,
   buildTyChroniclePrompt,
@@ -1545,6 +1546,52 @@ export async function runCassStoryShareRefinement(input: {
   if (!refined) throw new Error("Story refinement returned no content.");
 
   return refined;
+}
+
+export async function runLiveDraftStoryGeneration(input: {
+  projectName: string;
+  chapterName: string;
+  chapterGoal?: string | null;
+  whyItMatters?: string | null;
+  confirmedThesis?: string | null;
+  testimonials: Array<{ date: string; content: string }>;
+}): Promise<string> {
+  const apiKey = requireAnthropicKey();
+  const systemPrompt = buildLiveDraftStoryPrompt(input);
+
+  const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: "Write the evolving chapter draft now.",
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Live draft generation failed: ${message}`);
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+
+  const draft = stripEmDashes(payload.content?.find((b) => b.type === "text")?.text?.trim());
+  if (!draft) throw new Error("Live draft generation returned no content.");
+
+  return draft;
 }
 
 // ── Share flow: gap check + draft generation ──────────────────────────────────

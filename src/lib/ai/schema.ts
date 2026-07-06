@@ -164,8 +164,8 @@ export type AIRefocusDialogue = z.infer<typeof aiRefocusDialogueSchema>;
 export const aiFoundationDialogueSchema = z.object({
   reply: z.string().trim().min(1).max(4000),
   done: z.boolean(),
-  /** Synthesized backstory paragraph — only populated when done is true. */
-  foundationSummary: z.string().trim().max(3000).default(""),
+  /** Synthesized backstory prose — only populated when done is true. Generous cap since it accumulates over many refinement sessions. */
+  foundationSummary: z.string().trim().max(20000).default(""),
 });
 
 export type AIFoundationDialogue = z.infer<typeof aiFoundationDialogueSchema>;

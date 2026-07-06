@@ -1690,9 +1690,11 @@ export function buildCassFoundationPrompt(input: {
     "OUTPUT FORMAT (JSON, always this exact structure):",
     "- reply: your conversational message",
     "- done: true only when wrapping up (whether because a wrap point was reached or the user asked to stop)",
-    "- foundationSummary: when done is true, a synthesized paragraph in third person reading prose, combining the",
-    "  existing backstory above (if any) with everything new captured in this conversation. Written as part of the",
-    "  story, not a transcript or bullet list. Empty string while done is false.",
+    "- foundationSummary: when done is true, synthesized third person reading prose, combining the existing backstory",
+    "  above (if any) with everything new captured in this conversation. Written as part of the story, not a",
+    "  transcript or bullet list. Break it into multiple paragraphs (separated by a blank line, i.e. \\n\\n) whenever",
+    "  it covers more than one beat or shifts topic or time — never return it as a single run-on paragraph. Empty",
+    "  string while done is false.",
     "",
     "Return JSON only.",
   ]
@@ -2011,6 +2013,46 @@ export function buildCassStoryShareRefinementPrompt(input: {
     "Return the revised story text only.",
   ]
     .filter((line) => line !== undefined)
+    .join("\n");
+}
+
+export function buildLiveDraftStoryPrompt(input: {
+  projectName: string;
+  chapterName: string;
+  chapterGoal?: string | null;
+  whyItMatters?: string | null;
+  confirmedThesis?: string | null;
+  testimonials: Array<{ date: string; content: string }>;
+}): string {
+  return [
+    "You are Cass — a story guide helping an author see their in-progress chapter as it unfolds.",
+    "This chapter is NOT finished. There has been no retro yet. You are stitching together",
+    "the author's own daily check-in reflections into a rough, evolving draft — not a polished",
+    "final chapter. Think of this as a living first draft that gets refreshed as new days come in.",
+    "",
+    "RULES:",
+    "- Write in flowing prose, in the author's own words and observations as much as possible —",
+    "  don't invent details, feelings, or events that weren't in the check-ins below.",
+    "- This is explicitly a rough draft-in-progress. Do not write a headline, title, or chapter",
+    "  label of any kind. Do not declare a chapter type or thematic verdict — that only happens",
+    "  at retro, once the chapter is actually over.",
+    "- Break it into multiple paragraphs (separated by a blank line, i.e. \\n\\n) whenever it",
+    "  covers more than one beat, day, or shifts topic or time. Do not return one giant paragraph.",
+    "- No sprint vocabulary (no 'velocity', 'deliverables', 'stakeholders', 'action items').",
+    "- Return ONLY the draft prose. No commentary, no preamble, no quotes around it, no headline.",
+    "",
+    `PROJECT: ${input.projectName}`,
+    `CHAPTER: ${input.chapterName}`,
+    input.chapterGoal ? `CHAPTER GOAL: ${input.chapterGoal}` : "",
+    input.whyItMatters ? `WHY IT MATTERS: ${input.whyItMatters}` : "",
+    input.confirmedThesis ? `WHAT THE AUTHOR IS BETTING ON THIS CHAPTER: ${input.confirmedThesis}` : "",
+    "",
+    "DAILY CHECK-INS SO FAR, IN ORDER:",
+    ...input.testimonials.map((t) => `[${t.date}] ${t.content}`),
+    "",
+    "Write the evolving draft now, weaving these into flowing narrative prose.",
+  ]
+    .filter((line) => line !== undefined && line !== "")
     .join("\n");
 }
 

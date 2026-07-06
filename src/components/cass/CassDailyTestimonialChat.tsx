@@ -9,7 +9,7 @@ import { CASS_ERROR_LINES } from "./cassVoice";
 import { TapeButton } from "@/components/ui/tape-button";
 import { useTheme } from "@/lib/theme-context";
 import { createBrainDumpCardsAction } from "@/lib/actions/task-actions";
-import { addStoryFragmentAction } from "@/lib/actions/story-fragment-actions";
+import { addStoryFragmentAction, refreshLiveDraftStoryAction } from "@/lib/actions/story-fragment-actions";
 
 type DialogueMessage = { role: "user" | "assistant"; content: string };
 type ProposedTask = { title: string };
@@ -56,10 +56,15 @@ export function CassDailyTestimonialChat({
 
   const opening = openingMessage(project.name, alreadyDoneToday);
 
+  // Mobile browsers (iOS + Android) handle mic access for conversation mode poorly —
+  // keep this consistent with the guard used elsewhere (story-foundation.tsx,
+  // cass-board-drawer.tsx): default to text mode, no auto-speak, on mobile.
+  const isMobileBrowser = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   const [messages, setMessages] = useState<DialogueMessage[]>([opening]);
-  const [animState, setAnimState] = useState<CassAnimState>("talking");
+  const [animState, setAnimState] = useState<CassAnimState>(isMobileBrowser ? "listening" : "talking");
   const [inputValue, setInputValue] = useState("");
-  const [voiceMode, setVoiceMode] = useState(true);
+  const [voiceMode, setVoiceMode] = useState(!isMobileBrowser);
   const [phase, setPhase] = useState<Phase>("conversation");
   const [proposedTasks, setProposedTasks] = useState<ProposedTask[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +76,9 @@ export function CassDailyTestimonialChat({
   const openMicRef = useRef<(() => void) | null>(null);
   const doneRef = useRef(false);
 
-  const isListening = animState === "listening" && !isPending && phase === "conversation";
+  // In voice mode, only show the input once Cass has finished "talking" (TTS ended).
+  // In text mode there's no TTS to wait on — show it as soon as we're not mid-request.
+  const showInput = phase === "conversation" && !isPending && (!voiceMode || animState === "listening");
 
   async function speakAsCass(text: string) {
     if (!voiceMode || !text.trim()) return;
@@ -207,6 +214,7 @@ export function CassDailyTestimonialChat({
           content: closingReply,
           conversation: finalMessages,
         });
+        await refreshLiveDraftStoryAction(project.id, board.id);
         setPhase("done");
         setTimeout(onComplete, 900);
       } catch (err) {
@@ -309,7 +317,7 @@ export function CassDailyTestimonialChat({
         @keyframes cassDailyCaretBlink { 0%, 100% { opacity: 0.5; } 50% { opacity: 0; } }
       `}</style>
 
-      {isListening && phase === "conversation" && (
+      {showInput && (
         <VoiceInputFooter
           value={inputValue}
           onChange={setInputValue}

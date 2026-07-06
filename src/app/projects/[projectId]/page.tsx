@@ -7,6 +7,7 @@ import {
   getProjectAccessSnapshot,
   getProjectBoardSnapshot,
   getProjectsWithChapters,
+  getStoryFragmentThreads,
   getTasksForProject,
   getAuthenticatedUser,
 } from "@/lib/supabase/queries";
@@ -31,12 +32,13 @@ export default async function ProjectPage({
   // internal auth lookups made by the queries below into a single auth call.
   const { supabase, user } = await getAuthenticatedUser();
 
-  const [projects, profile, access, projectTasks, subscription] = await Promise.all([
+  const [projects, profile, access, projectTasks, subscription, storyFragmentThreads] = await Promise.all([
     getProjectsWithChapters(),
     getCurrentUserProfile(),
     getProjectAccessSnapshot(projectId),
     getTasksForProject(projectId),
     getUserSubscription(supabase, user.id),
+    getStoryFragmentThreads(projectId),
   ]);
 
   await ensureMinDuration(start, MIN_LOADING_MS);
@@ -84,6 +86,7 @@ export default async function ProjectPage({
         activeChapterTemplates={activeBoardSnapshot?.workflowTemplates ?? []}
         allChapterColumns={allChapterColumns}
         droppedTaskFragments={droppedTaskFragments}
+        storyFragmentThreads={storyFragmentThreads}
       />
     </main>
   );

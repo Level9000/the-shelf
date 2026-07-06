@@ -61,42 +61,27 @@ const EMPTY_ANSWERS: OnboardingDraft["answers"] = {
 const INTRO_SLIDES = [
   {
     id: "beat-1",
-    cassText: "Hey. I'm Cass.\n\nBefore we do anything else, I want to tell you something I believe.",
+    cassText: "Hey, I'm Cass.\n\nBefore we do anything else, I want to tell you something I believe. Right now, today, you are living a story worth telling.",
     isLast: false,
   },
   {
     id: "beat-2",
-    cassText: "Right now, today, you are living a story worth telling.\n\nNot someday. Not once you've made it. Right now.",
+    cassText: "Maybe you're building a company.\n\nMaybe you're training for something that scares you a little.\n\nMaybe you're trying to finish the book, finish the degree, or finish the thing you keep almost finishing.",
     isLast: false,
   },
   {
     id: "beat-3",
-    cassText: "Maybe you're building a company.\n\nMaybe you're training for something that scares you a little.\n\nMaybe you're trying to finish the book, finish the degree, finish the thing you keep almost finishing.",
+    cassText: "It doesn't matter which is true for you because they are all the same story underneath.\n\nYou decided something was important enough that you keep showing up for it.\n\nIt's an epic story in the making. But most likely, none of it is getting written down, and this epic story is going unread.",
     isLast: false,
   },
   {
     id: "beat-4",
-    cassText: "Doesn't matter which one. They're all the same story underneath.\n\nSomeone decided something mattered enough to show up for, even on the days it was hard. Especially on the days it was hard.",
+    cassText: "That's where I can help.\n\nCheck in with me once a day and I'll make sure we turn the exciting journey you are on into something worth reading.\n\nYou talk, I listen.\n\nOver time, these records become something and before you know it, the small wins, the pivots, the stumbles, the breakthroughs start to read like a story worth telling.",
     isLast: false,
   },
   {
     id: "beat-5",
-    cassText: "Most of that never gets written down.\n\nThe 6am you didn't want to get up but did. The version of the plan that fell apart. The small win nobody else would even notice. It just disappears into the next day.",
-    isLast: false,
-  },
-  {
-    id: "beat-6",
-    cassText: "That's what I'm here for.\n\nNot to help you do more. Just to help you keep what you're already living.",
-    isLast: false,
-  },
-  {
-    id: "beat-7",
-    cassText: "You talk. I listen. Over time, it becomes something. A record. A story. Proof you were here, doing the thing, before you even knew how it ended.",
-    isLast: false,
-  },
-  {
-    id: "beat-8",
-    cassText: "So let's start simple.\n\nWhat are you in the middle of right now?",
+    cassText: "So let's get started and keep things simple.\n\nWhat are you in the middle of right now?",
     isLast: true,
   },
 ] as const;
@@ -692,20 +677,23 @@ export function CassOnboardingChat({
   // ── Chat state for the multi-turn interview ──────────────────────────────
   type ChatMsg = { role: "user" | "assistant"; content: string };
   const WELCOME_MESSAGE = "Hi, I'm Cass. Authored By is an author's story engine where we capture your journey chapter by chapter, so the story of what you built is never lost.";
-  const OPENING_QUESTION = "Let's start by talking about the project or business you are building. How has that been going?";
+  // The last intro slide (beat-5) already asks "What are you in the middle of
+  // right now?" — the interview used to re-ask a near-identical question here,
+  // which read as duplicative. That message is gone; the user's answer to
+  // beat-5 is the first turn, and the AI's system prompt already treats it
+  // that way ("the first user message is their response to the opening").
   const CONVO_MODE_NOTE = "I've got conversation mode enabled so we can talk out loud like a normal conversation. If you'd rather type, exit conversation mode.";
-  const initialMessages: ChatMsg[] = [{ role: "assistant", content: OPENING_QUESTION }];
-  const [chatMessages, setChatMessages] = useState<ChatMsg[]>(
-    existingDraft ? [{ role: "assistant", content: OPENING_QUESTION }] : initialMessages
-  );
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatPending, setIsChatPending] = useState(false);
   // Nintendo-style gating: user must press Continue after each Cass message
   const [showContinue, setShowContinue] = useState(false);
   const [inputRevealed, setInputRevealed] = useState(true);
   const [chatDone, setChatDone] = useState(false);
-  // True once the typewriter finishes on the latest Cass message — gates the input footer
-  const [latestMsgTyped, setLatestMsgTyped] = useState(!!existingDraft);
+  // True once the typewriter finishes on the latest Cass message — gates the input footer.
+  // Starts true: there's no seed Cass message to wait on anymore, the input
+  // should be available as soon as the interview section appears.
+  const [latestMsgTyped, setLatestMsgTyped] = useState(true);
   // Final transition state — show "Let's go" chip after final message typewriter completes
   const [showBoardContinue, setShowBoardContinue] = useState(false);
   const boardUrlRef = useRef<string | null>(null);
@@ -784,12 +772,13 @@ export function CassOnboardingChat({
     }
   }, [answers, rawDescription, phase, projectName, proposedChapters]);
 
-  // Animate Cass and auto-play first message when entering interview phase (voice mode only)
+  // Entering interview phase: stop any intro slide audio still playing and
+  // hand off straight to listening — there's no seed question to speak
+  // anymore (beat-5 already asked it during the intro), so voice mode goes
+  // straight to the mic via VoiceInputFooter's own auto-listen effect.
   useEffect(() => {
     if (phase !== "interview") return;
-    if (!voiceMode) return;
 
-    // Kill any intro slide audio that may still be playing
     if (introAudioRef.current) {
       introAudioRef.current.pause();
       introAudioRef.current = null;
@@ -801,22 +790,31 @@ export function CassOnboardingChat({
     setIntroPlayingIndex(null);
     introFetchingRef.current = null;
 
-    setAnimState("talking");
-    setIsSpeaking(true);
-    ttsSpeak(OPENING_QUESTION, () => {
-      setIsSpeaking(false);
-      setAnimState("listening");
-      openMicRef.current?.();
-    });
+    setAnimState(voiceMode ? "listening" : "idle");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  // Auto-scroll to bottom whenever Cass sends a new message or typing indicator appears
+  // Auto-scroll to bottom whenever Cass sends a new message or typing indicator
+  // appears — also fires the instant the intro finishes and the interview
+  // section mounts, so the user lands on beat-5 / the input, not the top of
+  // the intro. Instant (not smooth) jump: on the "start a new project" fast
+  // path all 5 intro slides + the interview section render in one
+  // synchronous batch, so scrollHeight isn't reliable until a full
+  // layout/paint cycle has settled, and a "smooth" animated scroll across
+  // that much content reads as slow/janky on first load anyway. rAF plus a
+  // short timeout as backup, since rAF alone isn't dependable in every case
+  // (browsers throttle/skip it for backgrounded or not-yet-focused tabs).
   useEffect(() => {
     if (phase !== "interview") return;
     const el = mainScrollRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    const scrollToBottom = () => { el.scrollTop = el.scrollHeight; };
+    const raf = requestAnimationFrame(scrollToBottom);
+    const timer = setTimeout(scrollToBottom, 80);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
   }, [chatMessages, isChatPending, phase]);
 
   async function handleChatSubmit(overrideText?: string) {
@@ -975,12 +973,15 @@ export function CassOnboardingChat({
     setAnswers((prev) => ({ ...prev, [field]: value }));
   }
 
-  // Count assistant turns to gauge interview progress (1 = opening, 2 = follow-up/risk, 3 = last question)
+  // Count assistant turns to gauge interview progress (0 = opening answered,
+  // 1 = follow-up/risk reply, 2 = last question reply). There's no seed
+  // opening message in chatMessages anymore, so these no longer count a
+  // phantom first turn — shifted down by one from before.
   const assistantTurns = chatMessages.filter((m) => m.role === "assistant").length;
   const userTurns = chatMessages.filter((m) => m.role === "user").length;
   const interviewProgress =
-    assistantTurns >= 3 ? 75 :
-    assistantTurns === 2 ? 55 :
+    assistantTurns >= 2 ? 75 :
+    assistantTurns === 1 ? 55 :
     userTurns > 0 ? 30 :
     0;
 
@@ -1002,9 +1003,6 @@ export function CassOnboardingChat({
     setPrevLatestAssistantIndex(latestAssistantIndex);
     setRevealedParaCount(1);
   }
-  // Gates the "conversation mode" hint below the opening question so it
-  // only starts typing after that question has finished.
-  const [hintReady, setHintReady] = useState(false);
 
   // ── Main layout ─────────────────────────────────────────────────────────────
   return (
@@ -1175,10 +1173,10 @@ export function CassOnboardingChat({
                   </div>
 
                   {/* Checklist demo — right under "finish the thing you keep almost finishing" */}
-                  {slide.id === "beat-3" && <ChecklistDemo />}
+                  {slide.id === "beat-2" && <ChecklistDemo />}
 
-                  {/* Chapter reveal demo — right under "You talk. I listen." */}
-                  {slide.id === "beat-7" && <ChapterRevealDemo />}
+                  {/* Chapter reveal demo — right under "You talk, I listen." */}
+                  {slide.id === "beat-4" && <ChapterRevealDemo />}
                 </div>
               );
             })}
@@ -1210,6 +1208,21 @@ export function CassOnboardingChat({
                   <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
                 </div>
 
+                {/* Conversation mode hint — beat-5 already asked the opening
+                    question, so this just orients the author to voice mode
+                    before they answer it. */}
+                <p style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: "12px", letterSpacing: "0.04em",
+                  lineHeight: "1.6",
+                  color: "rgba(248,248,246,0.38)",
+                  margin: 0,
+                  maxWidth: "85%", width: "100%", marginLeft: "auto", marginRight: "auto",
+                  animation: "cass-fade-in 0.4s ease 0.2s both",
+                }}>
+                  {CONVO_MODE_NOTE}
+                </p>
+
                 {/* Chat messages */}
                 {chatMessages.map((msg, i) => (
                   msg.role === "assistant" ? (
@@ -1238,10 +1251,7 @@ export function CassOnboardingChat({
                                       setRevealedParaCount((c) => c + 1);
                                       return;
                                     }
-                                    // i === 0: the convo mode note's onComplete handles setLatestMsgTyped
-                                    // all other messages: set it directly here
-                                    if (i !== 0) setLatestMsgTyped(true);
-                                    if (i === 0) setHintReady(true);
+                                    setLatestMsgTyped(true);
                                     // Final message (after board save): reveal the "Let's check it out" chip
                                     if (boardUrlRef.current && i === latestAssistantIndex) {
                                       setShowBoardContinue(true);
@@ -1253,24 +1263,6 @@ export function CassOnboardingChat({
                           );
                         });
                       })()}
-
-                      {/* Conversation mode hint — only below the opening question (first assistant msg),
-                          and only once that question has finished typing. */}
-                      {i === 0 && (i !== latestAssistantIndex || hintReady) && (
-                        <p style={{
-                          fontFamily: "'Barlow Condensed', sans-serif",
-                          fontSize: "12px", letterSpacing: "0.04em",
-                          lineHeight: "1.6",
-                          color: "rgba(248,248,246,0.38)",
-                          margin: "14px 0 0",
-                          animation: "cass-fade-in 0.4s ease 0.3s both",
-                        }}>
-                          <TypewriterText
-                            text={CONVO_MODE_NOTE}
-                            onComplete={() => setLatestMsgTyped(true)}
-                          />
-                        </p>
-                      )}
                     </div>
                   ) : (
                     <div key={i} style={{ display: "flex", justifyContent: "flex-end", animation: "cass-fade-up 0.3s ease forwards" }}>

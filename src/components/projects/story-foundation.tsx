@@ -36,18 +36,37 @@ export function StoryFoundationSection({
 
   return (
     <div style={{ marginBottom: "44px" }}>
-      <p
-        style={{
-          fontFamily: "'Literata', Georgia, serif",
-          fontSize: "16px",
-          lineHeight: 1.75,
-          fontStyle: foundation ? "normal" : "italic",
-          color: foundation ? textColor : placeholderColor,
-          margin: "0 0 18px",
-        }}
-      >
-        {foundation ?? "The story behind the story hasn't been written yet."}
-      </p>
+      {foundation ? (
+        <div style={{ margin: "0 0 18px" }}>
+          {foundation.split("\n\n").map((para, i) => (
+            <p
+              key={i}
+              style={{
+                fontFamily: "'Literata', Georgia, serif",
+                fontSize: "16px",
+                lineHeight: 1.75,
+                color: textColor,
+                margin: i > 0 ? "14px 0 0" : 0,
+              }}
+            >
+              {para}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p
+          style={{
+            fontFamily: "'Literata', Georgia, serif",
+            fontSize: "16px",
+            lineHeight: 1.75,
+            fontStyle: "italic",
+            color: placeholderColor,
+            margin: "0 0 18px",
+          }}
+        >
+          The story behind the story hasn't been written yet.
+        </p>
+      )}
       <div style={{ display: "flex", justifyContent: "center" }}>
         <button
           type="button"
@@ -366,16 +385,19 @@ export function CassFoundationDrawer({
           {messages.map((msg, i) => (
             <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
               {msg.role === "assistant" ? (
-                <p style={{
-                  fontFamily: "'Lora', Georgia, serif",
-                  fontSize: "15px",
-                  lineHeight: "1.65",
-                  color: textBody,
-                  margin: 0,
-                  maxWidth: "92%",
-                }}>
-                  {msg.content}
-                </p>
+                <div style={{ maxWidth: "92%" }}>
+                  {msg.content.split("\n\n").map((para, j) => (
+                    <p key={j} style={{
+                      fontFamily: "'Lora', Georgia, serif",
+                      fontSize: "15px",
+                      lineHeight: "1.65",
+                      color: textBody,
+                      margin: j > 0 ? "10px 0 0" : 0,
+                    }}>
+                      {para}
+                    </p>
+                  ))}
+                </div>
               ) : (
                 <div style={{
                   background: userBubbleBg,

@@ -10,6 +10,7 @@ import type {
   ProjectMember,
   ProjectWithChapters,
   Project,
+  StoryFragmentThread,
   Task,
   UserProfile,
   VoiceCapture,
@@ -114,6 +115,8 @@ function mapBoard(row: Record<string, unknown>): Board {
     needsReviewReason: (row.needs_review_reason as string | null) ?? null,
     deferredTasks: (row.deferred_tasks as DeferredTask[] | null) ?? null,
     coverImageUrl: (row.cover_image_url as string | null) ?? null,
+    liveDraftStory: (row.live_draft_story as string | null) ?? null,
+    liveDraftUpdatedAt: (row.live_draft_updated_at as string | null) ?? null,
   };
 }
 
@@ -623,4 +626,35 @@ export async function getDroppedTaskFragments(
   }
 
   return (data ?? []).map(mapDroppedTaskFragment);
+}
+
+function mapStoryFragmentThread(row: Record<string, unknown>): StoryFragmentThread {
+  return {
+    id: String(row.id),
+    chapterId: (row.chapter_id as string | null) ?? null,
+    source: row.source as StoryFragmentThread["source"],
+    completedAt: String(row.created_at),
+    messages: (row.conversation as Array<{ role: string; content: string }> | null) ?? [],
+  };
+}
+
+/** Completed backstory ("foundation") and daily check-in conversations, for the
+ *  read-only chat history views on the Story tab. */
+export async function getStoryFragmentThreads(
+  projectId: string,
+): Promise<StoryFragmentThread[]> {
+  const { supabase } = await getAuthenticatedUser();
+  const { data, error } = await supabase
+    .from("story_fragments")
+    .select("id, chapter_id, source, conversation, created_at")
+    .eq("project_id", projectId)
+    .in("source", ["foundation", "daily_testimonial"])
+    .not("conversation", "is", null)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(mapStoryFragmentThread);
 }

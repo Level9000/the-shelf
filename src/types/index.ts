@@ -116,6 +116,17 @@ export type DeferredTask = {
   toChapter?: string;
 };
 
+/** A completed multi-turn Cass conversation pulled from story_fragments — used
+ *  to surface backstory ("foundation") and daily check-in conversation history
+ *  in the read-only chat history drawer. */
+export type StoryFragmentThread = {
+  id: string;
+  chapterId: string | null;
+  source: "foundation" | "daily_testimonial";
+  completedAt: string;
+  messages: Array<{ role: string; content: string }>;
+};
+
 export type Board = {
   id: string;
   projectId: string;
@@ -145,6 +156,8 @@ export type Board = {
   needsReviewReason: string | null;
   deferredTasks: DeferredTask[] | null;
   coverImageUrl: string | null;
+  liveDraftStory: string | null;
+  liveDraftUpdatedAt: string | null;
 };
 
 export type Chapter = Board;
