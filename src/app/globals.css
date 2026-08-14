@@ -230,6 +230,56 @@ pre,
   font-family: var(--font-cass);
 }
 
+/* The how-it-works paginator. Snapping has to be declared on the scroll
+   container, and the container for page scrolling is the viewport, so this
+   lands on `html` — scoped with :has() so it only engages on the page that
+   actually has panels.
+
+   `proximity`, not `mandatory`, and the difference matters here. Mandatory
+   means the viewport may never come to rest anywhere except on a snap point,
+   and the hero, the premise and the footer are not snap points — so it would
+   drag the reader out of whatever they were reading and into the nearest
+   panel, and make the footer almost impossible to settle on. Proximity only
+   engages once a panel is already close, which is the run we want it on, and
+   leaves the rest of the page scrolling normally. Past the last panel it
+   simply stops applying, so scrolling continues into the closing CTA.
+
+   Desktop only, matching the breakpoint where the panels go two-column. On a
+   phone the steps stay a tight continuous stack: a thumb flick is a far
+   blunter instrument than a trackpad, and taking over the scroll on the one
+   device where scrolling *is* the interface is where this stops being
+   charming. */
+@media (min-width: 768px) {
+  html:has([data-snap-pages]) {
+    scroll-snap-type: y proximity;
+  }
+
+  [data-snap-page] {
+    scroll-snap-align: center;
+    /* Without this one flick sails through three panels — it forces the
+       scroll to stop at each, which is what makes it read as pages rather
+       than as a list that happens to jump. */
+    scroll-snap-stop: always;
+  }
+
+  /* Keeps a panel's clip inside one screen. Bounds the *width* using the
+     clip's own ratio, because bounding height directly would crop the picture
+     or need object-fit, and both cost the shift-free sizing the width/height
+     attributes buy. Desktop-only, so the phone layout is untouched. */
+  [data-clip-cap] {
+    max-width: var(--clip-cap);
+  }
+}
+
+/* Snapping hijacks the scroll the reader started, which is exactly the kind
+   of motion this setting is asking us not to do. Falls back to the plain
+   continuous scroll, which still reads fine. */
+@media (prefers-reduced-motion: reduce) {
+  html:has([data-snap-pages]) {
+    scroll-snap-type: none;
+  }
+}
+
 @media (min-width: 1024px) {
   .board-grid {
     grid-template-columns: repeat(var(--col-count), minmax(260px, 1fr));

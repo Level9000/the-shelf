@@ -44,6 +44,17 @@ const TOUR = [
     line: "Stuck? Talk it through with your dream team and get some clarity.",
     alt: "A dream team meeting in the app, with a roster of advisors and options to plan, adjust the goal, or talk it out.",
   },
+  // From `newProjectSlides` — the second-project tour. It isn't part of the
+  // core loop, but as a panel in its own right it no longer has to compete
+  // with the four above for attention the way the old footnote card did.
+  {
+    src: "/onboarding/05-switch-projects.webp",
+    width: 620,
+    height: 594,
+    line:
+      "Running more than one? Keep as many going as you want, and switch between them from the Settings tab.",
+    alt: "The Settings tab in the app, with a list of projects to switch between.",
+  },
 ];
 
 // The app's gold outline pill, ported straight across: 999px, no fill, gold
@@ -76,26 +87,29 @@ export function MarketingHome() {
       data-force-light
       className="min-h-screen bg-[var(--app-bg)] text-[var(--ink)]"
     >
-      {/* No sign-in link anywhere on this page: the web app isn't ready to be
-          shown yet. /login still exists and still works, it just isn't
-          advertised — put the link back here when the web app opens up. */}
-      <header className="mx-auto flex w-full max-w-5xl items-center px-5 py-5">
-        {/* eslint-disable-next-line @next/next/no-img-element -- the wordmark
-            is a photographed strip of tape; it ships as-is. */}
-        <img
-          src="/icons/authored-by-tape-icon.png"
-          alt="Authored By"
-          width={801}
-          height={295}
-          className="h-8 w-auto sm:h-9"
-        />
-      </header>
-
+      {/* No app bar. A landing page doesn't need one, and there's no sign-in
+          link to hang off it while the web app isn't ready to be shown —
+          /login still exists and works, it just isn't advertised. The
+          wordmark moved into the hero below, where it can be the size it
+          deserves. */}
       <main>
         {/* ── Hero ─────────────────────────────────────────────────────── */}
-        <section className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 sm:pt-10">
+        <section className="mx-auto w-full max-w-5xl px-5 pb-16 pt-10 sm:pt-16">
           <div className="grid gap-12 md:grid-cols-2 md:items-center md:gap-14">
             <div>
+              {/* Capped at the headline's own measure — the h1's rendered
+                  lines run ~335px, so the tape sits directly over the title
+                  rather than over the (wider) column it lives in. On a phone
+                  the same cap is simply the full content width. */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- the
+                  wordmark is a photographed strip of tape; it ships as-is. */}
+              <img
+                src="/icons/authored-by-tape-icon.png"
+                alt="Authored By"
+                width={801}
+                height={295}
+                className="mb-6 block h-auto w-full max-w-[336px]"
+              />
               <h1
                 className="font-literata text-balance text-[38px] font-bold leading-[1.08] sm:text-[52px]"
                 style={{ letterSpacing: "-0.02em" }}
@@ -208,11 +222,17 @@ export function MarketingHome() {
             A few quick things before we get started.
           </h2>
 
-          <ol className="mt-14 space-y-16 sm:space-y-20">
+          {/* data-snap-pages turns on the viewport's scroll-snapping while
+              this page is mounted, and only from 768px up — each <li> becomes
+              a snap target sized to one screen. Below that breakpoint none of
+              it applies and this stays a plain stacked list. See the rule in
+              globals.css. */}
+          <ol data-snap-pages className="mt-14 space-y-16 md:mt-6 md:space-y-0">
             {TOUR.map((step, i) => (
               <li
                 key={step.src}
-                className={`grid gap-7 md:grid-cols-2 md:items-center md:gap-12 ${
+                data-snap-page
+                className={`grid gap-7 md:min-h-svh md:grid-cols-2 md:content-center md:items-center md:gap-12 md:py-10 ${
                   i % 2 === 1 ? "md:[&>*:first-child]:order-2" : ""
                 }`}
               >
@@ -222,6 +242,7 @@ export function MarketingHome() {
                     style={{ letterSpacing: "0.22em", color: "var(--gold-emphasis)" }}
                   >
                     {String(i + 1).padStart(2, "0")}
+                    <span className="opacity-50"> / {String(TOUR.length).padStart(2, "0")}</span>
                   </span>
                   <p
                     className="font-story mt-3 max-w-[26ch] text-[20px] sm:text-[24px]"
@@ -235,34 +256,55 @@ export function MarketingHome() {
                   alt={step.alt}
                   width={step.width}
                   height={step.height}
+                  maxViewportHeight={52}
                   className="mx-auto w-full max-w-[340px] md:max-w-none"
                 />
               </li>
             ))}
           </ol>
+        </section>
 
-          {/* 05 is the second-project tour, not the core loop — kept, but
-              demoted to a footnote so it can't compete with the four above. */}
-          <div
-            className="mt-16 flex flex-col gap-6 rounded-2xl p-6 sm:flex-row sm:items-center sm:gap-8"
-            style={{ background: "var(--gold-faint)", border: "1px solid var(--gold-border)" }}
+        {/* ── What you end up with ─────────────────────────────────────── */}
+        {/* The payoff shot, between the loop and the ask: the panels explain
+            how it works, this is the thing it produces, then the CTA. Runs
+            full bleed like the premise band — the page already uses width
+            changes to mark a change of register.
+
+            The headline is live text, not the copy that was burned into the
+            source image. Baked-in type can't be selected, read aloud, or
+            indexed, and it shrinks with the picture until it's unreadable on
+            a phone — so it was cropped off and set here instead, same words. */}
+        <section className="pb-16 sm:pb-24">
+          <h2
+            className="font-literata text-balance mx-auto max-w-5xl px-5 text-center text-[26px] font-bold leading-[1.2] sm:text-[36px]"
+            style={{ letterSpacing: "-0.02em" }}
           >
-            <TourClip
-              src="/onboarding/05-switch-projects.webp"
-              alt="The Settings tab in the app, with a list of projects to switch between."
-              width={620}
-              height={594}
-              className="w-full shrink-0 sm:w-[180px]"
+            Set Your Goals. Track Your Journey. Shape Your Story
+          </h2>
+          {/* Two separately composed shots, not one image reflowed: the wide
+              one would put the phones at about 100px tall on a handset. The
+              <source> media query is the sm breakpoint exactly, and a browser
+              fetches only the one that matches — a phone never pulls the
+              2200px file down. Each container's aspect ratio equals its own
+              image's, so nothing is cropped at either size and neither can
+              shift on load. */}
+          <picture>
+            <source
+              media="(min-width: 640px)"
+              srcSet="/marketing/goals-and-story.webp"
+              width={2200}
+              height={952}
             />
-            <p
-              className="font-story text-[15px]"
-              style={{ lineHeight: 1.7, color: "var(--muted)" }}
-            >
-              Running more than one? Keep as many projects going as you want,
-              and switch between them from the Settings tab. Whichever you pick
-              stays selected until you change it again.
-            </p>
-          </div>
+            <img
+              src="/marketing/goals-and-story-portrait.webp"
+              alt="Two iPhones standing on a desk beside a cork board of pinned notes. The left shows the Goals screen — a highlighted goal, a vision image, and the actions to take next. The right shows a finished chapter, A Dream Is a Dream, with a highlighted pull quote."
+              width={1520}
+              height={2027}
+              loading="lazy"
+              decoding="async"
+              className="mt-8 aspect-[3/4] w-full object-cover object-center sm:mt-10 sm:aspect-[2200/952]"
+            />
+          </picture>
         </section>
 
         {/* ── Close ────────────────────────────────────────────────────── */}

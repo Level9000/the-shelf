@@ -22,12 +22,19 @@ export function TourClip({
   width,
   height,
   className,
+  /// Caps the clip's height as a percentage of the viewport, for the desktop
+  /// paginator panels where a whole step has to fit on one screen. Handed to
+  /// CSS as a custom property rather than applied here, because the cap is
+  /// desktop-only — see `[data-clip-cap]` in globals.css. svh resolves at
+  /// layout time, so it stays shift-free.
+  maxViewportHeight,
 }: {
   src: string;
   alt: string;
   width: number;
   height: number;
   className?: string;
+  maxViewportHeight?: number;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -61,10 +68,16 @@ export function TourClip({
     <div
       ref={frameRef}
       className={`overflow-hidden rounded-2xl ${className ?? ""}`}
-      style={{
-        border: "1px solid var(--gold-border)",
-        boxShadow: "var(--shadow-card)",
-      }}
+      data-clip-cap={maxViewportHeight ? "" : undefined}
+      style={
+        {
+          border: "1px solid var(--gold-border)",
+          boxShadow: "var(--shadow-card)",
+          ...(maxViewportHeight
+            ? { "--clip-cap": `calc(${maxViewportHeight}svh * ${width} / ${height})` }
+            : null),
+        } as React.CSSProperties
+      }
     >
       {/* width/height are what hold the box open: the browser derives the
           intrinsic ratio from them, so the slot is the right size before the
