@@ -3,7 +3,8 @@ import { Download } from "lucide-react";
 import { Analytics } from "@vercel/analytics/next";
 import { TornTape } from "@/components/ui/torn-tape";
 import { IntroFilm } from "./intro-film";
-import { TourClip } from "./tour-clip";
+import { PremiseCass } from "./premise-cass";
+import { TourCarousel, type TourStep } from "./tour-carousel";
 
 // TODO: replace with the real listing URL once the app is live in App Store
 // Connect — this is the only placeholder on the page.
@@ -14,16 +15,19 @@ const SUPPORT_EMAIL = "support@authoredby.app";
 // Cass's lines, verbatim from `onboardingSlides` in the mobile app
 // (lib/screens/onboarding/onboarding_tour.dart). She already says this better
 // than a feature list would, and she says it in the app in the same order.
-const TOUR = [
+const TOUR: TourStep[] = [
+  // The check-in step shows Cass's recorder itself rather than a screenshot of
+  // it — the same SVG that sits under the FAB in the app, reels turning.
   {
-    src: "/onboarding/01-check-in.webp",
-    width: 620,
-    height: 592,
+    kind: "recorder",
+    title: "Daily Check-Ins",
     line:
       "With Authored By, we use daily check-ins to capture the details of your story.",
-    alt: "Cass's daily check-in open in the app, asking “What's on your mind today?” while the recorder listens.",
+    alt: "Cass's tape recorder, reels turning as she listens to a daily check-in.",
   },
   {
+    kind: "clip",
+    title: "Generated Chapters",
     src: "/onboarding/02-chapter.webp",
     width: 620,
     height: 710,
@@ -31,23 +35,28 @@ const TOUR = [
     alt: "The app writing Chapter 4 from two weeks of check-ins.",
   },
   {
-    src: "/onboarding/04-share.webp",
-    width: 620,
-    height: 570,
-    line: "If it's worth telling, you can share your story with one tap.",
-    alt: "A finished story page with its masthead and backstory, ready to share.",
-  },
-  {
+    kind: "clip",
+    title: "Guidance",
     src: "/onboarding/03-dream-team.webp",
     width: 620,
     height: 802,
     line: "Stuck? Talk it through with your dream team and get some clarity.",
     alt: "A dream team meeting in the app, with a roster of advisors and options to plan, adjust the goal, or talk it out.",
   },
-  // From `newProjectSlides` — the second-project tour. It isn't part of the
-  // core loop, but as a panel in its own right it no longer has to compete
-  // with the four above for attention the way the old footnote card did.
   {
+    kind: "clip",
+    title: "Sharing",
+    src: "/onboarding/04-share.webp",
+    width: 620,
+    height: 570,
+    line: "If it's worth telling, you can share your story with one tap.",
+    alt: "A finished story page with its masthead and backstory, ready to share.",
+  },
+  // From `newProjectSlides` — the second-project tour, and the natural last
+  // beat: everything above is one story, this is how you run several.
+  {
+    kind: "clip",
+    title: "Story Management",
     src: "/onboarding/05-switch-projects.webp",
     width: 620,
     height: 594,
@@ -85,31 +94,33 @@ export function MarketingHome() {
     // /projects, /login and the rest of the app still follow the preference.
     <div
       data-force-light
-      className="min-h-screen bg-[var(--app-bg)] text-[var(--ink)]"
+      className="page-clip-x min-h-screen bg-[var(--app-bg)] text-[var(--ink)]"
     >
-      {/* No app bar. A landing page doesn't need one, and there's no sign-in
-          link to hang off it while the web app isn't ready to be shown —
-          /login still exists and works, it just isn't advertised. The
-          wordmark moved into the hero below, where it can be the size it
-          deserves. */}
+      {/* No nav bar — there is nowhere else to go, and no sign-in link to
+          hang off one while the web app isn't ready to be shown (/login still
+          exists and works, it just isn't advertised). The wordmark below does
+          the job an app bar would on desktop, without the chrome. */}
       <main>
         {/* ── Hero ─────────────────────────────────────────────────────── */}
-        <section className="mx-auto w-full max-w-5xl px-5 pb-16 pt-10 sm:pt-16">
+        <section className="mx-auto w-full max-w-5xl px-5 pb-16 pt-10 md:pt-8">
+          {/* One element, two jobs. On a phone it sits in the hero at the
+              headline's own measure (the h1's rendered lines run ~335px), so
+              the tape reads as part of the title. From md up it centres and
+              shrinks into an app-bar mark above both columns — the grid below
+              is single-column on mobile and the text block comes first, so
+              sitting above the grid puts it in the same place either way and
+              this doesn't need to be rendered twice. */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- the
+              wordmark is a photographed strip of tape; it ships as-is. */}
+          <img
+            src="/icons/authored-by-tape-icon.png"
+            alt="Authored By"
+            width={801}
+            height={295}
+            className="mb-6 block h-auto w-full max-w-[336px] md:mx-auto md:mb-14 md:max-w-[190px]"
+          />
           <div className="grid gap-12 md:grid-cols-2 md:items-center md:gap-14">
             <div>
-              {/* Capped at the headline's own measure — the h1's rendered
-                  lines run ~335px, so the tape sits directly over the title
-                  rather than over the (wider) column it lives in. On a phone
-                  the same cap is simply the full content width. */}
-              {/* eslint-disable-next-line @next/next/no-img-element -- the
-                  wordmark is a photographed strip of tape; it ships as-is. */}
-              <img
-                src="/icons/authored-by-tape-icon.png"
-                alt="Authored By"
-                width={801}
-                height={295}
-                className="mb-6 block h-auto w-full max-w-[336px]"
-              />
               <h1
                 className="font-literata text-balance text-[38px] font-bold leading-[1.08] sm:text-[52px]"
                 style={{ letterSpacing: "-0.02em" }}
@@ -126,9 +137,9 @@ export function MarketingHome() {
                 className="font-story mt-5 max-w-[46ch] text-[16px]"
                 style={{ lineHeight: 1.75, color: "var(--muted)" }}
               >
-                Authored By turns a two-minute check-in a day into the story of
-                what you&rsquo;re building — written down for you, chapter by
-                chapter, by a story guide named Cass.
+                Authored By turns a two-minute check-in a day into the story
+                of what you&rsquo;re building. Cass, your story guide, writes it
+                down for you, chapter by chapter.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
@@ -154,7 +165,10 @@ export function MarketingHome() {
           className="px-5 py-16 sm:py-24"
           style={{ background: "var(--story-bg)" }}
         >
-          <div className="mx-auto w-full max-w-[42rem]">
+          <div className="relative mx-auto w-full max-w-[42rem]">
+            {/* Positions against this column, so she lands in the margin
+                beside the passage rather than anywhere in the band. */}
+            <PremiseCass />
             <TornTape size="sm">The premise</TornTape>
 
             <div className="mt-8 space-y-6">
@@ -192,7 +206,7 @@ export function MarketingHome() {
               className="font-cass mt-7 text-[17px]"
               style={{ color: "var(--gold-emphasis)" }}
             >
-              — Cass
+              Cass
             </p>
 
             <blockquote
@@ -222,46 +236,7 @@ export function MarketingHome() {
             A few quick things before we get started.
           </h2>
 
-          {/* data-snap-pages turns on the viewport's scroll-snapping while
-              this page is mounted, and only from 768px up — each <li> becomes
-              a snap target sized to one screen. Below that breakpoint none of
-              it applies and this stays a plain stacked list. See the rule in
-              globals.css. */}
-          <ol data-snap-pages className="mt-14 space-y-16 md:mt-6 md:space-y-0">
-            {TOUR.map((step, i) => (
-              <li
-                key={step.src}
-                data-snap-page
-                className={`grid gap-7 md:min-h-svh md:grid-cols-2 md:content-center md:items-center md:gap-12 md:py-10 ${
-                  i % 2 === 1 ? "md:[&>*:first-child]:order-2" : ""
-                }`}
-              >
-                <div>
-                  <span
-                    className="font-label text-[12px] font-bold uppercase"
-                    style={{ letterSpacing: "0.22em", color: "var(--gold-emphasis)" }}
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                    <span className="opacity-50"> / {String(TOUR.length).padStart(2, "0")}</span>
-                  </span>
-                  <p
-                    className="font-story mt-3 max-w-[26ch] text-[20px] sm:text-[24px]"
-                    style={{ lineHeight: 1.55 }}
-                  >
-                    {step.line}
-                  </p>
-                </div>
-                <TourClip
-                  src={step.src}
-                  alt={step.alt}
-                  width={step.width}
-                  height={step.height}
-                  maxViewportHeight={52}
-                  className="mx-auto w-full max-w-[340px] md:max-w-none"
-                />
-              </li>
-            ))}
-          </ol>
+          <TourCarousel steps={TOUR} />
         </section>
 
         {/* ── What you end up with ─────────────────────────────────────── */}
@@ -297,7 +272,7 @@ export function MarketingHome() {
             />
             <img
               src="/marketing/goals-and-story-portrait.webp"
-              alt="Two iPhones standing on a desk beside a cork board of pinned notes. The left shows the Goals screen — a highlighted goal, a vision image, and the actions to take next. The right shows a finished chapter, A Dream Is a Dream, with a highlighted pull quote."
+              alt="Two iPhones standing on a desk beside a cork board of pinned notes. The left shows the Goals screen, with a highlighted goal, a vision image, and the actions to take next. The right shows a finished chapter, A Dream Is a Dream, with a highlighted pull quote."
               width={1520}
               height={2027}
               loading="lazy"
@@ -333,8 +308,8 @@ export function MarketingHome() {
             Support
           </p>
           <p className="font-story mt-3 text-[16px]" style={{ lineHeight: 1.7 }}>
-            Questions, trouble with the app, or anything about your account —
-            email{" "}
+            Questions, trouble with the app, or anything about your account?
+            Email{" "}
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
               className="underline underline-offset-4"

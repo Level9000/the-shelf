@@ -1,6 +1,5 @@
 "use client";
 
-import { useTheme } from "@/lib/theme-context";
 import type { CassAnimState, CassSize } from "./cassVoice";
 
 // Size map: sm=120, md=200, lg=280
@@ -71,9 +70,6 @@ export function CassRecorder({
   /** Overrides the label plate text (e.g. "2 messages") instead of the state-derived READY/LISTENING/TALKING. */
   label?: string;
 }) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
   const px = SIZE_MAP[size];
   const scale = px / 200;
 
@@ -144,7 +140,10 @@ export function CassRecorder({
         width={px}
         height={px * (260 / 200)}
         xmlns="http://www.w3.org/2000/svg"
-        style={{ filter: `drop-shadow(0px ${12 * scale}px ${32 * scale}px rgba(0,0,0,${isDark ? 0.45 : 0.12}))` }}
+        // Shadow colour comes from CSS, not from useTheme(): pages that pin a
+        // palette independently of the stored theme (the marketing page) need
+        // the surface they actually render on, not the one in localStorage.
+        style={{ filter: `drop-shadow(0px ${12 * scale}px ${32 * scale}px var(--recorder-shadow))` }}
         aria-label={`Cass recorder — ${statusLabel}`}
       >
         {/* Body */}

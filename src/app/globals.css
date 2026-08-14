@@ -50,6 +50,12 @@
   --story-bg: #1a1814;
   --story-ink: rgba(232, 224, 208, 0.78);
   --story-muted: rgba(232, 224, 208, 0.5);
+  /* Cass's recorder casts a heavier shadow on a dark surface than on paper.
+     This lives in CSS rather than a useTheme() branch inside the component so
+     that the light-pinned marketing page gets the paper value too — a JS
+     branch reads the stored theme and would have used the dark shadow on a
+     light page. */
+  --recorder-shadow: rgba(0, 0, 0, 0.45);
 }
 
 [data-theme="dark"] {
@@ -75,6 +81,12 @@
   --story-bg: #1a1814;
   --story-ink: rgba(232, 224, 208, 0.78);
   --story-muted: rgba(232, 224, 208, 0.5);
+  /* Cass's recorder casts a heavier shadow on a dark surface than on paper.
+     This lives in CSS rather than a useTheme() branch inside the component so
+     that the light-pinned marketing page gets the paper value too — a JS
+     branch reads the stored theme and would have used the dark shadow on a
+     light page. */
+  --recorder-shadow: rgba(0, 0, 0, 0.45);
 }
 
 /* The second selector is the public-facing pages opting out of the theme
@@ -115,6 +127,7 @@ body:has([data-force-light]) {
   --story-bg: #f0ebe0;
   --story-ink: rgba(22, 19, 15, 0.82);
   --story-muted: rgba(22, 19, 15, 0.55);
+  --recorder-shadow: rgba(0, 0, 0, 0.12);
 }
 
 /* Soften pure-white text in dark mode — text-white class → warm ivory */
@@ -230,39 +243,42 @@ pre,
   font-family: var(--font-cass);
 }
 
-/* The how-it-works paginator. Snapping has to be declared on the scroll
-   container, and the container for page scrolling is the viewport, so this
-   lands on `html` — scoped with :has() so it only engages on the page that
-   actually has panels.
+/* The tour carousel. The track is its own horizontal scroll container, so
+   snapping is fully contained inside it — nothing here can reach the page
+   scroller, which is what the earlier vertical version had to fight. That
+   one put each step on a full-height panel and snapped the whole viewport
+   between them; it paged correctly but spread five short sentences over five
+   screens, and making page-level `mandatory` safe took a footer workaround
+   that no longer needs to exist.
 
-   `proximity`, not `mandatory`, and the difference matters here. Mandatory
-   means the viewport may never come to rest anywhere except on a snap point,
-   and the hero, the premise and the footer are not snap points — so it would
-   drag the reader out of whatever they were reading and into the nearest
-   panel, and make the footer almost impossible to settle on. Proximity only
-   engages once a panel is already close, which is the run we want it on, and
-   leaves the rest of the page scrolling normally. Past the last panel it
-   simply stops applying, so scrolling continues into the closing CTA.
+   Only the scrollbar needs hiding — the snapping itself is Tailwind's
+   snap-x / snap-mandatory / snap-center utilities on the markup. */
+.tour-track {
+  scrollbar-width: none;
+}
 
-   Desktop only, matching the breakpoint where the panels go two-column. On a
-   phone the steps stay a tight continuous stack: a thumb flick is a far
-   blunter instrument than a trackpad, and taking over the scroll on the one
-   device where scrolling *is* the interface is where this stops being
-   charming. */
+.tour-track::-webkit-scrollbar {
+  display: none;
+}
+
 @media (min-width: 768px) {
-  html:has([data-snap-pages]) {
-    scroll-snap-type: y proximity;
+  /* The frame. It goes on the track rather than around it because the track
+     is the scroll container — the border stays put while the slides move
+     inside it, which is what makes the thing read as a deck you are paging
+     through rather than a strip that happens to slide.
+
+     Only padding-block, never padding-inline: the track's clientWidth is what
+     positions each slide, and horizontal padding would desync that from the
+     slides' own `w-full`. Their breathing room comes from px on the slides. */
+  .tour-track {
+    padding-block: 3rem;
+    border: 1px solid var(--gold-border);
+    border-radius: 24px;
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
   }
 
-  [data-snap-page] {
-    scroll-snap-align: center;
-    /* Without this one flick sails through three panels — it forces the
-       scroll to stop at each, which is what makes it read as pages rather
-       than as a list that happens to jump. */
-    scroll-snap-stop: always;
-  }
-
-  /* Keeps a panel's clip inside one screen. Bounds the *width* using the
+  /* Keeps a slide's clip inside the frame. Bounds the *width* using the
      clip's own ratio, because bounding height directly would crop the picture
      or need object-fit, and both cost the shift-free sizing the width/height
      attributes buy. Desktop-only, so the phone layout is untouched. */
@@ -271,14 +287,46 @@ pre,
   }
 }
 
-/* Snapping hijacks the scroll the reader started, which is exactly the kind
-   of motion this setting is asking us not to do. Falls back to the plain
-   continuous scroll, which still reads fine. */
+/* Cass sliding into the right margin. Her resting state is off to the right,
+   past the viewport edge, so the section she lives in has to clip — and it
+   has to be `clip` rather than `hidden`, because `hidden` would make that
+   section a scroll container and the sticky pin above it would stop working. */
+.cass-slide {
+  transition:
+    transform 560ms cubic-bezier(0.22, 0.9, 0.3, 1),
+    opacity 300ms ease;
+}
+
+/* Lets the wrapper's width drive the recorder. The component renders the SVG
+   at a fixed pixel size from its `size` prop; the viewBox means overriding
+   that with a percentage scales it cleanly instead of cropping. */
+.cass-slide .cass-recorder,
+.cass-slide .cass-recorder svg {
+  width: 100%;
+  height: auto;
+}
+
+/* Note this belongs on the page root, not on the tour's own section: the
+   section is only as wide as max-w-5xl, and clipping there cut Cass off at
+   its right edge instead of at the viewport's. */
+.page-clip-x {
+  overflow-x: clip;
+}
+
+/* The carousel animates the scroll it was asked to make, and Cass slides;
+   honour the setting by jumping instead. She still fades, so the slide she
+   belongs to doesn't lose her entirely. */
 @media (prefers-reduced-motion: reduce) {
-  html:has([data-snap-pages]) {
-    scroll-snap-type: none;
+  .tour-track {
+    scroll-behavior: auto;
+  }
+
+  .cass-slide {
+    transition: opacity 200ms ease;
+    transform: translateY(-50%) !important;
   }
 }
+
 
 @media (min-width: 1024px) {
   .board-grid {
