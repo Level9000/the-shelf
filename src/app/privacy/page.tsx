@@ -22,7 +22,9 @@ const PRIVACY_HTML = `<div data-custom-class="body"><div><strong><span style="fo
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[var(--app-bg)] py-12 px-4">
+    // Light-only: the Termly markup below sets its own black and grey text
+    // colours with !important, so this page is illegible on a dark card.
+    <div data-force-light className="min-h-screen bg-[var(--app-bg)] py-12 px-4">
       <div className="max-w-3xl mx-auto bg-[var(--surface)] rounded-2xl p-8 shadow-sm">
         <style dangerouslySetInnerHTML={{ __html: PRIVACY_CSS }} />
         <div dangerouslySetInnerHTML={{ __html: PRIVACY_HTML }} />

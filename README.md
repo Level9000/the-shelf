@@ -109,6 +109,13 @@ Key areas:
 - Review-before-save task acceptance flow
 - Responsive mobile/desktop layout
 
+## Analytics
+
+Vercel Web Analytics runs on the public marketing page only (`/`), not on any
+signed-in surface. Referrers come for free; the newsletter is invisible without
+UTM tags, because mail clients strip the referrer. Tagging scheme and the
+dashboard switch that has to be flipped: [docs/analytics.md](docs/analytics.md).
+
 ## Notes
 
 - The OpenAI integration is intentionally wrapped behind server-side helpers in [src/lib/ai/openai.ts](/Users/warren/SmallMachines/the-shelf/src/lib/ai/openai.ts) so the provider can be swapped later.

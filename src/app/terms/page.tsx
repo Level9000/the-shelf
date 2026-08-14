@@ -136,7 +136,9 @@ Calibri;color:#595959;mso-themecolor:text1;mso-themetint:166;"><strong><bdt clas
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[var(--app-bg)] py-12 px-4">
+    // Light-only, same reason as /privacy: the Termly markup hardcodes its
+    // own black and grey text colours with !important.
+    <div data-force-light className="min-h-screen bg-[var(--app-bg)] py-12 px-4">
       <div className="max-w-3xl mx-auto bg-[var(--surface)] rounded-2xl p-8 shadow-sm">
         <style dangerouslySetInnerHTML={{ __html: TERMS_CSS }} />
         <div dangerouslySetInnerHTML={{ __html: TERMS_HTML }} />

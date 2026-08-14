@@ -32,6 +32,24 @@
   --danger: #f87171;
   --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.5);
   --shadow-card: 0 18px 46px rgba(0, 0, 0, 0.4);
+
+  /* Gold and the parchment reading surface. These values already live all over
+     the app as inline literals (tape-button.tsx, project-shell-frame.tsx,
+     story-foundation.tsx) because every surface that needs them is a client
+     component that can branch on useTheme(). The marketing page is server
+     rendered, so it needs them as variables instead. Same numbers, no new hues
+     — see DESIGN.md §2. */
+  --gold: #c8a86b;
+  --gold-emphasis: #e8c789;
+  --gold-faint: rgba(200, 168, 107, 0.12);
+  --gold-border: rgba(200, 168, 107, 0.3);
+  --ink-on-gold: #1a0e00;
+  /* Label colour for the gold outline pill — tapeGold on dark, ink-on-gold on
+     light, exactly as gold_pill_button.dart resolves it. */
+  --gold-pill-ink: #ebdb8d;
+  --story-bg: #1a1814;
+  --story-ink: rgba(232, 224, 208, 0.78);
+  --story-muted: rgba(232, 224, 208, 0.5);
 }
 
 [data-theme="dark"] {
@@ -48,9 +66,31 @@
   --danger: #f87171;
   --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.5);
   --shadow-card: 0 18px 46px rgba(0, 0, 0, 0.4);
+  --gold: #c8a86b;
+  --gold-emphasis: #e8c789;
+  --gold-faint: rgba(200, 168, 107, 0.12);
+  --gold-border: rgba(200, 168, 107, 0.3);
+  --ink-on-gold: #1a0e00;
+  --gold-pill-ink: #ebdb8d;
+  --story-bg: #1a1814;
+  --story-ink: rgba(232, 224, 208, 0.78);
+  --story-muted: rgba(232, 224, 208, 0.5);
 }
 
-[data-theme="light"] {
+/* The second selector is the public-facing pages opting out of the theme
+   preference entirely: the marketing page, because its product footage was
+   all captured in light mode and reads better on paper, and /privacy and
+   /terms, because the Termly HTML they inject hardcodes `color: #000000`
+   and `#595959` on its own text — black ink on a dark card, unreadable.
+   Those two are also what Apple is given as the Support and Privacy URLs,
+   so they have to be legible for someone who has never set a preference.
+
+   It's the same declaration block rather than a copy, so the light palette
+   still lives in exactly one place. Landing it on `body` (not on each page's
+   own wrapper) is what lets `body { background }` resolve light too, so
+   overscroll rubber-banding doesn't flash the dark canvas on a phone. */
+[data-theme="light"],
+body:has([data-force-light]) {
   --app-bg: #f6f3ee;
   --surface: rgba(255, 255, 255, 0.9);
   --surface-strong: rgba(255, 255, 255, 0.98);
@@ -64,6 +104,17 @@
   --danger: #9f3f38;
   --shadow-soft: 0 24px 80px rgba(28, 24, 20, 0.08);
   --shadow-card: 0 18px 46px rgba(24, 21, 18, 0.08);
+  --gold: #c8a86b;
+  /* Gold as *text* has to darken on paper or it disappears — same #8a6d2f the
+     backstory pill uses in light mode. */
+  --gold-emphasis: #8a6d2f;
+  --gold-faint: rgba(200, 168, 107, 0.14);
+  --gold-border: rgba(180, 140, 60, 0.35);
+  --ink-on-gold: #1a0e00;
+  --gold-pill-ink: #1a0e00;
+  --story-bg: #f0ebe0;
+  --story-ink: rgba(22, 19, 15, 0.82);
+  --story-muted: rgba(22, 19, 15, 0.55);
 }
 
 /* Soften pure-white text in dark mode — text-white class → warm ivory */
@@ -158,6 +209,25 @@ pre,
 
 .font-literata {
   font-family: "Literata", Georgia, serif;
+}
+
+/* The other four roles from DESIGN.md §3, as classes. Everywhere else in the
+   app these are inline fontFamily strings because the surrounding styles are
+   inline too; the marketing page is markup-first, so it wants classes. */
+.font-story {
+  font-family: "Lora", Georgia, serif;
+}
+
+.font-label {
+  font-family: "Barlow Condensed", sans-serif;
+}
+
+.font-typewriter {
+  font-family: "Special Elite", "Courier New", monospace;
+}
+
+.font-cass {
+  font-family: var(--font-cass);
 }
 
 @media (min-width: 1024px) {
