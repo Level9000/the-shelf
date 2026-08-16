@@ -1,16 +1,24 @@
 import { TornTape } from "@/components/ui/torn-tape";
 
+/// The one switch. `false` keeps the whole section off the page; the home page
+/// checks this before rendering it, and the placeholder chrome below is drawn
+/// from the same flag, so there is nothing else to remember.
+///
+/// To publish: fill in SAMPLE with the real chapter, flip this to `true`. That
+/// is the entire ritual. Nothing else needs editing, here or in marketing-home.
+export const SAMPLE_STORY_READY = false;
+
 // ─────────────────────────────────────────────────────────────────────────────
-// PLACEHOLDER CONTENT — DO NOT SHIP
+// PLACEHOLDER CONTENT — NOT ON THE PAGE
 //
-// This is the only unwritten thing on the page. Everything below the fold of
-// this constant is finished layout; the strings are stand-ins sized to the
-// real article so the section can be judged before the copy exists.
+// Hidden rather than deleted, because the layout is finished and only the
+// article is missing. The strings are stand-ins sized to the real thing, so
+// flipping the flag above shows a section that is already the right shape.
 //
-// To finish this section: replace every field in SAMPLE with the real chapter
-// from the Small Machines AI launch story, then delete `SAMPLE.placeholder`
-// (the flag is what draws the dashed frame and the amber PLACEHOLDER tape, so
-// removing it is what publishes the section).
+// It must be a genuinely app-generated chapter. The seeded "Chapter 1 — The
+// Spark" in the dev account reads like output but was hand-written into
+// authored-by-mobile/supabase/seeds/erik_authored_by_seed.sql, so it cannot
+// stand here: this section's whole claim is that the app wrote it.
 //
 // The shape below is not invented for marketing. It is exactly what the app
 // produces and what /story/[slug] already renders for a shared chapter:
@@ -25,8 +33,6 @@ import { TornTape } from "@/components/ui/torn-tape";
 // output will not contain one, so neither should this.
 // ─────────────────────────────────────────────────────────────────────────────
 const SAMPLE = {
-  placeholder: true,
-
   project: "Small Machines AI",
   chapterNumber: 4,
   title: "[Chapter title, four or five words]",
@@ -65,15 +71,15 @@ function StoryCard() {
       className="relative mx-auto w-full max-w-[42rem] rounded-[24px] px-6 py-9 sm:px-10 sm:py-12"
       style={{
         background: "var(--surface-strong)",
-        // The dashed ring is the placeholder tell. Once SAMPLE.placeholder is
-        // gone this becomes the ordinary hairline the rest of the page uses.
-        border: SAMPLE.placeholder
-          ? "2px dashed var(--gold-border)"
-          : "1px solid var(--stroke)",
-        boxShadow: SAMPLE.placeholder ? undefined : "var(--shadow-card)",
+        // The dashed ring is the placeholder tell. Once the flag flips this
+        // becomes the ordinary hairline the rest of the page uses.
+        border: SAMPLE_STORY_READY
+          ? "1px solid var(--stroke)"
+          : "2px dashed var(--gold-border)",
+        boxShadow: SAMPLE_STORY_READY ? "var(--shadow-card)" : undefined,
       }}
     >
-      {SAMPLE.placeholder && (
+      {!SAMPLE_STORY_READY && (
         <span className="absolute -top-3 left-6">
           <TornTape size="sm" background="#f5c84a">
             Placeholder

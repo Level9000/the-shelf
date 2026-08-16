@@ -5,7 +5,7 @@ import { TornTape } from "@/components/ui/torn-tape";
 import { SUPPORT_EMAIL } from "@/lib/site";
 import { IntroFilm } from "./intro-film";
 import { PremiseCass } from "./premise-cass";
-import { SampleStory } from "./sample-story";
+import { SampleStory, SAMPLE_STORY_READY } from "./sample-story";
 import { TourCarousel, type TourStep } from "./tour-carousel";
 
 // TODO: replace with the real listing URL once the app is live in App Store
@@ -370,9 +370,14 @@ export function MarketingHome() {
 
         {/* ── Proof ────────────────────────────────────────────────────── */}
         {/* The mechanics are done being explained; this is the thing they
-            produce, on a real project rather than a demo one. Ships with
-            placeholder copy inside — see sample-story.tsx. */}
-        <SampleStory />
+            produce, on a real project rather than a demo one.
+
+            Off until there is a genuinely app-generated chapter to put in it.
+            A section that claims "this is what the app wrote" cannot launch
+            with prose a human wrote, and half-proof is worse than no proof:
+            it invites exactly the scrutiny it would fail. Flip
+            SAMPLE_STORY_READY in sample-story.tsx to bring it back. */}
+        {SAMPLE_STORY_READY && <SampleStory />}
 
         {/* ── Questions ────────────────────────────────────────────────── */}
         {/* Sits immediately before the ask, because that is where the
