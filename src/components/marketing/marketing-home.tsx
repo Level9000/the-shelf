@@ -363,12 +363,15 @@ export function MarketingHome() {
           </div>
         </section>
         </div>
-        {/* 600, not 440. The swap is spent by 190, so this leaves ~410px of
-            scroll where the second page is simply sitting there being read. A
-            trackpad flick with momentum runs several hundred pixels, and the
-            whole point is that an ordinary one should terminate inside this
-            window rather than past it. */}
-        <div aria-hidden className="hidden md:block md:h-[600px]" />
+        {/* 1400px, after 440 and then 600 both proved too short. macOS
+            momentum scrolling is the thing being sized against here, and one
+            trackpad gesture routinely carries well past a thousand pixels, so
+            anything shorter gets flicked straight through. The swap itself is
+            spent by 560 (SWAP_DISTANCE.desktop), leaving ~840px where the
+            second page is simply held for reading.
+
+            Both numbers live in pairs: change this and change that one. */}
+        <div aria-hidden className="hidden md:block md:h-[1400px]" />
         </div>
         </div>
 

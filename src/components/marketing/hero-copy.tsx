@@ -3,16 +3,21 @@
 import { useEffect, useState } from "react";
 
 /// How far the reader scrolls to get from the first block to the second, in
-/// px.
+/// px, per breakpoint.
 ///
-/// This was 100 while the block still travelled with the page, because it
-/// moved up by exactly the swap distance and anything longer finished with the
-/// paragraph tucked under the phone app bar. The block is pinned now, so it
-/// doesn't move at all during the swap and the constraint is gone: this can be
-/// paced for reading instead, and it has to be, because the swap needs to
-/// occupy a real share of the runway rather than being over in one frame of a
-/// flick.
-const SWAP_DISTANCE = 190;
+/// Each one is roughly 40% of the runway its hero is pinned against, so the
+/// swap occupies a real share of the pin and the rest is dwell time on the
+/// second page. Keep them in step with those runways: the phone spacer inside
+/// the copy column, and the desktop spacer under the pinned section, both in
+/// marketing-home.tsx.
+///
+/// Desktop is much longer than phone because macOS momentum scrolling is much
+/// longer than a thumb flick. A single trackpad gesture can carry well past a
+/// thousand pixels, and at 190 the whole transition was spent inside the first
+/// moments of one.
+const SWAP_DISTANCE = { base: 190, desktop: 560 };
+
+const DESKTOP = "(min-width: 768px)";
 
 /// The hero's two pages of copy, crossfaded by scroll position.
 ///
@@ -55,20 +60,29 @@ export function HeroCopy({
 
   useEffect(() => {
     let frame = 0;
+    // Read per frame rather than captured once: a window resized across the
+    // breakpoint swaps which hero is pinned, and the distance has to follow.
+    const distance = () =>
+      window.matchMedia(DESKTOP).matches
+        ? SWAP_DISTANCE.desktop
+        : SWAP_DISTANCE.base;
+
     const read = () => {
       frame = 0;
-      setProgress(Math.min(1, Math.max(0, window.scrollY / SWAP_DISTANCE)));
+      setProgress(Math.min(1, Math.max(0, window.scrollY / distance())));
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(read);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     // Covers a restored scroll position on reload, where no scroll event fires.
     read();
 
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
       if (frame) cancelAnimationFrame(frame);
     };
   }, []);
@@ -79,8 +93,8 @@ export function HeroCopy({
   // through each other, which is illegible rather than elegant. A true
   // crossfade works for images and not for text.
   //
-  // The dead beat between them is about 19px of scroll at this distance, short
-  // enough to read as a handover rather than a gap.
+  // The dead beat between them is 10% of the swap, short enough to read as a
+  // handover rather than a gap.
   const out = Math.min(1, progress / 0.45);
   const inn = Math.max(0, (progress - 0.55) / 0.45);
 
