@@ -253,6 +253,22 @@ export function MarketingHome() {
             this stays light, because the product footage was all captured in
             light mode and glares on a dark surface. */}
         <div className="on-dark" style={{ background: "var(--app-bg)" }}>
+        {/* The desktop runway. Phones pin the copy column from inside the grid
+            (see the sticky wrapper below); desktop pins the whole hero instead,
+            because here it is a two-column layout and holding one column while
+            the other scrolls would either strand the film or drag it down with
+            the row they share.
+
+            A trackpad flick moves 500-1000px, so without this the hero leaves
+            the screen inside one gesture exactly as it did on a phone, and the
+            second page is gone before it can be read. The spacer is the scroll
+            this band holds onto.
+
+            The runway sits inside .on-dark, so the empty scroll below the hero
+            carries the same dark background and the band reads as continuous
+            rather than as the hero sitting on a cream gap. */}
+        <div>
+        <div className="md:sticky md:top-0">
         <section className="mx-auto w-full max-w-5xl px-5 pb-16 pt-10 md:pt-8">
           {/* One element, two jobs. On a phone it sits in the hero at the
               headline's own measure (the h1's rendered lines run ~335px), so
@@ -346,6 +362,14 @@ export function MarketingHome() {
             <IntroFilm />
           </div>
         </section>
+        </div>
+        {/* 600, not 440. The swap is spent by 190, so this leaves ~410px of
+            scroll where the second page is simply sitting there being read. A
+            trackpad flick with momentum runs several hundred pixels, and the
+            whole point is that an ordinary one should terminate inside this
+            window rather than past it. */}
+        <div aria-hidden className="hidden md:block md:h-[600px]" />
+        </div>
         </div>
 
         {/* ── One line from the film ───────────────────────────────────── */}
