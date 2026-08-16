@@ -97,7 +97,7 @@ export default function SupportPage() {
           />
         </Link>
 
-        <TornTape size="sm">Support</TornTape>
+        <TornTape size="xl">Support</TornTape>
         <h1
           className="font-literata mt-7 text-[32px] font-bold leading-[1.15] sm:text-[42px]"
           style={{ letterSpacing: "-0.02em" }}

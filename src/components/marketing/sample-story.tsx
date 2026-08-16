@@ -192,7 +192,7 @@ export function SampleStory() {
       style={{ background: "var(--story-bg)" }}
     >
       <div className="mx-auto w-full max-w-5xl">
-        <TornTape size="sm">Sample chapter</TornTape>
+        <TornTape size="xl">Sample chapter</TornTape>
 
         {/* TODO(copy): headline and standfirst below are the section's framing,
             not the story. They are written; the article is what is missing. */}

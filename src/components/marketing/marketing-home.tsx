@@ -211,16 +211,16 @@ export function MarketingHome() {
           />
           <div className="grid gap-12 md:grid-cols-2 md:items-center md:gap-14">
             <div>
-              {/* The plain proposition, first. The headline below is the
-                  emotional line and it earns its place, but on its own it
-                  never says what the app does, so someone arriving cold from
-                  a post or a store listing had to read three more elements
-                  before finding out. */}
+              {/* The app's own tagline, verbatim from the login screen
+                  (login_screen.dart:444). It replaces the feature triplet
+                  that used to sit here, which said what the product does in
+                  the position that should be establishing what it is, and
+                  then said it again as a section heading further down. */}
               <p
                 className="font-label text-[13px] font-bold uppercase"
                 style={{ letterSpacing: "0.2em", color: "var(--gold-emphasis)" }}
               >
-                Set goals. Track your journey. Shape your story.
+                Your story. Captured together.
               </p>
               {/* `color` is set here rather than inherited. The page root
                   paints text with `text-[var(--ink)]`, and inheritance passes
@@ -314,7 +314,7 @@ export function MarketingHome() {
           id="how-it-works"
           className="mx-auto w-full max-w-5xl scroll-mt-8 px-5 py-16 sm:py-24"
         >
-          <TornTape size="sm">How it works</TornTape>
+          <TornTape size="xl">How it works</TornTape>
           <h2
             className="font-literata mt-7 max-w-[20ch] text-[28px] font-bold leading-[1.15] sm:text-[36px]"
             style={{ letterSpacing: "-0.02em" }}
@@ -385,7 +385,7 @@ export function MarketingHome() {
             accordions: they're short, and hiding the privacy answer behind a
             click defeats the point of having it. */}
         <section className="mx-auto w-full max-w-5xl px-5 pb-16 sm:pb-24">
-          <TornTape size="sm">Questions</TornTape>
+          <TornTape size="xl">Questions</TornTape>
           <h2
             className="font-literata mt-7 max-w-[20ch] text-[28px] font-bold leading-[1.15] sm:text-[36px]"
             style={{ letterSpacing: "-0.02em" }}
