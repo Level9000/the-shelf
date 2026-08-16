@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/// One of the onboarding tour clips.
+/// One panel of the tour, either an animated clip or a still.
 ///
-/// These are animated WebP with **loop count 1** — about two seconds, then
+/// The clips are animated WebP with **loop count 1** — about two seconds, then
 /// they hold on the last frame (see the README beside them in the mobile
 /// repo). That format is the whole reason this is a component rather than a
 /// bare `<img>`: everything on the page mounts at once, so left alone every
@@ -16,12 +16,19 @@ import { useEffect, useRef, useState } from "react";
 /// even with JavaScript off. The observer covers the rest: remounting the
 /// `<img>` hands the browser a fresh element, which restarts the animation
 /// from frame 0. The bytes come out of cache, so a replay costs no download.
+///
+/// `still` opts a panel out of all of that. Some of these steps say everything
+/// they have to say in their last frame, and the two seconds of motion in
+/// front of it is just something moving in the reader's eye while they're
+/// trying to read the sentence beside it. A still panel gets the same frame
+/// and the same sizing, minus the observer and the remount.
 export function TourClip({
   src,
   alt,
   width,
   height,
   className,
+  still = false,
   /// Caps the clip's height as a percentage of the viewport, for the desktop
   /// paginator panels where a whole step has to fit on one screen. Handed to
   /// CSS as a custom property rather than applied here, because the cap is
@@ -34,6 +41,7 @@ export function TourClip({
   width: number;
   height: number;
   className?: string;
+  still?: boolean;
   maxViewportHeight?: number;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
@@ -41,6 +49,7 @@ export function TourClip({
   const [play, setPlay] = useState(0);
 
   useEffect(() => {
+    if (still) return;
     const frame = frameRef.current;
     if (!frame) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
@@ -62,7 +71,7 @@ export function TourClip({
 
     observer.observe(frame);
     return () => observer.disconnect();
-  }, []);
+  }, [still]);
 
   return (
     <div
@@ -86,7 +95,9 @@ export function TourClip({
           next/image would need `unoptimized` to leave the animation alone, and
           a plain tag is what the app itself renders these with. */}
       <img
-        key={play}
+        // A still never remounts; keying it on `play` would be harmless but
+        // misleading, since nothing ever increments it.
+        key={still ? undefined : play}
         ref={imgRef}
         src={src}
         alt={alt}

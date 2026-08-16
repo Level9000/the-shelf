@@ -51,35 +51,44 @@ const TOUR: TourStep[] = [
     line: "Over time, I'll turn those check-ins into chapters you can actually read.",
     alt: "The app writing Chapter 4 from two weeks of check-ins.",
   },
+  // The last three are stills, not clips. Each one's closing frame is the
+  // frame that carries the information — the seated roster, the full list of
+  // share formats, both projects side by side — and the couple of seconds of
+  // motion ahead of it only pulls the eye off the sentence beside it. These
+  // are the animations' final frames, extracted rather than re-shot, so they
+  // are exactly what the clip used to settle on.
   {
     kind: "clip",
+    still: true,
     title: "Guidance",
-    src: "/onboarding/03-dream-team.webp",
+    src: "/onboarding/03-dream-team-final.webp",
     width: 620,
     height: 802,
     line: "Stuck? Talk it through with your dream team and get some clarity.",
-    alt: "A dream team meeting in the app, with a roster of advisors and options to plan, adjust the goal, or talk it out.",
+    alt: "A dream team meeting in the app: the seated roster of advisors, and the choices to plan the next action items, adjust the goal, or talk it out together.",
   },
   {
     kind: "clip",
+    still: true,
     title: "Sharing",
-    src: "/onboarding/04-share.webp",
+    src: "/onboarding/04-share-final.webp",
     width: 620,
     height: 570,
     line: "If it's worth telling, you can share your story with one tap.",
-    alt: "A finished story page with its masthead and backstory, ready to share.",
+    alt: "The share sheet asking who you'd like to share the story with, offering an important email, a blog post for your professional network, or a PDF printed exactly as the story appears in the app.",
   },
   // From `newProjectSlides` — the second-project tour, and the natural last
   // beat: everything above is one story, this is how you run several.
   {
     kind: "clip",
+    still: true,
     title: "Story Management",
-    src: "/onboarding/05-switch-projects.webp",
+    src: "/onboarding/05-switch-projects-final.webp",
     width: 620,
     height: 594,
     line:
       "Running more than one? Keep as many going as you want, and switch between them from the Settings tab.",
-    alt: "The Settings tab in the app, with a list of projects to switch between.",
+    alt: "The project switcher in the app, showing Authored By at six chapters alongside Milestone Coach at one, with the current project marked and a link to create a new one.",
   },
 ];
 

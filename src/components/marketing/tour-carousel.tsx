@@ -13,7 +13,16 @@ export type TourStep = {
   title: string;
   line: string;
 } & (
-  | { kind: "clip"; src: string; width: number; height: number; alt: string }
+  | {
+      kind: "clip";
+      src: string;
+      width: number;
+      height: number;
+      alt: string;
+      /// Show the frame and skip the animation. For steps whose last frame is
+      /// the whole point.
+      still?: boolean;
+    }
   | { kind: "recorder"; alt: string }
 );
 
@@ -198,6 +207,7 @@ export function TourCarousel({ steps }: { steps: TourStep[] }) {
                         alt={step.alt}
                         width={step.width}
                         height={step.height}
+                        still={step.still}
                         maxViewportHeight={46}
                         className="mx-auto w-full max-w-[340px] md:max-w-none"
                       />
