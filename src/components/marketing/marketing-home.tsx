@@ -3,6 +3,7 @@ import { Download } from "lucide-react";
 import { Analytics } from "@vercel/analytics/next";
 import { TornTape } from "@/components/ui/torn-tape";
 import { SUPPORT_EMAIL } from "@/lib/site";
+import { HeroCopy } from "./hero-copy";
 import { IntroFilm } from "./intro-film";
 import { MobileAppBar } from "./mobile-app-bar";
 import { PremiseBand } from "./premise-band";
@@ -272,42 +273,26 @@ export function MarketingHome() {
           />
           <div className="grid gap-12 md:grid-cols-2 md:items-center md:gap-14">
             <div>
-              {/* The app's own tagline, verbatim from the login screen
-                  (login_screen.dart:444). It replaces the feature triplet
-                  that used to sit here, which said what the product does in
-                  the position that should be establishing what it is, and
-                  then said it again as a section heading further down. */}
-              <p
-                className="font-label text-[13px] font-bold uppercase"
-                style={{ letterSpacing: "0.2em", color: "var(--gold-emphasis)" }}
-              >
-                Your story. Captured together.
-              </p>
-              {/* `color` is set here rather than inherited. The page root
-                  paints text with `text-[var(--ink)]`, and inheritance passes
-                  the *resolved* colour down, so everything inside .on-dark
-                  that doesn't name a colour of its own keeps the light
-                  palette's near-black ink and disappears against the band. */}
-              <h1
-                className="font-literata text-balance mt-4 text-[38px] font-bold leading-[1.08] sm:text-[52px]"
-                style={{ letterSpacing: "-0.02em", color: "var(--ink)" }}
-              >
-                You are on an epic journey.
-              </h1>
-              <p
-                className="font-story mt-5 text-[18px] italic sm:text-[20px]"
-                style={{ lineHeight: 1.6, color: "var(--gold-emphasis)" }}
-              >
-                And believe me, it&rsquo;s a story worth telling.
-              </p>
-              <p
-                className="font-story mt-5 max-w-[46ch] text-[16px]"
-                style={{ lineHeight: 1.75, color: "var(--ink)", opacity: 0.78 }}
-              >
-                Authored By turns a two-minute check-in a day into the story
-                of what you&rsquo;re building. Cass, your story guide, writes it
-                down for you, chapter by chapter.
-              </p>
+              {/* Two pages of copy in one slot, traded on scroll. The tagline
+                  is the app's own, verbatim from login_screen.dart:444.
+
+                  Every string inside names its own colour rather than
+                  inheriting: the page root paints with `text-[var(--ink)]` and
+                  inheritance passes the *resolved* value down, so anything in
+                  .on-dark without a colour of its own keeps the light
+                  palette's near-black and vanishes into the band. */}
+              <HeroCopy
+                tagline="Your story. Captured together."
+                headline="You are on an epic journey."
+                promise="And believe me, it’s a story worth telling."
+                description={
+                  <>
+                    Authored By turns a two-minute check-in a day into the
+                    story of what you&rsquo;re building. Cass, your story
+                    guide, writes it down for you, chapter by chapter.
+                  </>
+                }
+              />
 
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
                 <DownloadButton />
