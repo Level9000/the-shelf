@@ -306,8 +306,21 @@ pre,
 /* Lets the wrapper's width drive the recorder. The component renders the SVG
    at a fixed pixel size from its `size` prop; the viewBox means overriding
    that with a percentage scales it cleanly instead of cropping. */
+/* Her phone placement: same easing, entering from the left instead, and with
+   no translateY to preserve, since she's anchored to the bottom rather than
+   centred. It needs to be a separate class for exactly that reason — the
+   reduced-motion rule below pins .cass-slide to translateY(-50%), which would
+   yank a bottom-anchored Cass up by half her height. */
+.cass-slide-left {
+  transition:
+    transform 560ms cubic-bezier(0.22, 0.9, 0.3, 1),
+    opacity 300ms ease;
+}
+
 .cass-slide .cass-recorder,
-.cass-slide .cass-recorder svg {
+.cass-slide .cass-recorder svg,
+.cass-slide-left .cass-recorder,
+.cass-slide-left .cass-recorder svg {
   width: 100%;
   height: auto;
 }
@@ -330,6 +343,12 @@ pre,
   .cass-slide {
     transition: opacity 200ms ease;
     transform: translateY(-50%) !important;
+  }
+
+  /* Same idea, minus the vertical centring she doesn't have. */
+  .cass-slide-left {
+    transition: opacity 200ms ease;
+    transform: none !important;
   }
 }
 

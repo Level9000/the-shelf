@@ -49,16 +49,34 @@ export function TypewriterQuote({
   durationMs = 3000,
   className,
   style,
+  start,
+  onDone,
 }: {
   text: string;
   durationMs?: number;
   className?: string;
   style?: React.CSSProperties;
+  /// Drive the start externally instead of self-triggering. Passed when
+  /// something else has to move in step with the typing, so the two share one
+  /// trigger rather than racing two observers on different elements.
+  start?: boolean;
+  /// Fires once when the last character lands.
+  onDone?: () => void;
 }) {
   const ref = useRef<HTMLQuoteElement>(null);
-  const [started, setStarted] = useState(false);
+  const [selfStarted, setSelfStarted] = useState(false);
   const [typed, setTyped] = useState(0);
   const [reduced, setReduced] = useState(false);
+
+  const driven = start !== undefined;
+  const started = driven ? start : selfStarted;
+
+  // Kept in a ref so a caller passing an inline arrow doesn't restart the
+  // animation on every parent render.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
 
   // Read once on mount rather than at module scope: this renders on the server
   // too, where matchMedia doesn't exist.
@@ -71,13 +89,14 @@ export function TypewriterQuote({
   }, []);
 
   useEffect(() => {
+    if (driven) return;
     const el = ref.current;
     if (!el) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setStarted(true);
+          setSelfStarted(true);
           // Once only. Re-typing every time the quote scrolls back into view
           // turns a moment into a tic, and on a short viewport the line can
           // cross the trigger several times in normal reading.
@@ -91,10 +110,16 @@ export function TypewriterQuote({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [driven]);
 
   useEffect(() => {
-    if (!started || reduced) return;
+    if (!started) return;
+    // Reduced motion has no frames to wait for; the line is already complete
+    // on screen, so anything sequenced off the end of it fires immediately.
+    if (reduced) {
+      onDoneRef.current?.();
+      return;
+    }
 
     let frame = 0;
     // Started on the first delivered frame, not here. A hidden tab suspends
@@ -102,13 +127,14 @@ export function TypewriterQuote({
     // three seconds while nothing was on screen and then snap to finished the
     // moment the reader came back. This way the line always takes three
     // seconds of *visible* time.
-    let start = 0;
+    let startedAt = 0;
 
     const tick = (now: number) => {
-      if (!start) start = now;
-      const progress = Math.min(1, (now - start) / durationMs);
+      if (!startedAt) startedAt = now;
+      const progress = Math.min(1, (now - startedAt) / durationMs);
       setTyped(Math.round(progress * text.length));
       if (progress < 1) frame = requestAnimationFrame(tick);
+      else onDoneRef.current?.();
     };
 
     frame = requestAnimationFrame(tick);

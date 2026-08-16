@@ -5,8 +5,7 @@ import { TornTape } from "@/components/ui/torn-tape";
 import { SUPPORT_EMAIL } from "@/lib/site";
 import { IntroFilm } from "./intro-film";
 import { MobileAppBar } from "./mobile-app-bar";
-import { PremiseCass } from "./premise-cass";
-import { TypewriterQuote } from "./typewriter-quote";
+import { PremiseBand } from "./premise-band";
 import { SampleStory, SAMPLE_STORY_READY } from "./sample-story";
 import { TourCarousel, type TourStep } from "./tour-carousel";
 
@@ -353,21 +352,7 @@ export function MarketingHome() {
           className="flex items-center px-5 py-20 sm:py-24 xl:min-h-[540px]"
           style={{ background: "var(--story-bg)" }}
         >
-          <div className="relative mx-auto w-full max-w-[42rem]">
-            <PremiseCass />
-            <TypewriterQuote
-              text={CASS_QUOTE}
-              durationMs={3000}
-              className="font-typewriter text-center text-[20px] sm:text-[26px]"
-              style={{ lineHeight: 1.6, color: "var(--story-ink)" }}
-            />
-            <p
-              className="font-cass mt-6 text-center text-[17px]"
-              style={{ color: "var(--gold-emphasis)" }}
-            >
-              Cass
-            </p>
-          </div>
+          <PremiseBand quote={CASS_QUOTE} />
         </section>
 
         {/* ── How it works ─────────────────────────────────────────────── */}
