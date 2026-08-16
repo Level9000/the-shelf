@@ -55,7 +55,8 @@
      that the light-pinned marketing page gets the paper value too — a JS
      branch reads the stored theme and would have used the dark shadow on a
      light page. */
-  --recorder-shadow: rgba(0, 0, 0, 0.45);
+  --recorder-shadow: rgba(0, 0, 0, 0.28);
+  --recorder-shadow-soft: rgba(0, 0, 0, 0.22);
 }
 
 /* `.on-dark` lets a single band run dark inside an otherwise light page. It
@@ -92,7 +93,8 @@
      that the light-pinned marketing page gets the paper value too — a JS
      branch reads the stored theme and would have used the dark shadow on a
      light page. */
-  --recorder-shadow: rgba(0, 0, 0, 0.45);
+  --recorder-shadow: rgba(0, 0, 0, 0.28);
+  --recorder-shadow-soft: rgba(0, 0, 0, 0.22);
 }
 
 /* The second selector is the public-facing pages opting out of the theme
@@ -133,7 +135,8 @@ body:has([data-force-light]) {
   --story-bg: #f0ebe0;
   --story-ink: rgba(22, 19, 15, 0.82);
   --story-muted: rgba(22, 19, 15, 0.55);
-  --recorder-shadow: rgba(0, 0, 0, 0.12);
+  --recorder-shadow: rgba(0, 0, 0, 0.07);
+  --recorder-shadow-soft: rgba(0, 0, 0, 0.05);
 }
 
 /* Soften pure-white text in dark mode — text-white class → warm ivory */
@@ -277,7 +280,7 @@ pre,
      positions each slide, and horizontal padding would desync that from the
      slides' own `w-full`. Their breathing room comes from px on the slides. */
   .tour-track {
-    padding-block: 3rem;
+    padding-block: 1.75rem;
     border: 1px solid var(--gold-border);
     border-radius: 24px;
     background: var(--surface);

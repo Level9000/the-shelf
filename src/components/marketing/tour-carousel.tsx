@@ -47,7 +47,22 @@ const DESKTOP = "(min-width: 768px)";
 /// Page scroll is deliberately the *only* driver on desktop: the arrows and
 /// dots scroll the window rather than the track, so there is one source of
 /// truth and nothing can fight the scroll position for control of the frame.
-export function TourCarousel({ steps }: { steps: TourStep[] }) {
+export function TourCarousel({
+  steps,
+  heading,
+}: {
+  steps: TourStep[];
+  /// The section's tape label and headline, rendered *inside* the pinned area.
+  ///
+  /// They used to sit above this component, and that is where the section's
+  /// worst gap came from: the sticky child is a full-viewport-height box that
+  /// centres the frame inside itself, so before it pins there is half a
+  /// viewport of nothing between the headline and the frame. Moving the
+  /// heading in means the two are one block, centred together and travelling
+  /// together, and the reader keeps the section title in view for the whole
+  /// pin instead of losing it at the first scroll.
+  heading?: React.ReactNode;
+}) {
   const runwayRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   // What we last told the track to show. Guards against re-issuing the same
@@ -137,6 +152,7 @@ export function TourCarousel({ steps }: { steps: TourStep[] }) {
     >
       <div className="md:sticky md:top-0 md:flex md:h-svh md:items-center">
         <div className="w-full">
+          {heading ? <div className="mb-8 md:mb-7">{heading}</div> : null}
           {/* The arrows centre on this wrapper, which holds the track alone —
               if the dots were inside it too, `top-1/2` would sit them below
               the frame's actual middle. */}
@@ -208,7 +224,7 @@ export function TourCarousel({ steps }: { steps: TourStep[] }) {
                         width={step.width}
                         height={step.height}
                         still={step.still}
-                        maxViewportHeight={46}
+                        maxViewportHeight={40}
                         className="mx-auto w-full max-w-[340px] md:max-w-none"
                       />
                     )}
@@ -230,7 +246,7 @@ export function TourCarousel({ steps }: { steps: TourStep[] }) {
 
           </div>
 
-          <div className="mt-10 hidden justify-center gap-3 md:flex">
+          <div className="mt-6 hidden justify-center gap-3 md:flex">
             {steps.map((step, i) => (
               <button
                 key={step.line}

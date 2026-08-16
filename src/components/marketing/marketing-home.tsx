@@ -361,17 +361,27 @@ export function MarketingHome() {
           // scroll-mt clears the fixed bar when "See how it works" jumps here.
           // The bar is phone-only, so the offset is too: from md up the old
           // 8-unit margin is all that's needed.
-          className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-16 sm:py-24 md:scroll-mt-8"
+          // Tighter than the other bands on purpose. The tour pins itself for a
+          // 340vh runway, so its own padding is dead space stacked on top of a
+          // section that is already generous with room.
+          className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-12 sm:py-14 md:scroll-mt-8"
         >
-          <TornTape size="xl">How it works</TornTape>
-          <h2
-            className="font-literata mt-7 max-w-[20ch] text-[28px] font-bold leading-[1.15] sm:text-[36px]"
-            style={{ letterSpacing: "-0.02em" }}
-          >
-            A few quick things before we get started.
-          </h2>
-
-          <TourCarousel steps={TOUR} />
+          {/* Heading goes to the carousel rather than sitting here, so it is
+              inside the pinned block and travels with the frame. */}
+          <TourCarousel
+            steps={TOUR}
+            heading={
+              <>
+                <TornTape size="xl">How it works</TornTape>
+                <h2
+                  className="font-literata mt-6 max-w-[20ch] text-[28px] font-bold leading-[1.15] sm:text-[36px]"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
+                  A few quick things before we get started.
+                </h2>
+              </>
+            }
+          />
         </section>
 
         {/* ── What you end up with ─────────────────────────────────────── */}

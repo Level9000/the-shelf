@@ -143,7 +143,19 @@ export function CassRecorder({
         // Shadow colour comes from CSS, not from useTheme(): pages that pin a
         // palette independently of the stored theme (the marketing page) need
         // the surface they actually render on, not the one in localStorage.
-        style={{ filter: `drop-shadow(0px ${12 * scale}px ${32 * scale}px var(--recorder-shadow))` }}
+        //
+        // Two shadows rather than one. A single 12/32 drop at lg scale worked
+        // out to a 17px offset with 45px of blur, which on flat parchment drew
+        // a distinctly boxy grey halo — the recorder is a big rounded
+        // rectangle, so its blurred silhouette still reads as a rectangle and
+        // the eye finds the edge. A tight contact shadow plus a much wider,
+        // fainter one falls off gradually instead, so she sits on the paper
+        // rather than hovering over it with a rectangle underneath.
+        style={{
+          filter:
+            `drop-shadow(0px ${3 * scale}px ${6 * scale}px var(--recorder-shadow))` +
+            ` drop-shadow(0px ${14 * scale}px ${28 * scale}px var(--recorder-shadow-soft))`,
+        }}
         aria-label={`Cass recorder — ${statusLabel}`}
       >
         {/* Body */}
