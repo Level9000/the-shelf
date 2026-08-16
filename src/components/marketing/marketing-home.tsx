@@ -331,39 +331,41 @@ export function MarketingHome() {
             full bleed like the premise band — the page already uses width
             changes to mark a change of register.
 
-            The headline is live text, not the copy that was burned into the
-            source image. Baked-in type can't be selected, read aloud, or
-            indexed, and it shrinks with the picture until it's unreadable on
-            a phone — so it was cropped off and set here instead, same words. */}
+            The headline is set inside both renders rather than living here as
+            live text. That is a deliberate trade: burned-in type can't be
+            selected or indexed, so the words move into the alt text below to
+            keep them available to screen readers and crawlers. There is no
+            <h2> here on purpose — with the words in the picture, one would
+            say the same sentence twice in a row. */}
         <section className="pb-16 sm:pb-24">
-          <h2
-            className="font-literata text-balance mx-auto max-w-5xl px-5 text-center text-[26px] font-bold leading-[1.2] sm:text-[36px]"
-            style={{ letterSpacing: "-0.02em" }}
-          >
-            Set Your Goals. Track Your Journey. Shape Your Story
-          </h2>
           {/* Two separately composed shots, not one image reflowed: the wide
               one would put the phones at about 100px tall on a handset. The
               <source> media query is the sm breakpoint exactly, and a browser
               fetches only the one that matches — a phone never pulls the
-              2200px file down. Each container's aspect ratio equals its own
-              image's, so nothing is cropped at either size and neither can
-              shift on load. */}
+              2688px file down.
+
+              Both aspect ratios are the files' own pixel dimensions rather
+              than the tidy ratio they were rendered at. The wide one really is
+              21:9, but the portrait came back 1744x2336, which is 0.7466 and
+              not the 0.75 that `aspect-[3/4]` would impose. Close enough to
+              look fine and far enough to make object-cover shave a sliver off
+              the top and bottom, so the container matches the file exactly and
+              nothing is cropped or shifted at either size. */}
           <picture>
             <source
               media="(min-width: 640px)"
               srcSet="/marketing/goals-and-story.webp"
-              width={2200}
-              height={952}
+              width={2688}
+              height={1152}
             />
             <img
               src="/marketing/goals-and-story-portrait.webp"
-              alt="Two iPhones standing on a desk beside a cork board of pinned notes. The left shows the Goals screen, with a highlighted goal, a vision image, and the actions to take next. The right shows a finished chapter, A Dream Is a Dream, with a highlighted pull quote."
-              width={1520}
-              height={2027}
+              alt="Set Your Goals. Track Your Journey. Shape Your Story. Two iPhones stand on a desk beside a cork board of pinned notes. The left shows the Goals screen with a highlighted goal, a vision image, and the actions to take next. The right shows the story tab, open on the backstory: the record of a two-person team that did great work nobody noticed, and built the tool that would have made it impossible to miss."
+              width={1744}
+              height={2336}
               loading="lazy"
               decoding="async"
-              className="mt-8 aspect-[3/4] w-full object-cover object-center sm:mt-10 sm:aspect-[2200/952]"
+              className="mt-8 aspect-[1744/2336] w-full object-cover object-center sm:mt-10 sm:aspect-[21/9]"
             />
           </picture>
         </section>
