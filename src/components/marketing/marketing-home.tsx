@@ -2,15 +2,18 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { Analytics } from "@vercel/analytics/next";
 import { TornTape } from "@/components/ui/torn-tape";
+import { SUPPORT_EMAIL } from "@/lib/site";
 import { IntroFilm } from "./intro-film";
 import { PremiseCass } from "./premise-cass";
+import { SampleStory } from "./sample-story";
 import { TourCarousel, type TourStep } from "./tour-carousel";
 
 // TODO: replace with the real listing URL once the app is live in App Store
 // Connect — this is the only placeholder on the page.
 const APP_STORE_URL = "#";
 
-const SUPPORT_EMAIL = "support@authoredby.app";
+// Shared with /support, which is the URL App Store Connect points at.
+
 
 // Kept next to each other so the hero line and the FAQ answer can never drift
 // apart. These are the store-facing prices; the Stripe price IDs they
@@ -219,9 +222,14 @@ export function MarketingHome() {
               >
                 Set goals. Track your journey. Shape your story.
               </p>
+              {/* `color` is set here rather than inherited. The page root
+                  paints text with `text-[var(--ink)]`, and inheritance passes
+                  the *resolved* colour down, so everything inside .on-dark
+                  that doesn't name a colour of its own keeps the light
+                  palette's near-black ink and disappears against the band. */}
               <h1
                 className="font-literata text-balance mt-4 text-[38px] font-bold leading-[1.08] sm:text-[52px]"
-                style={{ letterSpacing: "-0.02em" }}
+                style={{ letterSpacing: "-0.02em", color: "var(--ink)" }}
               >
                 You are on an epic journey.
               </h1>
@@ -360,6 +368,12 @@ export function MarketingHome() {
           </picture>
         </section>
 
+        {/* ── Proof ────────────────────────────────────────────────────── */}
+        {/* The mechanics are done being explained; this is the thing they
+            produce, on a real project rather than a demo one. Ships with
+            placeholder copy inside — see sample-story.tsx. */}
+        <SampleStory />
+
         {/* ── Questions ────────────────────────────────────────────────── */}
         {/* Sits immediately before the ask, because that is where the
             objections actually surface. Answers are open rather than in
@@ -402,7 +416,7 @@ export function MarketingHome() {
           <section className="mx-auto w-full max-w-5xl px-5 py-20 text-center">
             <h2
               className="font-literata text-balance text-[30px] font-bold leading-[1.15] sm:text-[40px]"
-              style={{ letterSpacing: "-0.02em" }}
+              style={{ letterSpacing: "-0.02em", color: "var(--ink)" }}
             >
               So what do you say? Are you ready to get started?
             </h2>
@@ -448,6 +462,9 @@ export function MarketingHome() {
             className="font-label mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px] font-semibold uppercase"
             style={{ letterSpacing: "0.14em" }}
           >
+            <Link href="/support" className="underline underline-offset-4" style={{ color: "var(--muted)" }}>
+              Support
+            </Link>
             <Link href="/privacy" className="underline underline-offset-4" style={{ color: "var(--muted)" }}>
               Privacy Policy
             </Link>

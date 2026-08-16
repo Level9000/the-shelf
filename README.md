@@ -1,122 +1,47 @@
-# Authored By
+# Authored By — marketing site
 
-Authored By is a voice-first AI kanban MVP built with Next.js, TypeScript, Tailwind CSS, Supabase, and an OpenAI-backed transcription/task-extraction flow.
+The public site at [authoredby.app](https://www.authoredby.app). It is a
+marketing site and nothing else: there is no sign-in, no dashboard, and no API.
 
-The product flow is:
+The product itself is the iPhone app, which lives in `authored-by-mobile`. That
+app talks to Supabase directly and reaches Anthropic through a Supabase Edge
+Function defined in its own repo, so nothing here is on its critical path.
 
-1. Sign in
-2. Create a project
-3. Record a voice note
-4. Transcribe and parse the note into proposed tasks
-5. Review and edit those tasks
-6. Save accepted tasks to the kanban board
-7. Drag cards between `To Do`, `In Progress`, and `Done`
+## Routes
 
-## Stack
+| Route | What it is |
+| --- | --- |
+| `/` | The marketing page. |
+| `/story/[slug]` | Public renderer for a chapter shared from the app. Reads the `boards` row matching `share_slug` with the anon key. The only route that touches the database, and the only dynamic one. |
+| `/support` | Support, account deletion, and subscription help. This is the URL in App Store Connect's **Support URL** field. |
+| `/privacy` | Privacy policy. Hardcoded in the mobile app as `https://www.authoredby.app/privacy` — the path cannot change. |
+| `/terms` | Terms of service. Hardcoded in the mobile app as `https://www.authoredby.app/terms` — the path cannot change. |
 
-- Next.js 16 App Router
-- React 19
-- TypeScript
-- Tailwind CSS 4
-- Supabase Auth and Postgres
-- OpenAI HTTP APIs for transcription and structured task extraction
-- `dnd-kit` for kanban drag-and-drop
+`/privacy` and `/terms` are load-bearing for App Store review and are linked
+from inside the app. Renaming either one breaks the shipped build.
 
-## Setup
-
-1. Install dependencies:
+## Running it
 
 ```bash
 npm install
-```
-
-2. Copy the environment template and fill it in:
-
-```bash
-cp .env.example .env.local
-```
-
-3. Create a Supabase project and run the SQL migrations in [supabase/migrations](/Users/warren/SmallMachines/the-shelf/supabase/migrations).
-
-4. In Supabase Auth:
-- Enable email/password auth.
-
-5. In Supabase URL/API settings:
-- Copy the project URL to `NEXT_PUBLIC_SUPABASE_URL`
-- Copy the anon key to `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-6. Add your OpenAI API key to `OPENAI_API_KEY`.
-
-7. Start the app:
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Copy `.env.example` to `.env.local` and fill in the anon key. Both variables are
+public; the site needs no secrets.
 
-## Environment variables
+## Where the copy lives
 
-See [.env.example](/Users/warren/SmallMachines/the-shelf/.env.example).
+- `src/components/marketing/marketing-home.tsx` — the page itself, section by
+  section, with the price and support address imported from `src/lib/site.ts`.
+- `src/components/marketing/sample-story.tsx` — the sample chapter. **Ships with
+  placeholder copy.** See the header comment in that file for what replacing it
+  involves.
+- `src/components/marketing/tour-carousel.tsx` — the how-it-works carousel.
 
-- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon key
-- `OPENAI_API_KEY`: OpenAI API key used by the voice processing route
-- `OPENAI_API_BASE_URL`: Optional override for the OpenAI API base URL
-- `OPENAI_TASK_MODEL`: Optional task extraction model override
-- `OPENAI_TRANSCRIPTION_MODEL`: Optional transcription model override
+## History
 
-## Supabase schema notes
-
-The migrations create:
-
-- `projects`
-- `boards`
-- `board_columns`
-- `tasks`
-- `voice_captures`
-
-It also includes:
-
-- indexes for common board and capture queries
-- RLS policies scoped to the authenticated user
-- a trigger that automatically creates a default board and the four default columns when a project is created
-
-## App structure
-
-Key areas:
-
-- [src/app/login/page.tsx](/Users/warren/SmallMachines/the-shelf/src/app/login/page.tsx)
-- [src/app/dashboard/page.tsx](/Users/warren/SmallMachines/the-shelf/src/app/dashboard/page.tsx)
-- [src/app/projects/[projectId]/page.tsx](/Users/warren/SmallMachines/the-shelf/src/app/projects/%5BprojectId%5D/page.tsx)
-- [src/app/api/voice/process/route.ts](/Users/warren/SmallMachines/the-shelf/src/app/api/voice/process/route.ts)
-- [src/lib/supabase](/Users/warren/SmallMachines/the-shelf/src/lib/supabase)
-- [src/lib/ai](/Users/warren/SmallMachines/the-shelf/src/lib/ai)
-- [src/components/board](/Users/warren/SmallMachines/the-shelf/src/components/board)
-- [src/components/voice](/Users/warren/SmallMachines/the-shelf/src/components/voice)
-- [src/components/tasks](/Users/warren/SmallMachines/the-shelf/src/components/tasks)
-
-## Current MVP behavior
-
-- Email/password auth
-- Project creation and switching
-- Default board + columns per project
-- Manual task creation
-- Task editing and deletion
-- Drag-and-drop with persisted ordering
-- Browser-based audio recording
-- Transcription + AI task extraction
-- Review-before-save task acceptance flow
-- Responsive mobile/desktop layout
-
-## Analytics
-
-Vercel Web Analytics runs on the public marketing page only (`/`), not on any
-signed-in surface. Referrers come for free; the newsletter is invisible without
-UTM tags, because mail clients strip the referrer. Tagging scheme and the
-dashboard switch that has to be flipped: [docs/analytics.md](docs/analytics.md).
-
-## Notes
-
-- The OpenAI integration is intentionally wrapped behind server-side helpers in [src/lib/ai/openai.ts](/Users/warren/SmallMachines/the-shelf/src/lib/ai/openai.ts) so the provider can be swapped later.
-- The app relies on browser `MediaRecorder`; stopping a recording immediately begins transcription, and audio is kept in request memory only and is not persisted after transcription completes.
+This repo began as The Shelf, a full web app with a kanban board, AI chapter
+generation, Stripe billing and Supabase auth. All of it was removed when the
+product moved to iPhone. `git log` before the teardown commit has the lot if
+anything ever needs to come back.

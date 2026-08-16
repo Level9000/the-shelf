@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-context";
-import { AvatarProvider } from "@/lib/avatar-context";
 
 // Without this, mobile browsers fall back to a desktop-width layout viewport
 // (Safari defaults to 980px) and scale the whole page to fit, which is why
@@ -81,9 +80,11 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full bg-[var(--app-bg)] text-[var(--ink)] antialiased">
-        <ThemeProvider>
-          <AvatarProvider>{children}</AvatarProvider>
-        </ThemeProvider>
+        {/* AvatarProvider went with the portal — it tracked which of Cass, Ty
+            or Press was running the current session, and nothing on a
+            marketing site runs a session. ThemeProvider stays because the
+            palette in globals.css is driven by it. */}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

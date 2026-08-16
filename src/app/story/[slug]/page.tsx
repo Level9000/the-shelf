@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { CheckCircle2 } from "lucide-react";
@@ -55,7 +56,7 @@ export default async function PublicStoryPage({
         <div className="mb-10">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted,#888)]">
             <span className="text-base">◈</span>
-            Shelf
+            Authored By
           </div>
           <p className="mt-4 text-sm font-semibold text-[var(--muted,#888)]">
             Chapter {chapterNumber} · {projectName}
@@ -104,24 +105,26 @@ export default async function PublicStoryPage({
           </div>
         </article>
 
-        {/* Acquisition CTA */}
+        {/* Acquisition CTA. This page is the one surface a stranger reaches
+            without ever having heard of the app, so it carries the product
+            name rather than the working name the repo still goes by. */}
         <footer className="rounded-[1.75rem] bg-[var(--ink,#111)] px-6 py-6 text-center text-white">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
-            ◈ Shelf
+            Authored By
           </p>
           <p className="mt-3 text-lg font-semibold leading-snug">
             Build your own story.
           </p>
           <p className="mt-2 text-sm text-white/60">
-            Shelf helps authors track work, run recaps, and never lose the
-            story of what they built.
+            Two minutes of talking a day becomes the written record of what
+            you&rsquo;re building.
           </p>
-          <a
+          <Link
             href="/"
             className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink,#111)] shadow-sm transition hover:bg-white/90"
           >
             Start for free →
-          </a>
+          </Link>
         </footer>
       </div>
     </main>

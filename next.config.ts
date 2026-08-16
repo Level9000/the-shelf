@@ -1,14 +1,8 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  experimental: {
-    serverActions: {
-      // Cover photo uploads (src/lib/actions/cover-photo-actions.ts) enforce an
-      // 8MB limit themselves — this must be at least that, or Next.js's default
-      // 1MB Server Action body cap silently kills uploads before that check runs.
-      bodySizeLimit: "10mb",
-    },
-  },
-};
+// Nothing to configure. The Server Actions body limit that used to live here
+// existed for cover photo uploads in the web portal; there are no Server
+// Actions on a marketing site.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
