@@ -98,17 +98,28 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
       </>
     ),
   },
+  // The deletion promise is the load-bearing sentence here, and it is true at
+  // the database rather than as a matter of policy: every table that carries a
+  // project_id declares `on delete cascade` (grep the migrations, there are no
+  // exceptions), and the app's own delete routine clears tasks, boards,
+  // voice_captures and members before dropping the project row. Check-ins live
+  // in story_fragments and voice_captures, so they go both ways. If a future
+  // migration ever adds a project-scoped table without the cascade, this
+  // sentence stops being true and has to change with it.
   {
-    q: "What happens to my check-ins when Cass writes a chapter?",
+    q: "What happens to my check-ins?",
     a: (
       <>
-        They&rsquo;re sent to Anthropic to generate the writing. The AI keys
-        never ship inside the app; those calls run through our server and
-        require you to be signed in. The{" "}
+        We keep them, because they&rsquo;re what your chapters get written
+        from. That&rsquo;s the whole reason they exist.
+        <br />
+        <br />
+        They stay yours. Delete a project and every check-in in it is deleted
+        with it, not archived somewhere out of sight. The{" "}
         <Link href="/privacy" className="underline underline-offset-4">
           privacy policy
         </Link>{" "}
-        lists every service involved.
+        covers how the writing gets generated.
       </>
     ),
   },
