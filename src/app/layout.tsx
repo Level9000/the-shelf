@@ -12,12 +12,33 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  // Social scrapers need absolute URLs. Without a metadataBase, Next emits the
+  // relative path and LinkedIn, iMessage and Slack all drop the image.
+  metadataBase: new URL("https://www.authoredby.app"),
   title: "Authored By",
   description: "AI-guided storytelling for your work, one chapter at a time.",
   openGraph: {
+    type: "website",
+    siteName: "Authored By",
     title: "Authored By",
     description: "AI-guided storytelling for your work, one chapter at a time.",
-    images: [{ url: "/icons/authored_by_app_icon_square.png" }],
+    // A JPEG at 1200x630, not the square app icon: the icon rendered as a
+    // small thumbnail rather than a card, and several scrapers still don't
+    // handle WebP.
+    images: [
+      {
+        url: "/marketing/og-card.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Two iPhones on a desk showing the Goals screen and a finished chapter.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Authored By",
+    description: "AI-guided storytelling for your work, one chapter at a time.",
+    images: ["/marketing/og-card.jpg"],
   },
   icons: {
     icon: [

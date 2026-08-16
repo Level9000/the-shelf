@@ -12,6 +12,12 @@ const APP_STORE_URL = "#";
 
 const SUPPORT_EMAIL = "support@authoredby.app";
 
+// Kept next to each other so the hero line and the FAQ answer can never drift
+// apart. These are the store-facing prices; the Stripe price IDs they
+// correspond to live in env (STRIPE_PRICE_BUILDER_MONTHLY / _ANNUAL).
+const PRICE_MONTHLY = "$12";
+const PRICE_ANNUAL = "$99";
+
 // Cass's lines, verbatim from `onboardingSlides` in the mobile app
 // (lib/screens/onboarding/onboarding_tour.dart). She already says this better
 // than a feature list would, and she says it in the app in the same order.
@@ -66,6 +72,81 @@ const TOUR: TourStep[] = [
   },
 ];
 
+// Every answer here is checkable against the code or the privacy policy —
+// nothing is aspirational. The AI answer deliberately describes where your
+// writing goes rather than promising what Anthropic does with it, because
+// that's a claim only the company can make.
+const FAQ: { q: string; a: React.ReactNode }[] = [
+  {
+    q: "Who can read what I write?",
+    a: (
+      <>
+        You can. Nothing leaves your account until you decide to share it, and
+        when you do, you choose who it&rsquo;s for and how much of the story
+        goes with it.
+      </>
+    ),
+  },
+  {
+    q: "What happens to my check-ins when Cass writes a chapter?",
+    a: (
+      <>
+        They&rsquo;re sent to Anthropic to generate the writing. The AI keys
+        never ship inside the app; those calls run through our server and
+        require you to be signed in. The{" "}
+        <Link href="/privacy" className="underline underline-offset-4">
+          privacy policy
+        </Link>{" "}
+        lists every service involved.
+      </>
+    ),
+  },
+  {
+    q: "What does it cost?",
+    a: (
+      <>
+        Your first chapter is free. After that it&rsquo;s {PRICE_MONTHLY} a
+        month or {PRICE_ANNUAL} a year, billed through the App Store.
+      </>
+    ),
+  },
+  {
+    q: "Do I have to write every day?",
+    a: (
+      <>
+        No. The check-in takes about two minutes when you want it, and Cass
+        writes from whatever you&rsquo;ve given her. Miss a week and the story
+        just picks up where you left off.
+      </>
+    ),
+  },
+  {
+    q: "Can I delete my account and everything in it?",
+    a: (
+      <>
+        Yes, from Settings inside the app, and it removes your account along
+        with the stories in it. You can also email{" "}
+        <a
+          href={`mailto:${SUPPORT_EMAIL}`}
+          className="underline underline-offset-4"
+        >
+          {SUPPORT_EMAIL}
+        </a>
+        .
+      </>
+    ),
+  },
+  {
+    q: "Is there an Android version?",
+    a: (
+      <>
+        Not yet. Authored By is on iPhone first; Android is planned but
+        doesn&rsquo;t have a date worth promising.
+      </>
+    ),
+  },
+];
+
 // The app's gold outline pill, ported straight across: 999px, no fill, gold
 // border at 55%, a soft gold glow, Literata 14/600, and a label that goes
 // tapeGold on dark and ink-on-gold on light. Same numbers as
@@ -102,6 +183,12 @@ export function MarketingHome() {
           the job an app bar would on desktop, without the chrome. */}
       <main>
         {/* ── Hero ─────────────────────────────────────────────────────── */}
+        {/* The one band that runs dark. The film is a black object in a black
+            phone, the gold pill was designed to glow on dark, and the wordmark
+            is white tape that all but disappears on cream. Everything after
+            this stays light, because the product footage was all captured in
+            light mode and glares on a dark surface. */}
+        <div className="on-dark" style={{ background: "var(--app-bg)" }}>
         <section className="mx-auto w-full max-w-5xl px-5 pb-16 pt-10 md:pt-8">
           {/* One element, two jobs. On a phone it sits in the hero at the
               headline's own measure (the h1's rendered lines run ~335px), so
@@ -121,8 +208,19 @@ export function MarketingHome() {
           />
           <div className="grid gap-12 md:grid-cols-2 md:items-center md:gap-14">
             <div>
+              {/* The plain proposition, first. The headline below is the
+                  emotional line and it earns its place, but on its own it
+                  never says what the app does, so someone arriving cold from
+                  a post or a store listing had to read three more elements
+                  before finding out. */}
+              <p
+                className="font-label text-[13px] font-bold uppercase"
+                style={{ letterSpacing: "0.2em", color: "var(--gold-emphasis)" }}
+              >
+                Set goals. Track your journey. Shape your story.
+              </p>
               <h1
-                className="font-literata text-balance text-[38px] font-bold leading-[1.08] sm:text-[52px]"
+                className="font-literata text-balance mt-4 text-[38px] font-bold leading-[1.08] sm:text-[52px]"
                 style={{ letterSpacing: "-0.02em" }}
               >
                 You are on an epic journey.
@@ -135,7 +233,7 @@ export function MarketingHome() {
               </p>
               <p
                 className="font-story mt-5 max-w-[46ch] text-[16px]"
-                style={{ lineHeight: 1.75, color: "var(--muted)" }}
+                style={{ lineHeight: 1.75, color: "var(--ink)", opacity: 0.78 }}
               >
                 Authored By turns a two-minute check-in a day into the story
                 of what you&rsquo;re building. Cass, your story guide, writes it
@@ -152,74 +250,54 @@ export function MarketingHome() {
                   See how it works
                 </a>
               </div>
+
+              {/* Said up front rather than discovered at the paywall. The free
+                  span is the real one from src/lib/subscription.ts: the trial
+                  ends when a second chapter is started. */}
+              <p
+                className="font-story mt-5 text-[14px]"
+                style={{ lineHeight: 1.6, color: "var(--muted)" }}
+              >
+                Free to start. Your first chapter is free, then {PRICE_MONTHLY} a
+                month or {PRICE_ANNUAL} a year.
+              </p>
             </div>
 
             <IntroFilm />
           </div>
         </section>
+        </div>
 
-        {/* ── The premise ──────────────────────────────────────────────── */}
-        {/* The film's argument, in her words, on the parchment reading
-            surface — the same page the chapters themselves are set on. */}
+        {/* ── One line from the film ───────────────────────────────────── */}
+        {/* What's left of the premise. The three-paragraph monologue went:
+            it's the film's script verbatim, so anyone who pressed play read
+            it twice, and it asked a cold visitor for a page of reading before
+            telling them what the app was.
+
+            One line stays rather than nothing, because the film is muted and
+            optional — with the passage gone entirely, the whole argument for
+            the product would sit behind a click nobody is obliged to make.
+            The parchment also keeps a breath between the dark hero and the
+            tour, and keeps Cass a margin wide enough to stand in. */}
         <section
-          className="px-5 py-16 sm:py-24"
+          className="flex items-center px-5 py-20 sm:py-24 xl:min-h-[540px]"
           style={{ background: "var(--story-bg)" }}
         >
           <div className="relative mx-auto w-full max-w-[42rem]">
-            {/* Positions against this column, so she lands in the margin
-                beside the passage rather than anywhere in the band. */}
             <PremiseCass />
-            <TornTape size="sm">The premise</TornTape>
-
-            <div className="mt-8 space-y-6">
-              <p
-                className="font-story text-[17px] sm:text-[19px]"
-                style={{ lineHeight: 1.75, color: "var(--story-ink)" }}
-              >
-                Maybe you&rsquo;re building a company, or training for
-                something, or learning something you&rsquo;ve never done
-                before. It doesn&rsquo;t matter what it is. What matters is,
-                it&rsquo;s important enough to you that you keep showing up for
-                it.
-              </p>
-              <p
-                className="font-story text-[17px] sm:text-[19px]"
-                style={{ lineHeight: 1.75, color: "var(--story-ink)" }}
-              >
-                And one day, you are going to achieve those goals you set for
-                yourself. Which is exciting! It&rsquo;s a story worth
-                capturing. Worth documenting. Worth sharing.
-              </p>
-              <p
-                className="font-story text-[17px] sm:text-[19px]"
-                style={{ lineHeight: 1.75, color: "var(--story-ink)" }}
-              >
-                And this is where I can help. My name is Cass, and I am going
-                to guide you through this app. Together we&rsquo;ll set goals
-                and have daily check-ins to capture your progress. As you keep
-                checking in, a story starts to take shape, and I will be
-                writing it down for you, chapter by chapter.
-              </p>
-            </div>
-
-            <p
-              className="font-cass mt-7 text-[17px]"
-              style={{ color: "var(--gold-emphasis)" }}
-            >
-              Cass
-            </p>
-
             <blockquote
-              className="font-typewriter mt-12 border-t pt-10 text-center text-[20px] sm:text-[24px]"
-              style={{
-                lineHeight: 1.6,
-                color: "var(--story-ink)",
-                borderColor: "var(--gold-border)",
-              }}
+              className="font-typewriter text-center text-[20px] sm:text-[26px]"
+              style={{ lineHeight: 1.6, color: "var(--story-ink)" }}
             >
               &ldquo;Before long, you&rsquo;ll have an epic story you
               can&rsquo;t wait to share with your circles.&rdquo;
             </blockquote>
+            <p
+              className="font-cass mt-6 text-center text-[17px]"
+              style={{ color: "var(--gold-emphasis)" }}
+            >
+              Cass
+            </p>
           </div>
         </section>
 
@@ -282,22 +360,68 @@ export function MarketingHome() {
           </picture>
         </section>
 
-        {/* ── Close ────────────────────────────────────────────────────── */}
-        <section className="mx-auto w-full max-w-5xl px-5 pb-20 text-center">
+        {/* ── Questions ────────────────────────────────────────────────── */}
+        {/* Sits immediately before the ask, because that is where the
+            objections actually surface. Answers are open rather than in
+            accordions: they're short, and hiding the privacy answer behind a
+            click defeats the point of having it. */}
+        <section className="mx-auto w-full max-w-5xl px-5 pb-16 sm:pb-24">
+          <TornTape size="sm">Questions</TornTape>
           <h2
-            className="font-literata text-balance text-[30px] font-bold leading-[1.15] sm:text-[40px]"
+            className="font-literata mt-7 max-w-[20ch] text-[28px] font-bold leading-[1.15] sm:text-[36px]"
             style={{ letterSpacing: "-0.02em" }}
           >
-            So what do you say? Are you ready to get started?
+            Before you download.
           </h2>
-          <div className="mt-8 flex justify-center">
-            <DownloadButton />
-          </div>
+
+          <dl className="mt-12 grid gap-x-12 gap-y-10 md:grid-cols-2">
+            {FAQ.map((item) => (
+              <div key={item.q}>
+                <dt
+                  className="font-literata text-[18px] font-bold sm:text-[20px]"
+                  style={{ letterSpacing: "-0.01em", lineHeight: 1.3 }}
+                >
+                  {item.q}
+                </dt>
+                <dd
+                  className="font-story mt-3 max-w-[46ch] text-[16px]"
+                  style={{ lineHeight: 1.7, color: "var(--muted)" }}
+                >
+                  {item.a}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </section>
+
+        {/* ── Close ────────────────────────────────────────────────────── */}
+        {/* Dark again, closing the bookend the hero opened. The last thing on
+            the page is the ask, and the gold pill carries further on dark
+            than it does on paper. */}
+        <div className="on-dark" style={{ background: "var(--app-bg)" }}>
+          <section className="mx-auto w-full max-w-5xl px-5 py-20 text-center">
+            <h2
+              className="font-literata text-balance text-[30px] font-bold leading-[1.15] sm:text-[40px]"
+              style={{ letterSpacing: "-0.02em" }}
+            >
+              So what do you say? Are you ready to get started?
+            </h2>
+            <div className="mt-8 flex justify-center">
+              <DownloadButton />
+            </div>
+            <p
+              className="font-story mt-5 text-[14px]"
+              style={{ lineHeight: 1.6, color: "var(--muted)" }}
+            >
+              Free to start. {PRICE_MONTHLY} a month or {PRICE_ANNUAL} a year
+              after your first chapter.
+            </p>
+          </section>
+        </div>
       </main>
 
       <footer
-        className="px-5 py-12"
+        className="on-dark px-5 py-12"
         style={{ borderTop: "1px solid var(--stroke)", background: "var(--surface-muted)" }}
       >
         <div className="mx-auto w-full max-w-5xl">

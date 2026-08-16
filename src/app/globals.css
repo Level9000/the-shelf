@@ -58,7 +58,13 @@
   --recorder-shadow: rgba(0, 0, 0, 0.45);
 }
 
-[data-theme="dark"] {
+/* `.on-dark` lets a single band run dark inside an otherwise light page. It
+   joins this selector rather than copying the values, so the dark palette
+   still lives in one place. It works against the light-pinning on `body`
+   because the two target different elements: the band sets its own variables
+   and its subtree inherits those, which has nothing to do with specificity. */
+[data-theme="dark"],
+.on-dark {
   --app-bg: #0d0d0d;
   --surface: #1a1a1a;
   --surface-strong: #212121;
