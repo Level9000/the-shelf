@@ -111,15 +111,22 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         We keep them, because they&rsquo;re what your chapters get written
-        from. That&rsquo;s the whole reason they exist.
-        <br />
-        <br />
-        They stay yours. Delete a project and every check-in in it is deleted
-        with it, not archived somewhere out of sight. The{" "}
+        from. Delete a project and every check-in in it is deleted with it,
+        not archived somewhere out of sight.
+      </>
+    ),
+  },
+  {
+    q: "Does my writing go to an AI?",
+    a: (
+      <>
+        Yes. We use Anthropic&rsquo;s API to do the writing, so your check-ins
+        are sent there when a chapter is generated. Anything we store stays
+        under the same rule: delete the project and it&rsquo;s gone. The{" "}
         <Link href="/privacy" className="underline underline-offset-4">
           privacy policy
         </Link>{" "}
-        covers how the writing gets generated.
+        lists every service involved.
       </>
     ),
   },
@@ -162,8 +169,8 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     q: "Is there an Android version?",
     a: (
       <>
-        Not yet. Authored By is on iPhone first; Android is planned but
-        doesn&rsquo;t have a date worth promising.
+        Not yet, but it&rsquo;s in development right now and we hope to have it
+        out very soon. iPhone came first; Android is close behind.
       </>
     ),
   },
