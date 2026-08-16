@@ -511,7 +511,14 @@ export function MarketingHome() {
           >
             Support
           </p>
-          <p className="font-story mt-3 text-[16px]" style={{ lineHeight: 1.7 }}>
+          {/* Names its own colour, like everything else inside a .on-dark
+              band has to. Inheritance carries the *resolved* value down, so a
+              declaration-free element here keeps the light palette's near
+              black ink from the page root and lands at 1.02:1 on the footer. */}
+          <p
+            className="font-story mt-3 text-[16px]"
+            style={{ lineHeight: 1.7, color: "var(--ink)" }}
+          >
             Questions, trouble with the app, or anything about your account?
             Email{" "}
             <a

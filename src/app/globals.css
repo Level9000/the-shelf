@@ -26,7 +26,11 @@
   --field-bg: #2a2a2a;
   --stroke: rgba(255, 255, 255, 0.08);
   --ink: #d4cec4;
-  --muted: rgba(212, 206, 196, 0.45);
+  /* 0.6, not 0.45. At 0.45 this lands at 3.3:1 on both dark surfaces, which
+     fails WCAG AA for body text, and it is the colour on the price lines, the
+     "see how it works" link, and every footer link. 0.6 clears AA on both
+     (5.0 on --app-bg, 4.9 on --surface-muted) and still reads as secondary. */
+  --muted: rgba(212, 206, 196, 0.6);
   --accent: #d4cec4;
   --accent-soft: #2a2a2a;
   --danger: #f87171;
@@ -73,7 +77,11 @@
   --field-bg: #2a2a2a;
   --stroke: rgba(255, 255, 255, 0.08);
   --ink: #d4cec4;
-  --muted: rgba(212, 206, 196, 0.45);
+  /* 0.6, not 0.45. At 0.45 this lands at 3.3:1 on both dark surfaces, which
+     fails WCAG AA for body text, and it is the colour on the price lines, the
+     "see how it works" link, and every footer link. 0.6 clears AA on both
+     (5.0 on --app-bg, 4.9 on --surface-muted) and still reads as secondary. */
+  --muted: rgba(212, 206, 196, 0.6);
   --accent: #d4cec4;
   --accent-soft: #2a2a2a;
   --danger: #f87171;
