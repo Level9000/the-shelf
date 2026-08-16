@@ -4,7 +4,9 @@ import { Analytics } from "@vercel/analytics/next";
 import { TornTape } from "@/components/ui/torn-tape";
 import { SUPPORT_EMAIL } from "@/lib/site";
 import { IntroFilm } from "./intro-film";
+import { MobileAppBar } from "./mobile-app-bar";
 import { PremiseCass } from "./premise-cass";
+import { TypewriterQuote } from "./typewriter-quote";
 import { SampleStory, SAMPLE_STORY_READY } from "./sample-story";
 import { TourCarousel, type TourStep } from "./tour-carousel";
 
@@ -20,6 +22,12 @@ const APP_STORE_URL = "#";
 // correspond to live in env (STRIPE_PRICE_BUILDER_MONTHLY / _ANNUAL).
 const PRICE_MONTHLY = "$12";
 const PRICE_ANNUAL = "$99";
+
+// Typed out on scroll rather than set as static text. Kept as one plain
+// string, curly punctuation and all, because the typewriter reveals it one
+// character at a time and JSX entities would arrive as multi-character escapes.
+const CASS_QUOTE =
+  "“Before long, you’ll have an epic story you can’t wait to share with your circles.”";
 
 // Cass's lines, verbatim from `onboardingSlides` in the mobile app
 // (lib/screens/onboarding/onboarding_tour.dart). She already says this better
@@ -180,11 +188,16 @@ export function MarketingHome() {
       data-force-light
       className="page-clip-x min-h-screen bg-[var(--app-bg)] text-[var(--ink)]"
     >
-      {/* No nav bar — there is nowhere else to go, and no sign-in link to
-          hang off one while the web app isn't ready to be shown (/login still
-          exists and works, it just isn't advertised). The wordmark below does
-          the job an app bar would on desktop, without the chrome. */}
-      <main>
+      {/* Sits outside <main> and outside the dark hero wrapper, so it inherits
+          the page's light tokens rather than the hero's inverted ones. It only
+          ever appears over light content anyway, the hero being the one dark
+          band and the trigger for showing it. */}
+      <MobileAppBar href={APP_STORE_URL} />
+
+      {/* Still no desktop nav — there is nowhere else to go. The hero wordmark
+          does the job an app bar would there, without the chrome; on a phone
+          it hands off to MobileAppBar once it scrolls away. */}
+      <main id="top">
         {/* ── Hero ─────────────────────────────────────────────────────── */}
         {/* The one band that runs dark. The film is a black object in a black
             phone, the gold pill was designed to glow on dark, and the wordmark
@@ -203,6 +216,7 @@ export function MarketingHome() {
           {/* eslint-disable-next-line @next/next/no-img-element -- the
               wordmark is a photographed strip of tape; it ships as-is. */}
           <img
+            id="hero-wordmark"
             src="/icons/authored-by-tape-icon.png"
             alt="Authored By"
             width={801}
@@ -293,13 +307,12 @@ export function MarketingHome() {
         >
           <div className="relative mx-auto w-full max-w-[42rem]">
             <PremiseCass />
-            <blockquote
+            <TypewriterQuote
+              text={CASS_QUOTE}
+              durationMs={3000}
               className="font-typewriter text-center text-[20px] sm:text-[26px]"
               style={{ lineHeight: 1.6, color: "var(--story-ink)" }}
-            >
-              &ldquo;Before long, you&rsquo;ll have an epic story you
-              can&rsquo;t wait to share with your circles.&rdquo;
-            </blockquote>
+            />
             <p
               className="font-cass mt-6 text-center text-[17px]"
               style={{ color: "var(--gold-emphasis)" }}
@@ -312,7 +325,10 @@ export function MarketingHome() {
         {/* ── How it works ─────────────────────────────────────────────── */}
         <section
           id="how-it-works"
-          className="mx-auto w-full max-w-5xl scroll-mt-8 px-5 py-16 sm:py-24"
+          // scroll-mt clears the fixed bar when "See how it works" jumps here.
+          // The bar is phone-only, so the offset is too: from md up the old
+          // 8-unit margin is all that's needed.
+          className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-16 sm:py-24 md:scroll-mt-8"
         >
           <TornTape size="xl">How it works</TornTape>
           <h2

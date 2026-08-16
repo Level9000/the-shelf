@@ -341,3 +341,22 @@ pre,
   }
 }
 
+/* The typewriter caret on Cass's line. `step-end` rather than a fade, because
+   a caret that eases in and out reads as a pulsing glow; a real one is either
+   lit or it isn't. It only exists while the line is typing, so it needs no
+   reduced-motion rule of its own — that path never renders it. */
+@keyframes tw-caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.tw-caret {
+  animation: tw-caret-blink 1s step-end infinite;
+}
+
