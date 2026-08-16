@@ -165,6 +165,27 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
       </>
     ),
   },
+  // The only forward-looking answer on the page, and the only one that isn't
+  // checkable against the code, so it is deliberately conditional: "where I'd
+  // like this to go", never a feature, never a date. The last line is not
+  // decoration. "Who can read what I write?" three questions up promises that
+  // nothing leaves your account, and a hint at publishing can quietly read as
+  // "for now" unless the private default is restated right here.
+  {
+    q: "Can I read other people's stories?",
+    a: (
+      <>
+        Not today. Your story is private by default and goes nowhere you
+        don&rsquo;t send it.
+        <br />
+        <br />
+        Where I&rsquo;d like this to go: a place where these stories live,
+        where authors publish their chapters and readers follow the work. That
+        needs people more than it needs code. If we get there, publishing stays
+        a choice you make, never something that happens to your writing.
+      </>
+    ),
+  },
   {
     q: "Is there an Android version?",
     a: (
