@@ -273,6 +273,22 @@ export function MarketingHome() {
           />
           <div className="grid gap-12 md:grid-cols-2 md:items-center md:gap-14">
             <div>
+              {/* Pinned on phones for the length of the runway below.
+                  Crossfading on scroll alone wasn't enough: one flick covers
+                  several hundred pixels, so the swap finished and the whole
+                  hero left the screen inside a single gesture, and the second
+                  page only ever flashed past. Holding the copy still while
+                  that scroll is spent means an ordinary flick *lands* on the
+                  second page instead of overshooting it.
+
+                  `top-16` clears the 58px app bar, which arrives at almost the
+                  same moment the wordmark above leaves.
+
+                  Phones only. On desktop the whole hero fits the viewport, so
+                  the second page stays readable where it is, and pinning this
+                  column inside a two-column grid would drag the film down with
+                  the row it shares. */}
+              <div className="sticky top-16 md:static">
               {/* Two pages of copy in one slot, traded on scroll. The tagline
                   is the app's own, verbatim from login_screen.dart:444.
 
@@ -315,6 +331,16 @@ export function MarketingHome() {
                 Free to start. Your first chapter is free, then {PRICE_MONTHLY} a
                 month or {PRICE_ANNUAL} a year.
               </p>
+              </div>
+
+              {/* The runway the block above is pinned against. Its height is
+                  how much scroll the hero holds onto: the swap spends the
+                  first 190px of it, and the rest is the reader sitting with
+                  the second page instead of sailing past it. The film below is
+                  pushed down by exactly this much and rises into view as the
+                  runway is spent, which is the hero handing over rather than
+                  being skipped. */}
+              <div aria-hidden className="h-[380px] md:hidden" />
             </div>
 
             <IntroFilm />

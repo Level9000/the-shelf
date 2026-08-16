@@ -3,11 +3,16 @@
 import { useEffect, useState } from "react";
 
 /// How far the reader scrolls to get from the first block to the second, in
-/// px. Deliberately short. The block travels up by exactly this distance while
-/// the swap runs, and the phone app bar occupies the top ~58px, so a longer
-/// swap finishes with the new paragraph's first line already tucked under the
-/// bar. At 100 it lands with the whole paragraph still clear of it.
-const SWAP_DISTANCE = 100;
+/// px.
+///
+/// This was 100 while the block still travelled with the page, because it
+/// moved up by exactly the swap distance and anything longer finished with the
+/// paragraph tucked under the phone app bar. The block is pinned now, so it
+/// doesn't move at all during the swap and the constraint is gone: this can be
+/// paced for reading instead, and it has to be, because the swap needs to
+/// occupy a real share of the runway rather than being over in one frame of a
+/// flick.
+const SWAP_DISTANCE = 190;
 
 /// The hero's two pages of copy, crossfaded by scroll position.
 ///
@@ -68,12 +73,16 @@ export function HeroCopy({
     };
   }, []);
 
-  // The two overlap in the middle rather than handing over at a hard midpoint:
-  // the first is gone by 60% and the second starts arriving at 35%, so there is
-  // a beat where neither is fully present and the swap reads as a dissolve
-  // instead of a flicker.
-  const out = Math.min(1, progress / 0.6);
-  const inn = Math.max(0, (progress - 0.35) / 0.65);
+  // The first block is fully gone before the second starts arriving. They
+  // deliberately do NOT overlap: these are two different paragraphs stacked in
+  // one cell, and any moment where both carry opacity renders them as ghosts
+  // through each other, which is illegible rather than elegant. A true
+  // crossfade works for images and not for text.
+  //
+  // The dead beat between them is about 19px of scroll at this distance, short
+  // enough to read as a handover rather than a gap.
+  const out = Math.min(1, progress / 0.45);
+  const inn = Math.max(0, (progress - 0.55) / 0.45);
 
   // Reduced motion keeps the swap (it is what makes the hero readable) but
   // drops the travel, so nothing slides.
