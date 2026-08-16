@@ -23,11 +23,16 @@ const APP_STORE_URL = "#";
 const PRICE_MONTHLY = "$12";
 const PRICE_ANNUAL = "$99";
 
-// Typed out on scroll rather than set as static text. Kept as one plain
-// string, curly punctuation and all, because the typewriter reveals it one
-// character at a time and JSX entities would arrive as multi-character escapes.
-const CASS_QUOTE =
-  "“Before long, you’ll have an epic story you can’t wait to share with your circles.”";
+// Cass's two pages, typed out on scroll. Plain strings with curly punctuation
+// rather than JSX, because the typewriter reveals them one character at a time
+// and an entity would arrive as a run of characters.
+//
+// No surrounding quote marks any more, and no "Cass" signature under them.
+// She introduces herself in the first line now, so both would be saying the
+// same thing a second time.
+const CASS_LINE_ONE =
+  "Hi, I’m Cass. I’m here to make sure the epic story that you’re living gets authored into something you can share with your circles.";
+const CASS_LINE_TWO = "Let me show you how this works.";
 
 // Cass's lines, verbatim from `onboardingSlides` in the mobile app
 // (lib/screens/onboarding/onboarding_tour.dart). She already says this better
@@ -270,22 +275,28 @@ export function MarketingHome() {
         <div>
         <div className="md:sticky md:top-0">
         <section className="mx-auto w-full max-w-5xl px-5 pb-16 pt-10 md:pt-8">
-          {/* One element, two jobs. On a phone it sits in the hero at the
-              headline's own measure (the h1's rendered lines run ~335px), so
-              the tape reads as part of the title. From md up it centres and
-              shrinks into an app-bar mark above both columns — the grid below
-              is single-column on mobile and the text block comes first, so
-              sitting above the grid puts it in the same place either way and
-              this doesn't need to be rendered twice. */}
+          {/* Two placements, and now genuinely two elements. It used to be one
+              that restyled across the breakpoint, which worked while both
+              versions sat in the same place in the flow. They no longer do: on
+              a phone the tape has to be *inside* the pinned block so it holds
+              on screen while the copy trades pages, and on desktop it has to
+              stay centred above both columns, which is outside that block
+              entirely. One element cannot be in both places, so each
+              breakpoint gets its own and hides the other. Same file either
+              way, so the browser fetches it once.
+
+              The phone copy carries the id, because MobileAppBar watches it to
+              decide when to appear and the bar is phone-only. Pinning the tape
+              is what now keeps the bar away until the hero actually leaves. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- the
               wordmark is a photographed strip of tape; it ships as-is. */}
           <img
-            id="hero-wordmark"
             src="/icons/authored-by-tape-icon.png"
             alt="Authored By"
             width={801}
             height={295}
-            className="mb-6 block h-auto w-full max-w-[336px] md:mx-auto md:mb-14 md:max-w-[190px]"
+            aria-hidden
+            className="mx-auto mb-14 hidden h-auto w-full max-w-[190px] md:block"
           />
           <div className="grid gap-12 md:grid-cols-2 md:items-center md:gap-14">
             <div>
@@ -304,7 +315,23 @@ export function MarketingHome() {
                   the second page stays readable where it is, and pinning this
                   column inside a two-column grid would drag the film down with
                   the row it shares. */}
-              <div className="sticky top-16 md:static">
+              <div className="sticky top-4 md:static">
+              {/* The phone's tape, inside the pin so it holds while the copy
+                  trades pages. It used to sit above this block and slid away
+                  on the first scroll, which took the brand off screen exactly
+                  as the second page was arriving. It leaves when the pin
+                  releases and the hero genuinely ends, which is also the
+                  moment MobileAppBar picks the mark up. */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- the
+                  wordmark is a photographed strip of tape; it ships as-is. */}
+              <img
+                id="hero-wordmark"
+                src="/icons/authored-by-tape-icon.png"
+                alt="Authored By"
+                width={801}
+                height={295}
+                className="mb-6 block h-auto w-full max-w-[336px] md:hidden"
+              />
               {/* Two pages of copy in one slot, traded on scroll. The tagline
                   is the app's own, verbatim from login_screen.dart:444.
 
@@ -375,23 +402,17 @@ export function MarketingHome() {
         </div>
         </div>
 
-        {/* ── One line from the film ───────────────────────────────────── */}
-        {/* What's left of the premise. The three-paragraph monologue went:
-            it's the film's script verbatim, so anyone who pressed play read
-            it twice, and it asked a cold visitor for a page of reading before
-            telling them what the app was.
+        {/* ── Cass ─────────────────────────────────────────────────────── */}
+        {/* Two pages, pinned, on the hero's pattern: she introduces herself,
+            then says what comes next, and the tour follows immediately after.
 
-            One line stays rather than nothing, because the film is muted and
-            optional — with the passage gone entirely, the whole argument for
-            the product would sit behind a click nobody is obliged to make.
-            The parchment also keeps a breath between the dark hero and the
-            tour, and keeps Cass a margin wide enough to stand in. */}
-        <section
-          className="flex items-center px-5 py-20 sm:py-24 xl:min-h-[540px]"
-          style={{ background: "var(--story-bg)" }}
-        >
-          <PremiseBand quote={CASS_QUOTE} />
-        </section>
+            The parchment lives on this wrapper rather than on the pinned frame
+            inside, because the runway underneath has to carry the same surface
+            — otherwise the band would end at the frame and the held scroll
+            below it would show the page's own background instead. */}
+        <div style={{ background: "var(--story-bg)" }}>
+          <PremiseBand lineOne={CASS_LINE_ONE} lineTwo={CASS_LINE_TWO} />
+        </div>
 
         {/* ── How it works ─────────────────────────────────────────────── */}
         <section
