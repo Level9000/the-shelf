@@ -50,8 +50,23 @@ const DESKTOP = "(min-width: 768px)";
 export function TourCarousel({
   steps,
   heading,
+  progress,
+  onGoTo,
 }: {
   steps: TourStep[];
+  /// Drive the slide index from outside, 0 to 1 across the tour's share of a
+  /// runway this component does not own.
+  ///
+  /// Passing this puts it in "bare" mode: no runway, no sticky frame, just the
+  /// slides. StoryStage uses that to hold one instance of Cass's line across
+  /// both her pages and the tour, which is impossible while the tour pins
+  /// itself — a sticky element cannot outlive its own section, so a header
+  /// living in the tour's frame necessarily leaves the screen and comes back
+  /// at the boundary.
+  progress?: number;
+  /// Bare mode has no runway to scroll, so the arrows and dots hand navigation
+  /// back to whoever owns it.
+  onGoTo?: (index: number) => void;
   /// The section's tape label and headline, rendered *inside* the pinned area.
   ///
   /// They used to sit above this component, and that is where the section's
@@ -68,9 +83,30 @@ export function TourCarousel({
   // What we last told the track to show. Guards against re-issuing the same
   // scroll on every one of the many scroll events a single gesture fires.
   const shownRef = useRef(0);
-  const [index, setIndex] = useState(0);
+  const [ownIndex, setOwnIndex] = useState(0);
+
+  const bare = progress !== undefined;
+  const index = bare
+    ? Math.max(
+        0,
+        Math.min(steps.length - 1, Math.round(progress * (steps.length - 1))),
+      )
+    : ownIndex;
+
+  // Bare mode: the index is handed to us, so the only job left is moving the
+  // track to match it. Same guard as the owned path, so a gesture that reports
+  // the same slide fifty times issues one scroll.
+  useEffect(() => {
+    if (!bare) return;
+    const track = trackRef.current;
+    if (!track || !window.matchMedia(DESKTOP).matches) return;
+    if (index === shownRef.current) return;
+    shownRef.current = index;
+    track.scrollTo({ left: index * track.clientWidth, behavior: "smooth" });
+  }, [bare, index]);
 
   useEffect(() => {
+    if (bare) return;
     const runway = runwayRef.current;
     const track = trackRef.current;
     if (!runway || !track) return;
@@ -93,7 +129,7 @@ export function TourCarousel({
 
       if (target === shownRef.current) return;
       shownRef.current = target;
-      setIndex(target);
+      setOwnIndex(target);
       track.scrollTo({ left: target * track.clientWidth, behavior: "smooth" });
     };
 
@@ -111,7 +147,7 @@ export function TourCarousel({
       window.removeEventListener("resize", onScroll);
       cancelAnimationFrame(frame);
     };
-  }, [steps.length]);
+  }, [bare, steps.length]);
 
   // Arrows and dots move the *page*, which then drives the track through the
   // handler above. Scrolling the track directly would leave the page scroll
@@ -119,6 +155,10 @@ export function TourCarousel({
   const goTo = useCallback(
     (next: number) => {
       const clamped = Math.max(0, Math.min(next, steps.length - 1));
+      if (onGoTo) {
+        onGoTo(clamped);
+        return;
+      }
       const runway = runwayRef.current;
       const track = trackRef.current;
       if (!runway || !track) return;
@@ -137,21 +177,11 @@ export function TourCarousel({
         });
       }
     },
-    [steps.length],
+    [onGoTo, steps.length],
   );
 
-  return (
-    <div
-      ref={runwayRef}
-      className="md:h-[var(--tour-runway)]"
-      style={
-        {
-          "--tour-runway": `calc(100svh + ${(steps.length - 1) * SCROLL_PER_SLIDE_VH}svh)`,
-        } as React.CSSProperties
-      }
-    >
-      <div className="md:sticky md:top-0 md:flex md:h-svh md:items-center">
-        <div className="w-full">
+  const inner = (
+    <div className="w-full">
           {/* Sticky on phones, because there is no pin here below md — the
               steps are a plain stacked column — and the heading is Cass's line
               carried over from the band above, which is supposed to stay put
@@ -297,7 +327,25 @@ export function TourCarousel({
               />
             ))}
           </div>
-        </div>
+    </div>
+  );
+
+  // Bare: someone else owns the runway and the pin, and is holding a header
+  // above these slides that has to outlive them both.
+  if (bare) return inner;
+
+  return (
+    <div
+      ref={runwayRef}
+      className="md:h-[var(--tour-runway)]"
+      style={
+        {
+          "--tour-runway": `calc(100svh + ${(steps.length - 1) * SCROLL_PER_SLIDE_VH}svh)`,
+        } as React.CSSProperties
+      }
+    >
+      <div className="md:sticky md:top-0 md:flex md:h-svh md:items-center">
+        {inner}
       </div>
     </div>
   );
