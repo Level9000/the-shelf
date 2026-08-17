@@ -43,3 +43,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# Masters for the payoff shot, kept locally so a re-cut never needs another
+# recording or render session. What ships is beside them: the transcoded
+# phone-*.mp4 clips and the table-*.webp stills. These are ignored rather than
+# committed because public/ serves whatever is in it — 12MB of H.265 no browser
+# on the site would play, and 12MB of PNG nothing points at.
+/public/marketing/goals.MP4
+/public/marketing/story.MP4
+/public/marketing/goals-and-story-portrait.png
+/public/marketing/goals-and-story.png

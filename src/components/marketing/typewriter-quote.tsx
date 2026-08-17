@@ -17,6 +17,20 @@ import { Fragment, useEffect, useRef, useState } from "react";
 /// Timing runs off elapsed time in a rAF loop rather than a per-character
 /// interval, so the line always finishes in `durationMs` whatever the frame
 /// rate does. A dropped frame costs smoothness, never duration.
+/// How long one character takes, everywhere on the page.
+///
+/// The page types at one speed, because everything on it that types itself is
+/// Cass and a voice that changes pace between paragraphs isn't one voice. This
+/// is a rate rather than a duration for the same reason: a per-line duration has
+/// to be re-picked by hand every time a line's length changes, and it drifted
+/// exactly that way — the headers landed between 46 and 60ms a character while
+/// her introduction, the longest line on the page, ran at 23 and read as a
+/// different, faster instrument.
+///
+/// 46ms is the middle of what the headers already were, so they are where they
+/// were and the introduction now matches them.
+export const TYPE_MS_PER_CHAR = 46;
+
 /// Zero-width so it can sit between two characters without claiming a column
 /// and shifting the wrap. The visible bar is absolutely positioned out of it.
 function Caret() {
@@ -46,14 +60,18 @@ function Caret() {
 
 export function TypewriterQuote({
   text,
-  durationMs = 3000,
+  durationMs = text.length * TYPE_MS_PER_CHAR,
   className,
   style,
   start,
   onDone,
   rootMargin = "-20% 0px -20% 0px",
+  as = "blockquote",
 }: {
   text: string;
+  /// Defaults to the line's length at the page's one typing speed, which is
+  /// what every caller wants. Only pass this to make a line deliberately break
+  /// step with the others.
   durationMs?: number;
   className?: string;
   style?: React.CSSProperties;
@@ -73,6 +91,14 @@ export function TypewriterQuote({
   /// which the element is parked above the trigger area and never intersects,
   /// so the typing never starts at all.
   rootMargin?: string;
+  /// The element to type into. A quote by default, since that is what Cass's
+  /// lines are.
+  ///
+  /// `h2` is for a section heading that types itself — one element, no wrapper.
+  /// `span` is for a heading built from several lines: three of those inside one
+  /// <h2> types a headline out clause by clause, where an `h2` each would be
+  /// three headings and a blockquote each would be quotes nested in a heading.
+  as?: "blockquote" | "span" | "p" | "h2";
 }) {
   const ref = useRef<HTMLQuoteElement>(null);
   const [selfStarted, setSelfStarted] = useState(false);
@@ -156,8 +182,13 @@ export function TypewriterQuote({
   // retires on its own at the end of the line.
   const showCaret = started && !reduced && revealed < text.length;
 
+  // Narrowed to one tag so the ref and the props keep a concrete type. All
+  // three allowed values take the same attributes and the observer only ever
+  // needs an Element, so the tag it actually renders makes no difference here.
+  const Tag = as as "blockquote";
+
   return (
-    <blockquote ref={ref} className={className} style={style}>
+    <Tag ref={ref} className={className} style={style}>
       {/* The real line, for assistive tech. Reading it out one character at a
           time as the spans flip on would be unusable, so the animated copy is
           hidden from the accessibility tree entirely and this carries it. */}
@@ -183,6 +214,6 @@ export function TypewriterQuote({
           </Fragment>
         ))}
       </span>
-    </blockquote>
+    </Tag>
   );
 }

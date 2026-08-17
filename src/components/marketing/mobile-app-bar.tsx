@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { DownloadPill } from "./download-pill";
 
 /// The wordmark's second home. The hero shows the tape at full size; once it
 /// scrolls off the top, the same mark reappears here, shrunk into a bar that
@@ -75,21 +75,10 @@ export function MobileAppBar({ href }: { href: string }) {
           />
         </a>
 
-        {/* The hero's gold pill, scaled down. Label is just "Download" —
-            "Download on the App Store" is ~200px wide and would leave the bar
-            with no room for the mark on a 375px screen. */}
-        <a
-          href={href}
-          className="font-literata inline-flex flex-none items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold"
-          style={{
-            border: "1px solid rgba(200,168,107,0.55)",
-            color: "var(--gold-pill-ink)",
-            boxShadow: "0 0 14px rgba(200,168,107,0.10)",
-          }}
-        >
-          <Download size={14} aria-hidden />
-          Download
-        </a>
+        {/* The page's pill, scaled down — one component, so a restyle of it
+            lands here too instead of having to be made twice. The short label
+            comes with the size, and why is written down beside it. */}
+        <DownloadPill href={href} size="sm" />
       </div>
     </div>
   );

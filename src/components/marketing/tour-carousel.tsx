@@ -203,18 +203,21 @@ export function TourCarousel({
               style={{ background: "var(--app-bg)" }}
             >
               {heading}
-              {/* The header's bottom edge otherwise slices whatever is
-                  scrolling underneath it, so a step number arrives as a row of
-                  clipped glyph tops before it clears. A short fade lets that
-                  content dissolve into the header instead of being cut by it.
-                  Phone only, since from md up nothing passes under this. */}
+              {/* A hard rule on the header's bottom edge, the same 1px
+                  var(--stroke) the app bar above it draws — so the two read as
+                  a pair of header bars rather than one bar and one soft mask.
+                  Phone only, since from md up nothing passes under this.
+
+                  This was a 24px fade to transparent, on the reasoning that a
+                  hard edge slices whatever scrolls under it and a step number
+                  would arrive as a row of clipped glyph tops. It still does get
+                  cut — that is the trade. Cut cleanly along a rule reads as a
+                  header holding its line, where the fade read as the edge of
+                  the header failing to decide where it was. */}
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-x-0 top-full h-6 md:hidden"
-                style={{
-                  background:
-                    "linear-gradient(to bottom, var(--app-bg), transparent)",
-                }}
+                className="pointer-events-none absolute inset-x-0 top-full h-px md:hidden"
+                style={{ background: "var(--stroke)" }}
               />
             </div>
           ) : null}

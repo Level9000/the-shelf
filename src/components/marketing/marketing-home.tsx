@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Download } from "lucide-react";
 import { Analytics } from "@vercel/analytics/next";
-import { TornTape } from "@/components/ui/torn-tape";
 import { SUPPORT_EMAIL } from "@/lib/site";
+import { ClosingAsk } from "./closing-ask";
+import { DownloadPill } from "./download-pill";
 import { HeroCopy } from "./hero-copy";
 import { IntroFilm } from "./intro-film";
 import { MobileAppBar } from "./mobile-app-bar";
+import { PayoffShot } from "./payoff-shot";
 import { PremiseBand } from "./premise-band";
 import { SampleStory, SAMPLE_STORY_READY } from "./sample-story";
 import { TourCarousel, type TourStep } from "./tour-carousel";
@@ -18,9 +19,11 @@ const APP_STORE_URL = "#";
 // Shared with /support, which is the URL App Store Connect points at.
 
 
-// Kept next to each other so the hero line and the FAQ answer can never drift
-// apart. These are the store-facing prices; the Stripe price IDs they
-// correspond to live in env (STRIPE_PRICE_BUILDER_MONTHLY / _ANNUAL).
+// Kept next to each other so the FAQ answer and the line under the closing
+// button can never drift apart. These are the store-facing prices; the Stripe
+// price IDs they correspond to live in env (STRIPE_PRICE_BUILDER_MONTHLY /
+// _ANNUAL). The hero used to state them too; the pill saying "Get started for
+// free" does that job now.
 const PRICE_MONTHLY = "$12";
 const PRICE_ANNUAL = "$99";
 
@@ -38,6 +41,13 @@ const PRICE_ANNUAL = "$99";
 const CASS_LINE_ONE =
   "Hi, I’m Cass. I’m here to make sure the epic story that you’re living gets authored into something you can share with your circles.";
 const CASS_LINE_TWO = "I’ll show you how this works.";
+
+// The two headings that type themselves out, kept here with her lines because
+// they are the same voice and the same treatment: Literata, bold, the page's own
+// ink. Everything on the page that generates itself is Cass, which is the whole
+// reason they are set alike — see the payoff shot's headline for the third.
+const FAQ_HEADING = "Some questions before you download.";
+const CLOSING_ASK = "So what do you say? Are you ready to get started?";
 
 // The tour steps' lines, verbatim from `onboardingSlides` in the mobile app
 // (lib/screens/onboarding/onboarding_tour.dart). She already says this better
@@ -216,27 +226,6 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
 ];
 
-// The app's gold outline pill, ported straight across: 999px, no fill, gold
-// border at 55%, a soft gold glow, Literata 14/600, and a label that goes
-// tapeGold on dark and ink-on-gold on light. Same numbers as
-// lib/widgets/ui/gold_pill_button.dart.
-function DownloadButton() {
-  return (
-    <a
-      href={APP_STORE_URL}
-      className="font-literata inline-flex items-center justify-center gap-2 rounded-full px-[22px] py-3 text-[14px] font-semibold transition-colors hover:bg-[rgba(200,168,107,0.14)]"
-      style={{
-        border: "1px solid rgba(200,168,107,0.55)",
-        color: "var(--gold-pill-ink)",
-        boxShadow: "0 0 18px rgba(200,168,107,0.12)",
-      }}
-    >
-      <Download size={16} aria-hidden />
-      Download on the App Store
-    </a>
-  );
-}
-
 export function MarketingHome() {
   return (
     // data-force-light pins this page to the light palette no matter what
@@ -359,7 +348,7 @@ export function MarketingHome() {
               />
 
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
-                <DownloadButton />
+                <DownloadPill href={APP_STORE_URL} />
                 <a
                   href="#how-it-works"
                   className="font-label text-[13px] font-semibold uppercase underline underline-offset-4"
@@ -369,16 +358,11 @@ export function MarketingHome() {
                 </a>
               </div>
 
-              {/* Said up front rather than discovered at the paywall. The free
-                  span is the real one from src/lib/subscription.ts: the trial
-                  ends when a second chapter is started. */}
-              <p
-                className="font-story mt-5 text-[14px]"
-                style={{ lineHeight: 1.6, color: "var(--muted)" }}
-              >
-                Free to start. Your first chapter is free, then {PRICE_MONTHLY} a
-                month or {PRICE_ANNUAL} a year.
-              </p>
+              {/* The price line that used to sit here is gone: the button says
+                  "Get started for free" now, so a line underneath saying "Free
+                  to start" was the same sentence twice. The terms themselves are
+                  still said before the ask rather than discovered at the paywall
+                  — in the FAQ, and again under the closing button. */}
               </div>
 
               {/* The runway the block above is pinned against. Its height is
@@ -454,10 +438,6 @@ export function MarketingHome() {
             heading={
               <TypewriterQuote
                 text={CASS_LINE_TWO}
-                // Shorter line than her introduction, so a shorter type. Held
-                // to three seconds it would crawl out at a third of the pace
-                // of the one before it.
-                durationMs={1400}
                 // Fires as soon as any of it is on screen, rather than waiting
                 // for the middle of the viewport. This line sticks near the
                 // top, so the middle is somewhere it only passes through on the
@@ -465,8 +445,12 @@ export function MarketingHome() {
                 // entirely, after which it is parked above the trigger area and
                 // never starts typing at all.
                 rootMargin="0px"
-                className="font-typewriter text-center text-[22px] sm:text-[30px]"
-                style={{ lineHeight: 1.6, color: "var(--story-ink)" }}
+                // Literata, bold, in the page's own ink, matching her other line
+                // on the band above and the payoff shot's headline. Everything
+                // on the page that types itself out is Cass, so it is all set
+                // the same way — change one, change all three.
+                className="font-literata text-center text-[22px] font-bold sm:text-[30px]"
+                style={{ lineHeight: 1.6, color: "var(--ink)" }}
               />
             }
           />
@@ -478,43 +462,14 @@ export function MarketingHome() {
             full bleed like the premise band — the page already uses width
             changes to mark a change of register.
 
-            The headline is set inside both renders rather than living here as
-            live text. That is a deliberate trade: burned-in type can't be
-            selected or indexed, so the words move into the alt text below to
-            keep them available to screen readers and crawlers. There is no
-            <h2> here on purpose — with the words in the picture, one would
-            say the same sentence twice in a row. */}
+            The headline is live text and an <h2> again. It used to be set
+            inside the two renders, and the trade that bought — words that
+            can't be selected or indexed, carried in alt text instead — was
+            only worth making while the picture was the whole section. The
+            phones are drawn in the page now, so the words are too, and they
+            type themselves out a clause at a time as each phone arrives. */}
         <section className="pb-16 sm:pb-24">
-          {/* Two separately composed shots, not one image reflowed: the wide
-              one would put the phones at about 100px tall on a handset. The
-              <source> media query is the sm breakpoint exactly, and a browser
-              fetches only the one that matches — a phone never pulls the
-              2688px file down.
-
-              Both aspect ratios are the files' own pixel dimensions rather
-              than the tidy ratio they were rendered at. The wide one really is
-              21:9, but the portrait came back 1744x2336, which is 0.7466 and
-              not the 0.75 that `aspect-[3/4]` would impose. Close enough to
-              look fine and far enough to make object-cover shave a sliver off
-              the top and bottom, so the container matches the file exactly and
-              nothing is cropped or shifted at either size. */}
-          <picture>
-            <source
-              media="(min-width: 640px)"
-              srcSet="/marketing/goals-and-story.webp"
-              width={2688}
-              height={1152}
-            />
-            <img
-              src="/marketing/goals-and-story-portrait.webp"
-              alt="Set Your Goals. Track Your Journey. Shape Your Story. Two iPhones stand on a desk beside a cork board of pinned notes. The left shows the Goals screen with a highlighted goal, a vision image, and the actions to take next. The right shows the story tab, open on the backstory: the record of a two-person team that did great work nobody noticed, and built the tool that would have made it impossible to miss."
-              width={1744}
-              height={2336}
-              loading="lazy"
-              decoding="async"
-              className="mt-8 aspect-[1744/2336] w-full object-cover object-center sm:mt-10 sm:aspect-[21/9]"
-            />
-          </picture>
+          <PayoffShot />
         </section>
 
         {/* ── Proof ────────────────────────────────────────────────────── */}
@@ -534,13 +489,18 @@ export function MarketingHome() {
             accordions: they're short, and hiding the privacy answer behind a
             click defeats the point of having it. */}
         <section className="mx-auto w-full max-w-5xl px-5 pb-16 sm:pb-24">
-          <TornTape size="xl">Questions</TornTape>
-          <h2
-            className="font-literata mt-7 max-w-[20ch] text-[28px] font-bold leading-[1.15] sm:text-[36px]"
+          {/* One typed heading where there used to be a tape label reading
+              "Questions" above a headline reading "Before you download." — the
+              two said one sentence between them, so they are one sentence now,
+              and it types itself out like every other heading Cass puts on the
+              page. The tape went with the split: it was labelling a section the
+              heading already names. */}
+          <TypewriterQuote
+            as="h2"
+            text={FAQ_HEADING}
+            className="font-literata max-w-[20ch] text-[28px] font-bold leading-[1.15] sm:text-[36px]"
             style={{ letterSpacing: "-0.02em" }}
-          >
-            Before you download.
-          </h2>
+          />
 
           <dl className="mt-12 grid gap-x-12 gap-y-10 md:grid-cols-2">
             {FAQ.map((item) => (
@@ -568,22 +528,21 @@ export function MarketingHome() {
             than it does on paper. */}
         <div className="on-dark" style={{ background: "var(--app-bg)" }}>
           <section className="mx-auto w-full max-w-5xl px-5 py-20 text-center">
-            <h2
-              className="font-literata text-balance text-[30px] font-bold leading-[1.15] sm:text-[40px]"
-              style={{ letterSpacing: "-0.02em", color: "var(--ink)" }}
-            >
-              So what do you say? Are you ready to get started?
-            </h2>
-            <div className="mt-8 flex justify-center">
-              <DownloadButton />
-            </div>
-            <p
-              className="font-story mt-5 text-[14px]"
-              style={{ lineHeight: 1.6, color: "var(--muted)" }}
-            >
-              Free to start. {PRICE_MONTHLY} a month or {PRICE_ANNUAL} a year
-              after your first chapter.
-            </p>
+            {/* The ask types itself out and Cass comes in beside it, the same
+                entrance she makes on the parchment band near the top of the
+                page. She opens the page and now she closes it. */}
+            <ClosingAsk line={CLOSING_ASK}>
+              <div className="mt-8 flex justify-center">
+                <DownloadPill href={APP_STORE_URL} />
+              </div>
+              <p
+                className="font-story mt-5 text-[14px]"
+                style={{ lineHeight: 1.6, color: "var(--muted)" }}
+              >
+                Free to start. {PRICE_MONTHLY} a month or {PRICE_ANNUAL} a year
+                after your first chapter.
+              </p>
+            </ClosingAsk>
           </section>
         </div>
       </main>

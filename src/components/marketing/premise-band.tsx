@@ -146,11 +146,19 @@ export function PremiseBand({ line }: { line: string }) {
           <div style={{ opacity: 1 - handoff }}>
             <TypewriterQuote
               text={line}
-              durationMs={3000}
               start={inView}
               onDone={done}
-              className="font-typewriter text-center text-[20px] sm:text-[26px]"
-              style={{ lineHeight: 1.6, color: "var(--story-ink)" }}
+              // Literata, bold, in the page's own ink. The typewriter face and
+              // the softened story ink it used to be set in were doing an
+              // impression of a page from the app, which is not what this band
+              // is — she is talking to the reader here, in the site's voice.
+              //
+              // The weight is the tell: every line on the page that types
+              // itself out is Cass, and they all have to look alike for that to
+              // read as one voice rather than three effects. Same treatment as
+              // the payoff shot's headline — change one, change all three.
+              className="font-literata text-center text-[20px] font-bold sm:text-[26px]"
+              style={{ lineHeight: 1.6, color: "var(--ink)" }}
             />
           </div>
         </div>
