@@ -371,6 +371,42 @@ pre,
   }
 }
 
+/* The five tour steps snapping into place on a phone.
+
+   Deliberately `proximity`, not `mandatory`. The snap has to live on the page
+   scroller, which also carries the pinned hero and Cass's band, and mandatory
+   would force a landing on every gesture anywhere on the page. Proximity only
+   acts when a scroll comes to rest near a snap point, and the only elements
+   declaring one are these five, so the behaviour is confined to the tour
+   without the rule itself being scoped to it.
+
+   scroll-margin-top clears the sticky header. Without it a snapped tile lands
+   flush with the viewport top, which is underneath Cass's line and the app
+   bar; the measured bottom of that header stack is ~152px, so this sits the
+   tile just below it.
+
+   Phone only. From md up the tour is a horizontal carousel driven by its own
+   scroll mapping, and a competing vertical snap there would fight the pin. */
+@media (max-width: 767px) {
+  html {
+    scroll-snap-type: y proximity;
+  }
+
+  [data-tour-slide] {
+    scroll-snap-align: start;
+    scroll-margin-top: 160px;
+  }
+}
+
+/* Nothing should snap for a reader who has asked for less movement: the
+   correction at the end of a gesture is exactly the kind of unrequested motion
+   the setting is about. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-snap-type: none;
+  }
+}
+
 /* The typewriter caret on Cass's line. `step-end` rather than a fade, because
    a caret that eases in and out reads as a pulsing glow; a real one is either
    lit or it isn't. It only exists while the line is typing, so it needs no

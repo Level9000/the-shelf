@@ -233,6 +233,11 @@ export function TourCarousel({
               {steps.map((step, i) => (
                 <div
                   key={step.line}
+                  // Snap target on phones. See the rule in globals.css: the
+                  // snap lives on the page scroller, so the only thing that
+                  // makes it a tour-only behaviour is that these are the only
+                  // elements on the page declaring an alignment.
+                  data-tour-slide
                   role="group"
                   aria-roledescription="slide"
                   aria-label={`Step ${i + 1} of ${steps.length}`}
