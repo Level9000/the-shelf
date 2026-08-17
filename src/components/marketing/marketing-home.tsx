@@ -9,6 +9,7 @@ import { MobileAppBar } from "./mobile-app-bar";
 import { PremiseBand } from "./premise-band";
 import { SampleStory, SAMPLE_STORY_READY } from "./sample-story";
 import { TourCarousel, type TourStep } from "./tour-carousel";
+import { TypewriterQuote } from "./typewriter-quote";
 
 // TODO: replace with the real listing URL once the app is live in App Store
 // Connect — this is the only placeholder on the page.
@@ -23,18 +24,22 @@ const APP_STORE_URL = "#";
 const PRICE_MONTHLY = "$12";
 const PRICE_ANNUAL = "$99";
 
-// Cass's two pages, typed out on scroll. Plain strings with curly punctuation
+// Cass's two lines, both typed out. Plain strings with curly punctuation
 // rather than JSX, because the typewriter reveals them one character at a time
 // and an entity would arrive as a run of characters.
 //
-// No surrounding quote marks any more, and no "Cass" signature under them.
-// She introduces herself in the first line now, so both would be saying the
-// same thing a second time.
+// They live in different sections: the first is her introduction on the
+// parchment band, the second is the tour's header, which types itself into
+// place when the tour arrives and then stays put while the slides move under
+// it. One element each, in one place each.
+//
+// No surrounding quote marks, and no "Cass" signature under them. She
+// introduces herself in the first line, so both would be saying it twice.
 const CASS_LINE_ONE =
   "Hi, I’m Cass. I’m here to make sure the epic story that you’re living gets authored into something you can share with your circles.";
 const CASS_LINE_TWO = "I’ll show you how this works.";
 
-// Cass's lines, verbatim from `onboardingSlides` in the mobile app
+// The tour steps' lines, verbatim from `onboardingSlides` in the mobile app
 // (lib/screens/onboarding/onboarding_tour.dart). She already says this better
 // than a feature list would, and she says it in the app in the same order.
 const TOUR: TourStep[] = [
@@ -411,7 +416,7 @@ export function MarketingHome() {
             — otherwise the band would end at the frame and the held scroll
             below it would show the page's own background instead. */}
         <div style={{ background: "var(--story-bg)" }}>
-          <PremiseBand lineOne={CASS_LINE_ONE} lineTwo={CASS_LINE_TWO} />
+          <PremiseBand line={CASS_LINE_ONE} />
         </div>
 
         {/* ── How it works ─────────────────────────────────────────────── */}
@@ -435,22 +440,27 @@ export function MarketingHome() {
               non-sequitur. Cass saying "let me show you" and then showing you
               is the same beat without the seam.
 
-              Set to match her page exactly: same string, same typewriter face,
-              same size, same colour, same centring. The band's frame and this
-              one both pin, so the sentence reads as having stayed put and
-              become the header rather than as being said twice.
+              This is the sentence's only home. It used to also exist as a
+              second page in Cass's band, and the two could never be made into
+              one: a sticky element cannot outlive its own section, so hers had
+              to leave the screen at the boundary and this one had to arrive,
+              no matter how exactly their positions were matched. Typing it
+              into place here instead gets the effect with one element.
 
               Heading lives inside the carousel so it is part of the pinned
               block and holds for the whole tour. */}
           <TourCarousel
             steps={TOUR}
             heading={
-              <p
+              <TypewriterQuote
+                text={CASS_LINE_TWO}
+                // Shorter line than her introduction, so a shorter type. Held
+                // to three seconds it would crawl out at a third of the pace
+                // of the one before it.
+                durationMs={1400}
                 className="font-typewriter text-center text-[22px] sm:text-[30px]"
                 style={{ lineHeight: 1.6, color: "var(--story-ink)" }}
-              >
-                {CASS_LINE_TWO}
-              </p>
+              />
             }
           />
         </section>
