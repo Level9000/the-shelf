@@ -51,6 +51,7 @@ export function TypewriterQuote({
   style,
   start,
   onDone,
+  rootMargin = "-20% 0px -20% 0px",
 }: {
   text: string;
   durationMs?: number;
@@ -62,6 +63,16 @@ export function TypewriterQuote({
   start?: boolean;
   /// Fires once when the last character lands.
   onDone?: () => void;
+  /// Root margin for the self-trigger. The default waits until the line is in
+  /// the middle of the viewport, which is right for a line sitting in the
+  /// middle of a band the reader is arriving at.
+  ///
+  /// A line that *sticks* near the top needs "0px" instead. With the default,
+  /// the only chance to fire is the transit through the middle of the screen on
+  /// the way up, and a snap or a fast flick can skip that entirely — after
+  /// which the element is parked above the trigger area and never intersects,
+  /// so the typing never starts at all.
+  rootMargin?: string;
 }) {
   const ref = useRef<HTMLQuoteElement>(null);
   const [selfStarted, setSelfStarted] = useState(false);
@@ -103,14 +114,12 @@ export function TypewriterQuote({
           observer.disconnect();
         }
       },
-      // Fires when the quote is genuinely being read, not when its first pixel
-      // clears the bottom edge and it is still sliding up.
-      { threshold: 0, rootMargin: "-20% 0px -20% 0px" },
+      { threshold: 0, rootMargin },
     );
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [driven]);
+  }, [driven, rootMargin]);
 
   useEffect(() => {
     if (!started) return;

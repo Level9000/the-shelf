@@ -458,6 +458,13 @@ export function MarketingHome() {
                 // to three seconds it would crawl out at a third of the pace
                 // of the one before it.
                 durationMs={1400}
+                // Fires as soon as any of it is on screen, rather than waiting
+                // for the middle of the viewport. This line sticks near the
+                // top, so the middle is somewhere it only passes through on the
+                // way up — and a snap or a quick flick skips that transit
+                // entirely, after which it is parked above the trigger area and
+                // never starts typing at all.
+                rootMargin="0px"
                 className="font-typewriter text-center text-[22px] sm:text-[30px]"
                 style={{ lineHeight: 1.6, color: "var(--story-ink)" }}
               />
