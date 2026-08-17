@@ -11,6 +11,38 @@ const PAGE_ONE_OUT = 0.45;
 const PAGE_TWO_IN = 0.5;
 const PAGE_TWO_FADE = 0.25;
 
+/// Where the hand-off to the tour begins, as a fraction of the runway. Over
+/// this last stretch Cass fades out, the parchment fades to the page's own
+/// surface, and the second line travels up to the position the tour's header
+/// occupies, so that when this band releases the sentence is already sitting
+/// where the header will be and appears to have simply stayed put.
+const HANDOFF_START = 0.72;
+
+const DESKTOP = "(min-width: 768px)";
+
+/// Where the tour's header will sit once it takes over, measured from the top
+/// of the viewport. This is what the travelling line aims at.
+///
+/// On a phone the header sticks at top-[58px] with py-3 around it, so the text
+/// lands at 70 and a constant is honest.
+///
+/// Desktop has to be computed. There the header is the first thing in a block
+/// that is vertically centred inside a viewport-height pinned frame, so its
+/// resting position is (viewport - block) / 2 and moves with the window; a
+/// constant was 6px out at one height and would drift further at others.
+/// Falls back to the phone number if the tour isn't in the DOM.
+function tourHeaderTop() {
+  if (!window.matchMedia(DESKTOP).matches) return 70;
+
+  const header = document.querySelector<HTMLElement>("[data-tour-header]");
+  const block = header?.parentElement;
+  if (!header || !block) return 70;
+
+  const offsetInBlock =
+    header.getBoundingClientRect().top - block.getBoundingClientRect().top;
+  return (window.innerHeight - block.offsetHeight) / 2 + offsetInBlock;
+}
+
 /// The parchment band: Cass introducing herself, then telling you what happens
 /// next, with the recorder rolling beside her.
 ///
@@ -38,8 +70,10 @@ export function PremiseBand({
   lineTwo: string;
 }) {
   const runwayRef = useRef<HTMLDivElement>(null);
+  const lineTwoRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [travel, setTravel] = useState(0);
   const [typedOne, setTypedOne] = useState(false);
   const [typedTwo, setTypedTwo] = useState(false);
 
@@ -68,7 +102,28 @@ export function PremiseBand({
       const span = el.offsetHeight - window.innerHeight;
       if (span <= 0) return;
       const travelled = -el.getBoundingClientRect().top;
-      setProgress(Math.min(1, Math.max(0, travelled / span)));
+      const p = Math.min(1, Math.max(0, travelled / span));
+      setProgress(p);
+
+      // How far the second line has to rise to land on the tour's header.
+      //
+      // Read off the element's real resting position rather than derived from
+      // the viewport, and only while the hand-off hasn't started, so what is
+      // measured is where the line actually sits and not where it has already
+      // been moved to. Deriving it from "centred in a viewport-height frame"
+      // was wrong by a couple of hundred pixels: the line lives in a grid cell
+      // sized by the longer first page and padded to clear Cass, so it is not
+      // centred on the viewport at all.
+      const line = lineTwoRef.current;
+      if (line && p < HANDOFF_START) {
+        const target = tourHeaderTop();
+        // The quote itself, not its wrapper. The wrapper fills a grid cell
+        // sized by the longer first page and centres the line inside it, so
+        // aiming the wrapper at the target left the visible text sitting ~45px
+        // low. What has to land on the header is the text.
+        const text = line.querySelector("blockquote") ?? line;
+        setTravel(Math.max(0, text.getBoundingClientRect().top - target));
+      }
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(read);
@@ -95,6 +150,13 @@ export function PremiseBand({
   );
   const onPageTwo = progress >= PAGE_TWO_IN;
 
+  // The hand-off. 0 until the last stretch of the runway, then 0 -> 1 as the
+  // band gives way to the tour.
+  const handoff = Math.min(
+    1,
+    Math.max(0, (progress - HANDOFF_START) / (1 - HANDOFF_START)),
+  );
+
   // Recording while either line is being typed, a calm roll the rest of the
   // time she is on screen, stopped when she isn't. Not the record spin
   // throughout: the tour carousel already made that call and wrote down why,
@@ -103,7 +165,22 @@ export function PremiseBand({
   const animState = !inView ? "idle" : typing ? "recording" : "listening";
 
   return (
-    <div ref={runwayRef}>
+    <div ref={runwayRef} className="relative">
+      {/* The parchment giving way to the page's own surface. An overlay rather
+          than an interpolated background colour, because the two are CSS
+          variables and there is nothing to interpolate between; fading one
+          over the other gets the same result and keeps both values in the
+          palette where they belong. Sits under the content, above the band. */}
+      <div
+        aria-hidden
+        className="pointer-events-none sticky top-0 h-svh"
+        style={{
+          background: "var(--app-bg)",
+          opacity: handoff,
+          marginBottom: "-100svh",
+        }}
+      />
+
       <div className="sticky top-0 flex min-h-svh items-center px-5">
         {/* The bottom padding is Cass's room on a phone, and it has to clear
             her whole height or she reaches up into the text. At w-[150px] the
@@ -118,7 +195,10 @@ export function PremiseBand({
             className="cass-slide-left absolute -left-8 bottom-0 w-[150px] xl:hidden"
             style={{
               transform: inView ? "translateX(0)" : "translateX(-140%)",
-              opacity: inView ? 1 : 0,
+              // She fades out through the hand-off: by the time the sentence
+              // reaches the header position she is gone, so the tour does not
+              // open with a recorder sliding away underneath it.
+              opacity: inView ? 1 - handoff : 0,
             }}
           >
             <CassRecorder animState={animState} size="lg" />
@@ -131,7 +211,7 @@ export function PremiseBand({
             className="cass-slide absolute left-full top-1/2 ml-4 hidden w-[265px] xl:block min-[1440px]:w-[325px]"
             style={{
               transform: `translateY(-50%) translateX(${inView ? "0%" : "150%"})`,
-              opacity: inView ? 1 : 0,
+              opacity: inView ? 1 - handoff : 0,
             }}
           >
             <CassRecorder animState={animState} size="lg" />
@@ -159,10 +239,17 @@ export function PremiseBand({
               />
             </div>
 
+            {/* The travelling line. It arrives centred, then rides up to the
+                tour header's position over the hand-off, so the band releases
+                with the sentence already sitting where the header renders it.
+                No transition on the transform: it is scroll-driven, and a
+                duration on top of that would make it lag the scroll. */}
             <div
+              ref={lineTwoRef}
               className="flex [grid-area:1/1] items-center justify-center"
               style={{
                 opacity: inn,
+                transform: `translateY(${-travel * handoff}px)`,
                 pointerEvents: inn < 0.5 ? "none" : undefined,
                 transition: "opacity 120ms linear",
               }}

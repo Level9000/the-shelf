@@ -152,7 +152,42 @@ export function TourCarousel({
     >
       <div className="md:sticky md:top-0 md:flex md:h-svh md:items-center">
         <div className="w-full">
-          {heading ? <div className="mb-8 md:mb-7">{heading}</div> : null}
+          {/* Sticky on phones, because there is no pin here below md — the
+              steps are a plain stacked column — and the heading is Cass's line
+              carried over from the band above, which is supposed to stay put
+              and be the header rather than scroll off with the first step.
+              From md up the whole block is already pinned, so it holds without
+              help and this goes back to being an ordinary heading.
+
+              It needs the opaque background: sticking a line of type over
+              scrolling cards without one leaves the two overlapping. */}
+          {heading ? (
+            <div
+              // PremiseBand finds this to work out where its second line has
+              // to land, so the sentence arrives exactly on the header instead
+              // of near it. Desktop can't use a constant: the block is centred
+              // in a viewport-height frame, so the header's resting position
+              // moves with the window.
+              data-tour-header
+              className="sticky top-[58px] z-10 mb-8 py-3 md:static md:mb-7 md:py-0"
+              style={{ background: "var(--app-bg)" }}
+            >
+              {heading}
+              {/* The header's bottom edge otherwise slices whatever is
+                  scrolling underneath it, so a step number arrives as a row of
+                  clipped glyph tops before it clears. A short fade lets that
+                  content dissolve into the header instead of being cut by it.
+                  Phone only, since from md up nothing passes under this. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-full h-6 md:hidden"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, var(--app-bg), transparent)",
+                }}
+              />
+            </div>
+          ) : null}
           {/* The arrows centre on this wrapper, which holds the track alone —
               if the dots were inside it too, `top-1/2` would sit them below
               the frame's actual middle. */}

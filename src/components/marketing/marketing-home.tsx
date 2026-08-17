@@ -32,7 +32,7 @@ const PRICE_ANNUAL = "$99";
 // same thing a second time.
 const CASS_LINE_ONE =
   "Hi, I’m Cass. I’m here to make sure the epic story that you’re living gets authored into something you can share with your circles.";
-const CASS_LINE_TWO = "Let me show you how this works.";
+const CASS_LINE_TWO = "I’ll show you how this works.";
 
 // Cass's lines, verbatim from `onboardingSlides` in the mobile app
 // (lib/screens/onboarding/onboarding_tour.dart). She already says this better
@@ -425,20 +425,32 @@ export function MarketingHome() {
           // section that is already generous with room.
           className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-12 sm:py-14 md:scroll-mt-8"
         >
-          {/* Heading goes to the carousel rather than sitting here, so it is
-              inside the pinned block and travels with the frame. */}
+          {/* The heading is Cass's second line, carried over from the band
+              above rather than restated in the site's own voice.
+
+              It replaces a tape label reading "How it works" and the headline
+              "A few quick things before we get started." That headline was
+              in-app onboarding copy, addressed to somebody who had already
+              installed the thing, and on a marketing page it was a
+              non-sequitur. Cass saying "let me show you" and then showing you
+              is the same beat without the seam.
+
+              Set to match her page exactly: same string, same typewriter face,
+              same size, same colour, same centring. The band's frame and this
+              one both pin, so the sentence reads as having stayed put and
+              become the header rather than as being said twice.
+
+              Heading lives inside the carousel so it is part of the pinned
+              block and holds for the whole tour. */}
           <TourCarousel
             steps={TOUR}
             heading={
-              <>
-                <TornTape size="xl">How it works</TornTape>
-                <h2
-                  className="font-literata mt-6 max-w-[20ch] text-[28px] font-bold leading-[1.15] sm:text-[36px]"
-                  style={{ letterSpacing: "-0.02em" }}
-                >
-                  A few quick things before we get started.
-                </h2>
-              </>
+              <p
+                className="font-typewriter text-center text-[22px] sm:text-[30px]"
+                style={{ lineHeight: 1.6, color: "var(--story-ink)" }}
+              >
+                {CASS_LINE_TWO}
+              </p>
             }
           />
         </section>
