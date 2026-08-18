@@ -49,9 +49,17 @@ const CASS_LINE_TWO = "I’ll show you how this works.";
 const FAQ_HEADING = "Some questions before you download.";
 const CLOSING_ASK = "So what do you say? Are you ready to get started?";
 
-// The tour steps' lines, verbatim from `onboardingSlides` in the mobile app
+// The tour steps' lines, from `onboardingSlides` in the mobile app
 // (lib/screens/onboarding/onboarding_tour.dart). She already says this better
 // than a feature list would, and she says it in the app in the same order.
+//
+// Three of the five are that file's wording exactly — the check-in, chapter and
+// dream-team steps, all verified against it. The other two are the site's own
+// and are marked where they sit: sharing, which used to match and no longer
+// does, and the second-project step, which never did. The reason the matching
+// ones were lifted verbatim is so a reader meets the same sentences twice, which
+// is an argument for closing those two gaps in the app rather than letting more
+// of them open.
 const TOUR: TourStep[] = [
   // The check-in step shows Cass's recorder itself rather than a screenshot of
   // it — the same SVG that sits under the FAB in the app, reels turning.
@@ -94,11 +102,16 @@ const TOUR: TourStep[] = [
     src: "/onboarding/04-share-final.webp",
     width: 620,
     height: 570,
-    line: "If it's worth telling, you can share your story with one tap.",
+    // The one line here that is *not* the app's own wording — see the note
+    // above. onboarding_tour.dart:60 still says "If it's worth telling, you can
+    // share your story with one tap."
+    line: "If you want to share your story with others, Authored By makes it easy.",
     alt: "The share sheet asking who you'd like to share the story with, offering an important email, a blog post for your professional network, or a PDF printed exactly as the story appears in the app.",
   },
-  // From `newProjectSlides` — the second-project tour, and the natural last
-  // beat: everything above is one story, this is how you run several.
+  // The second-project beat — everything above is one story, this is how you
+  // run several. Drawn from `newProjectSlides` rather than quoted from it: the
+  // app's version is "Another project — love it. You can keep as many going as
+  // you want.", which answers a reader who has already made a second one.
   {
     kind: "clip",
     still: true,
@@ -107,15 +120,15 @@ const TOUR: TourStep[] = [
     width: 620,
     height: 594,
     line:
-      "Running more than one? Keep as many going as you want, and switch between them from the Settings tab.",
+      "And if you're working on more than one story at a time, no worries. Jump between stories in the Settings tab.",
     alt: "The project switcher in the app, showing Authored By at six chapters alongside Milestone Coach at one, with the current project marked and a link to create a new one.",
   },
 ];
 
 // Every answer here is checkable against the code or the privacy policy —
 // nothing is aspirational. The AI answer deliberately describes where your
-// writing goes rather than promising what Anthropic does with it, because
-// that's a claim only the company can make.
+// writing goes rather than promising what the providers do with it once it
+// arrives, because that is a claim only they can make.
 const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: "Who can read what I write?",
@@ -145,17 +158,19 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
       </>
     ),
   },
+  // Both providers are named because both are used: the app reaches Anthropic
+  // through its `anthropic-proxy` edge function and the whole of `lib/ai/*`, and
+  // OpenAI through `story-chat`, which posts to api.openai.com. Naming only
+  // Anthropic, as this answer used to, was an under-disclosure. If a third
+  // provider is ever added, it belongs in this sentence.
   {
     q: "Does my writing go to an AI?",
     a: (
       <>
-        Yes. We use Anthropic&rsquo;s API to do the writing, so your check-ins
-        are sent there when a chapter is generated. Anything we store stays
-        under the same rule: delete the project and it&rsquo;s gone. The{" "}
-        <Link href="/privacy" className="underline underline-offset-4">
-          privacy policy
-        </Link>{" "}
-        lists every service involved.
+        Yes, we use APIs from companies like Anthropic and OpenAI to process some
+        of the requests. Anything that we store related to your story such as
+        chapters and goals will be deleted if you choose to delete a project or
+        your account.
       </>
     ),
   },
