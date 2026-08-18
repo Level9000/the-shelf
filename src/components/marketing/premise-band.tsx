@@ -115,11 +115,18 @@ export function PremiseBand({ line }: { line: string }) {
             her whole height or she reaches up into the text. At w-[150px] the
             recorder's 200x260 viewBox renders ~195px tall. */}
         <div className="relative mx-auto w-full max-w-[42rem] pb-[210px] xl:pb-0">
-          {/* Phone: bottom left, bleeding off the edge. The page root clips
-              overflow-x, so her parked position costs no scrollbar. */}
+          {/* Phone: centred under the line, in the room the wrapper's bottom
+              padding holds for her. She used to sit at the bottom left, half off
+              the edge.
+
+              Centred with auto margins rather than a -translate-x-1/2, because
+              the reduced-motion rule pins .cass-slide-left's transform to
+              `none` — a centre that lived in the transform would be thrown to
+              one side exactly there. This leaves the transform free to carry
+              her entrance, which is unchanged. */}
           <div
             aria-hidden
-            className="cass-slide-left absolute -left-8 bottom-0 w-[150px] xl:hidden"
+            className="cass-slide-left absolute inset-x-0 bottom-0 mx-auto w-[150px] xl:hidden"
             style={{
               transform: inView ? "translateX(0)" : "translateX(-140%)",
               // Gone by the time the tour arrives, so it doesn't open with a

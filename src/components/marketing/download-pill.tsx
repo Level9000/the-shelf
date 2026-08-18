@@ -1,4 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import { Download } from "lucide-react";
+import { APP_IS_LIVE } from "@/lib/site";
+import { LaunchNotice } from "./launch-notice";
 
 /// The page's call to action, in two sizes.
 ///
@@ -31,29 +36,57 @@ export function DownloadPill({
   /// the full one is ~150px wide and would leave a 375px bar no room for the
   /// wordmark beside it.
   size = "md",
+  /// Which pill this is, recorded against any address left in the launch
+  /// notice. Answers "where did people actually ask from".
+  source,
 }: {
   href: string;
   size?: "sm" | "md";
+  source: string;
 }) {
+  const [noticeOpen, setNoticeOpen] = useState(false);
   const small = size === "sm";
 
-  return (
-    <a
-      href={href}
-      className={`font-literata inline-flex flex-none items-center justify-center rounded-full font-semibold transition-colors hover:bg-[#e5ddca] ${
-        small ? "gap-1.5 px-4 py-2 text-[13px]" : "gap-2 px-[22px] py-3 text-[14px]"
-      }`}
-      style={{
-        background: CREAM,
-        border: "1px solid rgba(200,168,107,0.55)",
-        color: INK,
-        boxShadow: small
-          ? "0 0 14px rgba(200,168,107,0.10)"
-          : "0 0 18px rgba(200,168,107,0.12)",
-      }}
-    >
+  const shape = `font-literata inline-flex flex-none cursor-pointer items-center justify-center rounded-full font-semibold transition-colors hover:bg-[#e5ddca] ${
+    small ? "gap-1.5 px-4 py-2 text-[13px]" : "gap-2 px-[22px] py-3 text-[14px]"
+  }`;
+  const paint = {
+    background: CREAM,
+    border: "1px solid rgba(200,168,107,0.55)",
+    color: INK,
+    boxShadow: small
+      ? "0 0 14px rgba(200,168,107,0.10)"
+      : "0 0 18px rgba(200,168,107,0.12)",
+  };
+  const face = (
+    <>
       <Download size={small ? 14 : 16} aria-hidden />
       {small ? "Get started" : "Get started for free"}
+    </>
+  );
+
+  // Until the app clears review there is nowhere to send anyone, so the pill
+  // stops being a link and becomes a button that says so. A <button> rather
+  // than an <a href="#">: it does not navigate, and the element should say
+  // which of those it is.
+  if (!APP_IS_LIVE) {
+    return (
+      <>
+        <button type="button" onClick={() => setNoticeOpen(true)} className={shape} style={paint}>
+          {face}
+        </button>
+        <LaunchNotice
+          open={noticeOpen}
+          onClose={() => setNoticeOpen(false)}
+          source={source}
+        />
+      </>
+    );
+  }
+
+  return (
+    <a href={href} className={shape} style={paint}>
+      {face}
     </a>
   );
 }

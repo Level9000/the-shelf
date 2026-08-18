@@ -78,7 +78,7 @@ export function MobileAppBar({ href }: { href: string }) {
         {/* The page's pill, scaled down — one component, so a restyle of it
             lands here too instead of having to be made twice. The short label
             comes with the size, and why is written down beside it. */}
-        <DownloadPill href={href} size="sm" />
+        <DownloadPill href={href} size="sm" source="app-bar" />
       </div>
     </div>
   );

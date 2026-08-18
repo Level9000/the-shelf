@@ -348,7 +348,7 @@ export function MarketingHome() {
               />
 
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
-                <DownloadPill href={APP_STORE_URL} />
+                <DownloadPill href={APP_STORE_URL} source="hero" />
                 <a
                   href="#how-it-works"
                   className="font-label text-[13px] font-semibold uppercase underline underline-offset-4"
@@ -533,7 +533,7 @@ export function MarketingHome() {
                 page. She opens the page and now she closes it. */}
             <ClosingAsk line={CLOSING_ASK}>
               <div className="mt-8 flex justify-center">
-                <DownloadPill href={APP_STORE_URL} />
+                <DownloadPill href={APP_STORE_URL} source="closing" />
               </div>
               <p
                 className="font-story mt-5 text-[14px]"
