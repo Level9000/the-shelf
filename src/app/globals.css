@@ -380,6 +380,21 @@ pre,
    declaring one are these five, so the behaviour is confined to the tour
    without the rule itself being scoped to it.
 
+   `scroll-snap-stop: always` is what makes it one step per gesture. Snapping
+   alone only decides where a scroll comes to *rest*, so a momentum flick would
+   sail over three steps and settle on the fourth, which is how five deliberate
+   screens turn into a blur with a tidy ending. `always` forbids passing over a
+   snap position at all: the flick is caught by the next step down, and getting
+   to the one after it takes another gesture. That is the whole behaviour, and
+   it is one line of CSS rather than a scroll handler fighting the compositor.
+
+   It also does the work `mandatory` would have done here without the cost.
+   Mandatory would land every step squarely, but it applies to the whole page
+   scroller — the same one carrying the pinned hero and Cass's band — and would
+   drag the reader toward a tour step from anywhere on the page. Proximity plus
+   `always` keeps the enforcement at the boundaries between steps, which is
+   where the reader actually is while reading them.
+
    scroll-margin-top clears the sticky header. Without it a snapped tile lands
    flush with the viewport top, which is underneath Cass's line and the app
    bar; the measured bottom of that header stack is ~152px, so this sits the
@@ -394,6 +409,7 @@ pre,
 
   [data-tour-slide] {
     scroll-snap-align: start;
+    scroll-snap-stop: always;
     scroll-margin-top: 160px;
   }
 }
