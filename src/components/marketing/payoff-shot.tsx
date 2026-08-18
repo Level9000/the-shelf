@@ -263,12 +263,20 @@ export function PayoffShot() {
             letting the picture crop: the phones are positioned as percentages
             of this box, so a crop would move the table out from under them.
 
-            Both aspect ratios are the files' own pixel dimensions, and the
-            breakpoint is the <source> media query exactly, so the box always
-            matches the file the browser actually fetched. Get these wrong and
-            the table sits somewhere other than where the phones are standing. */}
+            The breakpoint is the <source> media query exactly, so the box
+            always goes with the file the browser actually fetched. The portrait
+            box is that file's own ratio and crops nothing.
+
+            The wide box is 21:9 against a file that is 3168x1344, or 2.357 —
+            about a percent wider than 21:9. Running it to the full width of the
+            frame is worth that percent: `object-cover` spends it entirely on the
+            left and right edges, because the box is the narrower ratio of the
+            two, and the vertical mapping comes through untouched. That is the
+            half that matters, since the phones are placed as percentages of this
+            box and it is the *height* that decides whether their feet land on
+            the table or above it. */}
         <div
-          className="relative mt-7 w-[min(100%,calc(64svh*1792/2400))] overflow-hidden aspect-[1792/2400] sm:mt-9 sm:w-[min(100%,calc(68svh*3168/1344))] sm:aspect-[3168/1344]"
+          className="relative mt-7 w-[min(100%,calc(77svh*1792/2400))] overflow-hidden aspect-[1792/2400] sm:mt-9 sm:w-[min(100%,calc(77svh*21/9))] sm:aspect-[21/9]"
         >
           <picture>
             <source
