@@ -78,10 +78,22 @@ export function ClosingAsk({
       </div>
 
       {/* Desktop: the margin beside the column, which is only wide enough for
-          her from about 1440px. */}
+          her from about 1440px.
+
+          Smaller here than the same recorder on the parchment band, and it has
+          to be. She is centred on this column, and this column is short — the
+          ask, the button and the price line come to about 216px, where the band
+          up the page gives her a whole pinned viewport to stand in. At the
+          band's 325px wide she renders ~429px tall (the 200x260 viewBox, so
+          height is width x 1.32), which is taller than this entire dark section
+          is: she spilled 26px out of the top of it into the light FAQ above and
+          26px out of the bottom into the footer, reading as though she were the
+          full height of the band rather than something standing beside the
+          words. At 230px she comes to ~304px inside a 376px section, which
+          leaves her clear of both edges. */}
       <div
         aria-hidden
-        className="cass-slide absolute left-full top-1/2 ml-4 hidden w-[265px] xl:block min-[1440px]:w-[325px]"
+        className="cass-slide absolute left-full top-1/2 ml-4 hidden w-[200px] xl:block min-[1440px]:w-[230px]"
         style={{
           transform: `translateY(-50%) translateX(${inView ? "0%" : "150%"})`,
           opacity: inView ? 1 : 0,

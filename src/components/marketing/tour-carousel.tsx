@@ -105,6 +105,111 @@ export function TourCarousel({
     track.scrollTo({ left: index * track.clientWidth, behavior: "smooth" });
   }, [bare, index]);
 
+  // One thumb flick, on a phone, advances exactly one slide — never zero,
+  // never two. `scroll-snap-stop: always` in globals.css asks the browser for
+  // this and mostly gets it, but Safari's support for that property is
+  // unreliable under a hard flick: a fast enough gesture can still carry
+  // momentum straight through a snap point and land two or three slides down,
+  // which is what a real flick on a real iPhone did against the CSS-only
+  // version of this. This effect is the fix that doesn't depend on Safari
+  // honouring the property: it drives the outcome from JavaScript instead of
+  // asking the browser to enforce it.
+  //
+  // It does not take over the drag itself — the finger still tracks the page
+  // 1:1 through `touchmove`, native and unmodified, which is what a swipe is
+  // supposed to feel like. It only acts at `touchend`, and only then:
+  //
+  //   1. Note which slide was nearest when the finger first touched down
+  //      (`anchorIndex`) — the gesture moves exactly one slide from *there*,
+  //      regardless of how far the drag itself carried the page by the time
+  //      the finger lifted.
+  //   2. Freeze the page (`overflow: hidden`) for one frame. iOS decides
+  //      whether to keep scrolling under its own momentum at essentially the
+  //      instant the finger lifts; making the page briefly unscrollable
+  //      interrupts that decision before it takes hold, which is the only
+  //      reliable way to stop an inertial scroll already in flight — there is
+  //      no supported API that just cancels it. One frame is short enough
+  //      that it is not felt as a stutter.
+  //   3. Unfreeze and animate to the next (or previous) slide's snap
+  //      position, however far off that leaves the page from wherever the
+  //      natural drag had gotten it to.
+  //
+  // Slide positions are read back from the DOM via `scroll-margin-top`, the
+  // same property the CSS snap already declares, rather than kept as a second
+  // hardcoded number that could quietly drift from it.
+  //
+  // Below a ~10px deadzone nothing happens, so an accidental jitter or a tap
+  // on the carousel doesn't fire a whole slide of travel. Above it, any drag
+  // does — this is a paginated five-card sequence on a phone, not a
+  // free-scrolling list with occasional correction, which is the point.
+  //
+  // Off under reduced motion: the animated correction is exactly the kind of
+  // unrequested motion that setting is about, so a reader who has asked for
+  // less gets the plain, uncorrected scroll instead.
+  useEffect(() => {
+    if (bare) return;
+    const track = trackRef.current;
+    if (!track) return;
+
+    const desktop = window.matchMedia(DESKTOP);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let anchorIndex = 0;
+    let startY = 0;
+    let locked = false;
+
+    const slidePositions = () =>
+      Array.from(track.querySelectorAll<HTMLElement>("[data-tour-slide]")).map(
+        (el) => {
+          const marginTop = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
+          return el.getBoundingClientRect().top + window.scrollY - marginTop;
+        },
+      );
+
+    const nearest = (positions: number[], y: number) =>
+      positions.reduce(
+        (best, p, i) =>
+          Math.abs(p - y) < Math.abs(positions[best] - y) ? i : best,
+        0,
+      );
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (desktop.matches || reducedMotion.matches || locked) return;
+      startY = event.touches[0].clientY;
+      anchorIndex = nearest(slidePositions(), window.scrollY);
+    };
+
+    const onTouchEnd = (event: TouchEvent) => {
+      if (desktop.matches || reducedMotion.matches || locked) return;
+      const deltaY = startY - event.changedTouches[0].clientY;
+      if (Math.abs(deltaY) < 10) return; // a tap, not a scroll gesture
+
+      const positions = slidePositions();
+      const target = Math.max(
+        0,
+        Math.min(positions.length - 1, anchorIndex + (deltaY > 0 ? 1 : -1)),
+      );
+
+      locked = true;
+      const previousOverflow = document.documentElement.style.overflow;
+      document.documentElement.style.overflow = "hidden";
+      requestAnimationFrame(() => {
+        document.documentElement.style.overflow = previousOverflow;
+        window.scrollTo({ top: positions[target], behavior: "smooth" });
+        window.setTimeout(() => {
+          locked = false;
+        }, 500);
+      });
+    };
+
+    track.addEventListener("touchstart", onTouchStart, { passive: true });
+    track.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      track.removeEventListener("touchstart", onTouchStart);
+      track.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [bare]);
+
   useEffect(() => {
     if (bare) return;
     const runway = runwayRef.current;

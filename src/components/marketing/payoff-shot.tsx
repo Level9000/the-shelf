@@ -235,7 +235,20 @@ export function PayoffShot() {
 
   return (
     <div ref={runwayRef} className="relative">
-      <div className="sticky top-0 flex min-h-svh flex-col items-center justify-center">
+      {/* `pt-[63px]` is MobileAppBar's own measured height — it is `fixed`,
+          not part of this document flow, so nothing here naturally leaves room
+          for it. Without this, centering the heading+stage block inside the
+          full `min-h-svh` box only guarantees the *reserved* slack the stage's
+          own width cap already leaves (see the comment there); it does not
+          guarantee that slack lands above the heading rather than split evenly
+          top and bottom by `justify-center`. On a short viewport the split can
+          land on the wrong side of that math, and the app bar's opaque
+          background paints over the reader's first line of the heading — which
+          is what a real phone did. Reserving the space structurally, as
+          padding, means the centering happens *inside* what's left over, so
+          the reserved space can only ever appear above the content, never be
+          split away from it. Phone only: the bar itself is `md:hidden`. */}
+      <div className="sticky top-0 flex min-h-svh flex-col items-center justify-center pt-[63px] md:pt-0">
         <h2
           className="font-literata px-5 text-center text-[28px] font-bold leading-[1.15] sm:text-[36px]"
           style={{ letterSpacing: "-0.02em" }}
@@ -274,9 +287,34 @@ export function PayoffShot() {
             two, and the vertical mapping comes through untouched. That is the
             half that matters, since the phones are placed as percentages of this
             box and it is the *height* that decides whether their feet land on
-            the table or above it. */}
+            the table or above it.
+
+            The mobile cap is not a flat svh fraction, unlike the desktop one
+            below it, and that difference is load-bearing. It used to be — first
+            64svh, then 77svh to run the photo to the screen edge — and both
+            numbers were guesses tuned against one simulator viewport rather than
+            derived from what actually shares the screen with this stage. On a
+            shorter phone (or the same phone with Safari's chrome expanded,
+            shrinking `svh`) that guess ran out: the heading and the stage
+            together came to more than one screen, and since this box is
+            centred rather than scrolling, the overflow was invisible rather
+            than clipped — the first line of the heading rendered *above* y=0,
+            behind MobileAppBar's opaque bar, while the reader watched the pin
+            settle with "Set your goals." simply gone.
+            
+            So the mobile cap is derived instead: 100svh minus MobileAppBar's own
+            measured height (63px, fixed and independent of viewport width, so a
+            literal is honest here) minus this heading block's (97px for the
+            fixed three lines at this font size and line-height, plus the 28px
+            `mt-7` below it — 125px, equally fixed, since the three lines are
+            hard breaks rather than wraps and never reflow to a different count)
+            minus a 12px safety margin for rounding. Whatever is left is the most
+            height the stage is allowed, and the width is derived from that the
+            same way it always was. A short viewport now gets a smaller stage
+            with both phones' feet still on screen, rather than a full-width one
+            with the sentence above it cut off. */}
         <div
-          className="relative mt-7 w-[min(100%,calc(77svh*1792/2400))] overflow-hidden aspect-[1792/2400] sm:mt-9 sm:w-[min(100%,calc(77svh*21/9))] sm:aspect-[21/9]"
+          className="relative mt-7 w-[min(100%,calc((100svh-200px)*1792/2400))] overflow-hidden aspect-[1792/2400] sm:mt-9 sm:w-[min(100%,calc(77svh*21/9))] sm:aspect-[21/9]"
         >
           <picture>
             <source
