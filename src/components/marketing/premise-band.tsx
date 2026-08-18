@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CassRecorder } from "@/components/cass/CassRecorder";
+import { TornTape } from "@/components/ui/torn-tape";
 import { TypewriterQuote } from "./typewriter-quote";
 
 /// Where the hand-off to the tour begins, as a fraction of the runway. Over
@@ -111,6 +112,70 @@ export function PremiseBand({ line }: { line: string }) {
       />
 
       <div className="sticky top-0 flex min-h-svh items-center px-5">
+        {/* The section's label, sliding in from off the left edge on the same
+            `inView` that starts her line typing — one trigger, so the tape
+            arrives with the first character rather than near it.
+
+            A child of the pinned frame rather than of the text column, which is
+            what puts it near the top of the window instead of just above her
+            line. The column is vertically centred in this frame, so anything in
+            flow above the text lands mid-screen with it; this is positioned
+            against the frame itself, which *is* the viewport while the band is
+            pinned. `position: sticky` already makes this element a containing
+            block, so no `relative` is needed alongside it.
+
+            `left-0` is already flush against the screen edge and needs no
+            correction for this frame's `px-5`: an absolutely positioned child
+            resolves against its containing block's *padding box*, which starts
+            at the outside of the padding, not inside it. Offsetting by -20px to
+            "cancel" the padding overshoots and hangs the strip off the edge. The
+            page root clips overflow-x, so the parked position off the edge costs
+            no horizontal scrollbar either way.
+
+            `top` clears MobileAppBar on a phone, which is 63px of opaque bar at
+            the top of the window whenever it is shown. There is no such bar from
+            md up, so it sits higher there.
+
+            `w-fit` matters: it makes `translateX(-100%)` exactly one tape width,
+            so the strip parks just past the edge instead of a whole viewport away
+            and arriving late.
+
+            No rotation, unlike every other tape on the site. The strip is
+            anchored to a straight vertical screen edge, and a degree and a half
+            of tilt is enough to open a wedge of background between the two.
+
+            Borrowing `.cass-slide-left` for its easing and, more to the point,
+            its reduced-motion rule: that pins the transform to `none`, which for
+            this element is its resting place, so a reader who asked for less
+            motion gets the tape already in position.
+
+            It fades on the handoff along with her, so the tour doesn't open with
+            a label from the previous section still on screen. */}
+        <div
+          className="cass-slide-left absolute left-0 top-[84px] w-fit md:top-12"
+          style={{
+            transform: inView ? "translateX(0)" : "translateX(-100%)",
+            opacity: inView ? 1 - handoff : 0,
+          }}
+        >
+          {/* Literata, bold, and deliberately larger than her line — 30px
+              against her 20px on a phone, 40px against her 26px from sm up, so
+              it reads as the section's title with her sentence beneath it. The
+              `xl` size is passed for its em padding and its 6px notch, which
+              stay in proportion to type this large; only the family and the size
+              are overridden. */}
+          <TornTape
+            size="xl"
+            flatLeft
+            rotate={0}
+            fontFamily='"Literata", Georgia, serif'
+            fontSize="clamp(30px, 5.2vw, 40px)"
+            className="font-bold"
+          >
+            Introducing Cass
+          </TornTape>
+        </div>
+
         {/* The bottom padding is Cass's room on a phone, and it has to clear
             her whole height or she reaches up into the text. At w-[150px] the
             recorder's 200x260 viewBox renders ~195px tall. */}

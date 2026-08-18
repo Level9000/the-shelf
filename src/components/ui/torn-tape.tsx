@@ -13,6 +13,16 @@ function tornEdge(n: number) {
   return `polygon(${n}px 0%, calc(100% - ${m}px) 0%, 100% 22%, calc(100% - ${n}px) 55%, 100% 78%, calc(100% - ${m}px) 100%, ${n}px 100%, 0% 72%, ${m}px 48%, 0% 22%)`;
 }
 
+// Torn on the right only, with the left edge left dead straight — for a strip
+// that runs off the side of the page rather than sitting inside it. A tear on
+// that edge would read as a tear floating in space, since the edge it would be
+// tearing away from is off screen; flat reads as tape that continues past the
+// frame. Same right-hand notches as `tornEdge`, so the two match where it shows.
+function tornRightEdge(n: number) {
+  const m = n - 1;
+  return `polygon(0% 0%, calc(100% - ${m}px) 0%, 100% 22%, calc(100% - ${n}px) 55%, 100% 78%, calc(100% - ${m}px) 100%, 0% 100%)`;
+}
+
 // The small sizes keep their hand-set px padding, unchanged. lg and xl use em
 // padding instead, because their font size is fluid: the strip has to keep its
 // proportions while the type moves between the clamp's two ends.
@@ -48,6 +58,20 @@ export function TornTape({
   rotate = -1.5,
   size = "xs",
   className,
+  /// Leave the left edge straight and tear only the right. For a strip anchored
+  /// flush to the left edge of the page, where the tape reads as running off the
+  /// side rather than as a torn-off piece sitting in the margin.
+  flatLeft = false,
+  /// Overrides for the two things this component sets inline, and therefore the
+  /// two a caller cannot reach with a class. Both default to the tape's own
+  /// look, so every existing strip is untouched.
+  ///
+  /// `size` still carries the padding and the notch when these are passed, so
+  /// pair a large `fontSize` with `lg` or `xl` — those two use em padding, which
+  /// keeps the strip in proportion to whatever type is set on it, where the
+  /// smaller sizes' hand-set px padding would not.
+  fontFamily,
+  fontSize,
 }: {
   children: React.ReactNode;
   background?: string;
@@ -55,6 +79,9 @@ export function TornTape({
   rotate?: number;
   size?: TapeSize;
   className?: string;
+  flatLeft?: boolean;
+  fontFamily?: string;
+  fontSize?: string;
 }) {
   const s = SIZE_STYLES[size];
   return (
@@ -65,13 +92,13 @@ export function TornTape({
         transform: rotate ? `rotate(${rotate}deg)` : undefined,
         background,
         color,
-        fontFamily: "var(--font-cass)",
+        fontFamily: fontFamily ?? "var(--font-cass)",
         letterSpacing: "0.02em",
         lineHeight: 1,
         whiteSpace: "nowrap",
-        clipPath: tornEdge(s.notch),
+        clipPath: flatLeft ? tornRightEdge(s.notch) : tornEdge(s.notch),
         boxShadow: s.shadow,
-        fontSize: s.fontSize,
+        fontSize: fontSize ?? s.fontSize,
         padding: s.padding,
       }}
     >

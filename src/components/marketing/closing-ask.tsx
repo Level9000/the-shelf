@@ -64,11 +64,20 @@ export function ClosingAsk({
       ref={ref}
       className="relative mx-auto w-full max-w-[42rem] pb-[210px] xl:pb-0"
     >
-      {/* Phone: bottom left, bleeding off the edge. The page root clips
-          overflow-x, so her parked position costs no scrollbar. */}
+      {/* Phone: centred under the ask, in the room the wrapper's bottom padding
+          holds for her — the same placement she has on the parchment band, so
+          hello and goodbye match. She used to sit at the bottom left, half off
+          the edge, which left her clipped against one side with the whole width
+          of the band empty beside her.
+
+          Centred with auto margins rather than a -translate-x-1/2, because the
+          reduced-motion rule pins .cass-slide-left's transform to `none` — a
+          centre that lived in the transform would be thrown to one side exactly
+          there. This leaves the transform free to carry her entrance, which is
+          unchanged. */}
       <div
         aria-hidden
-        className="cass-slide-left absolute -left-8 bottom-0 w-[150px] xl:hidden"
+        className="cass-slide-left absolute inset-x-0 bottom-0 mx-auto w-[150px] xl:hidden"
         style={{
           transform: inView ? "translateX(0)" : "translateX(-140%)",
           opacity: inView ? 1 : 0,

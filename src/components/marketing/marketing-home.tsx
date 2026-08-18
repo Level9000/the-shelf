@@ -204,14 +204,9 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     q: "Can I read other people's stories?",
     a: (
       <>
-        Not today. Your story is private by default and goes nowhere you
-        don&rsquo;t send it.
-        <br />
-        <br />
-        Where I&rsquo;d like this to go: a place where these stories live,
-        where authors publish their chapters and readers follow the work. That
-        needs people more than it needs code. If we get there, publishing stays
-        a choice you make, never something that happens to your writing.
+        No. Your story is private and something you own entirely. If you wish to
+        share anything with your network, the app has sharing features which
+        allow you to export your story and share on your own terms.
       </>
     ),
   },
