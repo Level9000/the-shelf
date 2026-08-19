@@ -302,7 +302,7 @@ export function MarketingHome() {
             aria-hidden
             className="mx-auto mb-14 hidden h-auto w-full max-w-[190px] md:block"
           />
-          <div className="grid gap-12 md:grid-cols-2 md:items-center md:gap-14">
+          <div className="grid gap-3 md:grid-cols-2 md:items-center md:gap-14">
             <div>
               {/* Pinned on phones for the length of the runway below.
                   Crossfading on scroll alone wasn't enough: one flick covers
@@ -376,13 +376,42 @@ export function MarketingHome() {
               </div>
 
               {/* The runway the block above is pinned against. Its height is
-                  how much scroll the hero holds onto: the swap spends the
-                  first 190px of it, and the rest is the reader sitting with
-                  the second page instead of sailing past it. The film below is
-                  pushed down by exactly this much and rises into view as the
-                  runway is spent, which is the hero handing over rather than
-                  being skipped. */}
-              <div aria-hidden className="h-[380px] md:hidden" />
+                  how much scroll the hero holds onto: the swap spends the first
+                  190px of it (SWAP_DISTANCE.base in hero-copy.tsx), and the rest
+                  is the reader sitting with the second page instead of sailing
+                  past it. The film below is pushed down by exactly this much and
+                  rises into view as the runway is spent, which is the hero
+                  handing over rather than being skipped.
+
+                  190, down from 380, and sitting exactly on that floor. This is
+                  also the film's start position — the film sits at (copy bottom
+                  + this + the grid gap) — so at 380 it began 87px *below* the
+                  fold on a 375x812 screen and the hero opened on 341px of
+                  visible nothing, with no sign there was a phone to scroll to.
+
+                  What it costs is hold time, not the swap: the swap still
+                  completes in full, and what shrinks is the stretch after it
+                  where the second page is simply held. Raise this number to
+                  trade peek for hold. It cannot go lower — under 190 the swap
+                  would stop finishing before the pin lets go.
+
+                  The copy block above is ~431px tall on a phone, so the film's
+                  start lands at ~673px however this is tuned. That is enough to
+                  break the fold on a 375x812 screen (~139px of device showing)
+                  and on a modern handset with Safari's chrome taking its cut
+                  (~75px at 750px of visible height), but not on a 667pt screen
+                  like the SE, where 431px of copy leaves under 240px for
+                  everything else. That last one is geometry, not tuning: the
+                  only things that would buy it are shorter hero copy or a
+                  smaller wordmark.
+
+                  Not a negative margin on the film instead, which would have
+                  bought the peek without touching the pin: the film can only be
+                  pulled up by the grid gap before it starts rising *into* the
+                  pinned copy, and the copy has no background of its own on this
+                  dark band, so the text would sit over the device screen. 48px
+                  of pull was not enough to clear the fold anyway. */}
+              <div aria-hidden className="h-[190px] md:hidden" />
             </div>
 
             <IntroFilm />
